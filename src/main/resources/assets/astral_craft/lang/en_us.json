@@ -1,0 +1,13 @@
+{
+  "itemGroup.astral_craft": "Example Mod Tab",
+  "block.astral_craft.example_block": "Example Block",
+  "item.astral_craft.example_item": "Example Item",
+
+  "astral_craft.configuration.title": "Astral Craft Configs",
+  "astral_craft.configuration.section.astral_craft.common.toml": "Astral Craft Configs",
+  "astral_craft.configuration.section.astral_craft.common.toml.title": "Astral Craft Configs",
+  "astral_craft.configuration.items": "Item List",
+  "astral_craft.configuration.logDirtBlock": "Log Dirt Block",
+  "astral_craft.configuration.magicNumberIntroduction": "Magic Number Text",
+  "astral_craft.configuration.magicNumber": "Magic Number"
+}
