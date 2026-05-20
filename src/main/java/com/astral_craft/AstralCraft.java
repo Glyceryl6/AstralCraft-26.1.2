@@ -1,16 +1,27 @@
 package com.astral_craft;
 
+import com.astral_craft.common.registry.AstralBlocks;
+import com.astral_craft.common.registry.AstralTabs;
+import com.astral_craft.common.registry.AstralItems;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.ModContainer;
+
+import java.util.Locale;
 
 @Mod(AstralCraft.MOD_ID)
 public class AstralCraft {
 
     public static final String MOD_ID = "astral_craft";
 
-    public AstralCraft(IEventBus modEventBus, ModContainer modContainer) {
+    public AstralCraft(IEventBus modEventBus) {
+        AstralTabs.TABS.register(modEventBus);
+        AstralItems.ITEMS.register(modEventBus);
+        AstralBlocks.BLOCKS.register(modEventBus);
+    }
 
+    public static Identifier prefix(String name) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, name.toLowerCase(Locale.ROOT));
     }
 
 }
