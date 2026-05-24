@@ -2,7 +2,9 @@
     "required": true,
     "package": "com.astral_craft.mixin",
     "compatibilityLevel": "JAVA_25",
-    "mixins": [],
+    "mixins": [
+        "MixinCreativeModeInventoryScreen"
+    ],
     "injectors": {
         "defaultRequire": 1
     },
