@@ -1,0 +1,6 @@
+{
+  "parent": "astral_craft:block/template_platform",
+  "textures": {
+    "texture": "astral_craft:block/platform_lottery"
+  }
+}

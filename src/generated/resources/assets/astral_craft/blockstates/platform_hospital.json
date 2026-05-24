@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_hospital"
+      },
+      {
+        "model": "astral_craft:block/platform_hospital",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_hospital",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_hospital",
+        "y": 270
+      }
+    ]
+  }
+}

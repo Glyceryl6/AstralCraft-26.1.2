@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_destiny"
+      },
+      {
+        "model": "astral_craft:block/platform_destiny",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_destiny",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_destiny",
+        "y": 270
+      }
+    ]
+  }
+}

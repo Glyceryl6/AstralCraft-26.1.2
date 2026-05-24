@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_event"
+      },
+      {
+        "model": "astral_craft:block/platform_event",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_event",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_event",
+        "y": 270
+      }
+    ]
+  }
+}

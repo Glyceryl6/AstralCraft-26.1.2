@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_move_again"
+      },
+      {
+        "model": "astral_craft:block/platform_move_again",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_move_again",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_move_again",
+        "y": 270
+      }
+    ]
+  }
+}

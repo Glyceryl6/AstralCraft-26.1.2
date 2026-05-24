@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_teleport"
+      },
+      {
+        "model": "astral_craft:block/platform_teleport",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_teleport",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_teleport",
+        "y": 270
+      }
+    ]
+  }
+}

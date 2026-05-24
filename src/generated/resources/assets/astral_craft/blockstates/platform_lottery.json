@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_lottery"
+      },
+      {
+        "model": "astral_craft:block/platform_lottery",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_lottery",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_lottery",
+        "y": 270
+      }
+    ]
+  }
+}

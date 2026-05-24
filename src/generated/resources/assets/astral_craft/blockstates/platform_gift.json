@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_gift"
+      },
+      {
+        "model": "astral_craft:block/platform_gift",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_gift",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_gift",
+        "y": 270
+      }
+    ]
+  }
+}

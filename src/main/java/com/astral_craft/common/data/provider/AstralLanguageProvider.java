@@ -1,6 +1,7 @@
 package com.astral_craft.common.data.provider;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.registry.AstralBlocks;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.data.CachedOutput;
@@ -33,7 +34,28 @@ public class AstralLanguageProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-
+        this.addKey(AstralBlocks.PLATFORM_CANDY_GHOST, "Platform: Quirky Candy Machine", "地块：怪奇糖果机");
+        this.addKey(AstralBlocks.PLATFORM_CARD, "Platform: Card Bounce", "地块：卡牌奖励");
+        this.addKey(AstralBlocks.PLATFORM_DAMAGE, "Platform: Sudden Calamity", "地块：天降横祸");
+        this.addKey(AstralBlocks.PLATFORM_DESTINY, "Platform: Fortune", "地块：个人命运");
+        this.addKey(AstralBlocks.PLATFORM_DIVINE, "Platform: Divination", "地块：占卜");
+        this.addKey(AstralBlocks.PLATFORM_EVENT, "Platform: Event", "地块：全员事件");
+        this.addKey(AstralBlocks.PLATFORM_FIRE, "Platform: Cannon", "地块：炮台");
+        this.addKey(AstralBlocks.PLATFORM_GAMBLE, "Platform: Guessing", "地块：彩票");
+        this.addKey(AstralBlocks.PLATFORM_GIFT, "Platform: Gift", "地块：礼物");
+        this.addKey(AstralBlocks.PLATFORM_GIMMICK, "Platform: Gimmick", "地块：机关控制台");
+        this.addKey(AstralBlocks.PLATFORM_GOLD, "Platform: Windfall Hits", "地块：天降横财");
+        this.addKey(AstralBlocks.PLATFORM_HEAL, "Platform: Recover", "地块：恢复");
+        this.addKey(AstralBlocks.PLATFORM_HOSPITAL, "Platform: Hospital", "地块：");
+        this.addKey(AstralBlocks.PLATFORM_JUMP, "Platform: Jump", "地块：医院");
+        this.addKey(AstralBlocks.PLATFORM_LOTTERY, "Platform: Lottery", "地块：猜猜乐");
+        this.addKey(AstralBlocks.PLATFORM_MONSTER, "Platform: Monster", "地块：怪物");
+        this.addKey(AstralBlocks.PLATFORM_MOVE_AGAIN, "Platform: Haste", "地块：疾行");
+        this.addKey(AstralBlocks.PLATFORM_RELIC, "Platform: Chip Shop", "地块：");
+        this.addKey(AstralBlocks.PLATFORM_SHOP, "Platform: Shop", "地块：商店");
+        this.addKey(AstralBlocks.PLATFORM_START, "Platform: Check Point", "地块：起始点");
+        this.addKey(AstralBlocks.PLATFORM_TELEPORT, "Platform: Portal", "地块：传送门");
+        this.addKey(AstralBlocks.PLATFORM_TELEPORT_POINT, "Platform: Assault", "地块：突击门");
     }
 
     @Override
@@ -75,6 +97,16 @@ public class AstralLanguageProvider extends LanguageProvider {
         }
 
         return String.join(" ", words);
+    }
+
+    private void addKey(DeferredHolder<?, ?> key, String en, String cn) {
+        try {
+            Class<?> clazz = key.get().getClass();
+            Method method = clazz.getMethod("getDescriptionId");
+            if (method.invoke(key.get()) instanceof String id) {
+                this.add(id, en, cn);
+            }
+        } catch (Exception ignored) {}
     }
 
     private void addKey(DeferredHolder<?, ?> key, String cn) {

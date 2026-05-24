@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_gold"
+      },
+      {
+        "model": "astral_craft:block/platform_gold",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_gold",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_gold",
+        "y": 270
+      }
+    ]
+  }
+}

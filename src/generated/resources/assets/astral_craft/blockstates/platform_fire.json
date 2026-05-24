@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_fire"
+      },
+      {
+        "model": "astral_craft:block/platform_fire",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_fire",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_fire",
+        "y": 270
+      }
+    ]
+  }
+}

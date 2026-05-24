@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_damage"
+      },
+      {
+        "model": "astral_craft:block/platform_damage",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_damage",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_damage",
+        "y": 270
+      }
+    ]
+  }
+}

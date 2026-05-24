@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_divine"
+      },
+      {
+        "model": "astral_craft:block/platform_divine",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_divine",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_divine",
+        "y": 270
+      }
+    ]
+  }
+}

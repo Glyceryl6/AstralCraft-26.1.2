@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "astral_craft:block/platform_gimmick"
+      },
+      {
+        "model": "astral_craft:block/platform_gimmick",
+        "y": 90
+      },
+      {
+        "model": "astral_craft:block/platform_gimmick",
+        "y": 180
+      },
+      {
+        "model": "astral_craft:block/platform_gimmick",
+        "y": 270
+      }
+    ]
+  }
+}
