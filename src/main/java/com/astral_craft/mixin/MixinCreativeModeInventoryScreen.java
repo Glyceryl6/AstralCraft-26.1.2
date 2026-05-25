@@ -21,9 +21,9 @@ public class MixinCreativeModeInventoryScreen {
             GuiGraphicsExtractor graphics, int mouseX, int mouseY, CreativeModeTab tab, CallbackInfo ci,
             @Local(name = "iconX") int iconX, @Local(name = "iconY") int iconY) {
         if (tab == AstralTabs.NORMAL_TAB.get()) {
-            final int size = 16;
+            final int size = 24;
             final Identifier location = AstralCraft.prefix("textures/gui/astral_craft_logo.png");
-            graphics.blit(RenderPipelines.GUI_TEXTURED, location, iconX, iconY, 0.0F, 0.0F, size, size, size, size);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, location, iconX - 4, iconY - 4, 0.0F, 0.0F, size, size, size, size);
             ci.cancel();
         }
     }
