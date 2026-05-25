@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_lottery"
-      },
-      {
-        "model": "astral_craft:block/platform_lottery",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_lottery",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_lottery",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_lottery",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_lottery",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_lottery"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_lottery",
+      "y": 90
+    }
   }
 }

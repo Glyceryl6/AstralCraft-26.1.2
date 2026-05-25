@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_gold"
-      },
-      {
-        "model": "astral_craft:block/platform_gold",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_gold",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_gold",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_gold",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_gold",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_gold"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_gold",
+      "y": 90
+    }
   }
 }

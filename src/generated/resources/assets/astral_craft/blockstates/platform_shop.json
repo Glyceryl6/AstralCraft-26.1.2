@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_shop"
-      },
-      {
-        "model": "astral_craft:block/platform_shop",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_shop",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_shop",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_shop",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_shop",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_shop"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_shop",
+      "y": 90
+    }
   }
 }

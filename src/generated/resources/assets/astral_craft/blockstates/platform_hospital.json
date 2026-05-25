@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_hospital"
-      },
-      {
-        "model": "astral_craft:block/platform_hospital",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_hospital",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_hospital",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_hospital",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_hospital",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_hospital"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_hospital",
+      "y": 90
+    }
   }
 }

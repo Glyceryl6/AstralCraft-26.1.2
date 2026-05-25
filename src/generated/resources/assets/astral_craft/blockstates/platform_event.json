@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_event"
-      },
-      {
-        "model": "astral_craft:block/platform_event",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_event",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_event",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_event",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_event",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_event"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_event",
+      "y": 90
+    }
   }
 }

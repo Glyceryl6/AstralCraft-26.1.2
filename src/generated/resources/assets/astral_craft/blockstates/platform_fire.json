@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_fire"
-      },
-      {
-        "model": "astral_craft:block/platform_fire",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_fire",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_fire",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_fire",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_fire",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_fire"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_fire",
+      "y": 90
+    }
   }
 }

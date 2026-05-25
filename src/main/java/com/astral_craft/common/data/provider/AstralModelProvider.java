@@ -7,10 +7,11 @@ import com.astral_craft.common.registry.AstralBlocks;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
-import net.minecraft.client.data.models.blockstates.MultiVariantGenerator;
-import net.minecraft.client.renderer.block.dispatch.Variant;
+import net.minecraft.client.data.models.MultiVariant;
 import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.registries.DeferredHolder;
+
+import static net.minecraft.client.data.models.BlockModelGenerators.*;
 
 public class AstralModelProvider extends ModelProvider {
 
@@ -21,9 +22,9 @@ public class AstralModelProvider extends ModelProvider {
     @Override
     protected void registerModels(BlockModelGenerators blockModels, ItemModelGenerators itemModels) {
         AstralBlocks.BLOCKS.getEntries().stream().map(DeferredHolder::get).filter(block -> block instanceof BasePlatform).forEach(block -> {
-            Variant blockModel = BlockModelGenerators.plainModel(AstralTexturedModel.PLATFORM.get(block).create(block, blockModels.modelOutput));
+            MultiVariant model = plainVariant(AstralTexturedModel.PLATFORM.get(block).create(block, blockModels.modelOutput));
             blockModels.registerSimpleItemModel(block, blockModels.createFlatItemModelWithBlockTexture(block.asItem(), block));
-            blockModels.blockStateOutput.accept(MultiVariantGenerator.dispatch(block, BlockModelGenerators.createRotatedVariants(blockModel)));
+            blockModels.blockStateOutput.accept(createSimpleBlock(block, model).with(ROTATION_HORIZONTAL_FACING_ALT));
         });
     }
 

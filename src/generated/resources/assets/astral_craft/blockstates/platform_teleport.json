@@ -1,21 +1,19 @@
 {
   "variants": {
-    "": [
-      {
-        "model": "astral_craft:block/platform_teleport"
-      },
-      {
-        "model": "astral_craft:block/platform_teleport",
-        "y": 90
-      },
-      {
-        "model": "astral_craft:block/platform_teleport",
-        "y": 180
-      },
-      {
-        "model": "astral_craft:block/platform_teleport",
-        "y": 270
-      }
-    ]
+    "facing=east": {
+      "model": "astral_craft:block/platform_teleport",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_teleport",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_teleport"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_teleport",
+      "y": 90
+    }
   }
 }
