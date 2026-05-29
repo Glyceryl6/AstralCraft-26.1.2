@@ -46,12 +46,12 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralBlocks.PLATFORM_GIMMICK, "Platform: Gimmick", "地块：机关控制台");
         this.addKey(AstralBlocks.PLATFORM_GOLD, "Platform: Windfall Hits", "地块：天降横财");
         this.addKey(AstralBlocks.PLATFORM_HEAL, "Platform: Recover", "地块：恢复");
-        this.addKey(AstralBlocks.PLATFORM_HOSPITAL, "Platform: Hospital", "地块：");
-        this.addKey(AstralBlocks.PLATFORM_JUMP, "Platform: Jump", "地块：医院");
+        this.addKey(AstralBlocks.PLATFORM_HOSPITAL, "Platform: Hospital", "地块：医院");
+        this.addKey(AstralBlocks.PLATFORM_JUMP, "Platform: Jump", "地块：跳跃");
         this.addKey(AstralBlocks.PLATFORM_LOTTERY, "Platform: Lottery", "地块：猜猜乐");
         this.addKey(AstralBlocks.PLATFORM_MONSTER, "Platform: Monster", "地块：怪物");
         this.addKey(AstralBlocks.PLATFORM_MOVE_AGAIN, "Platform: Haste", "地块：疾行");
-        this.addKey(AstralBlocks.PLATFORM_RELIC, "Platform: Chip Shop", "地块：");
+        this.addKey(AstralBlocks.PLATFORM_RELIC, "Platform: Chip Shop", "地块：筹码商店");
         this.addKey(AstralBlocks.PLATFORM_SHOP, "Platform: Shop", "地块：商店");
         this.addKey(AstralBlocks.PLATFORM_START, "Platform: Check Point", "地块：起始点");
         this.addKey(AstralBlocks.PLATFORM_TELEPORT, "Platform: Portal", "地块：传送门");
