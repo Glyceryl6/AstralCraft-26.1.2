@@ -6,8 +6,9 @@ version="${mod_version}"
 displayName="${mod_name}"
 logoFile="astral_craft_logo.png"
 #credits=""
-#authors=""
+authors="Glyceryl6"
 description='''
+Bring some gameplay of Astral Party to Minecraft.
 '''
 
 [[mixins]]
