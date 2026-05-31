@@ -1,6 +1,7 @@
 package com.astral_craft;
 
 import com.astral_craft.common.registry.AstralBlocks;
+import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralTabs;
 import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.resources.Identifier;
@@ -18,6 +19,7 @@ public class AstralCraft {
         AstralTabs.TABS.register(modEventBus);
         AstralItems.ITEMS.register(modEventBus);
         AstralBlocks.BLOCKS.register(modEventBus);
+        AstralDataComponents.DATA_COMPONENT_TYPE.register(modEventBus);
     }
 
     public static Identifier prefix(String name) {

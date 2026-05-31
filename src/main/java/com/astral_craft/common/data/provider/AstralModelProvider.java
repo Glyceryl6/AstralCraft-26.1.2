@@ -3,11 +3,14 @@ package com.astral_craft.common.data.provider;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.data.model.AstralTexturedModel;
+import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralBlocks;
+import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
 import net.minecraft.client.data.models.MultiVariant;
+import net.minecraft.client.data.models.model.ModelTemplates;
 import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
@@ -21,6 +24,8 @@ public class AstralModelProvider extends ModelProvider {
 
     @Override
     protected void registerModels(BlockModelGenerators blockModels, ItemModelGenerators itemModels) {
+        AstralItems.ITEMS.getEntries().stream().map(DeferredHolder::get).filter(item -> item instanceof BaseHandCard)
+                .forEach(item -> itemModels.generateFlatItem(item, ModelTemplates.FLAT_ITEM));
         AstralBlocks.BLOCKS.getEntries().stream().map(DeferredHolder::get).filter(block -> block instanceof BasePlatform).forEach(block -> {
             MultiVariant model = plainVariant(AstralTexturedModel.PLATFORM.get(block).create(block, blockModels.modelOutput));
             blockModels.registerSimpleItemModel(block, blockModels.createFlatItemModelWithBlockTexture(block.asItem(), block));
