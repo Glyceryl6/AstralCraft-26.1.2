@@ -21,10 +21,9 @@ public class BaseHandCard extends Item {
 
     @Override
     public void appendHoverText(ItemStack itemStack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag tooltipFlag) {
-        CardType cardType = itemStack.get(AstralDataComponents.CARD_TYPE);
-        if (cardType == null) return;
+        CardType cardType = itemStack.getOrDefault(AstralDataComponents.CARD_TYPE, CardType.ATTACK);
         String key = String.format("tooltips.astral_craft.handcard.card_type.%s", cardType.getSerializedName());
-        builder.accept(Component.translatable(key).withColor(cardType.getColor()).withStyle(ChatFormatting.BOLD));
+        builder.accept(Component.translatable(key).withColor(cardType.color).withStyle(ChatFormatting.BOLD));
         MutableComponent component = Component.translatable(this.descriptionId.replaceFirst("item", "tooltips"));
         for (String line : component.getString().split("[\\n|]")) {
             builder.accept(Component.literal(line.trim()));

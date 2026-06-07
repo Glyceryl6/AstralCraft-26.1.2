@@ -12,12 +12,13 @@ public enum CardType implements StringRepresentable {
     DEFENSE("defense", 0x00fdfe),
     EFFECT("effect", 0xd1fe00),
     COUNTER("counter", 0xff00e9),
-    JINX("jinx", 0x00d5a1);
+    JINX("jinx", 0x00d5a1),
+    EVENT("event", 0xfedd00);
 
     public static final Codec<CardType> CODEC = StringRepresentable.fromEnum(CardType::values);
     public static final StreamCodec<ByteBuf, CardType> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
-    private final String name;
-    private final int color;
+    public final String name;
+    public final int color;
 
     CardType(String name, int color) {
         this.name = name;
@@ -27,10 +28,6 @@ public enum CardType implements StringRepresentable {
     @Override
     public String getSerializedName() {
         return this.name;
-    }
-
-    public int getColor() {
-        return this.color;
     }
 
 }

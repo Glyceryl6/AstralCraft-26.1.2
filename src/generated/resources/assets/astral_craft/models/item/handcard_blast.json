@@ -1,6 +1,7 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "astral_craft:item/template_handcard",
   "textures": {
-    "layer0": "astral_craft:item/handcard_blast"
+    "frame": "astral_craft:item/template_handcard_effect",
+    "icon": "astral_craft:item/handcard_blast"
   }
 }

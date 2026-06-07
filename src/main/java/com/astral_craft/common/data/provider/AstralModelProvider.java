@@ -2,16 +2,22 @@ package com.astral_craft.common.data.provider;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
+import com.astral_craft.common.data.model.AstralModelTemplates;
+import com.astral_craft.common.data.model.AstralTextureSlot;
 import com.astral_craft.common.data.model.AstralTexturedModel;
-import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralBlocks;
 import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
 import net.minecraft.client.data.models.MultiVariant;
-import net.minecraft.client.data.models.model.ModelTemplates;
+import net.minecraft.client.data.models.model.ItemModelUtils;
+import net.minecraft.client.data.models.model.ModelLocationUtils;
+import net.minecraft.client.data.models.model.TextureMapping;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.data.PackOutput;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
 import static net.minecraft.client.data.models.BlockModelGenerators.*;
@@ -24,8 +30,16 @@ public class AstralModelProvider extends ModelProvider {
 
     @Override
     protected void registerModels(BlockModelGenerators blockModels, ItemModelGenerators itemModels) {
-        AstralItems.ITEMS.getEntries().stream().map(DeferredHolder::get).filter(item -> item instanceof BaseHandCard)
-                .forEach(item -> itemModels.generateFlatItem(item, ModelTemplates.FLAT_ITEM));
+        AstralItems.MODELLED_CARD_ITEMS.forEach(modelledCardItem -> {
+            Item item = modelledCardItem.item().get();
+            String name = modelledCardItem.cardType().name;
+            Material frame = new Material(AstralCraft.prefix("item/template_handcard_").withSuffix(name));
+            TextureMapping mapping = (new TextureMapping()).put(AstralTextureSlot.FRAME, frame)
+                    .put(AstralTextureSlot.ICON, new Material(ModelLocationUtils.getModelLocation(item)));
+            Identifier identifier = AstralModelTemplates.HANDCARD.create(item, mapping, itemModels.modelOutput);
+            itemModels.itemModelOutput.accept(item, ItemModelUtils.plainModel(identifier));
+        });
+
         AstralBlocks.BLOCKS.getEntries().stream().map(DeferredHolder::get).filter(block -> block instanceof BasePlatform).forEach(block -> {
             MultiVariant model = plainVariant(AstralTexturedModel.PLATFORM.get(block).create(block, blockModels.modelOutput));
             blockModels.registerSimpleItemModel(block, blockModels.createFlatItemModelWithBlockTexture(block.asItem(), block));

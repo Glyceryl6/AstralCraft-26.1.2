@@ -99,7 +99,7 @@
   "tooltips.astral_craft.handcard_barrier": "被效果牌指定时可以使用，无效该效果。",
   "tooltips.astral_craft.handcard_berserk": "指定10格内的角色使用，攻击力+3，受到伤害+1，持续2回合。",
   "tooltips.astral_craft.handcard_bite": "获得1层§9【觉醒】§r，本回合根据§9【觉醒】§r层数最多增加4点攻击力，本次攻击无法被反击。",
-  "tooltips.astral_craft.handcard_blast": "对自身造成3伤害，对5格内的敌方角色造成5伤害。",
+  "tooltips.astral_craft.handcard_blast": "指定6格内的一个怪物，对目标及附近2格内的所有怪物造成4点伤害。",
   "tooltips.astral_craft.handcard_both_have": "指定一个友方角色，自身和目标各获得1张卡牌。",
   "tooltips.astral_craft.handcard_brick": "指定3格内的敌方角色，造成5点伤害。",
   "tooltips.astral_craft.handcard_charge": "攻击力+5，添加一张全力攻击到手牌中。",
