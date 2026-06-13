@@ -2,6 +2,7 @@ package com.astral_craft.common.event;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
+import com.astral_craft.common.gameplay.SoulLinkManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
@@ -11,6 +12,7 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 import java.util.List;
 
@@ -30,6 +32,11 @@ public class CommonEventSubscriber {
                 tooltip.add(Component.translatable(descriptionId).withStyle(ChatFormatting.YELLOW));
             }
         }
+    }
+
+    @SubscribeEvent
+    public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
+        SoulLinkManager.onDamagePre(event);
     }
 
 }

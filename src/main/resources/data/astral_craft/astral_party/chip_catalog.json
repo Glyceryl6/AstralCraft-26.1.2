@@ -1,0 +1,224 @@
+{
+  "chips": [
+    {
+      "id": "boxing_gloves_basic",
+      "rarity": "blue",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.boxing_gloves_basic",
+      "effectKey": "chip.astral_craft.boxing_gloves_basic.desc",
+      "stats": {
+        "attack": 1
+      }
+    },
+    {
+      "id": "boxing_gloves_fair",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.boxing_gloves_fair",
+      "effectKey": "chip.astral_craft.boxing_gloves_fair.desc",
+      "stats": {
+        "attack": 2
+      }
+    },
+    {
+      "id": "boxing_gloves_excellent",
+      "rarity": "gold",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.boxing_gloves_excellent",
+      "effectKey": "chip.astral_craft.boxing_gloves_excellent.desc",
+      "stats": {
+        "attack": 5
+      }
+    },
+    {
+      "id": "motorcycle_helmet_regular",
+      "rarity": "blue",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.motorcycle_helmet_regular",
+      "effectKey": "chip.astral_craft.motorcycle_helmet_regular.desc",
+      "stats": {
+        "defense": 1
+      }
+    },
+    {
+      "id": "motorcycle_helmet_fair",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.motorcycle_helmet_fair",
+      "effectKey": "chip.astral_craft.motorcycle_helmet_fair.desc",
+      "stats": {
+        "defense": 2
+      }
+    },
+    {
+      "id": "motorcycle_helmet_excellent",
+      "rarity": "gold",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.motorcycle_helmet_excellent",
+      "effectKey": "chip.astral_craft.motorcycle_helmet_excellent.desc",
+      "stats": {
+        "defense": 3
+      }
+    },
+    {
+      "id": "sandwich_cookie_regular",
+      "rarity": "blue",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.sandwich_cookie_regular",
+      "effectKey": "chip.astral_craft.sandwich_cookie_regular.desc",
+      "stats": {
+        "maxHealth": 2,
+        "health": 2
+      }
+    },
+    {
+      "id": "sandwich_cookie_tasty",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.sandwich_cookie_tasty",
+      "effectKey": "chip.astral_craft.sandwich_cookie_tasty.desc",
+      "stats": {
+        "maxHealth": 3,
+        "health": 3
+      }
+    },
+    {
+      "id": "sandwich_cookie_delicious",
+      "rarity": "gold",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.sandwich_cookie_delicious",
+      "effectKey": "chip.astral_craft.sandwich_cookie_delicious.desc",
+      "stats": {
+        "maxHealth": 5,
+        "health": 5
+      }
+    },
+    {
+      "id": "speed_skates_basic",
+      "rarity": "blue",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.speed_skates_basic",
+      "effectKey": "chip.astral_craft.speed_skates_basic.desc",
+      "stats": {
+        "speed": 1
+      }
+    },
+    {
+      "id": "speed_skates_fair",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.speed_skates_fair",
+      "effectKey": "chip.astral_craft.speed_skates_fair.desc",
+      "stats": {
+        "speed": 2
+      }
+    },
+    {
+      "id": "speed_skates_excellent",
+      "rarity": "gold",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.speed_skates_excellent",
+      "effectKey": "chip.astral_craft.speed_skates_excellent.desc",
+      "stats": {
+        "speed": 4
+      }
+    },
+    {
+      "id": "large_backpack",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.large_backpack",
+      "effectKey": "chip.astral_craft.large_backpack.desc",
+      "stats": {
+        "cardPlays": 1
+      }
+    },
+    {
+      "id": "extra_battery",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.extra_battery",
+      "effectKey": "chip.astral_craft.extra_battery.desc",
+      "stats": {
+        "skillCooldownReduction": 1
+      }
+    },
+    {
+      "id": "smartwatch",
+      "rarity": "purple",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.smartwatch",
+      "effectKey": "chip.astral_craft.smartwatch.desc",
+      "stats": {}
+    },
+    {
+      "id": "piggy_bank",
+      "rarity": "blue",
+      "keyword": null,
+      "nameKey": "chip.astral_craft.piggy_bank",
+      "effectKey": "chip.astral_craft.piggy_bank.desc",
+      "stats": {}
+    },
+    {
+      "id": "bank_card_low",
+      "rarity": "blue",
+      "keyword": "starlight",
+      "nameKey": "chip.astral_craft.bank_card_low",
+      "effectKey": "chip.astral_craft.bank_card_low.desc",
+      "stats": {
+        "starlightStacks": 4
+      }
+    },
+    {
+      "id": "bank_card_high",
+      "rarity": "purple",
+      "keyword": "starlight",
+      "nameKey": "chip.astral_craft.bank_card_high",
+      "effectKey": "chip.astral_craft.bank_card_high.desc",
+      "stats": {
+        "starlightStacks": 7
+      }
+    },
+    {
+      "id": "medical_kit_emergency",
+      "rarity": "blue",
+      "keyword": "heal",
+      "nameKey": "chip.astral_craft.medical_kit_emergency",
+      "effectKey": "chip.astral_craft.medical_kit_emergency.desc",
+      "stats": {
+        "healStacks": 1
+      }
+    },
+    {
+      "id": "medical_kit_full",
+      "rarity": "gold",
+      "keyword": "heal",
+      "nameKey": "chip.astral_craft.medical_kit_full",
+      "effectKey": "chip.astral_craft.medical_kit_full.desc",
+      "stats": {
+        "healStacks": 3
+      }
+    },
+    {
+      "id": "marking_spray",
+      "rarity": "blue",
+      "keyword": "mark",
+      "nameKey": "chip.astral_craft.marking_spray",
+      "effectKey": "chip.astral_craft.marking_spray.desc",
+      "stats": {
+        "markStacks": 1
+      }
+    },
+    {
+      "id": "standard_sight",
+      "rarity": "purple",
+      "keyword": "mark",
+      "nameKey": "chip.astral_craft.standard_sight",
+      "effectKey": "chip.astral_craft.standard_sight.desc",
+      "stats": {
+        "attack": 2,
+        "markStacks": 1
+      }
+    }
+  ]
+}

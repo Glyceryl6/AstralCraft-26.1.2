@@ -1,0 +1,571 @@
+{
+  "cards": [
+    {
+      "id": "handcard_attack_m",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_attack_m",
+      "effectKey": "tooltips.astral_craft.handcard_attack_m"
+    },
+    {
+      "id": "handcard_attack_l",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_attack_l",
+      "effectKey": "tooltips.astral_craft.handcard_attack_l"
+    },
+    {
+      "id": "handcard_attack_g",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_attack_g",
+      "effectKey": "tooltips.astral_craft.handcard_attack_g"
+    },
+    {
+      "id": "handcard_defense_m",
+      "type": "defense",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_defense_m",
+      "effectKey": "tooltips.astral_craft.handcard_defense_m"
+    },
+    {
+      "id": "handcard_defense_l",
+      "type": "defense",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_defense_l",
+      "effectKey": "tooltips.astral_craft.handcard_defense_l"
+    },
+    {
+      "id": "handcard_defense_g",
+      "type": "defense",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_defense_g",
+      "effectKey": "tooltips.astral_craft.handcard_defense_g"
+    },
+    {
+      "id": "handcard_chocolate_cake",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_chocolate_cake",
+      "effectKey": "tooltips.astral_craft.handcard_chocolate_cake"
+    },
+    {
+      "id": "handcard_smart_dice",
+      "type": "effect",
+      "targetMode": "choice",
+      "range": 6,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_smart_dice",
+      "effectKey": "tooltips.astral_craft.handcard_smart_dice"
+    },
+    {
+      "id": "handcard_fight_fire_with_fire",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_fight_fire_with_fire",
+      "effectKey": "tooltips.astral_craft.handcard_fight_fire_with_fire"
+    },
+    {
+      "id": "handcard_berserk",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": 10,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_berserk",
+      "effectKey": "tooltips.astral_craft.handcard_berserk"
+    },
+    {
+      "id": "handcard_barricade",
+      "type": "effect",
+      "targetMode": "panel",
+      "range": 10,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_barricade",
+      "effectKey": "tooltips.astral_craft.handcard_barricade"
+    },
+    {
+      "id": "handcard_redirection",
+      "type": "effect",
+      "targetMode": "choice",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_redirection",
+      "effectKey": "tooltips.astral_craft.handcard_redirection"
+    },
+    {
+      "id": "handcard_hamburger",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_hamburger",
+      "effectKey": "tooltips.astral_craft.handcard_hamburger"
+    },
+    {
+      "id": "handcard_laser",
+      "type": "effect",
+      "targetMode": "enemy_player",
+      "range": 6,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_laser",
+      "effectKey": "tooltips.astral_craft.handcard_laser"
+    },
+    {
+      "id": "handcard_barrier",
+      "type": "counter",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_barrier",
+      "effectKey": "tooltips.astral_craft.handcard_barrier"
+    },
+    {
+      "id": "handcard_entrapment",
+      "type": "effect",
+      "targetMode": "panel",
+      "range": 3,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_entrapment",
+      "effectKey": "tooltips.astral_craft.handcard_entrapment"
+    },
+    {
+      "id": "handcard_soul_link",
+      "type": "effect",
+      "targetMode": "two_players",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_soul_link",
+      "effectKey": "tooltips.astral_craft.handcard_soul_link"
+    },
+    {
+      "id": "handcard_self_explosion",
+      "type": "effect",
+      "targetMode": "self",
+      "range": 5,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_self_explosion",
+      "effectKey": "tooltips.astral_craft.handcard_self_explosion"
+    },
+    {
+      "id": "handcard_slingshot",
+      "type": "effect",
+      "targetMode": "enemy_player",
+      "range": 10,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_slingshot",
+      "effectKey": "tooltips.astral_craft.handcard_slingshot"
+    },
+    {
+      "id": "handcard_brick",
+      "type": "effect",
+      "targetMode": "enemy_player",
+      "range": 3,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_brick",
+      "effectKey": "tooltips.astral_craft.handcard_brick"
+    },
+    {
+      "id": "handcard_eye_for_an_eye",
+      "type": "counter",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_eye_for_an_eye",
+      "effectKey": "tooltips.astral_craft.handcard_eye_for_an_eye"
+    },
+    {
+      "id": "handcard_random_select",
+      "type": "counter",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_random_select",
+      "effectKey": "tooltips.astral_craft.handcard_random_select"
+    },
+    {
+      "id": "handcard_demolition",
+      "type": "effect",
+      "targetMode": "panel",
+      "range": 3,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_demolition",
+      "effectKey": "tooltips.astral_craft.handcard_demolition"
+    },
+    {
+      "id": "handcard_expired_bento",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": 6,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_expired_bento",
+      "effectKey": "tooltips.astral_craft.handcard_expired_bento"
+    },
+    {
+      "id": "handcard_all_or_nothing",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_all_or_nothing",
+      "effectKey": "tooltips.astral_craft.handcard_all_or_nothing"
+    },
+    {
+      "id": "handcard_time_bomb",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_time_bomb",
+      "effectKey": "tooltips.astral_craft.handcard_time_bomb"
+    },
+    {
+      "id": "handcard_snatch",
+      "type": "effect",
+      "targetMode": "enemy_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_snatch",
+      "effectKey": "tooltips.astral_craft.handcard_snatch"
+    },
+    {
+      "id": "handcard_scavenging",
+      "type": "effect",
+      "targetMode": "panel",
+      "range": 3,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_scavenging",
+      "effectKey": "tooltips.astral_craft.handcard_scavenging"
+    },
+    {
+      "id": "handcard_random_portal",
+      "type": "effect",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_random_portal",
+      "effectKey": "tooltips.astral_craft.handcard_random_portal"
+    },
+    {
+      "id": "handcard_snowball_attack",
+      "type": "effect",
+      "targetMode": "enemy_player",
+      "range": 9,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_snowball_attack",
+      "effectKey": "tooltips.astral_craft.handcard_snowball_attack"
+    },
+    {
+      "id": "handcard_directed_boost",
+      "type": "effect",
+      "targetMode": "choice",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_directed_boost",
+      "effectKey": "tooltips.astral_craft.handcard_directed_boost"
+    },
+    {
+      "id": "handcard_fortune",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_fortune",
+      "effectKey": "tooltips.astral_craft.handcard_fortune"
+    },
+    {
+      "id": "handcard_misfortune",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": 10,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_misfortune",
+      "effectKey": "tooltips.astral_craft.handcard_misfortune"
+    },
+    {
+      "id": "handcard_living_book",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": 5,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_living_book",
+      "effectKey": "tooltips.astral_craft.handcard_living_book"
+    },
+    {
+      "id": "handcard_gawu_cut",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_gawu_cut",
+      "effectKey": "tooltips.astral_craft.handcard_gawu_cut"
+    },
+    {
+      "id": "handcard_shadow_attack",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_shadow_attack",
+      "effectKey": "tooltips.astral_craft.handcard_shadow_attack"
+    },
+    {
+      "id": "handcard_charge",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_charge",
+      "effectKey": "tooltips.astral_craft.handcard_charge"
+    },
+    {
+      "id": "handcard_poison_fang",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_poison_fang",
+      "effectKey": "tooltips.astral_craft.handcard_poison_fang"
+    },
+    {
+      "id": "handcard_bite",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_bite",
+      "effectKey": "tooltips.astral_craft.handcard_bite"
+    },
+    {
+      "id": "handcard_dragon_roar",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_dragon_roar",
+      "effectKey": "tooltips.astral_craft.handcard_dragon_roar"
+    },
+    {
+      "id": "handcard_fate_guidance",
+      "type": "effect",
+      "targetMode": "choice",
+      "range": 6,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_fate_guidance",
+      "effectKey": "tooltips.astral_craft.handcard_fate_guidance"
+    },
+    {
+      "id": "handcard_enhanced_barricade",
+      "type": "effect",
+      "targetMode": "panel",
+      "range": 10,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_enhanced_barricade",
+      "effectKey": "tooltips.astral_craft.handcard_enhanced_barricade"
+    },
+    {
+      "id": "handcard_railgun",
+      "type": "effect",
+      "targetMode": "monster",
+      "range": 5,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_railgun",
+      "effectKey": "tooltips.astral_craft.handcard_railgun"
+    },
+    {
+      "id": "handcard_both_have",
+      "type": "effect",
+      "targetMode": "ally",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_both_have",
+      "effectKey": "tooltips.astral_craft.handcard_both_have"
+    },
+    {
+      "id": "handcard_hurry",
+      "type": "effect",
+      "targetMode": "ally",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_hurry",
+      "effectKey": "tooltips.astral_craft.handcard_hurry"
+    },
+    {
+      "id": "handcard_king_power",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_king_power",
+      "effectKey": "tooltips.astral_craft.handcard_king_power"
+    },
+    {
+      "id": "handcard_immovable",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_immovable",
+      "effectKey": "tooltips.astral_craft.handcard_immovable"
+    },
+    {
+      "id": "handcard_luxurious_feast",
+      "type": "effect",
+      "targetMode": "ally",
+      "range": 3,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_luxurious_feast",
+      "effectKey": "tooltips.astral_craft.handcard_luxurious_feast"
+    },
+    {
+      "id": "handcard_blast",
+      "type": "effect",
+      "targetMode": "monster",
+      "range": 6,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_blast",
+      "effectKey": "tooltips.astral_craft.handcard_blast"
+    },
+    {
+      "id": "handcard_support",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_support",
+      "effectKey": "tooltips.astral_craft.handcard_support"
+    },
+    {
+      "id": "handcard_firecrackers",
+      "type": "effect",
+      "targetMode": "monster",
+      "range": 10,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_firecrackers",
+      "effectKey": "tooltips.astral_craft.handcard_firecrackers"
+    },
+    {
+      "id": "handcard_problem_student",
+      "type": "jinx",
+      "targetMode": "ally",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_problem_student",
+      "effectKey": "tooltips.astral_craft.handcard_problem_student"
+    },
+    {
+      "id": "handcard_support_gum",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_support_gum",
+      "effectKey": "tooltips.astral_craft.handcard_support_gum"
+    },
+    {
+      "id": "handcard_energy_bar",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_energy_bar",
+      "effectKey": "tooltips.astral_craft.handcard_energy_bar"
+    },
+    {
+      "id": "handcard_smartie_gummy",
+      "type": "effect",
+      "targetMode": "any_player",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_smartie_gummy",
+      "effectKey": "tooltips.astral_craft.handcard_smartie_gummy"
+    },
+    {
+      "id": "handcard_quirky_enchanted",
+      "type": "effect",
+      "targetMode": "choice",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_quirky_enchanted",
+      "effectKey": "tooltips.astral_craft.handcard_quirky_enchanted"
+    },
+    {
+      "id": "handcard_release_azure_soul",
+      "type": "effect",
+      "targetMode": "monster",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_release_azure_soul",
+      "effectKey": "tooltips.astral_craft.handcard_release_azure_soul"
+    },
+    {
+      "id": "handcard_release_scarlet_soul",
+      "type": "effect",
+      "targetMode": "monster",
+      "range": 6,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_release_scarlet_soul",
+      "effectKey": "tooltips.astral_craft.handcard_release_scarlet_soul"
+    },
+    {
+      "id": "handcard_colourful_feather",
+      "type": "effect",
+      "targetMode": "panel",
+      "range": 5,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_colourful_feather",
+      "effectKey": "tooltips.astral_craft.handcard_colourful_feather"
+    },
+    {
+      "id": "handcard_cheer_up",
+      "type": "effect",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_cheer_up",
+      "effectKey": "tooltips.astral_craft.handcard_cheer_up"
+    },
+    {
+      "id": "handcard_ashen_feather",
+      "type": "jinx",
+      "targetMode": "panel",
+      "range": 5,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_ashen_feather",
+      "effectKey": "tooltips.astral_craft.handcard_ashen_feather"
+    },
+    {
+      "id": "handcard_overflowing_fortune",
+      "type": "effect",
+      "targetMode": "self",
+      "range": -1,
+      "combatOnly": false,
+      "nameKey": "item.astral_craft.handcard_overflowing_fortune",
+      "effectKey": "tooltips.astral_craft.handcard_overflowing_fortune"
+    },
+    {
+      "id": "handcard_powerful_attack",
+      "type": "attack",
+      "targetMode": "none",
+      "range": -1,
+      "combatOnly": true,
+      "nameKey": "item.astral_craft.handcard_powerful_attack",
+      "effectKey": "tooltips.astral_craft.handcard_powerful_attack"
+    }
+  ]
+}
