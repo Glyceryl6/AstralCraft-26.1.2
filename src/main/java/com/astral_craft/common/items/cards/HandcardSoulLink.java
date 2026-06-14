@@ -14,11 +14,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardSoulLink extends BaseHandCard {
-
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_soul_link", CardType.EFFECT, CardTargetMode.TWO_PLAYERS, 32, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_soul_link", CardType.EFFECT, CardTargetMode.TWO_PLAYERS, 32, false);
 
     public HandcardSoulLink(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override
@@ -28,19 +28,14 @@ public class HandcardSoulLink extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        if (targets.size() < 2) {
-            return false;
-        }
-
-        SoulLinkManager.link(targets.get(0), targets.get(1), user.level().getGameTime() + 20L * 60L, SoulLinkStyle.rainbow(5.0F, 0.03F));
+        if (targets.size() < 2) return false;
+        SoulLinkManager.link(targets.get(0), targets.get(1), user.level().getGameTime() + 20L * 60L, SoulLinkStyle.rainbow(2.2F, 0.16F));
         if (targets.get(0) instanceof ServerPlayer first) {
             AstralCardEffects.update(first, AstralStats.get(first).addBuff(BuffKinds.CUSTOM, 1));
         }
-
         if (targets.get(1) instanceof ServerPlayer second) {
             AstralCardEffects.update(second, AstralStats.get(second).addBuff(BuffKinds.CUSTOM, 1));
         }
-
         return true;
     }
 

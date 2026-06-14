@@ -15,25 +15,18 @@ import net.minecraft.world.phys.Vec3;
 
 /** Snowball Attack projectile: damage plus temporary movement penalty when target is a player. */
 public class SnowballAttackProjectileEntity extends AbstractCardProjectileEntity {
+
     public SnowballAttackProjectileEntity(EntityType<? extends SnowballAttackProjectileEntity> type, Level level) {
         super(type, level);
     }
 
-    public SnowballAttackProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
-        super(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), level, owner, target, damage, durationTicks);
+    public SnowballAttackProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, CardProjectileSettings settings) {
+        super(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), level, owner, target, damage, settings);
     }
 
-    @Override
-    protected float defaultSpeed() { return 1.05F; }
-
-    @Override
-    protected float defaultGravity() { return 0.026F; }
-
-    @Override
-    protected float defaultHoming() { return 0.12F; }
-
-    @Override
-    protected float defaultArcBoost() { return 0.12F; }
+    public SnowballAttackProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
+        this(level, owner, target, damage, CardProjectileSettings.of(1.05F, 0.026F, 0.12F, 0.12F, durationTicks));
+    }
 
     @Override
     protected void spawnFlightParticles(ServerLevel level, Vec3 pos) {
@@ -46,7 +39,9 @@ public class SnowballAttackProjectileEntity extends AbstractCardProjectileEntity
         if (target instanceof ServerPlayer player) {
             AstralCardEffects.update(player, AstralStats.get(player).addTemporary("speed", -4, 1));
         }
+
         level.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(), 28, 0.28D, 0.28D, 0.28D, 0.02D);
         level.playSound(null, target.blockPosition(), SoundEvents.SNOW_BREAK, SoundSource.PLAYERS, 0.75F, 1.45F);
     }
+
 }

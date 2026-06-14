@@ -1,7 +1,6 @@
 package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -15,10 +14,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardQuirkyEnchanted extends BaseHandCard {
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_quirky_enchanted", CardType.EFFECT, CardTargetMode.CHOICE, -1, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_quirky_enchanted", CardType.EFFECT, CardTargetMode.CHOICE, -1, false);
 
     public HandcardQuirkyEnchanted(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override
@@ -30,4 +30,5 @@ public class HandcardQuirkyEnchanted extends BaseHandCard {
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         return false;
     }
+    
 }

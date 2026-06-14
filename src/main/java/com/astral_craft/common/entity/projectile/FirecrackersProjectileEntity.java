@@ -18,21 +18,13 @@ public class FirecrackersProjectileEntity extends AbstractCardProjectileEntity {
         super(type, level);
     }
 
-    public FirecrackersProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
-        super(AstralEntities.FIRECRACKERS_PROJECTILE.get(), level, owner, target, damage, durationTicks);
+    public FirecrackersProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, CardProjectileSettings settings) {
+        super(AstralEntities.FIRECRACKERS_PROJECTILE.get(), level, owner, target, damage, settings);
     }
 
-    @Override
-    protected float defaultSpeed() { return 0.92F; }
-
-    @Override
-    protected float defaultGravity() { return 0.025F; }
-
-    @Override
-    protected float defaultHoming() { return 0.15F; }
-
-    @Override
-    protected float defaultArcBoost() { return 0.42F; }
+    public FirecrackersProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
+        this(level, owner, target, damage, CardProjectileSettings.of(0.92F, 0.025F, 0.15F, 0.42F, durationTicks));
+    }
 
     @Override
     protected void spawnFlightParticles(ServerLevel level, Vec3 pos) {

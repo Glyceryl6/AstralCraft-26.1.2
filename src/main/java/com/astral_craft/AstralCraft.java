@@ -1,16 +1,10 @@
 package com.astral_craft;
 
-import com.astral_craft.common.registry.AstralAttachments;
-import com.astral_craft.common.registry.AstralBlocks;
-import com.astral_craft.common.registry.AstralDataComponents;
-import com.astral_craft.common.registry.AstralEntities;
-import com.astral_craft.common.registry.AstralTabs;
 import com.astral_craft.common.gameplay.AstralBuiltinCards;
 import com.astral_craft.common.gameplay.AstralBuiltinChips;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.AstralPartyChips;
 import com.astral_craft.common.gameplay.PanelTypes;
-import com.astral_craft.common.registry.AstralItems;
+import com.astral_craft.common.registry.*;
 import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -28,7 +22,6 @@ public class AstralCraft {
         AstralBuiltinCards.bootstrap();
         PanelTypes.PANEL_TYPES.register(modEventBus);
         AstralPartyChips.CHIPS.register(modEventBus);
-        AstralPartyCards.CARDS.register(modEventBus);
         AstralTabs.TABS.register(modEventBus);
         AstralItems.ITEMS.register(modEventBus);
         AstralBlocks.BLOCKS.register(modEventBus);

@@ -2,7 +2,6 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralCardEffects;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -16,11 +15,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardBlast extends BaseHandCard {
-
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_blast", CardType.EFFECT, CardTargetMode.MONSTER, 6, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_blast", CardType.EFFECT, CardTargetMode.MONSTER, 6, false);
 
     public HandcardBlast(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override
@@ -33,5 +32,4 @@ public class HandcardBlast extends BaseHandCard {
         AstralCardEffects.target(targets).ifPresent(center -> AstralCardEffects.areaDamageAt(user, center, 2, 4, false));
         return !targets.isEmpty();
     }
-
 }

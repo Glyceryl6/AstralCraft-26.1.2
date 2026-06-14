@@ -19,17 +19,18 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CardUseService {
-
+public class CardUseService {
     /** Keep this in step with CardRevealOverlay.defaultFlipDurationTicks(). */
-    private static final int CARD_REVEAL_DURATION_TICKS = 52;
-    private static final int CARD_APPROACH_REVEAL_DURATION_TICKS = 30;
+    public static final int CARD_REVEAL_DURATION_TICKS = 43;
+    public static final int CARD_APPROACH_REVEAL_DURATION_TICKS = 28;
+
+    public CardUseService() {
+    }
 
     public static InteractionResult use(BaseHandCard card, Level level, Player player, InteractionHand hand) {
         if (level.isClientSide()) {
             return InteractionResult.PASS;
         }
-
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.PASS;
         }
@@ -39,10 +40,11 @@ public final class CardUseService {
             return InteractionResult.SUCCESS;
         }
 
-        CardDefinition definition = card.definition();
         ItemStack stack = player.getItemInHand(hand);
+        CardDefinition definition = card.definition(stack);
         if (definition.combatOnly()) {
-            return InteractionResult.PASS;
+            serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.card.combat_only"), true);
+            return InteractionResult.SUCCESS;
         }
 
         if (definition.needsTarget()) {
@@ -57,18 +59,25 @@ public final class CardUseService {
             PendingCardActionManager.schedule(serverPlayer, CARD_REVEAL_DURATION_TICKS, () -> card.applyFromSelection(serverPlayer, hand, List.of()));
         } else {
             boolean applied = card.applyFromSelection(serverPlayer, hand, List.of());
-            if (applied) consume(serverPlayer, stack);
+            if (applied) {
+                consume(serverPlayer, stack);
+            }
         }
-
         return InteractionResult.SUCCESS;
     }
 
     public static void applyTargetSelection(ServerPlayer player, CardTargetSelectionPayload payload) {
         InteractionHand hand = payload.handIndex() == InteractionHand.OFF_HAND.ordinal() ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         ItemStack stack = player.getItemInHand(hand);
-        if (!(stack.getItem() instanceof BaseHandCard card)) return;
-        CardDefinition definition = card.definition();
-        if (!definition.id().equals(payload.cardId()) || !definition.needsTarget()) return;
+        if (!(stack.getItem() instanceof BaseHandCard card)) {
+            return;
+        }
+
+        CardDefinition definition = card.definition(stack);
+        if (!definition.id().equals(payload.cardId()) || !definition.needsTarget()) {
+            return;
+        }
+
         List<LivingEntity> targets = new ArrayList<>();
         for (String raw : payload.selectedEntityIds().split(",")) {
             if (raw.isBlank()) continue;
@@ -91,7 +100,9 @@ public final class CardUseService {
             PendingCardActionManager.schedule(player, CARD_REVEAL_DURATION_TICKS, () -> card.applyFromSelection(player, hand, capturedTargets));
         } else {
             boolean applied = card.applyFromSelection(player, hand, targets);
-            if (applied) consume(player, stack);
+            if (applied) {
+                consume(player, stack);
+            }
         }
     }
 
@@ -108,9 +119,14 @@ public final class CardUseService {
 
     public static void sendReveal(ServerPlayer viewer, CardDefinition definition, String animation, int durationTicks) {
         PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(
-                definition.id(), AstralCraft.MOD_ID + ":" + definition.registryPath(),
-                definition.nameKey(), definition.effectKey(), definition.largeFrontTexture(),
-                definition.largeBackTexture(), animation, durationTicks));
+                definition.id(),
+                AstralCraft.MOD_ID + ":" + definition.registryPath(),
+                definition.nameKey(),
+                definition.effectKey(),
+                definition.largeFrontTexture(),
+                definition.largeBackTexture(),
+                animation,
+                durationTicks));
     }
 
     private static void consume(ServerPlayer player, ItemStack stack) {

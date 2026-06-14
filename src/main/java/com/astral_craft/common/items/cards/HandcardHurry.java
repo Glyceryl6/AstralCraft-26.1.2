@@ -2,7 +2,6 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralCardEffects;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -17,11 +16,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardHurry extends BaseHandCard {
-
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_hurry", CardType.EFFECT, CardTargetMode.ALLY, 32, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_hurry", CardType.EFFECT, CardTargetMode.ALLY, 32, false);
 
     public HandcardHurry(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override
@@ -34,5 +33,4 @@ public class HandcardHurry extends BaseHandCard {
         AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addNextMoveDice(1)));
         return !targets.isEmpty();
     }
-
 }

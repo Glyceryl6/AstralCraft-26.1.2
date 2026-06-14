@@ -2,7 +2,6 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralCardEffects;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -17,11 +16,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardImmovable extends BaseHandCard {
-
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_immovable", CardType.EFFECT, CardTargetMode.SELF, -1, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_immovable", CardType.EFFECT, CardTargetMode.SELF, -1, false);
 
     public HandcardImmovable(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override
@@ -34,5 +33,4 @@ public class HandcardImmovable extends BaseHandCard {
         AstralCardEffects.update(user, AstralStats.get(user).addTemporary("defense", 6, 2));
         return true;
     }
-
 }

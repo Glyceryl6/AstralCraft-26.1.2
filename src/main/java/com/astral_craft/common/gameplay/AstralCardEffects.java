@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay;
 
+import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
@@ -94,20 +95,32 @@ public class AstralCardEffects {
     }
 
     public static boolean firecrackerProjectile(ServerPlayer user, LivingEntity target, int amount) {
+        return firecrackerProjectile(user, target, amount, CardProjectileSettings.firecrackers());
+    }
+
+    public static boolean firecrackerProjectile(ServerPlayer user, LivingEntity target, int amount, CardProjectileSettings settings) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerFirecracker(user, target, amount);
+        PendingCounterEffectManager.offerFirecracker(user, target, amount, settings);
         return true;
     }
 
     public static boolean slingshotProjectile(ServerPlayer user, LivingEntity target, int amount) {
+        return slingshotProjectile(user, target, amount, CardProjectileSettings.slingshot());
+    }
+
+    public static boolean slingshotProjectile(ServerPlayer user, LivingEntity target, int amount, CardProjectileSettings settings) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerSlingshot(user, target, amount);
+        PendingCounterEffectManager.offerSlingshot(user, target, amount, settings);
         return true;
     }
 
     public static boolean snowballAttackProjectile(ServerPlayer user, LivingEntity target, int amount) {
+        return snowballAttackProjectile(user, target, amount, CardProjectileSettings.snowballAttack());
+    }
+
+    public static boolean snowballAttackProjectile(ServerPlayer user, LivingEntity target, int amount, CardProjectileSettings settings) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerSnowballAttack(user, target, amount);
+        PendingCounterEffectManager.offerSnowballAttack(user, target, amount, settings);
         return true;
     }
 

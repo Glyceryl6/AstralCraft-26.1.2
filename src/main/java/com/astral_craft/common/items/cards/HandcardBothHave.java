@@ -2,7 +2,6 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralCardEffects;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -16,11 +15,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardBothHave extends BaseHandCard {
-
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_both_have", CardType.EFFECT, CardTargetMode.ALLY, 32, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_both_have", CardType.EFFECT, CardTargetMode.ALLY, 32, false);
 
     public HandcardBothHave(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override
@@ -34,5 +33,4 @@ public class HandcardBothHave extends BaseHandCard {
         AstralCardEffects.targetPlayer(targets).ifPresent(AstralCardEffects::giveRandomCard);
         return true;
     }
-
 }

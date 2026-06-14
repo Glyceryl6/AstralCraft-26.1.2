@@ -75,14 +75,14 @@ public class TargetSelectionScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         this.clampScroll();
-        int panelX = panelX();
-        int panelY = panelY();
-        int panelW = panelWidth();
+        int panelX = this.panelX();
+        int panelY = this.panelY();
+        int panelW = this.panelWidth();
         int panelRight = panelX + panelW;
         int panelBottom = panelY + PANEL_HEIGHT;
-        int viewX = cardsViewX();
-        int viewY = cardsViewY();
-        int viewW = cardsViewWidth();
+        int viewX = this.cardsViewX();
+        int viewY = this.cardsViewY();
+        int viewW = this.cardsViewWidth();
         int viewRight = viewX + viewW;
         graphics.fill(panelX, panelY, panelRight, panelBottom, 0xB0101018);
         graphics.fill(panelX, panelY, panelRight, panelY + 1, 0x80FFFFFF);
@@ -94,7 +94,7 @@ public class TargetSelectionScreen extends Screen {
         graphics.text(this.font, hint, this.width / 2 - this.font.width(hint) / 2, panelY + 24, 0xFFE0E0E0, false);
         graphics.enableScissor(viewX, viewY - 2, viewRight, viewY + CARD_HEIGHT + 2);
         for (int i = 0; i < this.candidates.size(); i++) {
-            int x = candidateX(i);
+            int x = this.candidateX(i);
             if (x + CARD_WIDTH < viewX || x > viewRight) continue;
             this.renderCandidate(graphics, this.font, this.candidates.get(i), x, viewY, mouseX, mouseY);
         }
@@ -161,7 +161,7 @@ public class TargetSelectionScreen extends Screen {
         if (mouseX >= this.cardsViewX() && mouseX <= this.cardsViewX() + this.cardsViewWidth()
                 && mouseY >= this.cardsViewY() - 8 && mouseY <= this.cardsViewY() + CARD_HEIGHT + 22) {
             float amount = (float) ((Math.abs(deltaX) > 0.0D ? -deltaX : -deltaY) * 30.0D);
-            this.scrollX = Mth.clamp(this.scrollX + amount, 0.0F, maxScroll());
+            this.scrollX = Mth.clamp(this.scrollX + amount, 0.0F, this.maxScroll());
             return true;
         }
 

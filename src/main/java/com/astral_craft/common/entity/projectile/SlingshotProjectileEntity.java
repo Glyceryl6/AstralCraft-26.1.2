@@ -13,25 +13,18 @@ import net.minecraft.world.phys.Vec3;
 
 /** Small cube projectile for Slingshot. */
 public class SlingshotProjectileEntity extends AbstractCardProjectileEntity {
+
     public SlingshotProjectileEntity(EntityType<? extends SlingshotProjectileEntity> type, Level level) {
         super(type, level);
     }
 
-    public SlingshotProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
-        super(AstralEntities.SLINGSHOT_PROJECTILE.get(), level, owner, target, damage, durationTicks);
+    public SlingshotProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, CardProjectileSettings settings) {
+        super(AstralEntities.SLINGSHOT_PROJECTILE.get(), level, owner, target, damage, settings);
     }
 
-    @Override
-    protected float defaultSpeed() { return 1.15F; }
-
-    @Override
-    protected float defaultGravity() { return 0.018F; }
-
-    @Override
-    protected float defaultHoming() { return 0.10F; }
-
-    @Override
-    protected float defaultArcBoost() { return 0.08F; }
+    public SlingshotProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
+        this(level, owner, target, damage, CardProjectileSettings.of(1.15F, 0.018F, 0.10F, 0.08F, durationTicks));
+    }
 
     @Override
     protected void spawnFlightParticles(ServerLevel level, Vec3 pos) {
@@ -44,4 +37,5 @@ public class SlingshotProjectileEntity extends AbstractCardProjectileEntity {
         level.sendParticles(ParticleTypes.POOF, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(), 18, 0.18D, 0.18D, 0.18D, 0.04D);
         level.playSound(null, target.blockPosition(), SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 0.7F, 1.6F);
     }
+
 }

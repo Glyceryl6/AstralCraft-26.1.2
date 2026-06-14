@@ -2,7 +2,6 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralCardEffects;
-import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -16,10 +15,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardExpiredBento extends BaseHandCard {
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_expired_bento", CardType.EFFECT, CardTargetMode.ANY_PLAYER, 6, false));
+    
+    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_expired_bento", CardType.EFFECT, CardTargetMode.ANY_PLAYER, 6, false);
 
     public HandcardExpiredBento(Properties properties) {
-        super(properties, DEFINITION);
+        super(properties);
     }
 
     @Override

@@ -44,16 +44,15 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         this.noPhysics = true;
     }
 
-    protected AbstractCardProjectileEntity(EntityType<? extends AbstractCardProjectileEntity> type, Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
+    protected AbstractCardProjectileEntity(EntityType<? extends AbstractCardProjectileEntity> type, Level level, ServerPlayer owner, LivingEntity target, int damage, CardProjectileSettings settings) {
         this(type, level);
         Vec3 start = this.defaultStart(owner);
         this.setOwner(owner);
         this.setPos(start.x, start.y, start.z);
         this.entityData.set(DATA_TARGET, target.getId());
         this.entityData.set(DATA_DAMAGE, damage);
-        this.entityData.set(DATA_MAX_AGE, Math.max(4, durationTicks));
-        this.configureFlight(this.defaultSpeed(), this.defaultGravity(),
-                this.defaultHoming(), this.defaultArcBoost());
+        this.entityData.set(DATA_MAX_AGE, Math.max(4, settings.durationTicks()));
+        this.configureFlight(settings);
         this.shootAt(target, this.speed(), 0.0F);
     }
 
@@ -61,10 +60,9 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         return owner.position().add(0.0D, owner.getBbHeight() * 0.65D, 0.0D);
     }
 
-    protected float defaultSpeed() { return 0.82F; }
-    protected float defaultGravity() { return 0.030F; }
-    protected float defaultHoming() { return 0.18F; }
-    protected float defaultArcBoost() { return 0.22F; }
+    public void configureFlight(CardProjectileSettings settings) {
+        this.configureFlight(settings.speed(), settings.gravity(), settings.homing(), settings.arcBoost());
+    }
 
     public void configureFlight(float speed, float gravity, float homing, float arcBoost) {
         this.entityData.set(DATA_SPEED, Math.max(0.05F, speed));
@@ -101,6 +99,7 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         super.tick();
         int nextAge = this.age() + 1;
         this.entityData.set(DATA_AGE, nextAge);
+
         Entity targetEntity = this.level().getEntity(this.targetId());
         if (!(targetEntity instanceof LivingEntity target) || !target.isAlive()) {
             if (!this.level().isClientSide()) this.discard();
@@ -113,6 +112,7 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
             this.move(MoverType.SELF, motion);
             this.setDeltaMovement(motion.x, motion.y - this.gravity(), motion.z);
             this.updateRotation();
+
             if (this.level() instanceof ServerLevel serverLevel) {
                 this.spawnFlightParticles(serverLevel, this.position());
             }
@@ -145,6 +145,8 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         return this.getBoundingBox().inflate(0.25D).intersects(target.getBoundingBox().inflate(0.20D))
                 || this.position().distanceToSqr(target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D)) < 0.55D;
     }
+
+    protected int afterHitLifetime() { return 8; }
 
     protected void damageTarget(ServerPlayer owner, LivingEntity target) {
         AstralCardEffects.damageNow(owner, target, this.damage());

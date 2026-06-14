@@ -21,25 +21,16 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 import java.util.function.Consumer;
 
-/* Base plumbing for hand cards. Concrete card classes own their metadata and effect code. */
+/* Base plumbing for hand cards. Concrete card classes own their effect code; metadata lives on item data components. */
 /** @noinspection deprecation*/
 public class BaseHandCard extends Item {
 
-    private final CardDefinition definition;
-
-    public BaseHandCard(Properties properties, CardDefinition definition) {
+    public BaseHandCard(Properties properties) {
         super(properties);
-        this.definition = definition;
     }
 
-    public CardDefinition definition() {
-        return this.definition;
-    }
-
-    @Override
-    public Component getName(ItemStack itemStack) {
-        MutableComponent prefix = Component.translatable("prefix.astral_craft.handcard");
-        return Component.literal(prefix.getString() + super.getName(itemStack).getString());
+    public CardDefinition definition(ItemStack itemStack) {
+        return itemStack.getOrDefault(AstralDataComponents.CARD_DEFINITION, CardDefinition.fallback());
     }
 
     @Override
@@ -47,7 +38,7 @@ public class BaseHandCard extends Item {
         return CardUseService.use(this, level, player, hand);
     }
 
-    public final boolean applyFromSelection(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
+    public boolean applyFromSelection(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         return this.apply(user, hand, targets);
     }
 
@@ -58,10 +49,11 @@ public class BaseHandCard extends Item {
 
     @Override
     public void appendHoverText(ItemStack itemStack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag tooltipFlag) {
-        CardType cardType = itemStack.getOrDefault(AstralDataComponents.CARD_TYPE, this.definition.type());
+        CardDefinition definition = this.definition(itemStack);
+        CardType cardType = itemStack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         String key = String.format("tooltips.astral_craft.handcard.card_type.%s", cardType.getSerializedName());
         builder.accept(Component.translatable(key).withColor(cardType.color).withStyle(ChatFormatting.BOLD));
-        MutableComponent component = Component.translatable(this.definition.effectKey());
+        MutableComponent component = Component.translatable(definition.effectKey());
         for (String line : component.getString().split("[\\n|]")) {
             builder.accept(Component.literal(line.trim()));
         }
