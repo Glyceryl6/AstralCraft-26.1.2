@@ -30,9 +30,7 @@ public class HandcardRailgun extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.target(targets)
-                .map(target -> AstralCardEffects.laserStrike(user, target, 6, 0xFFFF4FD8, 0.16F))
-                .orElse(false);
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.laserStrike(user, target, 6, 0xFFFF4FD8, 0.16F)).orElse(false);
     }
 
 }

@@ -15,8 +15,7 @@ public record CardDefinition(
         int range,
         boolean combatOnly,
         int minTargets,
-        int maxTargets
-) {
+        int maxTargets) {
 
     public Component displayName() {
         return Component.translatable(this.nameKey);
@@ -54,8 +53,7 @@ public record CardDefinition(
                 range,
                 combatOnly,
                 minTargets(targetMode),
-                maxTargets(targetMode)
-        );
+                maxTargets(targetMode));
     }
 
     private static int minTargets(CardTargetMode targetMode) {
@@ -89,4 +87,5 @@ public record CardDefinition(
     public static String defaultBackTexture() {
         return AstralCraft.MOD_ID + ":textures/gui/cards/card_back.png";
     }
+
 }

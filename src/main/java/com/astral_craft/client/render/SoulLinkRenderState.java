@@ -4,6 +4,7 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.phys.Vec3;
 
 public class SoulLinkRenderState extends EntityRenderState {
+
     public boolean visible;
     public Vec3 start = Vec3.ZERO;
     public Vec3 end = Vec3.ZERO;
@@ -12,4 +13,5 @@ public class SoulLinkRenderState extends EntityRenderState {
     public int color;
     public boolean rainbow;
     public float age;
+
 }

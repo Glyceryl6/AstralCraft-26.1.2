@@ -6,9 +6,9 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.phys.Vec3;
 
-class EffectRenderGeometry {
+public class EffectRenderGeometry {
 
-    static void tube(PoseStack.Pose pose, VertexConsumer consumer, Vec3 start, Vec3 end, float radius, int argb, int sides, float vScroll, float vScale) {
+    public static void tube(PoseStack.Pose pose, VertexConsumer consumer, Vec3 start, Vec3 end, float radius, int argb, int sides, float vScroll, float vScale) {
         Vec3 tangent = end.subtract(start);
         if (tangent.lengthSqr() < 1.0E-7D) {
             tangent = new Vec3(0.0D, 1.0D, 0.0D);
@@ -35,7 +35,7 @@ class EffectRenderGeometry {
         }
     }
 
-    static void cube(PoseStack.Pose pose, VertexConsumer consumer, float h, int argb) {
+    public static void cube(PoseStack.Pose pose, VertexConsumer consumer, float h, int argb) {
         quad(consumer, pose, -h, -h, h, h, -h, h, h, h, h, -h, h, h, argb, 0, 0, 1);
         quad(consumer, pose, h, -h, -h, -h, -h, -h, -h, h, -h, h, h, -h, argb, 0, 0, -1);
         quad(consumer, pose, h, -h, h, h, -h, -h, h, h, -h, h, h, h, argb, 1, 0, 0);
@@ -44,7 +44,7 @@ class EffectRenderGeometry {
         quad(consumer, pose, -h, -h, -h, h, -h, -h, h, -h, h, -h, -h, h, argb, 0, -1, 0);
     }
 
-    static void quad(VertexConsumer consumer, PoseStack.Pose pose,
+    public static void quad(VertexConsumer consumer, PoseStack.Pose pose,
                      float x0, float y0, float z0, float x1, float y1, float z1,
                      float x2, float y2, float z2, float x3, float y3, float z3,
                      int argb, float nx, float ny, float nz) {
@@ -54,7 +54,7 @@ class EffectRenderGeometry {
         vertex(consumer, pose, new Vec3(x3, y3, z3), argb, 0.0F, 1.0F, new Vec3(nx, ny, nz));
     }
 
-    static void vertex(VertexConsumer consumer, PoseStack.Pose pose, Vec3 pos, int argb, float u, float v, Vec3 normal) {
+    public static void vertex(VertexConsumer consumer, PoseStack.Pose pose, Vec3 pos, int argb, float u, float v, Vec3 normal) {
         Vec3 n = normal.lengthSqr() < 1.0E-7D ? new Vec3(0.0D, 1.0D, 0.0D) : normal.normalize();
         consumer.addVertex(pose, (float) pos.x, (float) pos.y, (float) pos.z)
                 .setColor(argb).setUv(u, v)

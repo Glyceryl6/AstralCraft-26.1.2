@@ -30,9 +30,7 @@ public class HandcardBrick extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.target(targets)
-                .map(target -> AstralCardEffects.fallingBrick(user, target, 5))
-                .orElse(false);
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.fallingBrick(user, target, 5)).orElse(false);
     }
 
 }

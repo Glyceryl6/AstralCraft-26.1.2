@@ -12,6 +12,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
@@ -22,10 +25,9 @@ import net.minecraft.world.level.storage.ValueOutput;
  * reaches the target/ground, then the tube fades by shrinking its radius.</p>
  */
 public class LaserStrikeEntity extends Entity {
-
-    public static final int DEFAULT_GROW_TICKS = 14;
-    public static final int DEFAULT_HOLD_TICKS = 7;
-    public static final int DEFAULT_FADE_TICKS = 16;
+    public static final int DEFAULT_GROW_TICKS = 2;
+    public static final int DEFAULT_HOLD_TICKS = 3;
+    public static final int DEFAULT_FADE_TICKS = 8;
     public static final float DEFAULT_HEIGHT = 8.0F;
 
     private static final EntityDataAccessor<Integer> DATA_OWNER = SynchedEntityData.defineId(LaserStrikeEntity.class, EntityDataSerializers.INT);
@@ -91,7 +93,11 @@ public class LaserStrikeEntity extends Entity {
                 this.entityData.set(DATA_DAMAGED, true);
                 Entity owner = this.level().getEntity(this.ownerId());
                 if (owner instanceof ServerPlayer player) {
-                    AstralCardEffects.damage(player, living, this.damage());
+                    AstralCardEffects.damageNow(player, living, this.damage());
+                    if (this.level() instanceof ServerLevel serverLevel) {
+                        serverLevel.sendParticles(ParticleTypes.END_ROD, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 38, 0.30D, 0.45D, 0.30D, 0.08D);
+                        serverLevel.playSound(null, living.blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.0F, 1.65F);
+                    }
                 }
             }
             if (this.age() > this.totalLifetime()) {
@@ -147,5 +153,4 @@ public class LaserStrikeEntity extends Entity {
     public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
         return false;
     }
-
 }

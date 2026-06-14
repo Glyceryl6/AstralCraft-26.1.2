@@ -16,7 +16,8 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardSlingshot extends BaseHandCard {
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_slingshot", CardType.EFFECT, CardTargetMode.ENEMY_PLAYER, 10, false));
+
+    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_slingshot", CardType.EFFECT, CardTargetMode.ANY_PLAYER, 10, false));
 
     public HandcardSlingshot(Properties properties) {
         super(properties, DEFINITION);
@@ -29,8 +30,7 @@ public class HandcardSlingshot extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.target(targets)
-                .map(target -> AstralCardEffects.slingshotProjectile(user, target, 2))
-                .orElse(false);
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.slingshotProjectile(user, target, 2)).orElse(false);
     }
+
 }

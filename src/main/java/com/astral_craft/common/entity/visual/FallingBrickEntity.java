@@ -13,12 +13,15 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.Vec3;
 
 /** Falling brick/stone card visual. It follows the target horizontally while dropping from above. */
 public class FallingBrickEntity extends Entity {
+
     private static final EntityDataAccessor<Integer> DATA_OWNER = SynchedEntityData.defineId(FallingBrickEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_TARGET = SynchedEntityData.defineId(FallingBrickEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_DAMAGE = SynchedEntityData.defineId(FallingBrickEntity.class, EntityDataSerializers.INT);
@@ -61,6 +64,7 @@ public class FallingBrickEntity extends Entity {
             if (!this.level().isClientSide()) this.discard();
             return;
         }
+
         float t = Mth.clamp(this.age() / (float) this.fallTicks(), 0.0F, 1.0F);
         double impactY = living.getY() + living.getBbHeight() + 0.05D;
         double startY = impactY + 3.5D;
@@ -69,9 +73,14 @@ public class FallingBrickEntity extends Entity {
             this.entityData.set(DATA_HIT, true);
             Entity owner = this.level().getEntity(this.ownerId());
             if (owner instanceof ServerPlayer player) {
-                AstralCardEffects.damage(player, living, this.damage());
+                AstralCardEffects.damageNow(player, living, this.damage());
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.POOF, living.getX(), living.getY() + living.getBbHeight(), living.getZ(), 28, 0.35D, 0.20D, 0.35D, 0.05D);
+                    serverLevel.playSound(null, living.blockPosition(), SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 0.95F, 0.75F);
+                }
             }
         }
+
         if (!this.level().isClientSide() && this.age() > this.fallTicks() + 16) {
             this.discard();
         }
@@ -110,4 +119,5 @@ public class FallingBrickEntity extends Entity {
     public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
         return false;
     }
+
 }

@@ -22,9 +22,9 @@ public class SoulLinkRenderer extends EntityRenderer<SoulLinkEntity, SoulLinkRen
     private static final Identifier CHAIN_TEXTURE = Identifier.withDefaultNamespace("textures/block/cobweb.png");
     private static final int SEGMENTS = 32;
     private static final int TUBE_SIDES = 8;
-    private static final float GLOW_RADIUS_MULTIPLIER = 2.85F;
+    private static final float GLOW_RADIUS_MULTIPLIER = 4.25F;
     private static final float CORE_ALPHA = 1.0F;
-    private static final float GLOW_ALPHA = 0.32F;
+    private static final float GLOW_ALPHA = 0.46F;
 
     public SoulLinkRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -108,10 +108,19 @@ public class SoulLinkRenderer extends EntityRenderer<SoulLinkEntity, SoulLinkRen
                 Vec3 o01 = offset(normal, binormal, a1, radius);
                 float u0 = side / (float) TUBE_SIDES;
                 float u1 = (side + 1) / (float) TUBE_SIDES;
-                vertex(consumer, pose, p0.add(o00), c0, u0, v0, o00);
-                vertex(consumer, pose, p0.add(o01), c0, u1, v0, o01);
-                vertex(consumer, pose, p1.add(o01), c1, u1, v1, o01);
-                vertex(consumer, pose, p1.add(o00), c1, u0, v1, o00);
+                Vec3 a = p0.add(o00);
+                Vec3 b = p0.add(o01);
+                Vec3 c = p1.add(o01);
+                Vec3 d = p1.add(o00);
+                vertex(consumer, pose, a, c0, u0, v0, o00);
+                vertex(consumer, pose, b, c0, u1, v0, o01);
+                vertex(consumer, pose, c, c1, u1, v1, o01);
+                vertex(consumer, pose, d, c1, u0, v1, o00);
+                // Submit the reverse winding too, so the link remains visible when the camera is inside or very close to the tube.
+                vertex(consumer, pose, d, c1, u0, v1, o00.scale(-1.0D));
+                vertex(consumer, pose, c, c1, u1, v1, o01.scale(-1.0D));
+                vertex(consumer, pose, b, c0, u1, v0, o01.scale(-1.0D));
+                vertex(consumer, pose, a, c0, u0, v0, o00.scale(-1.0D));
             }
         }
     }

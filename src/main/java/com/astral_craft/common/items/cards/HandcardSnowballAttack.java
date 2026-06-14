@@ -6,7 +6,6 @@ import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -18,7 +17,7 @@ import java.util.List;
 
 public class HandcardSnowballAttack extends BaseHandCard {
 
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_snowball_attack", CardType.EFFECT, CardTargetMode.ENEMY_PLAYER, 9, false));
+    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_snowball_attack", CardType.EFFECT, CardTargetMode.ANY_PLAYER, 9, false));
 
     public HandcardSnowballAttack(Properties properties) {
         super(properties, DEFINITION);
@@ -31,9 +30,7 @@ public class HandcardSnowballAttack extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.damage(user, targets, 1);
-        AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addTemporary("speed", -4, 1)));
-        return !targets.isEmpty();
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.snowballAttackProjectile(user, target, 1)).orElse(false);
     }
 
 }

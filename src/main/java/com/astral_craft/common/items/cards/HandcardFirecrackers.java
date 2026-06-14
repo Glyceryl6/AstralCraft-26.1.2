@@ -17,7 +17,7 @@ import java.util.List;
 
 public class HandcardFirecrackers extends BaseHandCard {
 
-    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_firecrackers", CardType.EFFECT, CardTargetMode.MONSTER, 10, false));
+    public static final CardDefinition DEFINITION = AstralPartyCards.register(CardDefinition.create("handcard_firecrackers", CardType.EFFECT, CardTargetMode.ANY_PLAYER, 10, false));
 
     public HandcardFirecrackers(Properties properties) {
         super(properties, DEFINITION);
@@ -30,9 +30,7 @@ public class HandcardFirecrackers extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.target(targets)
-                .map(target -> AstralCardEffects.firecrackerProjectile(user, target, 3))
-                .orElse(false);
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.firecrackerProjectile(user, target, 3)).orElse(false);
     }
 
 }

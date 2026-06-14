@@ -2,9 +2,9 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.items.cards.*;
 import com.astral_craft.common.items.AstralDiceItem;
+import com.astral_craft.common.items.BoardProjectorItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
@@ -47,6 +47,7 @@ public class AstralItems {
 
     // Utility
     public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
 
     // Handcard
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK);

@@ -91,19 +91,19 @@ public class AstralDiceEntity extends Entity {
 
     public float xSpin(float partialTick) {
         float t = this.rollAge() + partialTick;
-        float settle = settleProgress(partialTick);
+        float settle = this.settleProgress(partialTick);
         return Mth.lerp(settle, t * 17.0F, finalX());
     }
 
     public float ySpin(float partialTick) {
         float t = this.rollAge() + partialTick;
-        float settle = settleProgress(partialTick);
+        float settle = this.settleProgress(partialTick);
         return Mth.lerp(settle, t * 23.0F, finalY());
     }
 
     public float zSpin(float partialTick) {
         float t = this.rollAge() + partialTick;
-        float settle = settleProgress(partialTick);
+        float settle = this.settleProgress(partialTick);
         return Mth.lerp(settle, t * 13.0F, finalZ());
     }
 
@@ -129,7 +129,7 @@ public class AstralDiceEntity extends Entity {
         this.entityData.set(DATA_MIN, input.getIntOr("min", 1));
         this.entityData.set(DATA_MAX, input.getIntOr("max", 6));
         this.entityData.set(DATA_RESULT, input.getIntOr("result", 0));
-        this.entityData.set(DATA_ROLL_TICKS, input.getIntOr("roll_ticks", 40));
+        this.entityData.set(DATA_ROLL_TICKS, input.getIntOr("roll_ticks", 20));
         this.entityData.set(DATA_AGE, input.getIntOr("age", 0));
     }
 

@@ -20,43 +20,44 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Totem-like reveal for playable effect cards.
+ * Totem-like card reveal for effect cards.
  *
- * <p>The reveal uses the actual card item model as the visible card frame. The detailed card art is
- * drawn as an inset layer inside that frame. GUI item rendering only gives us 2D matrix transforms,
- * so the flip is implemented as a squash flip plus an explicit edge band that makes the card
- * thickness readable while the card is side-on. If you later move this to a custom 3D PiP renderer,
- * keep the timing and texture conventions from this class.</p>
+ * <p>The main card body is still the actual card item model, so your custom 3D border/thickness is
+ * preserved. The detailed front art and the card-back art are separate inset layers and have
+ * independent sizing constants. Built-in animations:</p>
+ *
+ * <ul>
+ *     <li>{@code flip}: back hold -> quick squash flip -> front hold.</li>
+ *     <li>{@code approach}: a fast far-to-near zoom with the same final size as {@code flip}.</li>
+ * </ul>
  */
-public class CardRevealOverlay {
+public final class CardRevealOverlay {
 
     public static final Identifier LAYER = AstralCraft.prefix("card_reveal_overlay");
 
-    /** Default timings. Reduce {@link #flipTicks} to make the card turn to the front faster. */
-    public static final int DEFAULT_INTRO_HOLD_TICKS = 30;
-    public static final int DEFAULT_FLIP_TICKS = 20;
-    public static final int DEFAULT_OUTRO_HOLD_TICKS = 38;
-    private static final int EXTRA_FADE_TICKS = 10;
+    /** Faster than the previous reveal: reduce flip ticks further if you want a snappier turn. */
+    public static final int DEFAULT_INTRO_HOLD_TICKS = 10;
+    public static final int DEFAULT_FLIP_TICKS = 14;
+    public static final int DEFAULT_OUTRO_HOLD_TICKS = 20;
+    private static final int EXTRA_FADE_TICKS = 8;
+    public static final int DEFAULT_APPROACH_TICKS = 30;
     private static final long TICK_NANOS = 50_000_000L;
 
-    /** Mutable so a client config screen can tune the animation without touching payloads. */
     private static int introHoldTicks = DEFAULT_INTRO_HOLD_TICKS;
     private static int flipTicks = DEFAULT_FLIP_TICKS;
     private static int outroHoldTicks = DEFAULT_OUTRO_HOLD_TICKS;
 
-    /** Item renderers render into a 16x16 GUI box; this scales that box into the large reveal. */
     private static final float ITEM_GUI_BASE_SIZE = 16.0F;
 
-    /** Front art is a square detail image. Tweak only these when the front detail needs moving/resizing. */
+    /** Front art is square. These values do not affect the card back. */
     private static final float FRONT_ART_SIZE_RATIO = 0.54F;
     private static final float FRONT_ART_Y_OFFSET_RATIO = -0.040F;
 
-    /** Back art uses its own proportions so it is not coupled to the square front art. */
+    /** Card-back art has its own shape. These values do not affect the square front art. */
     private static final float BACK_ART_WIDTH_RATIO = 0.58F;
     private static final float BACK_ART_HEIGHT_RATIO = 0.80F;
     private static final float BACK_ART_Y_OFFSET_RATIO = 0.010F;
 
-    /** Fake side thickness for the side-on part of the flip. Increase if the edge is still too subtle. */
     private static final float SIDE_EDGE_WIDTH_RATIO = 0.070F;
     private static final float SIDE_EDGE_HEIGHT_RATIO = 0.865F;
 
@@ -68,7 +69,7 @@ public class CardRevealOverlay {
         outroHoldTicks = Math.max(0, outroHold);
     }
 
-    public static int defaultDurationTicks() {
+    public static int defaultFlipDurationTicks() {
         return introHoldTicks + flipTicks + outroHoldTicks + EXTRA_FADE_TICKS;
     }
 
@@ -77,21 +78,28 @@ public class CardRevealOverlay {
     }
 
     public static void show(CardRevealPayload payload) {
-        int duration = payload.durationTicks() > 0 ? payload.durationTicks() : defaultDurationTicks();
+        String animation = normalizeAnimation(payload.animation());
+        int defaultDuration = CardRevealPayload.ANIMATION_APPROACH.equals(animation) ? DEFAULT_APPROACH_TICKS : defaultFlipDurationTicks();
+        int duration = payload.durationTicks() > 0 ? payload.durationTicks() : defaultDuration;
         active = new Reveal(payload.cardId(),
                 Component.translatable(payload.titleKey()).getString(),
                 Component.translatable(payload.bodyKey()).getString(),
                 makeItemStack(payload.itemId()),
                 Identifier.parse(payload.largeFrontTexture()),
                 Identifier.parse(payload.largeBackTexture()),
-                System.nanoTime(), duration);
+                animation, System.nanoTime(), duration);
+    }
+
+    private static String normalizeAnimation(String animation) {
+        if (CardRevealPayload.ANIMATION_APPROACH.equals(animation)) {
+            return CardRevealPayload.ANIMATION_APPROACH;
+        }
+
+        return CardRevealPayload.ANIMATION_FLIP;
     }
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
-        if (active == null) {
-            return;
-        }
-
+        if (active == null) return;
         float ageTicks = (System.nanoTime() - active.startedAtNanos()) / (float) TICK_NANOS;
         if (ageTicks >= active.durationTicks()) {
             active = null;
@@ -108,6 +116,18 @@ public class CardRevealOverlay {
         int centerY = graphics.guiHeight() / 2;
         int modelSize = Mth.clamp((int) (graphics.guiHeight() * 0.62F), 150, 292);
         float alpha = fade(ageTicks, active.durationTicks());
+        if (CardRevealPayload.ANIMATION_APPROACH.equals(active.animation())) {
+            ApproachFrame frame = approachFrame(ageTicks, active.durationTicks());
+            int shiftedY = centerY + Math.round((1.0F - frame.scale()) * 34.0F);
+            int round = Math.round(modelSize * frame.scale());
+            renderCardModel(graphics, active, centerX, shiftedY, round, alpha * frame.alpha(), new FlipFrame(true, 1.0F));
+            if (frame.scale() > 0.72F) {
+                renderCardText(graphics, minecraft.font, active, centerX, shiftedY, round, alpha * frame.alpha(), 1.0F);
+            }
+
+            return;
+        }
+
         FlipFrame frame = flipFrame(ageTicks);
         renderCardModel(graphics, active, centerX, centerY, modelSize, alpha, frame);
         if (frame.front() && frame.widthScale() > 0.33F) {
@@ -130,15 +150,13 @@ public class CardRevealOverlay {
         int shadowAlpha = (int) (alpha * 150.0F) & 0xFF;
         int shadowW = Math.max(4, Math.round(modelSize * 0.54F * frame.widthScale()));
         int shadowH = Math.max(4, Math.round(modelSize * 0.84F));
-        graphics.fill(centerX - shadowW / 2 - 7, centerY - shadowH / 2 + 8, centerX + shadowW / 2 + 7, centerY + shadowH / 2 + 10, (shadowAlpha << 24));
+        graphics.fill(centerX - shadowW / 2 - 7, centerY - shadowH / 2 + 8,
+                centerX + shadowW / 2 + 7, centerY + shadowH / 2 + 10, (shadowAlpha << 24));
         graphics.pose().pushMatrix();
         graphics.pose().translate(centerX, centerY);
         graphics.pose().scale(frame.widthScale() * itemScale, itemScale);
         graphics.pose().translate(-ITEM_GUI_BASE_SIZE / 2.0F, -ITEM_GUI_BASE_SIZE / 2.0F);
-        if (!reveal.stack().isEmpty()) {
-            graphics.fakeItem(reveal.stack(), 0, 0);
-        }
-
+        if (!reveal.stack().isEmpty()) graphics.fakeItem(reveal.stack(), 0, 0);
         graphics.pose().popMatrix();
         renderSideEdge(graphics, centerX, centerY, modelSize, alpha, frame.widthScale());
         if (frame.front()) {
@@ -245,16 +263,13 @@ public class CardRevealOverlay {
     }
 
     private static float fade(float ageTicks, int durationTicks) {
-        float in = Mth.clamp(ageTicks / 10.0F, 0.0F, 1.0F);
-        float out = Mth.clamp((durationTicks - ageTicks) / 14.0F, 0.0F, 1.0F);
+        float in = Mth.clamp(ageTicks / 6.0F, 0.0F, 1.0F);
+        float out = Mth.clamp((durationTicks - ageTicks) / 9.0F, 0.0F, 1.0F);
         return Math.min(in, out);
     }
 
     private static FlipFrame flipFrame(float ageTicks) {
-        if (ageTicks < introHoldTicks) {
-            return new FlipFrame(false, 1.0F);
-        }
-
+        if (ageTicks < introHoldTicks) return new FlipFrame(false, 1.0F);
         if (ageTicks < introHoldTicks + flipTicks) {
             float t = (ageTicks - introHoldTicks) / flipTicks;
             float eased = easeInOut(t);
@@ -265,12 +280,21 @@ public class CardRevealOverlay {
         return new FlipFrame(true, 1.0F);
     }
 
+    private static ApproachFrame approachFrame(float ageTicks, int durationTicks) {
+        float t = Mth.clamp(ageTicks / Math.max(1.0F, durationTicks - 6.0F), 0.0F, 1.0F);
+        float eased = 1.0F - (1.0F - t) * (1.0F - t) * (1.0F - t);
+        float scale = Mth.lerp(eased, 0.18F, 1.0F);
+        float alpha = Mth.clamp(t * 1.65F, 0.0F, 1.0F);
+        return new ApproachFrame(scale, alpha);
+    }
+
     private static float easeInOut(float t) {
         t = Mth.clamp(t, 0.0F, 1.0F);
         return t * t * (3.0F - 2.0F * t);
     }
 
     private record FlipFrame(boolean front, float widthScale) {}
+    private record ApproachFrame(float scale, float alpha) {}
+    private record Reveal(String cardId, String title, String body, ItemStack stack, Identifier frontTexture, Identifier backTexture, String animation, long startedAtNanos, int durationTicks) {}
 
-    private record Reveal(String cardId, String title, String body, ItemStack stack, Identifier frontTexture, Identifier backTexture, long startedAtNanos, int durationTicks) {}
 }

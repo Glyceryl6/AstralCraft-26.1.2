@@ -32,7 +32,7 @@ import java.util.List;
  * cursor while a Screen is open.</p>
  */
 public class BattleSceneScreen extends Screen {
-    
+
     private static final int PANEL_HEIGHT = 172;
     private static final int CARD_WIDTH = 64;
     private static final int CARD_HEIGHT = 80;
@@ -96,7 +96,7 @@ public class BattleSceneScreen extends Screen {
         if (this.isMovementKey(event)) {
             return false;
         }
-        
+
         return super.keyPressed(event);
     }
 
@@ -105,7 +105,7 @@ public class BattleSceneScreen extends Screen {
         if (this.isMovementKey(event)) {
             return false;
         }
-        
+
         return super.keyReleased(event);
     }
 
@@ -139,7 +139,7 @@ public class BattleSceneScreen extends Screen {
             graphics.fill(x0, y0, x1, y1, 0x66000000);
             return;
         }
-        
+
         EntityRenderState renderState = extractEntityRenderState(living);
         if (renderState instanceof LivingEntityRenderState livingState) {
             livingState.bodyRot = yaw;
@@ -151,7 +151,7 @@ public class BattleSceneScreen extends Screen {
             livingState.boundingBoxHeight /= livingState.scale;
             livingState.scale = 1.0F;
         }
-        
+
         float boxWidth = Math.max(0.35F, renderState.boundingBoxWidth);
         float boxHeight = Math.max(0.65F, renderState.boundingBoxHeight);
         float scale = Math.min((x1 - x0) / (boxWidth * 1.6F), (y1 - y0) / (boxHeight * 1.18F));
@@ -180,7 +180,7 @@ public class BattleSceneScreen extends Screen {
                 if (!entry.isBlank()) result.add(entry.trim());
             }
         }
-        
+
         return result;
     }
 
@@ -194,5 +194,5 @@ public class BattleSceneScreen extends Screen {
         }
         return builder + suffix;
     }
-    
+
 }

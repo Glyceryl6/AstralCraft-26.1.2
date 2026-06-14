@@ -1,8 +1,5 @@
 package com.astral_craft.common.gameplay;
 
-import com.astral_craft.common.entity.visual.ArcProjectileEntity;
-import com.astral_craft.common.entity.visual.FallingBrickEntity;
-import com.astral_craft.common.entity.visual.LaserStrikeEntity;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
@@ -46,11 +43,18 @@ public class AstralCardEffects {
         target(targets).ifPresent(target -> damage(user, target, amount));
     }
 
+    /** Targeted effect damage: player targets receive a short counter-card response window. */
     public static void damage(ServerPlayer user, LivingEntity target, int amount) {
-        int finalDamage = amount + AstralStats.getOrDefault(target).incomingDamageBonus() +
-                Math.min(1, AstralStats.getOrDefault(target).buff(BuffKinds.MARK));
+        PendingCounterEffectManager.offerDirectDamage(user, target, amount);
+    }
+
+    /** Final damage after counter resolution / visual impact. Do not call this at card selection time. */
+    public static void damageNow(ServerPlayer user, LivingEntity target, int amount) {
+        int finalDamage = amount + AstralStats.getOrDefault(target).incomingDamageBonus() + Math.min(1, AstralStats.getOrDefault(target).buff(BuffKinds.MARK));
         if (target instanceof ServerPlayer player) {
-            update(player, AstralStats.get(player).damage(finalDamage));
+            AstralPlayerStats next = AstralStats.get(player).damage(finalDamage);
+            update(player, next);
+            KnockdownManager.checkKnockdown(player, next);
         }
 
         if (target.isAlive()) {
@@ -59,18 +63,14 @@ public class AstralCardEffects {
     }
 
     public static void areaDamage(ServerPlayer user, int range, int amount, boolean playersOnly) {
-        List<LivingEntity> list = user.level().getEntitiesOfClass(
-                LivingEntity.class, user.getBoundingBox().inflate(range),
-                entity -> entity != user && entity.isAlive() && (!playersOnly || entity instanceof Player));
+        List<LivingEntity> list = user.level().getEntitiesOfClass(LivingEntity.class, user.getBoundingBox().inflate(range), entity -> entity != user && entity.isAlive() && (!playersOnly || entity instanceof Player));
         for (LivingEntity entity : list) {
             damage(user, entity, amount);
         }
     }
 
     public static void areaDamageAt(ServerPlayer user, LivingEntity center, int range, int amount, boolean playersOnly) {
-        List<LivingEntity> list = user.level().getEntitiesOfClass(
-                LivingEntity.class, center.getBoundingBox().inflate(range),
-                entity -> entity.isAlive() && (!playersOnly || entity instanceof Player));
+        List<LivingEntity> list = user.level().getEntitiesOfClass(LivingEntity.class, center.getBoundingBox().inflate(range), entity -> entity.isAlive() && (!playersOnly || entity instanceof Player));
         for (LivingEntity entity : list) {
             damage(user, entity, amount);
         }
@@ -89,33 +89,31 @@ public class AstralCardEffects {
 
     public static boolean laserStrike(ServerPlayer user, LivingEntity target, int amount, int argb, float radius) {
         if (target == null || !target.isAlive()) return false;
-        LaserStrikeEntity entity = new LaserStrikeEntity(user.level(), user, target, amount, argb, radius);
-        user.level().addFreshEntity(entity);
+        PendingCounterEffectManager.offerLaser(user, target, amount, argb, radius);
         return true;
     }
 
     public static boolean firecrackerProjectile(ServerPlayer user, LivingEntity target, int amount) {
         if (target == null || !target.isAlive()) return false;
-        ArcProjectileEntity entity = new ArcProjectileEntity(
-                user.level(), user, target, amount,
-                ArcProjectileEntity.MODE_FIRECRACKER, 30);
-        user.level().addFreshEntity(entity);
+        PendingCounterEffectManager.offerFirecracker(user, target, amount);
         return true;
     }
 
     public static boolean slingshotProjectile(ServerPlayer user, LivingEntity target, int amount) {
         if (target == null || !target.isAlive()) return false;
-        ArcProjectileEntity entity = new ArcProjectileEntity(
-                user.level(), user, target, amount,
-                ArcProjectileEntity.MODE_SLINGSHOT, 18);
-        user.level().addFreshEntity(entity);
+        PendingCounterEffectManager.offerSlingshot(user, target, amount);
+        return true;
+    }
+
+    public static boolean snowballAttackProjectile(ServerPlayer user, LivingEntity target, int amount) {
+        if (target == null || !target.isAlive()) return false;
+        PendingCounterEffectManager.offerSnowballAttack(user, target, amount);
         return true;
     }
 
     public static boolean fallingBrick(ServerPlayer user, LivingEntity target, int amount) {
         if (target == null || !target.isAlive()) return false;
-        FallingBrickEntity entity = new FallingBrickEntity(user.level(), user, target, amount, 18);
-        user.level().addFreshEntity(entity);
+        PendingCounterEffectManager.offerFallingBrick(user, target, amount);
         return true;
     }
 

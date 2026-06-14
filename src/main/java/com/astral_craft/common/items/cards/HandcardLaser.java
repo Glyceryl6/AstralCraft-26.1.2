@@ -30,8 +30,7 @@ public class HandcardLaser extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.target(targets)
-                .map(target -> AstralCardEffects.laserStrike(user, target, 3, 0xFF55E8FF, 0.12F))
-                .orElse(false);
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.laserStrike(user, target, 3, 0xFFFFFFFF, 0.12F)).orElse(false);
     }
+
 }

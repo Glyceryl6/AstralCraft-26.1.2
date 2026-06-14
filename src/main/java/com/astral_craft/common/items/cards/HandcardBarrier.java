@@ -4,15 +4,14 @@ import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralPartyCards;
 import com.astral_craft.common.gameplay.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
+import com.astral_craft.common.gameplay.PendingCounterEffectManager;
 import com.astral_craft.common.items.BaseHandCard;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-
-import java.util.List;
 
 public class HandcardBarrier extends BaseHandCard {
 
@@ -24,12 +23,20 @@ public class HandcardBarrier extends BaseHandCard {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        return super.use(level, player, hand);
+        if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) {
+            return InteractionResult.PASS;
+        }
+        boolean used = PendingCounterEffectManager.respond(serverPlayer, PendingCounterEffectManager.CounterAction.BARRIER);
+        if (used) {
+            consume(serverPlayer, player.getItemInHand(hand));
+        }
+        return InteractionResult.SUCCESS;
     }
 
-    @Override
-    protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return false;
+    private static void consume(ServerPlayer player, ItemStack stack) {
+        if (!player.getAbilities().instabuild) {
+            stack.shrink(1);
+        }
     }
 
 }

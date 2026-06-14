@@ -13,6 +13,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
 
 public class SoulLinkEntity extends Entity {
 
@@ -39,6 +40,7 @@ public class SoulLinkEntity extends Entity {
         this.setEndpoints(first.getId(), second.getId());
         this.setVisualStyle(style);
         this.entityData.set(DATA_LIFETIME, Math.max(1, lifetimeTicks));
+        this.updateDynamicBoundingBox(first, second);
     }
 
     @Override
@@ -98,15 +100,29 @@ public class SoulLinkEntity extends Entity {
         super.tick();
         this.entityData.set(DATA_AGE, this.linkAge() + 1);
         this.setDeltaMovement(0.0D, 0.0D, 0.0D);
-        if (!this.level().isClientSide()) {
-            Entity first = this.level().getEntity(this.firstId());
-            Entity second = this.level().getEntity(this.secondId());
-            if (!(first instanceof LivingEntity livingFirst) || !(second instanceof LivingEntity livingSecond) || !livingFirst.isAlive() || !livingSecond.isAlive() || this.linkAge() > this.entityData.get(DATA_LIFETIME)) {
-                this.discard();
-                return;
-            }
+        Entity first = this.level().getEntity(this.firstId());
+        Entity second = this.level().getEntity(this.secondId());
+        if (first instanceof LivingEntity livingFirst && second instanceof LivingEntity livingSecond) {
             this.setPos((first.getX() + second.getX()) * 0.5D, (first.getY() + second.getY()) * 0.5D, (first.getZ() + second.getZ()) * 0.5D);
+            this.updateDynamicBoundingBox(first, second);
+            if (!this.level().isClientSide() && (!livingFirst.isAlive() || !livingSecond.isAlive() || this.linkAge() > this.entityData.get(DATA_LIFETIME))) {
+                this.discard();
+            }
+        } else if (!this.level().isClientSide()) {
+            this.discard();
         }
+    }
+
+    private void updateDynamicBoundingBox(Entity first, Entity second) {
+        double minX = Math.min(first.getX(), second.getX());
+        double minY = Math.min(first.getY(), second.getY());
+        double minZ = Math.min(first.getZ(), second.getZ());
+        double maxX = Math.max(first.getX(), second.getX());
+        double maxY = Math.max(first.getY() + first.getBbHeight(),
+                second.getY() + second.getBbHeight()) + this.arcHeight() + 1.0D;
+        double maxZ = Math.max(first.getZ(), second.getZ());
+        double inflate = Math.max(1.5D, this.thickness() * 8.0D);
+        this.setBoundingBox(new AABB(minX, minY, minZ, maxX, maxY, maxZ).inflate(inflate));
     }
 
     @Override

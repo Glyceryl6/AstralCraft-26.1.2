@@ -7,19 +7,14 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -28,24 +23,13 @@ import java.util.Set;
 
 public class TargetSelectionScreen extends Screen {
 
-    private static final int CARD_WIDTH = 124;
+    private static final int CARD_WIDTH = 100;
     private static final int CARD_HEIGHT = 74;
     private static final int CARD_GAP = 10;
     private static final int PANEL_PADDING = 12;
     private static final int PANEL_MIN_WIDTH = 360;
     private static final int PANEL_HEIGHT = 178;
     private static final int SCROLLBAR_HEIGHT = 6;
-
-    /**
-     * Entity preview pose. These defaults imitate the inventory/block-item isometric feeling:
-     * a slight top-down pitch plus a 3/4 side view. Tweak these to make the model face your UI.
-     */
-    private static final float ENTITY_PREVIEW_ROT_X_DEGREES = 24.0F;
-    private static final float ENTITY_PREVIEW_ROT_Y_DEGREES = 225.0F;
-    private static final float ENTITY_PREVIEW_ROT_Z_DEGREES = 180.0F;
-    private static final float ENTITY_PREVIEW_TRANSLATE_Y_RATIO = 0.48F;
-    private static final float ENTITY_PREVIEW_WIDTH_PADDING = 1.75F;
-    private static final float ENTITY_PREVIEW_HEIGHT_PADDING = 1.20F;
 
     private final OpenTargetSelectionPayload payload;
     private final List<Candidate> candidates;
@@ -76,6 +60,11 @@ public class TargetSelectionScreen extends Screen {
                 .bounds(this.width / 2 + 10, bottom, 96, 20).build();
         this.confirmButton.active = false;
         this.addRenderableWidget(this.confirmButton);
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
     }
 
     @Override
@@ -196,7 +185,12 @@ public class TargetSelectionScreen extends Screen {
         graphics.fill(modelLeft, modelTop, modelRight, modelBottom, 0x66000000);
         Entity entity = Minecraft.getInstance().level == null ? null : Minecraft.getInstance().level.getEntity(candidate.entityId());
         if (entity instanceof LivingEntity living) {
-            renderEntityModel(graphics, living, modelLeft, modelTop, modelRight, modelBottom);
+            int x0 = x + 26, x1 = x + 75;
+            float centerX = (x0 + x1) / 2.0F;
+            float xAngle = (float) Math.atan(centerX / 40.0F);
+            InventoryScreen.renderEntityInInventoryFollowsAngle(
+                    graphics, modelLeft, modelTop, modelRight, modelBottom,
+                    20, 0.0625F, xAngle, 0.0F, living);
         }
 
         graphics.text(font, Component.literal(ellipsize(font, candidate.name(), 62)), x + 55, y + 17, 0xFFFFFFFF, false);
@@ -347,41 +341,6 @@ public class TargetSelectionScreen extends Screen {
         }
 
         return builder + suffix;
-    }
-
-    private static void renderEntityModel(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1) {
-        EntityRenderState renderState = extractEntityRenderState(entity);
-        if (renderState instanceof LivingEntityRenderState livingState) {
-            livingState.bodyRot = ENTITY_PREVIEW_ROT_Y_DEGREES;
-            livingState.yRot = ENTITY_PREVIEW_ROT_Y_DEGREES;
-            livingState.xRot = ENTITY_PREVIEW_ROT_X_DEGREES;
-            livingState.boundingBoxWidth /= livingState.scale;
-            livingState.boundingBoxHeight /= livingState.scale;
-            livingState.scale = 1.0F;
-        }
-
-        float boxWidth = Math.max(0.35F, renderState.boundingBoxWidth);
-        float boxHeight = Math.max(0.65F, renderState.boundingBoxHeight);
-        float viewWidth = Math.max(1.0F, x1 - x0);
-        float viewHeight = Math.max(1.0F, y1 - y0);
-        float scale = Math.min(viewWidth / (boxWidth * ENTITY_PREVIEW_WIDTH_PADDING),
-                viewHeight / (boxHeight * ENTITY_PREVIEW_HEIGHT_PADDING));
-        scale = Mth.clamp(scale, 14.0F, 42.0F);
-        Quaternionf rotation = new Quaternionf()
-                .rotateZ((float) Math.toRadians(ENTITY_PREVIEW_ROT_Z_DEGREES))
-                .rotateX((float) Math.toRadians(ENTITY_PREVIEW_ROT_X_DEGREES))
-                .rotateY((float) Math.toRadians(ENTITY_PREVIEW_ROT_Y_DEGREES));
-        Vector3f translation = new Vector3f(0.0F, boxHeight * ENTITY_PREVIEW_TRANSLATE_Y_RATIO, 0.0F);
-        graphics.entity(renderState, scale, translation, rotation, null, x0, y0, x1, y1);
-    }
-
-    private static EntityRenderState extractEntityRenderState(LivingEntity entity) {
-        EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        EntityRenderer<? super LivingEntity, ?> renderer = dispatcher.getRenderer(entity);
-        EntityRenderState renderState = renderer.createRenderState(entity, 1.0F);
-        renderState.shadowPieces.clear();
-        renderState.outlineColor = 0;
-        return renderState;
     }
 
     public record Candidate(int entityId, String name, int distance) {

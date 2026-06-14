@@ -14,7 +14,7 @@ public class AstralPartyChips {
 
     public static final ResourceKey<Registry<ChipDefinition>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("astral_party_chips"));
     public static final DeferredRegister<ChipDefinition> CHIPS = DeferredRegister.create(REGISTRY_KEY, AstralCraft.MOD_ID);
-    public static final Registry<ChipDefinition> REGISTRY = CHIPS.makeRegistry(builder -> {});
+    public static final Registry<ChipDefinition> REGISTRY = CHIPS.makeRegistry(_ -> {});
 
     public static ChipDefinition register(ChipDefinition definition) {
         CHIPS.register(definition.id(), () -> definition);

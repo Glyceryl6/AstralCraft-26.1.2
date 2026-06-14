@@ -2,28 +2,42 @@ package com.astral_craft.common.event;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.CardRevealOverlay;
+import com.astral_craft.client.gui.ChipSelectionScreen;
 import com.astral_craft.client.gui.TargetSelectionScreen;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
+import com.astral_craft.client.gui.board.BoardHudOverlay;
+import com.astral_craft.client.gui.phrase.QuickPhraseScreen;
+import com.astral_craft.client.input.AstralKeyMappings;
 import com.astral_craft.client.model.LargeCuboidModelLoader;
+import com.astral_craft.client.model.entity.FirecrackersModel;
 import com.astral_craft.client.render.AstralDiceRenderer;
 import com.astral_craft.client.render.SoulLinkRenderer;
-import com.astral_craft.client.render.effect.ArcProjectileRenderer;
 import com.astral_craft.client.render.effect.FallingBrickRenderer;
 import com.astral_craft.client.render.effect.LaserStrikeRenderer;
-import com.astral_craft.common.network.CardRevealPayload;
-import com.astral_craft.common.network.OpenBattleScenePayload;
-import com.astral_craft.common.network.OpenTargetSelectionPayload;
+import com.astral_craft.client.render.projectile.FirecrackersRenderer;
+import com.astral_craft.client.render.projectile.SlingshotProjectileRenderer;
+import com.astral_craft.client.render.projectile.SnowballAttackProjectileRenderer;
+import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
+import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
 public class ClientEventSubscriber {
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent.Post event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        while (AstralKeyMappings.QUICK_PHRASES.get().consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                minecraft.setScreen(new QuickPhraseScreen());
+            }
+        }
+    }
 
     @SubscribeEvent
     public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
@@ -31,8 +45,19 @@ public class ClientEventSubscriber {
     }
 
     @SubscribeEvent
+    public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
+        AstralKeyMappings.register(event);
+    }
+
+    @SubscribeEvent
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
+        event.registerAboveAll(BoardHudOverlay.LAYER, BoardHudOverlay::render);
         event.registerAboveAll(CardRevealOverlay.LAYER, CardRevealOverlay::render);
+    }
+
+    @SubscribeEvent
+    public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(FirecrackersModel.LAYER, FirecrackersModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -40,7 +65,9 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
         event.registerEntityRenderer(AstralEntities.LASER_STRIKE.get(), LaserStrikeRenderer::new);
-        event.registerEntityRenderer(AstralEntities.ARC_PROJECTILE.get(), ArcProjectileRenderer::new);
+        event.registerEntityRenderer(AstralEntities.FIRECRACKERS_PROJECTILE.get(), FirecrackersRenderer::new);
+        event.registerEntityRenderer(AstralEntities.SLINGSHOT_PROJECTILE.get(), SlingshotProjectileRenderer::new);
+        event.registerEntityRenderer(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), SnowballAttackProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
     }
 
@@ -49,6 +76,8 @@ public class ClientEventSubscriber {
         event.register(CardRevealPayload.TYPE, CardRevealOverlay::show);
         event.register(OpenTargetSelectionPayload.TYPE, TargetSelectionScreen::open);
         event.register(OpenBattleScenePayload.TYPE, BattleSceneScreen::open);
+        event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
+        event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
     }
 
 }

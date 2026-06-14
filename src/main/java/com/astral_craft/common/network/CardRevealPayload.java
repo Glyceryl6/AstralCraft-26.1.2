@@ -6,6 +6,13 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
+/**
+ * Client-side card reveal payload.
+ *
+ * <p>{@code animation} is intentionally string based so addons can experiment with new reveal
+ * names without changing the packet shape again. Built-in values are {@code flip} and
+ * {@code approach}.</p>
+ */
 public record CardRevealPayload(
         String cardId,
         String itemId,
@@ -13,8 +20,12 @@ public record CardRevealPayload(
         String bodyKey,
         String largeFrontTexture,
         String largeBackTexture,
+        String animation,
         int durationTicks
 ) implements CustomPacketPayload {
+
+    public static final String ANIMATION_FLIP = "flip";
+    public static final String ANIMATION_APPROACH = "approach";
 
     public static final CustomPacketPayload.Type<CardRevealPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("card_reveal"));
 
@@ -31,13 +42,15 @@ public record CardRevealPayload(
             CardRevealPayload::largeFrontTexture,
             ByteBufCodecs.STRING_UTF8,
             CardRevealPayload::largeBackTexture,
+            ByteBufCodecs.STRING_UTF8,
+            CardRevealPayload::animation,
             ByteBufCodecs.VAR_INT,
             CardRevealPayload::durationTicks,
-            CardRevealPayload::new);
+            CardRevealPayload::new
+    );
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
-
 }
