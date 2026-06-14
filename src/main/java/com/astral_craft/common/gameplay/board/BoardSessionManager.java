@@ -23,13 +23,19 @@ public class BoardSessionManager {
         ServerLevel level = player.level();
         ScannedBoard scanned = BoardScanner.scan(level, origin);
         if (!scanned.isValid()) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.invalid", String.join(", ", scanned.errors())).withStyle(ChatFormatting.RED), false);
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.invalid",
+                    String.join(", ", scanned.errors())).withStyle(ChatFormatting.RED), false);
             return false;
         }
 
         BoardSession session = new BoardSession(UUID.randomUUID(), level.dimension(), scanned);
         SESSIONS.add(session);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.board.started", scanned.nodes().size(), scanned.startNodes().size(), session.hologramCenter().getX() + ", " + session.hologramCenter().getY() + ", " + session.hologramCenter().getZ()).withStyle(ChatFormatting.GREEN), false);
+        player.sendSystemMessage(Component.translatable("message.astral_craft.board.started",
+                scanned.nodes().size(), scanned.startNodes().size(),
+                session.hologramCenter().getX() + ", "
+                        + session.hologramCenter().getY() + ", "
+                        + session.hologramCenter().getZ())
+                .withStyle(ChatFormatting.GREEN), false);
         return true;
     }
 
