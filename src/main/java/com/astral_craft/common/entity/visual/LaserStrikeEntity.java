@@ -18,17 +18,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-/**
- * Server-owned visual controller for top-down laser cards.
- *
- * <p>The renderer grows a tube from a point above the target down to the ground. Damage is applied once the tube
- * reaches the target/ground, then the tube fades by shrinking its radius.</p>
- */
 public class LaserStrikeEntity extends Entity {
-    public static final int DEFAULT_GROW_TICKS = 2;
-    public static final int DEFAULT_HOLD_TICKS = 3;
-    public static final int DEFAULT_FADE_TICKS = 8;
-    public static final float DEFAULT_HEIGHT = 8.0F;
 
     private static final EntityDataAccessor<Integer> DATA_OWNER = SynchedEntityData.defineId(LaserStrikeEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_TARGET = SynchedEntityData.defineId(LaserStrikeEntity.class, EntityDataSerializers.INT);
@@ -64,12 +54,12 @@ public class LaserStrikeEntity extends Entity {
         builder.define(DATA_TARGET, -1);
         builder.define(DATA_DAMAGE, 0);
         builder.define(DATA_AGE, 0);
-        builder.define(DATA_GROW, DEFAULT_GROW_TICKS);
-        builder.define(DATA_HOLD, DEFAULT_HOLD_TICKS);
-        builder.define(DATA_FADE, DEFAULT_FADE_TICKS);
-        builder.define(DATA_HEIGHT, DEFAULT_HEIGHT);
+        builder.define(DATA_GROW, 5);
+        builder.define(DATA_HOLD, 5);
+        builder.define(DATA_FADE, 10);
+        builder.define(DATA_HEIGHT, 10.0F);
         builder.define(DATA_RADIUS, 0.12F);
-        builder.define(DATA_COLOR, 0xFF66E8FF);
+        builder.define(DATA_COLOR, 0xFFFFFFFF);
         builder.define(DATA_DAMAGED, false);
     }
 
@@ -78,7 +68,6 @@ public class LaserStrikeEntity extends Entity {
         super.tick();
         this.entityData.set(DATA_AGE, this.age() + 1);
         this.setDeltaMovement(0.0D, 0.0D, 0.0D);
-
         Entity target = this.level().getEntity(this.targetId());
         if (target != null) {
             this.setPos(target.getX(), target.getY(), target.getZ());
@@ -89,7 +78,8 @@ public class LaserStrikeEntity extends Entity {
                 this.discard();
                 return;
             }
-            if (!this.damaged() && this.age() >= this.growTicks()) {
+
+            if (!this.damaged() && this.age() >= this.growTicks() + this.holdTicks()) {
                 this.entityData.set(DATA_DAMAGED, true);
                 Entity owner = this.level().getEntity(this.ownerId());
                 if (owner instanceof ServerPlayer player) {
@@ -100,6 +90,7 @@ public class LaserStrikeEntity extends Entity {
                     }
                 }
             }
+
             if (this.age() > this.totalLifetime()) {
                 this.discard();
             }
@@ -125,10 +116,10 @@ public class LaserStrikeEntity extends Entity {
         this.entityData.set(DATA_TARGET, input.getIntOr("target", -1));
         this.entityData.set(DATA_DAMAGE, input.getIntOr("damage", 0));
         this.entityData.set(DATA_AGE, input.getIntOr("age", 0));
-        this.entityData.set(DATA_GROW, input.getIntOr("grow", DEFAULT_GROW_TICKS));
-        this.entityData.set(DATA_HOLD, input.getIntOr("hold", DEFAULT_HOLD_TICKS));
-        this.entityData.set(DATA_FADE, input.getIntOr("fade", DEFAULT_FADE_TICKS));
-        this.entityData.set(DATA_HEIGHT, input.getFloatOr("height", DEFAULT_HEIGHT));
+        this.entityData.set(DATA_GROW, input.getIntOr("grow", 5));
+        this.entityData.set(DATA_HOLD, input.getIntOr("hold", 5));
+        this.entityData.set(DATA_FADE, input.getIntOr("fade", 10));
+        this.entityData.set(DATA_HEIGHT, input.getFloatOr("height", 10.0F));
         this.entityData.set(DATA_RADIUS, input.getFloatOr("radius", 0.12F));
         this.entityData.set(DATA_COLOR, input.getIntOr("color", 0xFF66E8FF));
         this.entityData.set(DATA_DAMAGED, input.getBooleanOr("damaged", false));
@@ -153,4 +144,5 @@ public class LaserStrikeEntity extends Entity {
     public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
         return false;
     }
+
 }

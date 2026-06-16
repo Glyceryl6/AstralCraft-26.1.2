@@ -13,7 +13,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-/** Snowball Attack projectile: damage plus temporary movement penalty when target is a player. */
 public class SnowballAttackProjectileEntity extends AbstractCardProjectileEntity {
 
     public SnowballAttackProjectileEntity(EntityType<? extends SnowballAttackProjectileEntity> type, Level level) {

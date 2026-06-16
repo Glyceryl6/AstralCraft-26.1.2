@@ -11,7 +11,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-/** Firecrackers / Gao-Sheng Cannon: a single lit firework-like projectile that flies upward then explodes. */
 public class FirecrackersProjectileEntity extends AbstractCardProjectileEntity {
 
     public FirecrackersProjectileEntity(EntityType<? extends FirecrackersProjectileEntity> type, Level level) {

@@ -19,7 +19,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-/** Falling brick/stone card visual. It follows the target horizontally while dropping from above. */
 public class FallingBrickEntity extends Entity {
 
     private static final EntityDataAccessor<Integer> DATA_OWNER = SynchedEntityData.defineId(FallingBrickEntity.class, EntityDataSerializers.INT);
@@ -50,7 +49,7 @@ public class FallingBrickEntity extends Entity {
         builder.define(DATA_TARGET, -1);
         builder.define(DATA_DAMAGE, 0);
         builder.define(DATA_AGE, 0);
-        builder.define(DATA_FALL_TICKS, 18);
+        builder.define(DATA_FALL_TICKS, 10);
         builder.define(DATA_HIT, false);
     }
 

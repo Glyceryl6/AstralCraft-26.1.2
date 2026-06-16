@@ -96,6 +96,12 @@ public class SoulLinkEntity extends Entity {
     }
 
     @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        double limit = 256.0D * 256.0D;
+        return distance < limit;
+    }
+
+    @Override
     public void tick() {
         super.tick();
         this.entityData.set(DATA_AGE, this.linkAge() + 1);

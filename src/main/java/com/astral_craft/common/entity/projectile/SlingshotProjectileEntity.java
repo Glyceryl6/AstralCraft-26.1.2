@@ -11,7 +11,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-/** Small cube projectile for Slingshot. */
 public class SlingshotProjectileEntity extends AbstractCardProjectileEntity {
 
     public SlingshotProjectileEntity(EntityType<? extends SlingshotProjectileEntity> type, Level level) {

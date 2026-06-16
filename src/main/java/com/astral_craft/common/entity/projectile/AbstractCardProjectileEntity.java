@@ -19,13 +19,6 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Base class for card projectiles.
- *
- * <p>This now extends {@link Projectile}, so callers can tune launch direction, speed, homing,
- * gravity and arc height through projectile-like concepts. The entity still supports target tracking
- * because many Astral Party cards are selected-target effects rather than free-aim weapons.</p>
- */
 public abstract class AbstractCardProjectileEntity extends Projectile {
 
     private static final EntityDataAccessor<Integer> DATA_TARGET = SynchedEntityData.defineId(AbstractCardProjectileEntity.class, EntityDataSerializers.INT);
@@ -71,7 +64,6 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         this.entityData.set(DATA_ARC_BOOST, Math.max(0.0F, arcBoost));
     }
 
-    /** Set the initial velocity using Projectile#shoot so speed/divergence feel like vanilla projectiles. */
     public void shootAt(LivingEntity target, float speed, float divergence) {
         Vec3 targetPos = target.position().add(0.0D, target.getBbHeight() * 0.55D, 0.0D);
         Vec3 toTarget = targetPos.subtract(this.position());

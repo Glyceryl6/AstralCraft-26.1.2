@@ -1,6 +1,5 @@
 package com.astral_craft.common.entity.projectile;
 
-/** Runtime-tunable projectile parameters. They are also saved on the projectile entity as NBT. */
 public record CardProjectileSettings(float speed, float gravity, float homing, float arcBoost, int durationTicks) {
 
     public static CardProjectileSettings of(float speed, float gravity, float homing, float arcBoost, int durationTicks) {
