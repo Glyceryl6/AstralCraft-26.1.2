@@ -1,12 +1,13 @@
 package com.astral_craft.client.gui.reveal;
 
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 
 public class ApproachCardRevealAnimation implements CardRevealAnimation {
 
     @Override
-    public String id() {
-        return "approach";
+    public Identifier id() {
+        return CardRevealAnimations.APPROACH;
     }
 
     @Override
@@ -17,9 +18,8 @@ public class ApproachCardRevealAnimation implements CardRevealAnimation {
     @Override
     public void render(CardRevealRenderContext context, CardRevealRenderer renderer) {
         CardRevealFrame frame = this.frame(context.ageTicks(), context.settings());
-        int displaySize = Math.max(4, Math.round(context.modelSize() * frame.xScale()));
-        renderer.renderCard(context.graphics(), context.reveal(), context.settings(), context.centerX(), context.centerY(), displaySize,
-                new CardRevealFrame(true, 1.0F, 1.0F, frame.alpha(), frame.centerYOffset(), displaySize > context.modelSize() * 0.36F));
+        renderer.renderCard(context.graphics(), context.reveal(), context.settings(),
+                context.centerX(), context.centerY(), context.modelSize(), frame);
     }
 
     public CardRevealFrame frame(float ageTicks, CardRevealSettings settings) {
@@ -32,11 +32,11 @@ public class ApproachCardRevealAnimation implements CardRevealAnimation {
             float scale = Mth.lerp(eased, settings.approachStartScale, 1.0F);
             float alpha = Mth.clamp(t * 1.75F, 0.0F, 1.0F);
             int y = Math.round((1.0F - scale) * 34.0F);
-            return new CardRevealFrame(true, scale, scale, alpha, y, scale > 0.36F);
+            return new CardRevealFrame(true, scale, scale, 1.0F, 1.0F, alpha, y, scale > 0.36F);
         }
 
         if (ageTicks < inTicks + holdTicks) {
-            return new CardRevealFrame(true, 1.0F, 1.0F, 1.0F, 0, true);
+            return new CardRevealFrame(true, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 0, true);
         }
 
         float t = Mth.clamp((ageTicks - inTicks - holdTicks) / outTicks, 0.0F, 1.0F);
@@ -44,7 +44,7 @@ public class ApproachCardRevealAnimation implements CardRevealAnimation {
         float scale = Mth.lerp(eased, 1.0F, settings.approachEndScale);
         float alpha = 1.0F - eased;
         int y = -Math.round(eased * 20.0F);
-        return new CardRevealFrame(true, scale, scale, alpha, y, scale > 0.30F);
+        return new CardRevealFrame(true, scale, scale, 1.0F, 1.0F, alpha, y, scale > 0.30F);
     }
 
     public float easeOutCubic(float t) {

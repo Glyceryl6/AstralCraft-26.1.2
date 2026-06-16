@@ -4,6 +4,8 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.reveal.ApproachCardRevealAnimation;
 import com.astral_craft.client.gui.reveal.CardReveal;
 import com.astral_craft.client.gui.reveal.CardRevealAnimation;
+import com.astral_craft.client.gui.reveal.CardRevealAnimations;
+import com.astral_craft.client.gui.reveal.CardRevealDebugSettings;
 import com.astral_craft.client.gui.reveal.CardRevealRenderContext;
 import com.astral_craft.client.gui.reveal.CardRevealRenderer;
 import com.astral_craft.client.gui.reveal.CardRevealSettings;
@@ -15,7 +17,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -23,15 +24,15 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Totem-like card reveal manager. Individual animation implementations live in client.gui.reveal. */
 public class CardRevealOverlay {
 
     public static final Identifier LAYER = AstralCraft.prefix("card_reveal_overlay");
     public static final long TICK_NANOS = 50_000_000L;
 
     public static final CardRevealSettings SETTINGS = new CardRevealSettings();
+    public static final CardRevealDebugSettings DEBUG_SETTINGS = new CardRevealDebugSettings();
 
-    private static final Map<String, CardRevealAnimation> ANIMATIONS = new HashMap<>();
+    private static final Map<Identifier, CardRevealAnimation> ANIMATIONS = new HashMap<>();
     private static final CardRevealRenderer RENDERER = new CardRevealRenderer();
     private static CardReveal active;
 
@@ -56,6 +57,21 @@ public class CardRevealOverlay {
         SETTINGS.approachOutTicks = Math.max(1, outTicks);
     }
 
+    public static void configureModelAndTextScale(float modelScale, float textScale) {
+        SETTINGS.cardModelScale = Math.max(0.05F, modelScale);
+        SETTINGS.cardTextScale = Math.max(0.05F, textScale);
+    }
+
+    public static void configureTextWidths(float titleRatio, float bodyRatio) {
+        SETTINGS.titleTextMaxWidthRatio = Math.max(0.05F, titleRatio);
+        SETTINGS.bodyTextMaxWidthRatio = Math.max(0.05F, bodyRatio);
+        SETTINGS.textMaxWidthRatio = SETTINGS.bodyTextMaxWidthRatio;
+    }
+
+    public static void reloadDebugSettings() {
+        DEBUG_SETTINGS.reloadNow(SETTINGS);
+    }
+
     public static int defaultFlipDurationTicks() {
         return SETTINGS.flipDurationTicks();
     }
@@ -69,11 +85,11 @@ public class CardRevealOverlay {
     }
 
     public static void show(CardRevealPayload payload) {
-        String animationId = normalizeAnimation(payload.animation());
+        Identifier animationId = normalizeAnimation(payload.animation());
         CardRevealAnimation animation = ANIMATIONS.get(animationId);
         int defaultDuration = animation.defaultDuration(SETTINGS);
         int duration = payload.durationTicks() > 0 ? payload.durationTicks() : defaultDuration;
-        active = new CardReveal(payload.cardId(),
+        active = new CardReveal(payload.cardId(), payload.cardType(),
                 Component.translatable(payload.titleKey()).getString(),
                 Component.translatable(payload.bodyKey()).getString(),
                 makeItemStack(payload.itemId()),
@@ -93,16 +109,18 @@ public class CardRevealOverlay {
             return;
         }
 
+        DEBUG_SETTINGS.tick(SETTINGS);
+
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
             active = null;
             return;
         }
 
-        CardRevealAnimation animation = ANIMATIONS.getOrDefault(active.animation(), ANIMATIONS.get(CardRevealPayload.ANIMATION_FLIP));
+        CardRevealAnimation animation = ANIMATIONS.getOrDefault(active.animation(), ANIMATIONS.get(CardRevealAnimations.FLIP));
         int centerX = graphics.guiWidth() / 2;
         int centerY = graphics.guiHeight() / 2;
-        int modelSize = Mth.clamp((int) (graphics.guiHeight() * 0.62F), 150, 292);
+        int modelSize = SETTINGS.responsiveModelSize(graphics.guiWidth(), graphics.guiHeight());
         CardRevealRenderContext context = new CardRevealRenderContext(graphics, minecraft, active, SETTINGS, ageTicks, centerX, centerY, modelSize);
         animation.render(context, RENDERER);
     }
@@ -117,11 +135,26 @@ public class CardRevealOverlay {
         }
     }
 
-    private static String normalizeAnimation(String animation) {
-        if (ANIMATIONS.containsKey(animation)) {
-            return animation;
+    private static Identifier normalizeAnimation(String animation) {
+        Identifier id = parseAnimationId(animation);
+        if (ANIMATIONS.containsKey(id)) {
+            return id;
         }
-        return CardRevealPayload.ANIMATION_FLIP;
+        return CardRevealAnimations.FLIP;
+    }
+
+    private static Identifier parseAnimationId(String animation) {
+        if (animation == null || animation.isBlank()) {
+            return CardRevealAnimations.FLIP;
+        }
+        try {
+            if (animation.indexOf(':') >= 0) {
+                return Identifier.parse(animation);
+            }
+            return AstralCraft.prefix(animation);
+        } catch (Exception ignored) {
+            return CardRevealAnimations.FLIP;
+        }
     }
 
 }

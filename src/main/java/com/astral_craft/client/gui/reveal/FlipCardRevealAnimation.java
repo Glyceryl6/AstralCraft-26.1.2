@@ -1,12 +1,13 @@
 package com.astral_craft.client.gui.reveal;
 
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 
 public class FlipCardRevealAnimation implements CardRevealAnimation {
 
     @Override
-    public String id() {
-        return "flip";
+    public Identifier id() {
+        return CardRevealAnimations.FLIP;
     }
 
     @Override
@@ -17,13 +18,14 @@ public class FlipCardRevealAnimation implements CardRevealAnimation {
     @Override
     public void render(CardRevealRenderContext context, CardRevealRenderer renderer) {
         CardRevealFrame frame = this.frame(context.ageTicks(), context.settings());
-        renderer.renderCard(context.graphics(), context.reveal(), context.settings(), context.centerX(), context.centerY(), context.modelSize(), frame);
+        renderer.renderCard(context.graphics(), context.reveal(), context.settings(),
+                context.centerX(), context.centerY(), context.modelSize(), frame);
     }
 
     public CardRevealFrame frame(float ageTicks, CardRevealSettings settings) {
         float alpha = this.fade(ageTicks, settings.flipDurationTicks());
         if (ageTicks < settings.flipIntroHoldTicks) {
-            return new CardRevealFrame(false, 1.0F, 1.0F, alpha, 0, false);
+            return new CardRevealFrame(false, 1.0F, 1.0F, 1.0F, 1.0F, alpha, -10, false);
         }
 
         if (ageTicks < settings.flipIntroHoldTicks + settings.flipRotateTicks) {
@@ -31,10 +33,10 @@ public class FlipCardRevealAnimation implements CardRevealAnimation {
             float eased = this.easeInOut(t);
             float widthScale = Math.max(0.035F, Math.abs(Mth.cos(eased * Mth.PI)));
             boolean front = eased >= 0.5F;
-            return new CardRevealFrame(front, widthScale, 1.0F, alpha, 0, front && widthScale > 0.33F);
+            return new CardRevealFrame(front, 1.0F, 1.0F, widthScale, 1.0F, alpha, -10, front && widthScale > 0.33F);
         }
 
-        return new CardRevealFrame(true, 1.0F, 1.0F, alpha, 0, true);
+        return new CardRevealFrame(true, 1.0F, 1.0F, 1.0F, 1.0F, alpha, -10, true);
     }
 
     public float fade(float ageTicks, int durationTicks) {

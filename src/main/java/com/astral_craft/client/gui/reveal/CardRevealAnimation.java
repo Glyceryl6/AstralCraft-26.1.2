@@ -1,8 +1,10 @@
 package com.astral_craft.client.gui.reveal;
 
+import net.minecraft.resources.Identifier;
+
 public interface CardRevealAnimation {
 
-    String id();
+    Identifier id();
 
     int defaultDuration(CardRevealSettings settings);
 
