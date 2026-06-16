@@ -1,7 +1,8 @@
 package com.astral_craft.common.items;
 
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.CardDefinition;
+import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.gameplay.CardRevealOptions;
 import com.astral_craft.common.gameplay.CardUseService;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.ChatFormatting;
@@ -21,7 +22,6 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 import java.util.function.Consumer;
 
-/* Base plumbing for hand cards. Concrete card classes own their effect code; metadata lives on item data components. */
 /** @noinspection deprecation*/
 public class BaseHandCard extends Item {
 
@@ -42,7 +42,14 @@ public class BaseHandCard extends Item {
         return this.apply(user, hand, targets);
     }
 
-    /** Override in each concrete card class. Return true when the item should be consumed. */
+    public CardRevealOptions revealOptions(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition, List<LivingEntity> targets) {
+        if (!definition.shouldRevealOnUse()) {
+            return CardRevealOptions.none();
+        }
+
+        return CardRevealOptions.selfFlip(CardUseService.CARD_REVEAL_DURATION_TICKS);
+    }
+
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         return false;
     }

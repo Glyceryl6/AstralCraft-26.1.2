@@ -1,7 +1,7 @@
 package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.CardDefinition;
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.gameplay.PendingCounterEffectManager;
 import com.astral_craft.common.items.BaseHandCard;
@@ -13,8 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public class HandcardEyeForAnEye extends BaseHandCard {
-    
-    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_eye_for_an_eye", CardType.COUNTER, CardTargetMode.SELF, -1, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.COUNTER, CardTargetMode.SELF, -1, false);
 
     public HandcardEyeForAnEye(Properties properties) {
         super(properties);

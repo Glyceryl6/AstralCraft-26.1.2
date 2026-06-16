@@ -1,9 +1,11 @@
 package com.astral_craft.common.items.cards;
 
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.*;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.stats.AstralStats;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -14,8 +16,8 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardSoulLink extends BaseHandCard {
-    
-    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_soul_link", CardType.EFFECT, CardTargetMode.TWO_PLAYERS, 32, false);
+
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.TWO_PLAYERS, 32, false);
 
     public HandcardSoulLink(Properties properties) {
         super(properties);
@@ -28,8 +30,13 @@ public class HandcardSoulLink extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        if (targets.size() < 2) return false;
-        SoulLinkManager.link(targets.get(0), targets.get(1), user.level().getGameTime() + 20L * 60L, SoulLinkStyle.rainbow(2.2F, 0.16F));
+        if (targets.size() < 2) {
+            return false;
+        }
+        if (!SoulLinkManager.link(targets.get(0), targets.get(1), user.level().getGameTime() + 20L * 60L, SoulLinkStyle.rainbow(2.2F, 0.05F))) {
+            user.sendSystemMessage(Component.translatable("message.astral_craft.soul_link.already_linked"), true);
+            return false;
+        }
         if (targets.get(0) instanceof ServerPlayer first) {
             AstralCardEffects.update(first, AstralStats.get(first).addBuff(BuffKinds.CUSTOM, 1));
         }

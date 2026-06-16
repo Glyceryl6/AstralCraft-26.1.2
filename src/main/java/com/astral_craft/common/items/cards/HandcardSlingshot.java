@@ -2,7 +2,7 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.AstralCardEffects;
-import com.astral_craft.common.gameplay.CardDefinition;
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,8 +15,8 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardSlingshot extends BaseHandCard {
-    
-    public static final CardDefinition DEFINITION = CardDefinition.create("handcard_slingshot", CardType.EFFECT, CardTargetMode.ENEMY_PLAYER, 10, false);
+
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.ANY_PLAYER, 10, false);
 
     public HandcardSlingshot(Properties properties) {
         super(properties);
@@ -29,8 +29,7 @@ public class HandcardSlingshot extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.target(targets)
-                .map(target -> AstralCardEffects.slingshotProjectile(user, target, 2))
-                .orElse(false);
+        return AstralCardEffects.target(targets).map(target -> AstralCardEffects.slingshotProjectile(user, target, 2)).orElse(false);
     }
+
 }

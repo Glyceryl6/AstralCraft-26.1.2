@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay;
 
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.cards.*;
 
 /** Forces built-in card classes to load before the custom card-definition registry fires. */

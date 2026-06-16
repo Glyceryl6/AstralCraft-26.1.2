@@ -2,10 +2,10 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.CardDefinition;
+import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.items.cards.*;
 import com.astral_craft.common.items.AstralDiceItem;
 import com.astral_craft.common.items.BoardProjectorItem;
-import com.astral_craft.common.items.cards.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
@@ -49,10 +49,6 @@ public class AstralItems {
     // Utility
     public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
-    public static final DeferredHolder<Item, ? extends Item> FIRECRACKERS_PROJECTILE = register("firecrackers_projectile", Item::new, Item.Properties::new);
-    /** Backward-compatible old name for previous patches. */
-    @Deprecated(forRemoval = false)
-    public static final DeferredHolder<Item, ? extends Item> RISING_CANNON_PROJECTILE = FIRECRACKERS_PROJECTILE;
 
     // Handcard
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION);
@@ -126,10 +122,12 @@ public class AstralItems {
         return register(name, itemFactory, Item.Properties::new);
     }
 
-    public static DeferredHolder<Item, ? extends Item> registerCard(String name, Function<Item.Properties, Item> itemFactory, CardType cardType, CardDefinition definition) {
-        DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () -> new Item.Properties()
-                .component(AstralDataComponents.CARD_TYPE, cardType)
-                .component(AstralDataComponents.CARD_DEFINITION, definition));
+    public static DeferredHolder<Item, ? extends Item> registerCard(
+            String name, Function<Item.Properties, Item> itemFactory, CardType cardType, CardDefinition definition) {
+        CardDefinition resolvedDefinition = definition.withId(name).withType(cardType);
+        DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
+                new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)
+                        .component(AstralDataComponents.CARD_DEFINITION, resolvedDefinition));
         MODELLED_CARD_ITEMS.add(new ModelledCardItem(register, cardType));
         return register;
     }

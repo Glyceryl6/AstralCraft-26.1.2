@@ -1,7 +1,7 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.components;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.CardTargetMode;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
@@ -20,8 +20,7 @@ public record CardDefinition(
         int range,
         boolean combatOnly,
         int minTargets,
-        int maxTargets
-) {
+        int maxTargets) {
 
     public static final Codec<CardDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.optionalFieldOf("id", "").forGetter(CardDefinition::id),
@@ -64,52 +63,21 @@ public record CardDefinition(
     }
 
     public CardDefinition withId(String id) {
-        String path = id == null ? "" : id;
-        return new CardDefinition(
-                path,
-                nameKey(path),
-                effectKey(path),
-                largeFrontTexture(path),
-                this.largeBackTexture,
-                this.type,
-                this.targetMode,
-                this.range,
-                this.combatOnly,
-                this.minTargets,
-                this.maxTargets
-        );
+        return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id),
+                this.largeBackTexture, this.type, this.targetMode, this.range,
+                this.combatOnly, this.minTargets, this.maxTargets);
     }
 
     public CardDefinition withType(CardType cardType) {
-        return new CardDefinition(
-                this.id,
-                this.nameKey,
-                this.effectKey,
-                this.largeFrontTexture,
-                this.largeBackTexture,
-                cardType,
-                this.targetMode,
-                this.range,
-                this.combatOnly,
-                this.minTargets,
-                this.maxTargets
-        );
+        return new CardDefinition(this.id, this.nameKey, this.effectKey,
+                this.largeFrontTexture, this.largeBackTexture, cardType,
+                this.targetMode, this.range, this.combatOnly, this.minTargets, this.maxTargets);
     }
 
     public CardDefinition withBackTexture(String texture) {
-        return new CardDefinition(
-                this.id,
-                this.nameKey,
-                this.effectKey,
-                this.largeFrontTexture,
-                texture,
-                this.type,
-                this.targetMode,
-                this.range,
-                this.combatOnly,
-                this.minTargets,
-                this.maxTargets
-        );
+        return new CardDefinition(this.id, this.nameKey, this.effectKey,
+                this.largeFrontTexture, texture, this.type, this.targetMode,
+                this.range, this.combatOnly, this.minTargets, this.maxTargets);
     }
 
     /** Preferred factory for hand card classes. The final id is derived from the item registry id in AstralItems#registerCard. */
@@ -119,20 +87,8 @@ public record CardDefinition(
 
     /** Legacy overload. Kept so old card classes or external mods do not have to migrate immediately. */
     public static CardDefinition create(String id, CardType type, CardTargetMode targetMode, int range, boolean combatOnly) {
-        String path = id == null ? "" : id;
-        return new CardDefinition(
-                path,
-                nameKey(path),
-                effectKey(path),
-                largeFrontTexture(path),
-                defaultBackTexture(),
-                type,
-                targetMode,
-                range,
-                combatOnly,
-                minTargets(targetMode),
-                maxTargets(targetMode)
-        );
+        return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id), defaultBackTexture(),
+                type, targetMode, range, combatOnly, minTargets(targetMode), maxTargets(targetMode));
     }
 
     public static CardDefinition fallback() {
@@ -170,4 +126,5 @@ public record CardDefinition(
     public static String defaultBackTexture() {
         return AstralCraft.MOD_ID + ":textures/gui/cards/card_back.png";
     }
+
 }
