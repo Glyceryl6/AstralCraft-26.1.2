@@ -1,14 +1,15 @@
 package com.astral_craft.common.gameplay;
 
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.StringRepresentable;
 
-import java.util.Locale;
-
+@MethodsReturnNonnullByDefault
 public enum CardTargetMode implements StringRepresentable {
+
     NONE("none"),
     SELF("self"),
     ALLY("ally"),
@@ -33,13 +34,4 @@ public enum CardTargetMode implements StringRepresentable {
         return this.serializedName;
     }
 
-    public static CardTargetMode byName(String name) {
-        String normalized = name == null ? "none" : name.toLowerCase(Locale.ROOT);
-        for (CardTargetMode mode : values()) {
-            if (mode.serializedName.equals(normalized)) {
-                return mode;
-            }
-        }
-        return NONE;
-    }
 }

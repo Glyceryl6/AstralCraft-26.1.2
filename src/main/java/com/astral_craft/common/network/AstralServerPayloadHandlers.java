@@ -2,6 +2,8 @@ package com.astral_craft.common.network;
 
 import com.astral_craft.common.gameplay.CardUseService;
 import com.astral_craft.common.gameplay.ChipSelectionService;
+import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
+import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -19,6 +21,46 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 ChipSelectionService.choose(player, payload.chipId());
+            }
+        });
+    }
+
+    public static void handleRequestCardBackSelection(RequestCardBackSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CardBackPreferenceManager.openSelection(player);
+            }
+        });
+    }
+
+    public static void handleCardBackSelection(CardBackSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CardBackPreferenceManager.select(player, CardBackPreferenceManager.safeParse(payload.selectedId()));
+            }
+        });
+    }
+
+    public static void handleRequestCharacterSettings(RequestCharacterSettingsPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CharacterProgressManager.open(player);
+            }
+        });
+    }
+
+    public static void handleCharacterSelection(CharacterSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CharacterProgressManager.selectCharacter(player, payload.characterId());
+            }
+        });
+    }
+
+    public static void handleCharacterSkinSelection(CharacterSkinSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CharacterProgressManager.selectSkin(player, payload.characterId(), payload.skinId());
             }
         });
     }

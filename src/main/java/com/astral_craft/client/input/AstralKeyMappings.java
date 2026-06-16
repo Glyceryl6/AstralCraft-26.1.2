@@ -12,12 +12,23 @@ public class AstralKeyMappings {
 
     public static final KeyMapping.Category CATEGORY = new KeyMapping.Category(AstralCraft.prefix("category"));
 
-    public static final Lazy<KeyMapping> QUICK_PHRASES = Lazy.of(() -> new KeyMapping("key.astral_craft.quick_phrases",
-            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
+    public static final Lazy<KeyMapping> QUICK_PHRASES = Lazy.of(() -> new KeyMapping(
+            "key.astral_craft.quick_phrases", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
+
+    public static final Lazy<KeyMapping> CARD_BACK_SELECTION = Lazy.of(() -> new KeyMapping(
+            "key.astral_craft.card_back_selection", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
+
+    public static final Lazy<KeyMapping> CHARACTER_SETTINGS = Lazy.of(() -> new KeyMapping(
+            "key.astral_craft.character_settings", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_C, CATEGORY));
 
     public static void register(RegisterKeyMappingsEvent event) {
         event.registerCategory(CATEGORY);
         event.register(QUICK_PHRASES.get());
+        event.register(CARD_BACK_SELECTION.get());
+        event.register(CHARACTER_SETTINGS.get());
     }
 
 }

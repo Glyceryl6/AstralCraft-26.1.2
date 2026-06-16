@@ -8,6 +8,8 @@ import com.astral_craft.common.gameplay.PendingCounterEffectManager;
 import com.astral_craft.common.gameplay.SoulLinkManager;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.cardback.CardBackManager;
+import com.astral_craft.common.gameplay.character.CharacterManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -17,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
@@ -26,6 +29,12 @@ import java.util.List;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID)
 public class CommonEventSubscriber {
+
+    @SubscribeEvent
+    public static void onAddServerReloadListeners(AddServerReloadListenersEvent event) {
+        event.addListener(AstralCraft.prefix("card_backs"), CardBackManager.INSTANCE);
+        event.addListener(AstralCraft.prefix("characters"), CharacterManager.INSTANCE);
+    }
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {

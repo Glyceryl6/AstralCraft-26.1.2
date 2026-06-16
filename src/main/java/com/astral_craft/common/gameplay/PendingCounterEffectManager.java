@@ -204,7 +204,7 @@ public class PendingCounterEffectManager {
     }
 
     private static void spawnBrick(ServerPlayer source, LivingEntity target, int damage) {
-        FallingBrickEntity entity = new FallingBrickEntity(source.level(), source, target, damage, 18);
+        FallingBrickEntity entity = new FallingBrickEntity(source.level(), source, target, damage, 10);
         source.level().playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.55F, 1.55F);
         source.level().addFreshEntity(entity);
     }

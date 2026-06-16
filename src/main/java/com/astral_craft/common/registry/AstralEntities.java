@@ -3,6 +3,7 @@ package com.astral_craft.common.registry;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.entity.SoulLinkEntity;
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
@@ -17,6 +18,10 @@ import java.util.function.Supplier;
 public final class AstralEntities {
 
     public static final DeferredRegister.Entities ENTITIES = DeferredRegister.createEntities(AstralCraft.MOD_ID);
+
+    public static final Supplier<EntityType<AstralCharacterEntity>> ASTRAL_CHARACTER = ENTITIES.registerEntityType(
+            "astral_character", AstralCharacterEntity::new, MobCategory.CREATURE,
+            builder -> builder.sized(0.6F, 1.8F).clientTrackingRange(64).updateInterval(2));
 
     public static final Supplier<EntityType<AstralDiceEntity>> ASTRAL_DICE = ENTITIES.registerEntityType(
             "astral_dice", AstralDiceEntity::new, MobCategory.MISC,

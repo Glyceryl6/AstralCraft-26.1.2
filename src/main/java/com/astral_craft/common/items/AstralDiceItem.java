@@ -22,7 +22,7 @@ public class AstralDiceItem extends Item {
             Vec3 look = serverPlayer.getLookAngle().normalize();
             Vec3 pos = serverPlayer.position().add(look.scale(1.8)).add(0, 1.2, 0);
             AstralDiceEntity dice = new AstralDiceEntity(serverLevel, pos.x, pos.y, pos.z);
-            dice.startRoll(1, 6, 45, serverLevel.getRandom());
+            dice.startRoll(1, 10, 20, serverLevel.getRandom());
             serverLevel.addFreshEntity(dice);
         }
 

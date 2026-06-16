@@ -9,13 +9,13 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 /**
  * Client-side card reveal payload.
  *
- * <p>{@code animation} is intentionally string based so addons can experiment with new reveal
- * names without changing the packet shape again. Built-in values are {@code flip} and
- * {@code approach}.</p>
+ * <p>{@code animation} is sent as a string for packet compatibility, but it is interpreted as
+ * a namespaced Identifier on the client. Legacy unnamespaced ids such as {@code flip} still work.</p>
  */
 public record CardRevealPayload(
         String cardId,
         String itemId,
+        String cardType,
         String titleKey,
         String bodyKey,
         String largeFrontTexture,
@@ -24,8 +24,8 @@ public record CardRevealPayload(
         int durationTicks
 ) implements CustomPacketPayload {
 
-    public static final String ANIMATION_FLIP = "flip";
-    public static final String ANIMATION_APPROACH = "approach";
+    public static final String ANIMATION_FLIP = AstralCraft.prefix("flip").toString();
+    public static final String ANIMATION_APPROACH = AstralCraft.prefix("approach").toString();
 
     public static final CustomPacketPayload.Type<CardRevealPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("card_reveal"));
 
@@ -34,6 +34,8 @@ public record CardRevealPayload(
             CardRevealPayload::cardId,
             ByteBufCodecs.STRING_UTF8,
             CardRevealPayload::itemId,
+            ByteBufCodecs.STRING_UTF8,
+            CardRevealPayload::cardType,
             ByteBufCodecs.STRING_UTF8,
             CardRevealPayload::titleKey,
             ByteBufCodecs.STRING_UTF8,
@@ -46,11 +48,11 @@ public record CardRevealPayload(
             CardRevealPayload::animation,
             ByteBufCodecs.VAR_INT,
             CardRevealPayload::durationTicks,
-            CardRevealPayload::new
-    );
+            CardRevealPayload::new);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
+
 }

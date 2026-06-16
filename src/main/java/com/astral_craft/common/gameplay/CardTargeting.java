@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay;
 
+import com.astral_craft.common.components.CardDefinition;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -10,7 +11,6 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class CardTargeting {
-    private CardTargeting() {}
 
     public static String encodeCandidates(ServerPlayer user, CardDefinition definition) {
         int range = definition.range() > 0 ? definition.range() : 32;

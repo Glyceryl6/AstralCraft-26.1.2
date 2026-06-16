@@ -6,6 +6,8 @@ import com.astral_craft.client.gui.ChipSelectionScreen;
 import com.astral_craft.client.gui.TargetSelectionScreen;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
 import com.astral_craft.client.gui.board.BoardHudOverlay;
+import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
+import com.astral_craft.client.gui.character.CharacterSettingsScreen;
 import com.astral_craft.client.gui.phrase.QuickPhraseScreen;
 import com.astral_craft.client.input.AstralKeyMappings;
 import com.astral_craft.client.model.LargeCuboidModelLoader;
@@ -24,6 +26,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.*;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
@@ -35,6 +38,18 @@ public class ClientEventSubscriber {
         while (AstralKeyMappings.QUICK_PHRASES.get().consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
                 minecraft.setScreen(new QuickPhraseScreen());
+            }
+        }
+
+        while (AstralKeyMappings.CARD_BACK_SELECTION.get().consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                ClientPacketDistributor.sendToServer(new RequestCardBackSelectionPayload());
+            }
+        }
+
+        while (AstralKeyMappings.CHARACTER_SETTINGS.get().consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                ClientPacketDistributor.sendToServer(new RequestCharacterSettingsPayload());
             }
         }
     }
@@ -78,6 +93,8 @@ public class ClientEventSubscriber {
         event.register(OpenBattleScenePayload.TYPE, BattleSceneScreen::open);
         event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
+        event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
+        event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
     }
 
 }
