@@ -2,6 +2,9 @@ package com.astral_craft.common.entity.character;
 
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
@@ -11,20 +14,34 @@ import net.minecraft.world.level.Level;
 
 public class AstralCharacterEntity extends PathfinderMob {
 
-    protected Identifier characterId;
-    protected String skinId;
-    protected int level;
-    protected int friendship;
-    protected int starCoins;
+    protected static final EntityDataAccessor<String> DATA_CHARACTER_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
+    protected static final EntityDataAccessor<String> DATA_SKIN_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
+    protected static final EntityDataAccessor<Integer> DATA_LEVEL = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> DATA_FRIENDSHIP = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> DATA_STAR_COINS = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<String> DATA_ANIMATION_ACTION = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
 
     public AstralCharacterEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
         CharacterDefinition definition = CharacterManager.INSTANCE.defaultCharacter();
-        this.characterId = definition.id();
-        this.skinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
-        this.level = 1;
-        this.friendship = 0;
-        this.starCoins = 0;
+        this.setCharacterId(definition.id());
+        this.setSkinId(definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id());
+        this.setCharacterLevel(1);
+        this.setFriendship(1);
+        this.setStarCoins(0);
+        this.setAnimationAction("idle");
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        CharacterDefinition definition = CharacterManager.INSTANCE.defaultCharacter();
+        builder.define(DATA_CHARACTER_ID, definition.id().toString());
+        builder.define(DATA_SKIN_ID, definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id());
+        builder.define(DATA_LEVEL, 1);
+        builder.define(DATA_FRIENDSHIP, 1);
+        builder.define(DATA_STAR_COINS, 0);
+        builder.define(DATA_ANIMATION_ACTION, "idle");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -39,43 +56,66 @@ public class AstralCharacterEntity extends PathfinderMob {
     protected void registerGoals() {}
 
     public Identifier characterId() {
-        return this.characterId;
+        try {
+            return Identifier.parse(this.entityData.get(DATA_CHARACTER_ID));
+        } catch (Exception exception) {
+            return CharacterManager.INSTANCE.defaultCharacter().id();
+        }
     }
 
     public void setCharacterId(Identifier characterId) {
-        this.characterId = characterId;
+        Identifier safeId = characterId == null ? CharacterManager.INSTANCE.defaultCharacter().id() : characterId;
+        this.entityData.set(DATA_CHARACTER_ID, safeId.toString());
     }
 
     public String skinId() {
-        return this.skinId;
+        String skinId = this.entityData.get(DATA_SKIN_ID);
+        return skinId == null || skinId.isBlank() ? "default" : skinId;
     }
 
     public void setSkinId(String skinId) {
-        this.skinId = skinId;
+        this.entityData.set(DATA_SKIN_ID, skinId == null || skinId.isBlank() ? "default" : skinId);
     }
 
     public int characterLevel() {
-        return this.level;
+        return this.entityData.get(DATA_LEVEL);
     }
 
     public void setCharacterLevel(int level) {
-        this.level = Math.max(1, level);
+        this.entityData.set(DATA_LEVEL, Math.max(1, level));
     }
 
     public int friendship() {
-        return this.friendship;
+        return this.entityData.get(DATA_FRIENDSHIP);
+    }
+
+    public void setFriendship(int friendship) {
+        this.entityData.set(DATA_FRIENDSHIP, Math.max(0, friendship));
     }
 
     public void addFriendship(int amount) {
-        this.friendship = Math.max(0, this.friendship + amount);
+        this.setFriendship(this.friendship() + amount);
     }
 
     public int starCoins() {
-        return this.starCoins;
+        return this.entityData.get(DATA_STAR_COINS);
+    }
+
+    public void setStarCoins(int amount) {
+        this.entityData.set(DATA_STAR_COINS, Math.max(0, amount));
     }
 
     public void addStarCoins(int amount) {
-        this.starCoins = Math.max(0, this.starCoins + amount);
+        this.setStarCoins(this.starCoins() + amount);
+    }
+
+    public String animationAction() {
+        String action = this.entityData.get(DATA_ANIMATION_ACTION);
+        return action == null || action.isBlank() ? "idle" : action;
+    }
+
+    public void setAnimationAction(String action) {
+        this.entityData.set(DATA_ANIMATION_ACTION, action == null || action.isBlank() ? "idle" : action);
     }
 
 }

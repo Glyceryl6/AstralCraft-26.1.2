@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
 
@@ -13,22 +14,128 @@ public record CharacterDefinition(
         String titleKey,
         Identifier modelKey,
         Identifier previewTexture,
+        Identifier entityTypeKey,
+        Identifier rendererKey,
+        Identifier animationSetKey,
+        String previewAction,
+        int maxPveLevel,
+        int maxFriendshipLevel,
         CharacterStatsDefinition baseStats,
         List<CharacterSkillDefinition> skills,
         List<CharacterProfileSection> profileSections,
-        List<CharacterSkinDefinition> skins) {
+        List<CharacterSkinDefinition> skins,
+        boolean unlockedByDefault,
+        String unlockHintKey,
+        int sortOrder) {
+
+    private static final MapCodec<CharacterIdentity> IDENTITY_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Identifier.CODEC.optionalFieldOf("id", AstralCraft.prefix("mimi")).forGetter(CharacterIdentity::id),
+            Codec.STRING.fieldOf("name_key").forGetter(CharacterIdentity::nameKey),
+            Codec.STRING.optionalFieldOf("title_key", "character.astral_craft.default.title").forGetter(CharacterIdentity::titleKey),
+            Identifier.CODEC.optionalFieldOf("model", AstralCraft.prefix("humanoid")).forGetter(CharacterIdentity::modelKey),
+            Identifier.CODEC.optionalFieldOf("preview_texture", AstralCraft.prefix("textures/entity/character/default.png")).forGetter(CharacterIdentity::previewTexture),
+            Identifier.CODEC.optionalFieldOf("entity_type", AstralCraft.prefix("astral_character")).forGetter(CharacterIdentity::entityTypeKey),
+            Identifier.CODEC.optionalFieldOf("renderer", AstralCraft.prefix("player")).forGetter(CharacterIdentity::rendererKey),
+            Identifier.CODEC.optionalFieldOf("animation_set", AstralCraft.prefix("humanoid")).forGetter(CharacterIdentity::animationSetKey),
+            Codec.STRING.optionalFieldOf("preview_action", "idle").forGetter(CharacterIdentity::previewAction)
+    ).apply(instance, CharacterIdentity::new));
+
+    private static final MapCodec<CharacterProgressionMetadata> PROGRESSION_METADATA_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.INT.optionalFieldOf("max_pve_level", 6).forGetter(CharacterProgressionMetadata::maxPveLevel),
+            Codec.INT.optionalFieldOf("max_friendship_level", 5).forGetter(CharacterProgressionMetadata::maxFriendshipLevel),
+            Codec.BOOL.optionalFieldOf("unlocked_by_default", false).forGetter(CharacterProgressionMetadata::unlockedByDefault),
+            Codec.STRING.optionalFieldOf("unlock_hint_key", "character.astral_craft.unlock_hint.placeholder").forGetter(CharacterProgressionMetadata::unlockHintKey),
+            Codec.INT.optionalFieldOf("sort_order", 1000).forGetter(CharacterProgressionMetadata::sortOrder)
+    ).apply(instance, CharacterProgressionMetadata::new));
+
+    private static final MapCodec<CharacterContent> CONTENT_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            CharacterStatsDefinition.CODEC.optionalFieldOf("base_stats", CharacterStatsDefinition.defaultStats()).forGetter(CharacterContent::baseStats),
+            CharacterSkillDefinition.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(CharacterContent::skills),
+            CharacterProfileSection.CODEC.listOf().optionalFieldOf("profile", List.of()).forGetter(CharacterContent::profileSections),
+            CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(CharacterContent::skins)
+    ).apply(instance, CharacterContent::new));
 
     public static final Codec<CharacterDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Identifier.CODEC.optionalFieldOf("id", AstralCraft.prefix("mimi")).forGetter(CharacterDefinition::id),
-            Codec.STRING.fieldOf("name_key").forGetter(CharacterDefinition::nameKey),
-            Codec.STRING.optionalFieldOf("title_key", "character.astral_craft.default.title").forGetter(CharacterDefinition::titleKey),
-            Identifier.CODEC.optionalFieldOf("model", AstralCraft.prefix("humanoid")).forGetter(CharacterDefinition::modelKey),
-            Identifier.CODEC.optionalFieldOf("preview_texture", AstralCraft.prefix("textures/entity/character/default.png")).forGetter(CharacterDefinition::previewTexture),
-            CharacterStatsDefinition.CODEC.optionalFieldOf("base_stats", CharacterStatsDefinition.defaultStats()).forGetter(CharacterDefinition::baseStats),
-            CharacterSkillDefinition.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(CharacterDefinition::skills),
-            CharacterProfileSection.CODEC.listOf().optionalFieldOf("profile", List.of()).forGetter(CharacterDefinition::profileSections),
-            CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(CharacterDefinition::skins)
-    ).apply(instance, CharacterDefinition::new));
+            IDENTITY_CODEC.forGetter(CharacterDefinition::identity),
+            PROGRESSION_METADATA_CODEC.forGetter(CharacterDefinition::progressionMetadata),
+            CONTENT_CODEC.forGetter(CharacterDefinition::content)
+    ).apply(instance, CharacterDefinition::fromCodecParts));
+
+    private static CharacterDefinition fromCodecParts(CharacterIdentity identity, CharacterProgressionMetadata progressionMetadata, CharacterContent content) {
+        return new CharacterDefinition(
+                identity.id(),
+                identity.nameKey(),
+                identity.titleKey(),
+                identity.modelKey(),
+                identity.previewTexture(),
+                identity.entityTypeKey(),
+                identity.rendererKey(),
+                identity.animationSetKey(),
+                identity.previewAction(),
+                progressionMetadata.maxPveLevel(),
+                progressionMetadata.maxFriendshipLevel(),
+                content.baseStats(),
+                content.skills(),
+                content.profileSections(),
+                content.skins(),
+                progressionMetadata.unlockedByDefault(),
+                progressionMetadata.unlockHintKey(),
+                progressionMetadata.sortOrder());
+    }
+
+    private CharacterIdentity identity() {
+        return new CharacterIdentity(
+                this.id,
+                this.nameKey,
+                this.titleKey,
+                this.modelKey,
+                this.previewTexture,
+                this.entityTypeKey,
+                this.rendererKey,
+                this.animationSetKey,
+                this.previewAction);
+    }
+
+    private CharacterProgressionMetadata progressionMetadata() {
+        return new CharacterProgressionMetadata(
+                this.maxPveLevel,
+                this.maxFriendshipLevel,
+                this.unlockedByDefault,
+                this.unlockHintKey,
+                this.sortOrder);
+    }
+
+    private CharacterContent content() {
+        return new CharacterContent(
+                this.baseStats,
+                this.skills,
+                this.profileSections,
+                this.skins);
+    }
+
+    private record CharacterIdentity(
+            Identifier id,
+            String nameKey,
+            String titleKey,
+            Identifier modelKey,
+            Identifier previewTexture,
+            Identifier entityTypeKey,
+            Identifier rendererKey,
+            Identifier animationSetKey,
+            String previewAction) { }
+
+    private record CharacterProgressionMetadata(
+            int maxPveLevel,
+            int maxFriendshipLevel,
+            boolean unlockedByDefault,
+            String unlockHintKey,
+            int sortOrder) { }
+
+    private record CharacterContent(
+            CharacterStatsDefinition baseStats,
+            List<CharacterSkillDefinition> skills,
+            List<CharacterProfileSection> profileSections,
+            List<CharacterSkinDefinition> skins) { }
 
     public static CharacterDefinition builtinDefault() {
         Identifier id = AstralCraft.prefix("mimi");
@@ -37,10 +144,19 @@ public record CharacterDefinition(
                 "character.astral_craft.mimi.title",
                 AstralCraft.prefix("humanoid"),
                 AstralCraft.prefix("textures/entity/character/mimi.png"),
+                AstralCraft.prefix("astral_character"),
+                AstralCraft.prefix("player"),
+                AstralCraft.prefix("humanoid"),
+                "idle",
+                6,
+                5,
                 new CharacterStatsDefinition(1, 2, 10, 0),
-                List.of(new CharacterSkillDefinition("trouble_maker", "character.astral_craft.mimi.skill.active", "character.astral_craft.mimi.skill.active.desc", 3)),
+                List.of(new CharacterSkillDefinition("active", "character.astral_craft.mimi.skill.active", "character.astral_craft.mimi.skill.active.desc", 3)),
                 List.of(new CharacterProfileSection("character.astral_craft.mimi.profile.basic", "character.astral_craft.mimi.profile.basic.body")),
-                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default", AstralCraft.prefix("textures/entity/character/mimi.png"), true)));
+                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default", AstralCraft.prefix("textures/entity/character/mimi.png"), true)),
+                true,
+                "character.astral_craft.unlock_hint.default",
+                80);
     }
 
     public CharacterSkinDefinition skinOrDefault(String skinId) {

@@ -35,14 +35,23 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
                     definition.titleKey(),
                     definition.modelKey(),
                     definition.previewTexture(),
+                    definition.entityTypeKey(),
+                    definition.rendererKey(),
+                    definition.animationSetKey(),
+                    definition.previewAction(),
+                    definition.maxPveLevel(),
+                    definition.maxFriendshipLevel(),
                     definition.baseStats(),
                     definition.skills(),
                     definition.profileSections(),
-                    definition.skins()));
+                    definition.skins(),
+                    definition.unlockedByDefault(),
+                    definition.unlockHintKey(),
+                    definition.sortOrder()));
         }
 
         this.definitions.clear();
-        loaded.values().stream().sorted(Comparator.comparing(value -> value.id().toString()))
+        loaded.values().stream().sorted(Comparator.comparingInt(CharacterDefinition::sortOrder).thenComparing(value -> value.id().toString()))
                 .forEach(value -> this.definitions.put(value.id(), value));
         if (this.definitions.isEmpty()) {
             this.resetToDefault();

@@ -17,13 +17,22 @@ public class CharacterCodecLines {
                     .append(escape(definition.titleKey())).append('|')
                     .append(escape(definition.modelKey().toString())).append('|')
                     .append(escape(definition.previewTexture().toString())).append('|')
+                    .append(escape(definition.entityTypeKey().toString())).append('|')
+                    .append(escape(definition.rendererKey().toString())).append('|')
+                    .append(escape(definition.animationSetKey().toString())).append('|')
+                    .append(escape(definition.previewAction())).append('|')
+                    .append(definition.maxPveLevel()).append('|')
+                    .append(definition.maxFriendshipLevel()).append('|')
                     .append(definition.baseStats().attack()).append(',')
                     .append(definition.baseStats().defense()).append(',')
                     .append(definition.baseStats().health()).append(',')
                     .append(definition.baseStats().speed()).append('|')
                     .append(escapeSkills(definition.skills())).append('|')
                     .append(escapeProfiles(definition.profileSections())).append('|')
-                    .append(escapeSkins(definition.skins()));
+                    .append(escapeSkins(definition.skins())).append('|')
+                    .append(definition.unlockedByDefault()).append('|')
+                    .append(escape(definition.unlockHintKey())).append('|')
+                    .append(definition.sortOrder());
         }
 
         return builder.toString();
@@ -45,11 +54,36 @@ public class CharacterCodecLines {
                 String titleKey = unescape(parts[2]);
                 Identifier model = Identifier.parse(unescape(parts[3]));
                 Identifier texture = Identifier.parse(unescape(parts[4]));
-                CharacterStatsDefinition stats = decodeStats(parts[5]);
-                List<CharacterSkillDefinition> skills = decodeSkills(parts[6]);
-                List<CharacterProfileSection> profiles = decodeProfiles(parts[7]);
-                List<CharacterSkinDefinition> skins = decodeSkins(parts[8]);
-                result.add(new CharacterDefinition(id, nameKey, titleKey, model, texture, stats, skills, profiles, skins));
+                Identifier entityType = AstralCraft.prefix("astral_character");
+                Identifier renderer = AstralCraft.prefix("player");
+                Identifier animationSet = AstralCraft.prefix("humanoid");
+                String previewAction = "idle";
+                int maxPveLevel = 6;
+                int maxFriendshipLevel = 5;
+                int statsIndex = 5;
+                if (parts.length > 16 && !parts[5].contains(",") && !parts[7].matches("-?\\d+")) {
+                    entityType = Identifier.parse(unescape(parts[5]));
+                    renderer = Identifier.parse(unescape(parts[6]));
+                    animationSet = Identifier.parse(unescape(parts[7]));
+                    previewAction = unescape(parts[8]);
+                    maxPveLevel = decodeInt(parts, 9, 6);
+                    maxFriendshipLevel = decodeInt(parts, 10, 5);
+                    statsIndex = 11;
+                } else if (parts.length > 12 && !parts[5].contains(",")) {
+                    entityType = Identifier.parse(unescape(parts[5]));
+                    renderer = Identifier.parse(unescape(parts[6]));
+                    maxPveLevel = decodeInt(parts, 7, 6);
+                    maxFriendshipLevel = decodeInt(parts, 8, 5);
+                    statsIndex = 9;
+                }
+                CharacterStatsDefinition stats = decodeStats(parts[statsIndex]);
+                List<CharacterSkillDefinition> skills = decodeSkills(parts[statsIndex + 1]);
+                List<CharacterProfileSection> profiles = decodeProfiles(parts[statsIndex + 2]);
+                List<CharacterSkinDefinition> skins = decodeSkins(parts[statsIndex + 3]);
+                boolean unlockedByDefault = parts.length > statsIndex + 4 && Boolean.parseBoolean(parts[statsIndex + 4]);
+                String unlockHintKey = parts.length > statsIndex + 5 && !parts[statsIndex + 5].isBlank() ? unescape(parts[statsIndex + 5]) : "character.astral_craft.unlock_hint.placeholder";
+                int sortOrder = decodeInt(parts, statsIndex + 6, 1000);
+                result.add(new CharacterDefinition(id, nameKey, titleKey, model, texture, entityType, renderer, animationSet, previewAction, maxPveLevel, maxFriendshipLevel, stats, skills, profiles, skins, unlockedByDefault, unlockHintKey, sortOrder));
             } catch (Exception ignored) {}
         }
 
@@ -70,6 +104,15 @@ public class CharacterCodecLines {
             return new CharacterStatsDefinition(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
         } catch (NumberFormatException exception) {
             return CharacterStatsDefinition.defaultStats();
+        }
+    }
+
+    protected static int decodeInt(String[] parts, int index, int fallback) {
+        if (index >= parts.length) return fallback;
+        try {
+            return Integer.parseInt(parts[index]);
+        } catch (NumberFormatException exception) {
+            return fallback;
         }
     }
 
