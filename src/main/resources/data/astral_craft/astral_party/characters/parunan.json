@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.parunan.name",
+  "title_key": "character.astral_craft.parunan.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_parunan_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 1,
+    "defense": 1,
+    "health": 10,
+    "speed": 0
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.parunan.skill.active",
+      "description_key": "character.astral_craft.parunan.skill.active.desc",
+      "cooldown": 4
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.parunan.skill.passive",
+      "description_key": "character.astral_craft.parunan.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.parunan.profile.basic",
+      "body_key": "character.astral_craft.parunan.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.parunan.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_parunan_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.parunan.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_parunan_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": true,
+  "unlock_hint_key": "character.astral_craft.parunan.unlock_hint",
+  "sort_order": 10,
+  "id": "astral_craft:parunan",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

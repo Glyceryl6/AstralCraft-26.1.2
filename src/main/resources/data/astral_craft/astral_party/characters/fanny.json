@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.fanny.name",
+  "title_key": "character.astral_craft.fanny.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_fanny_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 1,
+    "defense": 2,
+    "health": 10,
+    "speed": 0
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.fanny.skill.active",
+      "description_key": "character.astral_craft.fanny.skill.active.desc",
+      "cooldown": 5
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.fanny.skill.passive",
+      "description_key": "character.astral_craft.fanny.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.fanny.profile.basic",
+      "body_key": "character.astral_craft.fanny.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.fanny.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_fanny_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.fanny.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_fanny_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": true,
+  "unlock_hint_key": "character.astral_craft.fanny.unlock_hint",
+  "sort_order": 11,
+  "id": "astral_craft:fanny",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

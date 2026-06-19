@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.alana.name",
+  "title_key": "character.astral_craft.alana.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_alana_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 2,
+    "defense": 0,
+    "health": 10,
+    "speed": 0
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.alana.skill.active",
+      "description_key": "character.astral_craft.alana.skill.active.desc",
+      "cooldown": 3
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.alana.skill.passive",
+      "description_key": "character.astral_craft.alana.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.alana.profile.basic",
+      "body_key": "character.astral_craft.alana.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.alana.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_alana_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.alana.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_alana_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": true,
+  "unlock_hint_key": "character.astral_craft.alana.unlock_hint",
+  "sort_order": 12,
+  "id": "astral_craft:alana",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

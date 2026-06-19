@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.komachi.name",
+  "title_key": "character.astral_craft.komachi.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_komachi_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 1,
+    "defense": 1,
+    "health": 9,
+    "speed": 1
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.komachi.skill.active",
+      "description_key": "character.astral_craft.komachi.skill.active.desc",
+      "cooldown": 4
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.komachi.skill.passive",
+      "description_key": "character.astral_craft.komachi.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.komachi.profile.basic",
+      "body_key": "character.astral_craft.komachi.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.komachi.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_komachi_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.komachi.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_komachi_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": true,
+  "unlock_hint_key": "character.astral_craft.komachi.unlock_hint",
+  "sort_order": 13,
+  "id": "astral_craft:komachi",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

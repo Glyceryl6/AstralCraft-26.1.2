@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.luka.name",
+  "title_key": "character.astral_craft.luka.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_luka_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 2,
+    "defense": 0,
+    "health": 9,
+    "speed": 1
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.luka.skill.active",
+      "description_key": "character.astral_craft.luka.skill.active.desc",
+      "cooldown": 3
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.luka.skill.passive",
+      "description_key": "character.astral_craft.luka.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.luka.profile.basic",
+      "body_key": "character.astral_craft.luka.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.luka.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_luka_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.luka.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_luka_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": false,
+  "unlock_hint_key": "character.astral_craft.luka.unlock_hint",
+  "sort_order": 27,
+  "id": "astral_craft:luka",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

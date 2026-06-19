@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.nardis.name",
+  "title_key": "character.astral_craft.nardis.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_nardis_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 2,
+    "defense": 2,
+    "health": 10,
+    "speed": 0
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.nardis.skill.active",
+      "description_key": "character.astral_craft.nardis.skill.active.desc",
+      "cooldown": 3
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.nardis.skill.passive",
+      "description_key": "character.astral_craft.nardis.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.nardis.profile.basic",
+      "body_key": "character.astral_craft.nardis.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.nardis.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_nardis_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.nardis.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_nardis_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": false,
+  "unlock_hint_key": "character.astral_craft.nardis.unlock_hint",
+  "sort_order": 24,
+  "id": "astral_craft:nardis",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

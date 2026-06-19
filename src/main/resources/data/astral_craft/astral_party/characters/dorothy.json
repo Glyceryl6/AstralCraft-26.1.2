@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.dorothy.name",
+  "title_key": "character.astral_craft.dorothy.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_dorothy_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 2,
+    "defense": 1,
+    "health": 10,
+    "speed": 0
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.dorothy.skill.active",
+      "description_key": "character.astral_craft.dorothy.skill.active.desc",
+      "cooldown": 4
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.dorothy.skill.passive",
+      "description_key": "character.astral_craft.dorothy.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.dorothy.profile.basic",
+      "body_key": "character.astral_craft.dorothy.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.dorothy.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_dorothy_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.dorothy.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_dorothy_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": false,
+  "unlock_hint_key": "character.astral_craft.dorothy.unlock_hint",
+  "sort_order": 40,
+  "id": "astral_craft:dorothy",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}

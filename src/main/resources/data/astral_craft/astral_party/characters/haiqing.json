@@ -1,0 +1,56 @@
+{
+  "name_key": "character.astral_craft.haiqing.name",
+  "title_key": "character.astral_craft.haiqing.title",
+  "model": "astral_craft:humanoid",
+  "preview_texture": "astral_craft:textures/entity/character/skin_haiqing_default.png",
+  "entity_type": "astral_craft:astral_character",
+  "renderer": "astral_craft:player",
+  "max_pve_level": 6,
+  "max_friendship_level": 5,
+  "base_stats": {
+    "attack": 1,
+    "defense": 1,
+    "health": 10,
+    "speed": 0
+  },
+  "skills": [
+    {
+      "id": "active",
+      "name_key": "character.astral_craft.haiqing.skill.active",
+      "description_key": "character.astral_craft.haiqing.skill.active.desc",
+      "cooldown": 4
+    },
+    {
+      "id": "passive",
+      "name_key": "character.astral_craft.haiqing.skill.passive",
+      "description_key": "character.astral_craft.haiqing.skill.passive.desc",
+      "cooldown": 0
+    }
+  ],
+  "profile": [
+    {
+      "title_key": "character.astral_craft.haiqing.profile.basic",
+      "body_key": "character.astral_craft.haiqing.profile.basic.body"
+    }
+  ],
+  "skins": [
+    {
+      "id": "default",
+      "name_key": "character.astral_craft.haiqing.skin.default",
+      "texture": "astral_craft:textures/entity/character/skin_haiqing_default.png",
+      "unlocked_by_default": true
+    },
+    {
+      "id": "alt",
+      "name_key": "character.astral_craft.haiqing.skin.alt",
+      "texture": "astral_craft:textures/entity/character/skin_haiqing_alt.png",
+      "unlocked_by_default": false
+    }
+  ],
+  "unlocked_by_default": false,
+  "unlock_hint_key": "character.astral_craft.haiqing.unlock_hint",
+  "sort_order": 22,
+  "id": "astral_craft:haiqing",
+  "animation_set": "astral_craft:humanoid",
+  "preview_action": "idle"
+}
