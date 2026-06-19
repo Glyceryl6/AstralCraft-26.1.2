@@ -8,11 +8,13 @@ import com.astral_craft.client.gui.battle.BattleSceneScreen;
 import com.astral_craft.client.gui.board.BoardHudOverlay;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
-import com.astral_craft.client.gui.phrase.QuickPhraseScreen;
 import com.astral_craft.client.input.AstralKeyMappings;
 import com.astral_craft.client.model.LargeCuboidModelLoader;
+import com.astral_craft.client.model.character.AstralGeoAnimationManager;
+import com.astral_craft.client.model.character.AstralGeoModelManager;
 import com.astral_craft.client.model.entity.FirecrackersModel;
 import com.astral_craft.client.render.AstralDiceRenderer;
+import com.astral_craft.client.render.character.AstralCharacterRenderer;
 import com.astral_craft.client.render.SoulLinkRenderer;
 import com.astral_craft.client.render.effect.FallingBrickRenderer;
 import com.astral_craft.client.render.effect.LaserStrikeRenderer;
@@ -35,12 +37,6 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        while (AstralKeyMappings.QUICK_PHRASES.get().consumeClick()) {
-            if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.setScreen(new QuickPhraseScreen());
-            }
-        }
-
         while (AstralKeyMappings.CARD_BACK_SELECTION.get().consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
                 ClientPacketDistributor.sendToServer(new RequestCardBackSelectionPayload());
@@ -52,6 +48,13 @@ public class ClientEventSubscriber {
                 ClientPacketDistributor.sendToServer(new RequestCharacterSettingsPayload());
             }
         }
+    }
+
+
+    @SubscribeEvent
+    public static void addClientReloadListeners(AddClientReloadListenersEvent event) {
+        event.addListener(AstralCraft.prefix("character_models"), AstralGeoModelManager.INSTANCE);
+        event.addListener(AstralCraft.prefix("character_animations"), AstralGeoAnimationManager.INSTANCE);
     }
 
     @SubscribeEvent
@@ -84,6 +87,7 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.SLINGSHOT_PROJECTILE.get(), SlingshotProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), SnowballAttackProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
+        event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
     }
 
     @SubscribeEvent
