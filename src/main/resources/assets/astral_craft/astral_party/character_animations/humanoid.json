@@ -1,0 +1,64 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astral_craft.humanoid.idle": {
+      "loop": true,
+      "animation_length": 2.0,
+      "bones": {
+        "root": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 2, 0],
+            "2.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0.4, 0],
+            "2.0": [0, 0, 0]
+          }
+        },
+        "head": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [1.5, -2.0, 0],
+            "2.0": [0, 0, 0]
+          }
+        }
+      }
+    },
+    "animation.astral_craft.humanoid.walk": {
+      "loop": true,
+      "animation_length": 1.0,
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.0": [-25, 0, 0],
+            "0.5": [25, 0, 0],
+            "1.0": [-25, 0, 0]
+          }
+        },
+        "left_arm": {
+          "rotation": {
+            "0.0": [25, 0, 0],
+            "0.5": [-25, 0, 0],
+            "1.0": [25, 0, 0]
+          }
+        },
+        "right_leg": {
+          "rotation": {
+            "0.0": [30, 0, 0],
+            "0.5": [-30, 0, 0],
+            "1.0": [30, 0, 0]
+          }
+        },
+        "left_leg": {
+          "rotation": {
+            "0.0": [-30, 0, 0],
+            "0.5": [30, 0, 0],
+            "1.0": [-30, 0, 0]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.astral_craft.humanoid",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 2,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1.0, 0]
+      },
+      "bones": [
+        { "name": "root", "pivot": [0, 24, 0] },
+        { "name": "body", "parent": "root", "pivot": [0, 24, 0] },
+        { "name": "head", "parent": "body", "pivot": [0, 24, 0] },
+        { "name": "right_arm", "parent": "body", "pivot": [-5, 22, 0] },
+        { "name": "left_arm", "parent": "body", "pivot": [5, 22, 0] },
+        { "name": "right_leg", "parent": "root", "pivot": [-1.9, 12, 0] },
+        { "name": "left_leg", "parent": "root", "pivot": [1.9, 12, 0] }
+      ]
+    }
+  ]
+}
