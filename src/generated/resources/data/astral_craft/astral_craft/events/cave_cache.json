@@ -1,0 +1,35 @@
+{
+  "chance": 0.08,
+  "conditions": [
+    {
+      "type": "astral_craft:position",
+      "max_y": 40
+    }
+  ],
+  "cooldown_ticks": 1200,
+  "description_key": "event.astral_craft.cave_cache.description",
+  "effects": [
+    {
+      "type": "astral_craft:add_experience"
+    },
+    {
+      "type": "astral_craft:chance",
+      "chance": 0.5,
+      "effect": {
+        "type": "astral_craft:give_item",
+        "count": 3,
+        "id": "minecraft:iron_nugget"
+      }
+    }
+  ],
+  "id": "astral_craft:cave_cache",
+  "kind": "good",
+  "name_key": "event.astral_craft.cave_cache.name",
+  "texture": "astral_craft:textures/gui/cards/event_good.png",
+  "trigger_settings": {
+    "retrigger_delay_ticks": 1200
+  },
+  "triggers": [
+    "block_break"
+  ]
+}

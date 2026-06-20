@@ -1,0 +1,38 @@
+{
+  "active_effects": [
+    {
+      "type": "astral_craft:chance",
+      "chance": 0.25,
+      "effect": {
+        "type": "astral_craft:give_item",
+        "id": "minecraft:lapis_lazuli"
+      }
+    }
+  ],
+  "active_triggers": [
+    "block_break"
+  ],
+  "chance": 0.004,
+  "cooldown_ticks": 2400,
+  "description_key": "event.astral_craft.astral_blessing.description",
+  "duration_ticks": 200,
+  "effects": [
+    {
+      "type": "astral_craft:effect",
+      "effect": "minecraft:regeneration"
+    }
+  ],
+  "id": "astral_craft:astral_blessing",
+  "interval_ticks": 40,
+  "kind": "good",
+  "name_key": "event.astral_craft.astral_blessing.name",
+  "texture": "astral_craft:textures/gui/cards/event_good.png",
+  "timing": "duration",
+  "trigger_settings": {
+    "repeat_mode": "while_inactive",
+    "retrigger_delay_ticks": 2400
+  },
+  "triggers": [
+    "tick"
+  ]
+}

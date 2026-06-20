@@ -1,0 +1,17 @@
+{
+  "chance": 0.2,
+  "description_key": "event.astral_craft.lucky_find.description",
+  "effects": [
+    {
+      "type": "astral_craft:give_item",
+      "id": "minecraft:emerald"
+    }
+  ],
+  "id": "astral_craft:lucky_find",
+  "kind": "good",
+  "name_key": "event.astral_craft.lucky_find.name",
+  "texture": "astral_craft:textures/gui/cards/event_good.png",
+  "triggers": [
+    "block_break"
+  ]
+}

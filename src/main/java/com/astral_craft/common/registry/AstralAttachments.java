@@ -2,6 +2,7 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
+import com.astral_craft.common.gameplay.event.AstralEventState;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -17,5 +18,8 @@ public final class AstralAttachments {
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<CharacterProgress>> CHARACTER_PROGRESS = ATTACHMENTS.register("character_progress",
             () -> AttachmentType.builder(() -> new CharacterProgress(AstralCraft.prefix("mimi"))).serialize(CharacterProgress.CODEC.fieldOf("progress")).copyOnDeath().build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralEventState>> EVENT_STATE = ATTACHMENTS.register("event_state",
+            () -> AttachmentType.builder(AstralEventState::empty).serialize(AstralEventState.CODEC.fieldOf("event_state")).copyOnDeath().build());
 
 }

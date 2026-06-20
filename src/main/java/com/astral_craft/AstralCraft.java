@@ -4,6 +4,7 @@ import com.astral_craft.common.gameplay.AstralBuiltinCards;
 import com.astral_craft.common.gameplay.AstralBuiltinChips;
 import com.astral_craft.common.gameplay.AstralPartyChips;
 import com.astral_craft.common.gameplay.PanelTypes;
+import com.astral_craft.common.registry.AstralEventEffectTypes;
 import com.astral_craft.common.registry.*;
 import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
@@ -25,9 +26,11 @@ public class AstralCraft {
         AstralTabs.TABS.register(modEventBus);
         AstralItems.ITEMS.register(modEventBus);
         AstralBlocks.BLOCKS.register(modEventBus);
-        AstralDataComponents.DATA_COMPONENT_TYPE.register(modEventBus);
         AstralEntities.ENTITIES.register(modEventBus);
         AstralAttachments.ATTACHMENTS.register(modEventBus);
+        AstralEventEffectTypes.EFFECT_TYPES.register(modEventBus);
+        AstralEventConditionTypes.CONDITION_TYPES.register(modEventBus);
+        AstralDataComponents.DATA_COMPONENT_TYPE.register(modEventBus);
     }
 
     public static Identifier prefix(String name) {

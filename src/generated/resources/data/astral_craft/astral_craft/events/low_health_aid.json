@@ -1,0 +1,32 @@
+{
+  "chance": 0.35,
+  "conditions": [
+    {
+      "type": "astral_craft:health",
+      "max_percent": 0.35
+    }
+  ],
+  "cooldown_ticks": 3600,
+  "description_key": "event.astral_craft.low_health_aid.description",
+  "effects": [
+    {
+      "type": "astral_craft:heal",
+      "amount": 4.0
+    },
+    {
+      "type": "astral_craft:effect",
+      "effect": "minecraft:absorption"
+    }
+  ],
+  "id": "astral_craft:low_health_aid",
+  "kind": "good",
+  "name_key": "event.astral_craft.low_health_aid.name",
+  "texture": "astral_craft:textures/gui/cards/event_good.png",
+  "trigger_settings": {
+    "retrigger_delay_ticks": 3600
+  },
+  "triggers": [
+    "player_hurt",
+    "entity_hurt_player"
+  ]
+}
