@@ -13,10 +13,10 @@ public class AstralCharacterDataCatalog {
             skinRarity("ultimate", "Ultimate", "至臻", 0xFFE5FF75, 0xFF111111, 0xFFE5FF75));
 
     public static final List<CharacterEntry> CHARACTERS = List.of(
-            character("parunan", "Parunan", "帕露南", "Lord of Commerce", "商业之主", 1, 2, 10, true, 10, 2, List.of(skin("fashion_icon", "Fashion Icon", "时尚偶像", "sapphire"), skin("fortune_guardian", "Fortune Guardian", "福运守护", "amethyst"))),
-            character("fanny", "Fanny", "芬妮", "Quirky Detective", "古怪神探", 1, 2, 10, true, 11, 3, List.of(skin("mystic_insight", "Mystic Insight", "超然解析", "sapphire"), skin("breezy_summer", "Breezy Summer", "夏日微风", "amethyst"), skin("mad_scientist", "Mad Scientist", "疯狂科学家", "amethyst"))),
+            character("parunan", "Parunan", "帕露南", "Lord of Commerce", "商业之主", 1, 2, 10, true, 10, 2, List.of(skin("fashion_icon", "Fashion Icon", "时尚达人", "sapphire"), skin("fortune_guardian", "Fortune Guardian", "善财天宫", "amethyst"))),
+            character("fanny", "Fanny", "芬妮", "Quirky Detective", "古怪神探", 1, 2, 10, true, 11, 3, List.of(skin("mystic_insight", "Mystic Insight", "超然解析", "sapphire"), skin("breezy_summer", "Breezy Summer", "清凉盛夏", "amethyst"), skin("mad_scientist", "Mad Scientist", "科学怪探", "amethyst"), skin("leisurely_holiday", "Leisurely Holiday", "悠闲假日", "sapphire"))),
             character("alana", "Alana", "阿兰娜", "Shy Nun", "社恐修女", 1, 1, 9, true, 12, 3, List.of(skin("clumsy_girl", "Clumsy Girl", "冒失少女", "sapphire"), skin("throbbing_beach", "Throbbing Beach", "悸动海滩", "amethyst"), skin("witchs_weapon", "Witch's Weapon", "魔女兵器", "amethyst"))),
-            character("komachi", "Komachi", "小町", "Shadow Ninja", "暗影忍者", 1, 1, 9, true, 13, 3, List.of(skin("why_the_ninja", "Why the Ninja?", "为何是忍者？", "sapphire"), skin("shadow_spirit", "Shadow Spirit", "暗影精灵", "amethyst"))),
+            character("komachi", "Komachi", "小町", "Shadow Ninja", "暗影忍者", 1, 1, 9, true, 13, 3, List.of(skin("why_the_ninja", "Why the Ninja?", "忍者为何？", "sapphire"), skin("shadow_spirit", "Shadow Spirit", "暗影狼灵", "amethyst"))),
             character("padman", "Padman", "派德曼", "Uncle Employee", "社员叔叔", 2, 2, 9, false, 14, 3, List.of()),
             character("papara", "Papara", "帕帕拉", "Red Hot", "猩红辣妹", 2, 1, 10, false, 15, 3, List.of(skin("guard_captain", "Guard Captain", "护卫队长", "sapphire"))),
             character("ren", "Ren", "恋", "Pro Gamer", "游戏大师", 2, 1, 8, false, 16, 3, List.of(skin("cheerleader", "Cheerleader", "啦啦队长", "sapphire"), skin("snowy_spirit", "Snowy Spirit", "雪夜精灵", "sapphire"), skin("pool_party", "Pool Party", "泳池派对", "amethyst"), skin("cute_captain", "Cute Captain", "可爱船长", "amethyst"), skin("illusory_dealer", "Illusory Dealer", "幻惑荷官", "platinum"))),
@@ -37,9 +37,9 @@ public class AstralCharacterDataCatalog {
             character("zhao", "Zhao", "姬梦朝", "Fengshui Master", "风水师", 1, 1, 10, false, 31, 3, List.of(skin("shoreline_memories", "Shoreline Memories", "岸边回忆", "amethyst"), skin("auspicious_blessing", "Auspicious Blessing", "祥瑞赐福", "ultimate"))),
             character("teru", "Teru", "照", "Hierarch of Mikami", "三神御主", 2, 1, 9, false, 32, 3, List.of(skin("little_nurse", "Little Nurse", "小护士", "sapphire"), skin("spellbinding_singer", "Spellbinding Singer", "魔旅歌姬", "platinum"))),
             character("moses", "Moses", "摩西", "Gunsmith", "枪匠", 1, 1, 11, false, 33, 2, List.of()),
-            character("mamushi", "Mamushi", "真梦梓", "Jiao of the Mire", "沼之蛟龙", 2, 1, 9, false, 34, 3, List.of(skin("frost_dancer", "Frost Dancer", "霜舞者", "amethyst"))),
+            character("mamushi", "Mamushi", "真梦梓", "Jiao of the Mire", "沼之蛟龙", 2, 1, 9, false, 34, 3, List.of(skin("frost_dancer", "Frost Dancer", "冰上舞者", "amethyst"))),
             character("ink_shadow", "Ink Shadow", "墨影", "Novice Hunter", "小猎手", 2, 1, 10, false, 35, 3, List.of()),
-            character("bonnie", "Bonnie", "邦妮", "Poisoned Apple", "毒苹果", 2, 1, 9, false, 36, 3, List.of()),
+            character("bonnie", "Bonnie", "邦妮", "Poisoned Apple", "毒苹果", 2, 1, 9, false, 36, 3, List.of(skin("urgent_invitation", "Urgent Invitation", "紧急邀约", "sapphire"))),
             character("ling_ling", "Ling Ling", "铃铃", "Supernatural Forces", "怪力乱神", 2, 2, 10, false, 37, 3, List.of()),
             character("k_angel", "KAngel", "超天酱", "OMGKawaiiAngel", "超绝最可爱天使酱", 0, 1, 9, false, 38, 3, List.of()),
             character("ame", "Ame", "糖糖", "Needy Girl", "主播女孩", 1, 4, 9, false, 39, 3, List.of()),
