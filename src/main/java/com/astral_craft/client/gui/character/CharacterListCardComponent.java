@@ -17,7 +17,7 @@ public record CharacterListCardComponent(
         this.screen.hoveredClickable |= this.hovered;
         AstralFancyButton.renderIconFrame(graphics, this.x, this.y, this.width, this.height, this.selected, this.hovered);
         if (this.entity != null) {
-            this.screen.renderEntityModel(graphics, this.entity, this.x + 8, this.y + 7, this.x + this.width - 8, this.y + this.height - 38, -225.0F, -10.0F, 0.0F, this.scale);
+            this.screen.renderEntityModel(graphics, this.entity, this.x + 8, this.y + 10, this.x + this.width - 8, this.y + this.height - 30, -225.0F, -10.0F, 0.0F, this.scale);
         }
 
         CharacterProgressEntry entry = this.screen.progressEntry(this.definition.id());

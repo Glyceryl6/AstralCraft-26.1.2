@@ -49,7 +49,7 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
         state.animationAction = AstralCharacterAnimationRegistry.clipName(state.characterId, entity.animationAction());
         state.animationTimeSeconds = (entity.tickCount + partialTick) / 20.0F;
         state.rootPose = AstralGeoAnimationManager.INSTANCE.sample(state.animationSetKey, state.animationAction, "root", state.animationTimeSeconds);
-        state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.WIDE, true);
+        state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
     }
 
     @Override

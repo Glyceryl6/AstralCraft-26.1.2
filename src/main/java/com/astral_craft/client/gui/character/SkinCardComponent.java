@@ -45,7 +45,7 @@ public class SkinCardComponent {
         this.screen.hoveredClickable |= this.hovered;
         AstralFancyButton.renderIconFrame(graphics, this.x, this.y, this.width, this.height, this.selected || this.equipped, this.hovered);
         if (this.entity != null) {
-            this.screen.renderEntityModel(graphics, this.entity, this.x + 8, this.y + 7, this.x + this.width - 8, this.y + this.height - 42, -225.0F, -10.0F, 0.0F, this.scale);
+            this.screen.renderEntityModel(graphics, this.entity, this.x + 8, this.y + 15, this.x + this.width - 8, this.y + this.height - 35, -225.0F, -10.0F, 0.0F, this.scale);
         }
 
         if (!this.unlocked) {
@@ -54,7 +54,7 @@ public class SkinCardComponent {
 
         this.renderRarityBadge(graphics);
         MutableComponent name = Component.translatable(this.skin.nameKey());
-        this.screen.drawCenteredText(graphics, this.screen.ellipsize(name, this.width - 8), this.x, this.y + this.height - 17, this.width, this.unlocked && (this.selected || this.equipped) ? 0xFF101018 : 0xFFFFFFFF);
+        this.screen.drawCenteredText(graphics, this.screen.ellipsize(name, this.width - 8), this.x, this.y + this.height - 17, this.width, 0xFFFFFFFF);
     }
 
     protected void renderRarityBadge(GuiGraphicsExtractor graphics) {

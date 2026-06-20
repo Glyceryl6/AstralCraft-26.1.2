@@ -157,7 +157,7 @@ public class CharacterLayout {
         int skinCardH = Math.min(Mth.clamp((int) (skinCardW * 1.62F), 112, 168), maxSkinCardH);
         float previewEntityScale = Mth.clamp(leftW / 168.0F, 0.68F, 1.08F);
         float cardEntityScale = Mth.clamp(characterCardW / 75.0F, 0.50F, 0.72F);
-        float skinEntityScale = Mth.clamp(skinCardW / 84.0F, 0.56F, 0.80F);
+        float skinEntityScale = Mth.clamp(skinCardW / 84.0F, 0.6F, 1.0F);
         return new CharacterLayout(leftX, rightX, topY, leftW, rightW, totalH, backX, backY, backW, backH,
                 previewX, previewY, previewW, previewH, detailButtonX, detailButtonY, detailButtonW, detailButtonH,
                 gridX, gridY, gridW, gridH, characterCardW, characterCardH, mainTabX, mainTabY, mainTabW, mainTabH,
