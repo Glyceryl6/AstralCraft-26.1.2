@@ -327,7 +327,6 @@ public class CharacterSettingsScreen extends Screen {
         int infoY = layout.previewY + layout.previewH + 10;
         graphics.text(this.font, Component.translatable(selected.nameKey()), layout.leftX + 12, infoY, 0xFFFFFFFF, false);
         graphics.text(this.font, Component.translatable(selected.titleKey()), layout.leftX + 12, infoY + 13, 0xFFE7E7E7, false);
-        graphics.text(this.font, Component.translatable("gui.astral_craft.character_settings.preview_hint"), layout.leftX + 12, infoY + 29, 0xFFB0B0C0, false);
     }
 
     protected void renderCharacterListPage(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -868,7 +867,7 @@ public class CharacterSettingsScreen extends Screen {
     protected AstralFancyButton.ButtonStyle selectedButtonStyle() {
         return AstralFancyButton.ButtonStyle.button(0xFFE83CA8)
                 .withBackgroundGradientColors(0xFFE83CA8, 0xFFC92588, 0xFFFF77C8, 0xFFE83CA8, 0xFF92FF22, 0xFF57C800)
-                .withTextColors(0xFFFFFFFF, 0xFF101018, 0xFFFFFFFF)
+                .withTextColors(0xFFFFFFFF, 0xFF101018, 0xFF101018)
                 .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
                 .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
                 .withBoxMetrics(2, 2, 3, 3);
@@ -951,9 +950,9 @@ public class CharacterSettingsScreen extends Screen {
         boolean playHover = this.isInside(mouseX, mouseY, playX, y, playW, 18);
         boolean dropHover = this.isInside(mouseX, mouseY, dropX, y, dropW, 18);
         MutableComponent playText = Component.translatable(this.previewAnimationPlaying ? "gui.astral_craft.character_settings.animation.pause" : "gui.astral_craft.character_settings.animation.play");
-        this.renderFancyButton(graphics, playText, playX, y, playW, 18, false, playHover, this.backButtonStyle().withTextScale(0.88F).withTextOutlineColors(0x66000000, 0x66000000, 0x66000000));
+        this.renderFancyButton(graphics, playText, playX, y, playW, 18, false, playHover, this.backButtonStyle().withTextScale(0.88F));
         MutableComponent actionText = Component.literal(this.previewAnimationAction());
-        this.renderFancyButton(graphics, this.ellipsize(actionText, dropW - 14), dropX, y, dropW, 18, this.previewAnimationDropdownOpen, dropHover, this.pinkButtonStyle().withTextScale(0.88F).withTextOutlineColors(0x66000000, 0x66000000, 0x66000000));
+        this.renderFancyButton(graphics, this.ellipsize(actionText, dropW - 14), dropX, y, dropW, 18, this.previewAnimationDropdownOpen, dropHover, this.pinkButtonStyle().withTextScale(0.88F));
         if (this.previewAnimationDropdownOpen) {
             List<String> actions = this.availablePreviewAnimations();
             int rowH = 17;
@@ -1005,14 +1004,17 @@ public class CharacterSettingsScreen extends Screen {
             this.previewAnimationDropdownOpen = false;
             return true;
         }
+
         if (this.isInside(mouseX, mouseY, dropX, y, dropW, 18)) {
             this.previewAnimationDropdownOpen = !this.previewAnimationDropdownOpen;
             return true;
         }
+
         if (this.previewAnimationDropdownOpen && this.isOverPreview(layout, mouseX, mouseY)) {
             this.previewAnimationDropdownOpen = false;
             return true;
         }
+
         return false;
     }
 
