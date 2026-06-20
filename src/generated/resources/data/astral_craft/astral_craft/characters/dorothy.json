@@ -4,6 +4,7 @@
     "health": 8
   },
   "id": "astral_craft:dorothy",
+  "implicit_bond_skin": false,
   "name_key": "character.astral_craft.dorothy.name",
   "preview_texture": "astral_craft:entity/character/skin_dorothy_default",
   "profile": [

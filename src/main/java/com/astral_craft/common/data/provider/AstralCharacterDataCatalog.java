@@ -41,21 +41,17 @@ public class AstralCharacterDataCatalog {
             character("ink_shadow", "Ink Shadow", "墨影", "Novice Hunter", "小猎手", 2, 1, 10, false, 35, 3, List.of()),
             character("bonnie", "Bonnie", "邦妮", "Poisoned Apple", "毒苹果", 2, 1, 9, false, 36, 3, List.of(skin("urgent_invitation", "Urgent Invitation", "紧急邀约", "sapphire"))),
             character("ling_ling", "Ling Ling", "铃铃", "Supernatural Forces", "怪力乱神", 2, 2, 10, false, 37, 3, List.of()),
-            character("k_angel", "KAngel", "超天酱", "OMGKawaiiAngel", "超绝最可爱天使酱", 0, 1, 9, false, 38, 3, List.of()),
-            character("ame", "Ame", "糖糖", "Needy Girl", "主播女孩", 1, 4, 9, false, 39, 3, List.of()),
-            character("jill", "Jill", "吉尔", "Jill Stingray", "吉尔·斯汀雷", 1, 1, 10, false, 40, 3, List.of()),
-            character("dorothy", "Dorothy", "多萝西", "Dorothy Haze", "多萝西·海兹", 1, 0, 8, false, 41, 2, List.of()));
-
-    public static CharacterEntry byId(String id) {
-        for (CharacterEntry entry : CHARACTERS) {
-            if (entry.id().equals(id)) return entry;
-        }
-
-        throw new IllegalArgumentException("Unknown astral character id: " + id);
-    }
+            character("k_angel", "KAngel", "超天酱", "OMGKawaiiAngel", "超绝最可爱天使酱", 0, 1, 9, false, false, 38, 3, List.of()),
+            character("ame", "Ame", "糖糖", "Needy Girl", "主播女孩", 1, 4, 9, false, false, 39, 3, List.of()),
+            character("jill", "Jill", "吉尔", "Jill Stingray", "吉尔·斯汀雷", 1, 1, 10, false, false, 40, 3, List.of()),
+            character("dorothy", "Dorothy", "多萝西", "Dorothy Haze", "多萝西·海兹", 1, 0, 8, false, false, 41, 2, List.of()));
 
     private static CharacterEntry character(String id, String enName, String zhName, String enTitle, String zhTitle, int attack, int defense, int health, boolean unlockedByDefault, int sortOrder, int activeCooldown, List<SkinEntry> skins) {
-        return new CharacterEntry(id, enName, zhName, enTitle, zhTitle, attack, defense, health, unlockedByDefault, sortOrder, activeCooldown, skins);
+        return new CharacterEntry(id, enName, zhName, enTitle, zhTitle, attack, defense, health, unlockedByDefault, true, sortOrder, activeCooldown, skins);
+    }
+
+    private static CharacterEntry character(String id, String enName, String zhName, String enTitle, String zhTitle, int attack, int defense, int health, boolean unlockedByDefault, boolean implicitBondSkin, int sortOrder, int activeCooldown, List<SkinEntry> skins) {
+        return new CharacterEntry(id, enName, zhName, enTitle, zhTitle, attack, defense, health, unlockedByDefault, implicitBondSkin, sortOrder, activeCooldown, skins);
     }
 
     private static SkinRarityEntry skinRarity(String id, String enName, String zhName, int borderColor, int badgeColor, int textColor) {
@@ -66,11 +62,7 @@ public class AstralCharacterDataCatalog {
         return new SkinEntry(id, enName, zhName, rarity);
     }
 
-    public record CharacterEntry(String id, String enName, String zhName, String enTitle, String zhTitle, int attack, int defense, int health, boolean unlockedByDefault, int sortOrder, int activeCooldown, List<SkinEntry> skins) {
-        public List<String> skinIds() {
-            return this.skins.stream().map(SkinEntry::id).toList();
-        }
-    }
+    public record CharacterEntry(String id, String enName, String zhName, String enTitle, String zhTitle, int attack, int defense, int health, boolean unlockedByDefault, boolean implicitBondSkin, int sortOrder, int activeCooldown, List<SkinEntry> skins) { }
 
     public record SkinEntry(String id, String enName, String zhName, String rarity) {}
 

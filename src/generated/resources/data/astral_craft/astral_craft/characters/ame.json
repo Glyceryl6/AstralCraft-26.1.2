@@ -4,6 +4,7 @@
     "health": 9
   },
   "id": "astral_craft:ame",
+  "implicit_bond_skin": false,
   "name_key": "character.astral_craft.ame.name",
   "preview_texture": "astral_craft:entity/character/skin_ame_default",
   "profile": [

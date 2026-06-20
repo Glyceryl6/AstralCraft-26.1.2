@@ -25,6 +25,8 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
     @Override
     protected void apply(Map<Identifier, CharacterDefinition> elements, ResourceManager resourceManager, ProfilerFiller profiler) {
         Map<Identifier, CharacterDefinition> loaded = new LinkedHashMap<>();
+        CharacterDefinition fallback = CharacterDefinition.builtinDefault();
+        loaded.put(fallback.id(), this.withRuntimeIdAndSkins(fallback.id(), fallback));
         for (Map.Entry<Identifier, CharacterDefinition> entry : elements.entrySet()) {
             CharacterDefinition definition = entry.getValue();
             Identifier id = entry.getKey();
@@ -41,10 +43,13 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
 
     public void resetToDefault() {
         this.definitions.clear();
+        CharacterDefinition definition = CharacterDefinition.builtinDefault();
+        this.definitions.put(definition.id(), this.withRuntimeIdAndSkins(definition.id(), definition));
     }
 
+
     protected CharacterDefinition withRuntimeIdAndSkins(Identifier id, CharacterDefinition definition) {
-        List<CharacterSkinDefinition> skins = this.mergeImplicitAndAdditionalSkins(id, definition.skins());
+        List<CharacterSkinDefinition> skins = this.mergeImplicitAndAdditionalSkins(id, definition);
         Identifier previewTexture = skins.isEmpty() ? definition.previewTexture() : skins.getFirst().texture();
         return new CharacterDefinition(id,
                 definition.nameKey(),
@@ -61,17 +66,27 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
                 definition.skills(),
                 definition.profileSections(),
                 skins,
+                definition.implicitDefaultSkin(),
+                definition.implicitBondSkin(),
                 definition.unlockedByDefault(),
                 definition.unlockHintKey(),
                 definition.sortOrder());
     }
 
-    protected List<CharacterSkinDefinition> mergeImplicitAndAdditionalSkins(Identifier characterId, List<CharacterSkinDefinition> definedSkins) {
+    protected List<CharacterSkinDefinition> mergeImplicitAndAdditionalSkins(Identifier characterId, CharacterDefinition definition) {
         Map<String, CharacterSkinDefinition> merged = new LinkedHashMap<>();
-        this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
-        this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
-        for (CharacterSkinDefinition skin : definedSkins) {
-            this.putSkin(merged, skin);
+        if (definition.implicitDefaultSkin()) {
+            this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
+        }
+
+        if (definition.implicitBondSkin()) {
+            this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
+        }
+
+        if (definition.skins() != null) {
+            for (CharacterSkinDefinition skin : definition.skins()) {
+                this.putSkin(merged, skin);
+            }
         }
 
         for (CharacterSkinDefinition skin : CharacterSkinManager.INSTANCE.skinsFor(characterId)) {

@@ -33,17 +33,25 @@ public class AstralCharacterBootstrap {
                 AstralCraft.prefix("astral_character"),
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
-                "idle", 6, 5,
+                "idle",
+                6,
+                5,
                 new CharacterStatsDefinition(entry.attack(), entry.defense(), entry.health()),
                 List.of(skill("active", id, entry.activeCooldown()), skill("passive", id, 0)),
                 List.of(new CharacterProfileSection("", "character.astral_craft." + id + ".profile.basic.body")),
-                List.of(), entry.unlockedByDefault(), "character.astral_craft." + id + ".unlock_hint", entry.sortOrder());
+                List.of(),
+                true,
+                entry.implicitBondSkin(),
+                entry.unlockedByDefault(),
+                "character.astral_craft." + id + ".unlock_hint",
+                entry.sortOrder());
     }
 
     private static CharacterSkillDefinition skill(String type, String id, int cooldown) {
         return new CharacterSkillDefinition(type,
                 "character.astral_craft." + id + ".skill." + type,
-                "character.astral_craft." + id + ".skill." + type + ".desc", cooldown);
+                "character.astral_craft." + id + ".skill." + type + ".desc",
+                cooldown);
     }
 
 }

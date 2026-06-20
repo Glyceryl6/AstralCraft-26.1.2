@@ -4,6 +4,7 @@
     "health": 9
   },
   "id": "astral_craft:k_angel",
+  "implicit_bond_skin": false,
   "name_key": "character.astral_craft.k_angel.name",
   "preview_texture": "astral_craft:entity/character/skin_k_angel_default",
   "profile": [

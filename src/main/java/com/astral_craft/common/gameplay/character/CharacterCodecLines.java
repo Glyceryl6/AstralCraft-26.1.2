@@ -29,6 +29,8 @@ public class CharacterCodecLines {
                     .append(escapeSkills(definition.skills())).append('|')
                     .append(escapeProfiles(definition.profileSections())).append('|')
                     .append(escapeSkins(definition.skins())).append('|')
+                    .append(definition.implicitDefaultSkin()).append(',')
+                    .append(definition.implicitBondSkin()).append('|')
                     .append(definition.unlockedByDefault()).append('|')
                     .append(escape(definition.unlockHintKey())).append('|')
                     .append(definition.sortOrder());
@@ -40,7 +42,8 @@ public class CharacterCodecLines {
     public static List<CharacterDefinition> decode(String encoded) {
         List<CharacterDefinition> result = new ArrayList<>();
         if (encoded == null || encoded.isBlank()) {
-            return new ArrayList<>();
+            result.add(CharacterDefinition.builtinDefault());
+            return result;
         }
 
         for (String line : encoded.split("\\n")) {
@@ -79,11 +82,25 @@ public class CharacterCodecLines {
                 List<CharacterSkillDefinition> skills = decodeSkills(parts[statsIndex + 1]);
                 List<CharacterProfileSection> profiles = decodeProfiles(parts[statsIndex + 2]);
                 List<CharacterSkinDefinition> skins = decodeSkins(parts[statsIndex + 3]);
-                boolean unlockedByDefault = parts.length > statsIndex + 4 && Boolean.parseBoolean(parts[statsIndex + 4]);
-                String unlockHintKey = parts.length > statsIndex + 5 && !parts[statsIndex + 5].isBlank() ? unescape(parts[statsIndex + 5]) : "character.astral_craft.unlock_hint.placeholder";
-                int sortOrder = decodeInt(parts, statsIndex + 6, 1000);
-                result.add(new CharacterDefinition(id, nameKey, titleKey, model, texture, entityType, renderer, animationSet, previewAction, maxPveLevel, maxFriendshipLevel, stats, skills, profiles, skins, unlockedByDefault, unlockHintKey, sortOrder));
+                boolean implicitDefaultSkin = true;
+                boolean implicitBondSkin = true;
+                int metadataOffset = statsIndex + 4;
+                if (parts.length > metadataOffset && parts[metadataOffset].contains(",")) {
+                    String[] implicit = parts[metadataOffset].split(",", -1);
+                    implicitDefaultSkin = implicit.length < 1 || Boolean.parseBoolean(implicit[0]);
+                    implicitBondSkin = implicit.length < 2 || Boolean.parseBoolean(implicit[1]);
+                    metadataOffset++;
+                }
+
+                boolean unlockedByDefault = parts.length > metadataOffset && Boolean.parseBoolean(parts[metadataOffset]);
+                String unlockHintKey = parts.length > metadataOffset + 1 && !parts[metadataOffset + 1].isBlank() ? unescape(parts[metadataOffset + 1]) : "character.astral_craft.unlock_hint.placeholder";
+                int sortOrder = decodeInt(parts, metadataOffset + 2, 1000);
+                result.add(new CharacterDefinition(id, nameKey, titleKey, model, texture, entityType, renderer, animationSet, previewAction, maxPveLevel, maxFriendshipLevel, stats, skills, profiles, skins, implicitDefaultSkin, implicitBondSkin, unlockedByDefault, unlockHintKey, sortOrder));
             } catch (Exception ignored) {}
+        }
+
+        if (result.isEmpty()) {
+            result.add(CharacterDefinition.builtinDefault());
         }
 
         return result;

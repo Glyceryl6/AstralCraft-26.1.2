@@ -1,5 +1,6 @@
 {
   "id": "astral_craft:jill",
+  "implicit_bond_skin": false,
   "name_key": "character.astral_craft.jill.name",
   "preview_texture": "astral_craft:entity/character/skin_jill_default",
   "profile": [

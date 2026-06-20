@@ -24,6 +24,8 @@ public record CharacterDefinition(
         List<CharacterSkillDefinition> skills,
         List<CharacterProfileSection> profileSections,
         List<CharacterSkinDefinition> skins,
+        boolean implicitDefaultSkin,
+        boolean implicitBondSkin,
         boolean unlockedByDefault,
         String unlockHintKey,
         int sortOrder) {
@@ -52,7 +54,9 @@ public record CharacterDefinition(
             CharacterStatsDefinition.CODEC.optionalFieldOf("base_stats", CharacterStatsDefinition.defaultStats()).forGetter(CharacterContent::baseStats),
             CharacterSkillDefinition.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(CharacterContent::skills),
             CharacterProfileSection.CODEC.listOf().optionalFieldOf("profile", List.of()).forGetter(CharacterContent::profileSections),
-            CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(CharacterContent::skins)
+            CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(CharacterContent::skins),
+            Codec.BOOL.optionalFieldOf("implicit_default_skin", true).forGetter(CharacterContent::implicitDefaultSkin),
+            Codec.BOOL.optionalFieldOf("implicit_bond_skin", true).forGetter(CharacterContent::implicitBondSkin)
     ).apply(instance, CharacterContent::new));
 
     public static final Codec<CharacterDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -78,6 +82,8 @@ public record CharacterDefinition(
                 content.skills(),
                 content.profileSections(),
                 content.skins(),
+                content.implicitDefaultSkin(),
+                content.implicitBondSkin(),
                 progressionMetadata.unlockedByDefault(),
                 progressionMetadata.unlockHintKey(),
                 progressionMetadata.sortOrder());
@@ -110,7 +116,9 @@ public record CharacterDefinition(
                 this.baseStats,
                 this.skills,
                 this.profileSections,
-                this.skins);
+                this.skins,
+                this.implicitDefaultSkin,
+                this.implicitBondSkin);
     }
 
     private record CharacterIdentity(
@@ -122,23 +130,22 @@ public record CharacterDefinition(
             Identifier entityTypeKey,
             Identifier rendererKey,
             Identifier animationSetKey,
-            String previewAction) {
-    }
+            String previewAction) { }
 
     private record CharacterProgressionMetadata(
             int maxPveLevel,
             int maxFriendshipLevel,
             boolean unlockedByDefault,
             String unlockHintKey,
-            int sortOrder) {
-    }
+            int sortOrder) { }
 
     private record CharacterContent(
             CharacterStatsDefinition baseStats,
             List<CharacterSkillDefinition> skills,
             List<CharacterProfileSection> profileSections,
-            List<CharacterSkinDefinition> skins) {
-    }
+            List<CharacterSkinDefinition> skins,
+            boolean implicitDefaultSkin,
+            boolean implicitBondSkin) { }
 
     public static CharacterDefinition builtinDefault() {
         Identifier id = AstralCraft.prefix("mimi");
@@ -154,9 +161,13 @@ public record CharacterDefinition(
                 6,
                 5,
                 new CharacterStatsDefinition(1, 1, 9),
-                List.of(new CharacterSkillDefinition("active", "character.astral_craft.mimi.skill.active", "character.astral_craft.mimi.skill.active.desc", 3)),
+                List.of(new CharacterSkillDefinition("active", "character.astral_craft.mimi.skill.active",
+                        "character.astral_craft.mimi.skill.active.desc", 3)),
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
-                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default", AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
+                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",
+                        AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
+                true,
+                true,
                 true,
                 "character.astral_craft.unlock_hint.default",
                 80);

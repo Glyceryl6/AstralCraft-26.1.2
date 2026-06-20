@@ -644,5 +644,9 @@
   "commands.astral_craft.event.triggered": "已触发事件 %s。",
   "commands.astral_craft.event.not_triggered": "无法触发事件 %s。",
   "commands.astral_craft.event.none_active": "你身上当前没有正在持续的星契事件。",
-  "commands.astral_craft.event.active": "%s：剩余 %s 秒。"
+  "commands.astral_craft.event.active": "%s：剩余 %s 秒。",
+  "gui.astral_craft.character_settings.source.label": "追加模组",
+  "gui.astral_craft.character_settings.sort.label": "排序方式",
+  "commands.astral_craft.event.presentation": "事件提示模式已切换为：%s",
+  "message.astral_craft.event.triggered_chat": "事件触发：%s"
 }

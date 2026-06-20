@@ -644,5 +644,9 @@
   "commands.astral_craft.event.triggered": "Triggered event %s.",
   "commands.astral_craft.event.not_triggered": "Could not trigger event %s.",
   "commands.astral_craft.event.none_active": "No astral events are active on you.",
-  "commands.astral_craft.event.active": "%s: %s seconds remaining."
+  "commands.astral_craft.event.active": "%s: %s seconds remaining.",
+  "gui.astral_craft.character_settings.source.label": "Source",
+  "gui.astral_craft.character_settings.sort.label": "Sort",
+  "commands.astral_craft.event.presentation": "Event presentation mode set to: %s",
+  "message.astral_craft.event.triggered_chat": "Event triggered: %s"
 }
