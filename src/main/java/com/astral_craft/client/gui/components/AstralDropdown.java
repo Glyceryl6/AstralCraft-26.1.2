@@ -33,17 +33,22 @@ public class AstralDropdown {
     }
 
     public static void render(GuiGraphicsExtractor graphics, Font font, MutableComponent label, List<Entry> entries, String selectedKey, Layout layout, boolean open, boolean hovered, AstralFancyButton.ButtonStyle style) {
-        graphics.text(font, label, layout.labelX, layout.labelY, 0xFFE8E8F4, false);
-        MutableComponent selectedText = labelFor(entries, selectedKey);
-        MutableComponent title = Component.literal(selectedText.getString() + (open ? " ▲" : " ▼"));
-        AstralFancyButton.button(title, layout.x, layout.y, layout.width, layout.height, style).render(graphics, font, open, hovered);
+        renderButton(graphics, font, label, entries, selectedKey, layout, open, hovered, style);
         if (open) {
             renderMenu(graphics, font, entries, selectedKey, layout, style);
         }
     }
 
+    public static void renderButton(GuiGraphicsExtractor graphics, Font font, MutableComponent label, List<Entry> entries, String selectedKey, Layout layout, boolean open, boolean hovered, AstralFancyButton.ButtonStyle style) {
+        graphics.text(font, label, layout.labelX, layout.labelY, 0xFFE8E8F4, false);
+        MutableComponent selectedText = labelFor(entries, selectedKey);
+        MutableComponent title = Component.literal(selectedText.getString() + (open ? " ▲" : " ▼"));
+        AstralFancyButton.button(title, layout.x, layout.y, layout.width, layout.height, style).render(graphics, font, open, hovered);
+    }
+
     public static void renderMenu(GuiGraphicsExtractor graphics, Font font, List<Entry> entries, String selectedKey, Layout layout, AstralFancyButton.ButtonStyle style) {
         int rows = Math.min(entries.size(), maxVisibleRows(entries));
+        if (rows <= 0) return;
         int menuY = layout.y + layout.height + 2;
         AstralFancyButton.renderOutlinedBox(graphics, layout.x, menuY, layout.width, rows * ROW_HEIGHT, 0xF014141D, 0xFFFFFFFF, 0xFF101018, 1, 1);
         for (int i = 0; i < rows; i++) {

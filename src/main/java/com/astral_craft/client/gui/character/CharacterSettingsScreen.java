@@ -30,10 +30,12 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.jspecify.annotations.NonNull;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
+@SuppressWarnings("SameParameterValue")
 public class CharacterSettingsScreen extends Screen {
 
     protected final List<CharacterDefinition> characters;
@@ -134,10 +136,10 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {}
+    public void extractBackground(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {}
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         this.clampScrolls();
         this.hoveredClickable = false;
         CharacterLayout layout = this.layout();
@@ -221,7 +223,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+    public boolean mouseDragged(@NonNull MouseButtonEvent event, double dragX, double dragY) {
         if (this.draggingScrollbar != ScrollTarget.NONE) {
             this.updateScrollbarDrag(this.layout(), event.x(), event.y());
             return true;
@@ -246,7 +248,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(@NonNull MouseButtonEvent event) {
         if (this.draggingScrollbar != ScrollTarget.NONE && event.button() == 0) {
             this.draggingScrollbar = ScrollTarget.NONE;
             return true;
@@ -345,13 +347,13 @@ public class CharacterSettingsScreen extends Screen {
         boolean detailHover = this.isInside(mouseX, mouseY, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH);
         MutableComponent detailText = Component.translatable("gui.astral_craft.character_settings.character_detail");
         this.renderFancyButton(graphics, detailText, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH, false, detailHover, this.pinkButtonStyle());
-        this.renderSourceFilterControls(graphics, layout, mouseX, mouseY);
-        this.renderSortControls(graphics, layout, mouseX, mouseY);
+        this.renderCharacterListDropdownButtons(graphics, layout, mouseX, mouseY);
         graphics.fill(layout.gridX - 6, layout.gridY - 6, layout.gridX + layout.gridW + 6, layout.gridY + layout.gridH + 6, 0x66101018);
         graphics.enableScissor(layout.gridX, layout.gridY, layout.gridX + layout.gridW, layout.gridY + layout.gridH);
         this.renderCharacterGroups(graphics, layout, mouseX, mouseY);
         graphics.disableScissor();
         this.renderVerticalScrollbar(graphics, layout.gridX + layout.gridW + 2, layout.gridY, layout.gridH, this.characterScroll, this.maxCharacterScroll(layout));
+        this.renderCharacterListDropdownMenus(graphics, layout);
     }
 
     protected void renderCharacterGroups(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -421,36 +423,45 @@ public class CharacterSettingsScreen extends Screen {
         graphics.fill(layout.bodyX + 8, layout.bodyY + 8, layout.bodyX + layout.bodyW - 8, layout.bodyY + 9, 0x99FFFFFF);
     }
 
-    protected void renderSourceFilterControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
-        AstralDropdown.Layout dropdown = this.sourceDropdownLayout(layout);
-        boolean hovered = dropdown.containsButton(mouseX, mouseY) || dropdown.containsMenu(mouseX, mouseY, this.sourceDropdownEntries().size());
-        this.hoveredClickable |= hovered;
-        AstralDropdown.render(graphics, this.font,
+    protected void renderCharacterListDropdownButtons(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
+        AstralFancyButton.ButtonStyle style = this.pinkButtonStyle().withTextScale(0.88F);
+        AstralDropdown.Layout sourceLayout = this.sourceDropdownLayout(layout);
+        AstralDropdown.Layout sortLayout = this.sortDropdownLayout(layout);
+        boolean sourceHovered = sourceLayout.containsButton(mouseX, mouseY) || (this.sourceDropdownOpen && sourceLayout.containsMenu(mouseX, mouseY, this.sourceDropdownEntries().size()));
+        boolean sortHovered = sortLayout.containsButton(mouseX, mouseY) || (this.sortDropdownOpen && sortLayout.containsMenu(mouseX, mouseY, this.sortDropdownEntries().size()));
+        this.hoveredClickable |= sourceHovered || sortHovered;
+        AstralDropdown.renderButton(graphics, this.font,
                 Component.translatable("gui.astral_craft.character_settings.source.label"),
-                this.sourceDropdownEntries(), this.characterNamespaceFilter, dropdown,
-                this.sourceDropdownOpen, hovered, this.pinkButtonStyle().withTextScale(0.92F));
+                this.sourceDropdownEntries(), this.characterNamespaceFilter, sourceLayout,
+                this.sourceDropdownOpen, sourceHovered, style);
+        AstralDropdown.renderButton(graphics, this.font,
+                Component.translatable("gui.astral_craft.character_settings.sort.label"),
+                this.sortDropdownEntries(), this.sortMode.name(), sortLayout,
+                this.sortDropdownOpen, sortHovered, style);
     }
 
-    protected void renderSortControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
-        AstralDropdown.Layout dropdown = this.sortDropdownLayout(layout);
-        boolean hovered = dropdown.containsButton(mouseX, mouseY) || dropdown.containsMenu(mouseX, mouseY, this.sortDropdownEntries().size());
-        this.hoveredClickable |= hovered;
-        AstralDropdown.render(graphics, this.font,
-                Component.translatable("gui.astral_craft.character_settings.sort.label"),
-                this.sortDropdownEntries(), this.sortMode.name(), dropdown,
-                this.sortDropdownOpen, hovered, this.pinkButtonStyle().withTextScale(0.92F));
+    protected void renderCharacterListDropdownMenus(GuiGraphicsExtractor graphics, CharacterLayout layout) {
+        AstralFancyButton.ButtonStyle style = this.pinkButtonStyle().withTextScale(0.88F);
+        if (this.sourceDropdownOpen) {
+            AstralDropdown.renderMenu(graphics, this.font, this.sourceDropdownEntries(), this.characterNamespaceFilter, this.sourceDropdownLayout(layout), style);
+        }
+
+        if (this.sortDropdownOpen) {
+            AstralDropdown.renderMenu(graphics, this.font, this.sortDropdownEntries(), this.sortMode.name(), this.sortDropdownLayout(layout), style);
+        }
     }
 
     protected AstralDropdown.Layout sourceDropdownLayout(CharacterLayout layout) {
-        int labelWidth = Math.clamp(layout.gridW / 6, 42, 58);
-        int width = Math.clamp(layout.gridW - labelWidth - AstralDropdown.LABEL_GAP, 94, 150);
-        return AstralDropdown.layout(layout.gridX, layout.gridY - 58, labelWidth, width);
+        int labelWidth = 50;
+        int width = Math.clamp((layout.gridW - 24) / 2 - labelWidth - AstralDropdown.LABEL_GAP, 74, 130);
+        return AstralDropdown.layout(layout.gridX, layout.gridY - 30, labelWidth, width);
     }
 
     protected AstralDropdown.Layout sortDropdownLayout(CharacterLayout layout) {
-        int labelWidth = Math.clamp(layout.gridW / 6, 42, 58);
-        int width = Math.clamp(layout.gridW - labelWidth - AstralDropdown.LABEL_GAP, 94, 150);
-        return AstralDropdown.layout(layout.gridX, layout.gridY - 30, labelWidth, width);
+        int labelWidth = 50;
+        int sourceTotal = labelWidth + AstralDropdown.LABEL_GAP + this.sourceDropdownLayout(layout).width() + 14;
+        int width = Math.clamp(layout.gridW - sourceTotal - labelWidth - AstralDropdown.LABEL_GAP, 74, 130);
+        return AstralDropdown.layout(layout.gridX + sourceTotal, layout.gridY - 30, labelWidth, width);
     }
 
     protected List<AstralDropdown.Entry> sourceDropdownEntries() {
