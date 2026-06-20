@@ -1,23 +1,23 @@
 package com.astral_craft.client.gui.character;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
-import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProgressEntry;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.LivingEntity;
 
 public record CharacterListCardComponent(
         CharacterSettingsScreen screen, CharacterDefinition definition,
-        AstralCharacterEntity entity, int x, int y, int width, int height,
+        LivingEntity entity, int x, int y, int width, int height,
         boolean selected, boolean unlocked, boolean hovered, float scale) {
 
     public void render(GuiGraphicsExtractor graphics) {
         this.screen.hoveredClickable |= this.hovered;
         AstralFancyButton.renderIconFrame(graphics, this.x, this.y, this.width, this.height, this.selected, this.hovered);
         if (this.entity != null) {
-            this.screen.renderEntityModel(graphics, this.entity, this.x + 8, this.y + 7, this.x + this.width - 8, this.y + this.height - 38, 205.0F, 10.0F, 0.0F, this.scale);
+            this.screen.renderEntityModel(graphics, this.entity, this.x + 8, this.y + 7, this.x + this.width - 8, this.y + this.height - 38, -225.0F, -10.0F, 0.0F, this.scale);
         }
 
         CharacterProgressEntry entry = this.screen.progressEntry(this.definition.id());

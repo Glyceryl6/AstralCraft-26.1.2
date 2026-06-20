@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "defense": 2
+  },
+  "id": "astral_craft:fanny",
+  "name_key": "character.astral_craft.fanny.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_fanny_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.fanny.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.fanny.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.fanny.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.fanny.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.fanny.skill.passive"
+    }
+  ],
+  "sort_order": 11,
+  "title_key": "character.astral_craft.fanny.title",
+  "unlock_hint_key": "character.astral_craft.fanny.unlock_hint",
+  "unlocked_by_default": true
+}

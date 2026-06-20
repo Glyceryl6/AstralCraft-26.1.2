@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "health": 9
+  },
+  "id": "astral_craft:alana",
+  "name_key": "character.astral_craft.alana.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_alana_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.alana.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.alana.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.alana.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.alana.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.alana.skill.passive"
+    }
+  ],
+  "sort_order": 12,
+  "title_key": "character.astral_craft.alana.title",
+  "unlock_hint_key": "character.astral_craft.alana.unlock_hint",
+  "unlocked_by_default": true
+}

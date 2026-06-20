@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "attack": 2,
+    "health": 9
+  },
+  "id": "astral_craft:teru",
+  "name_key": "character.astral_craft.teru.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_teru_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.teru.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.teru.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.teru.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.teru.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.teru.skill.passive"
+    }
+  ],
+  "sort_order": 32,
+  "title_key": "character.astral_craft.teru.title",
+  "unlock_hint_key": "character.astral_craft.teru.unlock_hint"
+}

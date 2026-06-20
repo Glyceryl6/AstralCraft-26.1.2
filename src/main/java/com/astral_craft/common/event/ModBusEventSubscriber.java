@@ -2,13 +2,20 @@ package com.astral_craft.common.event;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.cardback.CardBackDefinition;
+import com.astral_craft.common.gameplay.character.CharacterDefinition;
+import com.astral_craft.common.gameplay.character.CharacterSkinAddition;
+import com.astral_craft.common.gameplay.character.SkinRarityDefinition;
+import com.astral_craft.common.gameplay.event.AstralEventDefinition;
 import com.astral_craft.common.network.*;
+import com.astral_craft.common.registry.AstralDataPackRegistryKeys;
 import com.astral_craft.common.registry.AstralEntities;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.registries.DataPackRegistryEvent;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID)
 public class ModBusEventSubscriber {
@@ -16,6 +23,15 @@ public class ModBusEventSubscriber {
     @SubscribeEvent
     public static void registerEntityAttributes(EntityAttributeCreationEvent event) {
         event.put(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterEntity.createAttributes().build());
+    }
+
+    @SubscribeEvent
+    public static void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
+        event.dataPackRegistry(AstralDataPackRegistryKeys.CHARACTERS, CharacterDefinition.CODEC, CharacterDefinition.CODEC);
+        event.dataPackRegistry(AstralDataPackRegistryKeys.CHARACTER_SKINS, CharacterSkinAddition.CODEC, CharacterSkinAddition.CODEC);
+        event.dataPackRegistry(AstralDataPackRegistryKeys.SKIN_RARITIES, SkinRarityDefinition.CODEC, SkinRarityDefinition.CODEC);
+        event.dataPackRegistry(AstralDataPackRegistryKeys.CARD_BACKS, CardBackDefinition.CODEC, CardBackDefinition.CODEC);
+        event.dataPackRegistry(AstralDataPackRegistryKeys.EVENTS, AstralEventDefinition.CODEC, AstralEventDefinition.CODEC);
     }
 
     @SubscribeEvent

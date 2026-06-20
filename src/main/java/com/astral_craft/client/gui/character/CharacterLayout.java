@@ -135,9 +135,9 @@ public class CharacterLayout {
         int detailButtonX = rightX + rightW - detailButtonW - 14;
         int detailButtonY = topY + 6;
         int gridX = rightX + 14;
-        int gridY = topY + 80;
+        int gridY = topY + 104;
         int gridW = rightW - 28;
-        int gridH = totalH - 94;
+        int gridH = totalH - 118;
         int characterCardW = Mth.clamp((gridW - GRID_GAP * 3) / 4, 58, 84);
         int characterCardH = Mth.clamp((int) (characterCardW * 1.28F), 74, 108);
         int mainTabX = rightX + 14;
@@ -153,7 +153,8 @@ public class CharacterLayout {
         int bodyW = rightW - 28;
         int bodyH = topY + totalH - bodyY - 12;
         int skinCardW = Mth.clamp((bodyW - 32) / 3, 72, 104);
-        int skinCardH = Mth.clamp((int) (skinCardW * 1.62F), 112, 168);
+        int maxSkinCardH = Math.max(98, bodyH - 42);
+        int skinCardH = Math.min(Mth.clamp((int) (skinCardW * 1.62F), 112, 168), maxSkinCardH);
         float previewEntityScale = Mth.clamp(leftW / 168.0F, 0.68F, 1.08F);
         float cardEntityScale = Mth.clamp(characterCardW / 75.0F, 0.50F, 0.72F);
         float skinEntityScale = Mth.clamp(skinCardW / 84.0F, 0.56F, 0.80F);
@@ -163,5 +164,4 @@ public class CharacterLayout {
                 subTabX, subTabY, subTabW, subTabH, bodyX, bodyY, bodyW, bodyH, skinCardW, skinCardH,
                 previewEntityScale, cardEntityScale, skinEntityScale);
     }
-
 }

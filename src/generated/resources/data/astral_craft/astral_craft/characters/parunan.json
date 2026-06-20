@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "defense": 2
+  },
+  "id": "astral_craft:parunan",
+  "name_key": "character.astral_craft.parunan.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_parunan_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.parunan.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 2,
+      "description_key": "character.astral_craft.parunan.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.parunan.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.parunan.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.parunan.skill.passive"
+    }
+  ],
+  "sort_order": 10,
+  "title_key": "character.astral_craft.parunan.title",
+  "unlock_hint_key": "character.astral_craft.parunan.unlock_hint",
+  "unlocked_by_default": true
+}

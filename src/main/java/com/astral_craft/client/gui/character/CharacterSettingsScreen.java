@@ -1,15 +1,15 @@
 package com.astral_craft.client.gui.character;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralHorizontalScrollbar;
 import com.astral_craft.client.gui.components.AstralVerticalScrollbar;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoPose;
 import com.astral_craft.client.render.character.AstralCharacterRenderState;
-import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
-import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -25,6 +25,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import com.astral_craft.common.registry.AstralEntities;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -50,11 +51,12 @@ public class CharacterSettingsScreen extends Screen {
     protected MainTab mainTab = MainTab.ARCHIVE;
     protected ArchiveTab archiveTab = ArchiveTab.SKILLS;
     protected CharacterSortMode sortMode = CharacterSortMode.DEFAULT;
+    protected String characterNamespaceFilter = "";
     protected float characterScroll;
     protected float bodyScroll;
     protected float skinScroll;
     protected float previewYaw = -225.0F;
-    protected float previewPitch = 0.0F;
+    protected float previewPitch = -10.0F;
     protected float previewRoll = 0.0F;
     protected float previewZoom = 1.0F;
     protected String previewAnimationAction = "idle";
@@ -70,10 +72,7 @@ public class CharacterSettingsScreen extends Screen {
     protected final Map<String, AstralCharacterEntity> previewEntities = new HashMap<>();
     protected boolean hoveredClickable;
 
-    public CharacterSettingsScreen(
-            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId,
-            int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds,
-            Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
+    public CharacterSettingsScreen(List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId, int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds, Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
         this.characters = characters.isEmpty() ? List.of(CharacterDefinition.builtinDefault()) : characters;
         this.selectedCharacterId = selectedCharacterId;
@@ -106,8 +105,7 @@ public class CharacterSettingsScreen extends Screen {
             try {
                 selected = Identifier.parse(payload.selectedCharacterId());
             } catch (Exception ignored) {}
-            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), payload.level(), payload.experience(), payload.friendship(),
-                    decodeIdentifierSet(payload.unlockedCharacterIds()), decodeStringSet(payload.unlockedSkinIds()), decodeProgressEntries(payload.encodedProgressEntries())));
+            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), payload.level(), payload.experience(), payload.friendship(), decodeIdentifierSet(payload.unlockedCharacterIds()), decodeStringSet(payload.unlockedSkinIds()), decodeProgressEntries(payload.encodedProgressEntries())));
         });
     }
 
@@ -187,9 +185,15 @@ public class CharacterSettingsScreen extends Screen {
                 this.skinScroll = 0.0F;
                 return true;
             }
+
+            if (event.button() == 0 && this.handleSourceFilterClick(layout, mouseX, mouseY)) {
+                return true;
+            }
+
             if (event.button() == 0 && this.handleSortClick(layout, mouseX, mouseY)) {
                 return true;
             }
+
             if (event.button() == 0 && this.handleCharacterGridClick(layout, mouseX, mouseY)) {
                 return true;
             }
@@ -197,6 +201,7 @@ public class CharacterSettingsScreen extends Screen {
             if (event.button() == 0 && this.handleMainTabClick(layout, mouseX, mouseY)) {
                 return true;
             }
+
             if (event.button() == 0 && this.currentDetailPage().mouseClicked(layout, mouseX, mouseY)) {
                 return true;
             }
@@ -281,10 +286,12 @@ public class CharacterSettingsScreen extends Screen {
             this.handleBack();
             return true;
         }
+
         if (event.key() == GLFW.GLFW_KEY_R) {
             this.resetPreviewRotation();
             return true;
         }
+
         return super.keyPressed(event);
     }
 
@@ -313,10 +320,7 @@ public class CharacterSettingsScreen extends Screen {
         graphics.fill(layout.previewX + 4, previewTop + 4, layout.previewX + layout.previewW - 4, previewTop + 5, 0x99FF4FAE);
         LivingEntity entity = this.previewEntity();
         if (entity != null) {
-            this.renderEntityModel(graphics, entity, layout.previewX + 8, previewTop + 8,
-                    layout.previewX + layout.previewW - 8, controlsTop - 4,
-                    this.previewYaw, this.previewPitch, this.previewRoll,
-                    layout.previewEntityScale * this.previewZoom);
+            this.renderEntityModel(graphics, entity, layout.previewX + 8, previewTop + 8, layout.previewX + layout.previewW - 8, controlsTop - 4, this.previewYaw, this.previewPitch, this.previewRoll, layout.previewEntityScale * this.previewZoom);
         }
 
         this.renderPreviewAnimationControls(graphics, layout, mouseX, mouseY);
@@ -330,29 +334,46 @@ public class CharacterSettingsScreen extends Screen {
         boolean detailHover = this.isInside(mouseX, mouseY, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH);
         MutableComponent detailText = Component.translatable("gui.astral_craft.character_settings.character_detail");
         this.renderFancyButton(graphics, detailText, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH, false, detailHover, this.pinkButtonStyle());
+        this.renderSourceFilterControls(graphics, layout, mouseX, mouseY);
         this.renderSortControls(graphics, layout, mouseX, mouseY);
         graphics.fill(layout.gridX - 6, layout.gridY - 6, layout.gridX + layout.gridW + 6, layout.gridY + layout.gridH + 6, 0x66101018);
         graphics.enableScissor(layout.gridX, layout.gridY, layout.gridX + layout.gridW, layout.gridY + layout.gridH);
+        this.renderCharacterGroups(graphics, layout, mouseX, mouseY);
+        graphics.disableScissor();
+        this.renderVerticalScrollbar(graphics, layout.gridX + layout.gridW + 2, layout.gridY, layout.gridH, this.characterScroll, this.maxCharacterScroll(layout));
+    }
+
+    protected void renderCharacterGroups(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
         int columns = this.characterGridColumns(layout);
         int cardW = layout.characterCardW;
         int cardH = layout.characterCardH;
-        List<CharacterDefinition> visibleCharacters = this.displayCharacters();
-        for (int i = 0; i < visibleCharacters.size(); i++) {
-            int row = i / columns;
-            int column = i % columns;
-            int cardX = layout.gridX + column * (cardW + CharacterLayout.GRID_GAP);
-            int cardY = layout.gridY + row * (cardH + CharacterLayout.GRID_GAP) - Math.round(this.characterScroll);
-            if (cardY + cardH < layout.gridY || cardY > layout.gridY + layout.gridH) continue;
-            CharacterDefinition definition = visibleCharacters.get(i);
-            boolean selected = definition.id().equals(this.selectedCharacterId);
-            boolean equipped = definition.id().equals(this.equippedCharacterId);
-            boolean unlocked = this.isCharacterUnlocked(definition);
-            boolean hovered = this.isInside(mouseX, mouseY, cardX, cardY, cardW, cardH);
-            this.renderCharacterCard(graphics, definition, this.entityFor(definition, this.skinIdFor(definition)), cardX, cardY, cardW, cardH, selected, equipped, unlocked, hovered, layout.cardEntityScale);
-        }
+        int cursorY = layout.gridY - Math.round(this.characterScroll);
+        for (Map.Entry<String, List<CharacterDefinition>> group : this.displayCharacterGroups().entrySet()) {
+            if (cursorY + 20 >= layout.gridY && cursorY <= layout.gridY + layout.gridH) {
+                MutableComponent header = Component.translatable("gui.astral_craft.character_settings.addon_header", this.displayNamespaceName(group.getKey()));
+                graphics.fill(layout.gridX, cursorY + 1, layout.gridX + layout.gridW, cursorY + 18, 0xAA000000);
+                graphics.text(this.font, this.ellipsize(header, layout.gridW - 8), layout.gridX + 6, cursorY + 5, 0xFFFFF5FF, false);
+            }
 
-        graphics.disableScissor();
-        this.renderVerticalScrollbar(graphics, layout.gridX + layout.gridW + 2, layout.gridY, layout.gridH, this.characterScroll, this.maxCharacterScroll(layout));
+            cursorY += 22;
+            List<CharacterDefinition> definitions = group.getValue();
+            for (int i = 0; i < definitions.size(); i++) {
+                int row = i / columns;
+                int column = i % columns;
+                int cardX = layout.gridX + column * (cardW + CharacterLayout.GRID_GAP);
+                int cardY = cursorY + row * (cardH + CharacterLayout.GRID_GAP);
+                if (cardY + cardH < layout.gridY || cardY > layout.gridY + layout.gridH) continue;
+                CharacterDefinition definition = definitions.get(i);
+                boolean selected = definition.id().equals(this.selectedCharacterId);
+                boolean equipped = definition.id().equals(this.equippedCharacterId);
+                boolean unlocked = this.isCharacterUnlocked(definition);
+                boolean hovered = this.isInside(mouseX, mouseY, cardX, cardY, cardW, cardH);
+                this.renderCharacterCard(graphics, definition, this.entityFor(definition, this.skinIdFor(definition)), cardX, cardY, cardW, cardH, selected, equipped, unlocked, hovered, layout.cardEntityScale);
+            }
+
+            int rows = (definitions.size() + columns - 1) / columns;
+            cursorY += rows * (cardH + CharacterLayout.GRID_GAP) + 8;
+        }
     }
 
     protected void renderDetailPage(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -389,6 +410,23 @@ public class CharacterSettingsScreen extends Screen {
         graphics.fill(layout.bodyX + 8, layout.bodyY + 8, layout.bodyX + layout.bodyW - 8, layout.bodyY + 9, 0x99FFFFFF);
     }
 
+    protected void renderSourceFilterControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
+        int x = layout.gridX;
+        int y = layout.gridY - 58;
+        int buttonH = 20;
+        List<String> namespaces = this.characterNamespaceOptions();
+        int visibleButtons = Math.clamp(namespaces.size(), 1, 5);
+        int buttonW = Math.clamp((layout.gridW - CharacterLayout.TAB_GAP * (visibleButtons - 1)) / visibleButtons, 48, 86);
+        for (int i = 0; i < visibleButtons; i++) {
+            String namespace = namespaces.get(i);
+            boolean selected = namespace.equals(this.characterNamespaceFilter);
+            boolean hovered = this.isInside(mouseX, mouseY, x, y, buttonW, buttonH);
+            MutableComponent text = namespace.isBlank() ? Component.translatable("gui.astral_craft.character_settings.source.all") : Component.literal(this.displayNamespaceName(namespace));
+            this.renderFancyButton(graphics, this.ellipsize(text, buttonW - 8), x, y, buttonW, buttonH, selected, hovered, selected ? this.selectedButtonStyle() : this.pinkButtonStyle());
+            x += buttonW + CharacterLayout.TAB_GAP;
+        }
+    }
+
     protected void renderSortControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
         int x = layout.gridX;
         int y = layout.gridY - 30;
@@ -403,7 +441,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderCharacterCard(GuiGraphicsExtractor graphics, CharacterDefinition definition, LivingEntity entity, int x, int y, int w, int h, boolean selected, boolean equipped, boolean unlocked, boolean hovered, float scale) {
-        new CharacterListCardComponent(this, definition, (AstralCharacterEntity) entity, x, y, w, h, selected, unlocked, hovered, scale).render(graphics);
+        new CharacterListCardComponent(this, definition, entity, x, y, w, h, selected, unlocked, hovered, scale).render(graphics);
     }
 
     protected void renderLockedOverlay(GuiGraphicsExtractor graphics, int x, int y, int w, int h, MutableComponent hint) {
@@ -420,6 +458,12 @@ public class CharacterSettingsScreen extends Screen {
         this.drawCenteredText(graphics, this.ellipsize(hint, w - 8), x, y + Math.max(20, h / 2 + 5), w, 0xFFB8B8B8);
     }
 
+    protected void renderTinyBadge(GuiGraphicsExtractor graphics, int x, int y, int w, MutableComponent text, int fill) {
+        int realW = Math.max(w, this.font.width(text) + 8);
+        AstralFancyButton.renderFlatBox(graphics, x, y, realW, 13, fill, 0xFFFFFFFF, 0xFF101018, 0x33101018, 1, 1);
+        this.drawCenteredText(graphics, this.ellipsize(text, realW - 4), x, y + 2, realW, 0xFF101018);
+    }
+
     protected void renderProgressCards(GuiGraphicsExtractor graphics, CharacterDefinition definition, int x, int y, int maxWidth, int minLevel, int maxLevel, int currentLevel, String translationPrefix, int accentColor) {
         for (int level = minLevel; level <= maxLevel; level++) {
             ProgressLevelCardComponent card = new ProgressLevelCardComponent(this, definition, level, currentLevel, translationPrefix, accentColor);
@@ -434,6 +478,7 @@ public class CharacterSettingsScreen extends Screen {
             ProgressLevelCardComponent card = new ProgressLevelCardComponent(this, definition, level, currentLevel, translationPrefix, accentColor);
             height += card.height(maxWidth) + ProgressLevelCardComponent.GAP;
         }
+
         return Math.max(0, height - ProgressLevelCardComponent.GAP);
     }
 
@@ -492,6 +537,35 @@ public class CharacterSettingsScreen extends Screen {
         return false;
     }
 
+    protected boolean handleSourceFilterClick(CharacterLayout layout, double mouseX, double mouseY) {
+        int x = layout.gridX;
+        int y = layout.gridY - 58;
+        int buttonH = 20;
+        List<String> namespaces = this.characterNamespaceOptions();
+        int visibleButtons = Math.clamp(namespaces.size(), 1, 5);
+        int buttonW = Math.clamp((layout.gridW - CharacterLayout.TAB_GAP * (visibleButtons - 1)) / visibleButtons, 48, 86);
+        for (int i = 0; i < visibleButtons; i++) {
+            String namespace = namespaces.get(i);
+            if (this.isInside(mouseX, mouseY, x, y, buttonW, buttonH)) {
+                this.characterNamespaceFilter = namespace;
+                this.characterScroll = 0.0F;
+                Identifier first = this.firstDisplayCharacterId();
+                if (!this.hasDisplayedCharacter(this.selectedCharacterId)) {
+                    this.selectedCharacterId = first;
+                    this.selectedSkinId = this.skinIdFor(this.selectedCharacter());
+                    this.syncSelectedProgress();
+                    this.resetPreviewAnimationAction();
+                }
+
+                return true;
+            }
+
+            x += buttonW + CharacterLayout.TAB_GAP;
+        }
+
+        return false;
+    }
+
     protected boolean handleSortClick(CharacterLayout layout, double mouseX, double mouseY) {
         int x = layout.gridX;
         int y = layout.gridY - 30;
@@ -503,6 +577,7 @@ public class CharacterSettingsScreen extends Screen {
                 this.characterScroll = 0.0F;
                 return true;
             }
+
             x += buttonW + CharacterLayout.TAB_GAP;
         }
 
@@ -513,26 +588,33 @@ public class CharacterSettingsScreen extends Screen {
         int columns = this.characterGridColumns(layout);
         int cardW = layout.characterCardW;
         int cardH = layout.characterCardH;
-        List<CharacterDefinition> visibleCharacters = this.displayCharacters();
-        for (int i = 0; i < visibleCharacters.size(); i++) {
-            int row = i / columns;
-            int column = i % columns;
-            int x = layout.gridX + column * (cardW + CharacterLayout.GRID_GAP);
-            int y = layout.gridY + row * (cardH + CharacterLayout.GRID_GAP) - Math.round(this.characterScroll);
-            if (this.isInside(mouseX, mouseY, x, y, cardW, cardH)) {
-                CharacterDefinition definition = visibleCharacters.get(i);
-                this.selectedCharacterId = definition.id();
-                this.selectedSkinId = this.progressEntry(definition.id()).selectedSkin();
-                if (definition.skins().stream().noneMatch(skin -> skin.id().equals(this.selectedSkinId))) {
-                    this.selectedSkinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
-                }
+        int cursorY = layout.gridY - Math.round(this.characterScroll);
+        for (Map.Entry<String, List<CharacterDefinition>> group : this.displayCharacterGroups().entrySet()) {
+            cursorY += 22;
+            List<CharacterDefinition> definitions = group.getValue();
+            for (int i = 0; i < definitions.size(); i++) {
+                int row = i / columns;
+                int column = i % columns;
+                int x = layout.gridX + column * (cardW + CharacterLayout.GRID_GAP);
+                int y = cursorY + row * (cardH + CharacterLayout.GRID_GAP);
+                if (this.isInside(mouseX, mouseY, x, y, cardW, cardH)) {
+                    CharacterDefinition definition = definitions.get(i);
+                    this.selectedCharacterId = definition.id();
+                    this.selectedSkinId = this.progressEntry(definition.id()).selectedSkin();
+                    if (definition.skins().stream().noneMatch(skin -> skin.id().equals(this.selectedSkinId))) {
+                        this.selectedSkinId = definition.skins().isEmpty() ? "default" : definition.skins().get(0).id();
+                    }
 
-                this.syncSelectedProgress();
-                this.resetPreviewAnimationAction();
-                this.bodyScroll = 0.0F;
-                this.skinScroll = 0.0F;
-                return true;
+                    this.syncSelectedProgress();
+                    this.resetPreviewAnimationAction();
+                    this.bodyScroll = 0.0F;
+                    this.skinScroll = 0.0F;
+                    return true;
+                }
             }
+
+            int rows = (definitions.size() + columns - 1) / columns;
+            cursorY += rows * (cardH + CharacterLayout.GRID_GAP) + 8;
         }
 
         return false;
@@ -558,8 +640,8 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void resetPreviewRotation() {
-        this.previewYaw = 225.0F;
-        this.previewPitch = 0.0F;
+        this.previewYaw = -225.0F;
+        this.previewPitch = -10.0F;
         this.previewRoll = 0.0F;
         this.previewZoom = 1.0F;
     }
@@ -667,8 +749,71 @@ public class CharacterSettingsScreen extends Screen {
         return this.characters.stream().anyMatch(definition -> definition.id().equals(characterId));
     }
 
+    protected boolean hasDisplayedCharacter(Identifier characterId) {
+        if (characterId == null) return false;
+        return this.displayCharacters().stream().anyMatch(definition -> definition.id().equals(characterId));
+    }
+
+    protected List<String> characterNamespaceOptions() {
+        List<String> result = new ArrayList<>();
+        result.add("");
+        result.addAll(this.characterNamespaces());
+        return result;
+    }
+
+    protected List<String> characterNamespaces() {
+        List<String> namespaces = new ArrayList<>();
+        for (CharacterDefinition definition : this.characters) {
+            String namespace = definition.id().getNamespace();
+            if (!namespaces.contains(namespace)) {
+                namespaces.add(namespace);
+            }
+        }
+
+        namespaces.sort((left, right) -> {
+            if (left.equals(AstralCraft.MOD_ID)) return -1;
+            if (right.equals(AstralCraft.MOD_ID)) return 1;
+            return left.compareTo(right);
+        });
+
+        return namespaces;
+    }
+
+    protected String displayNamespaceName(String namespace) {
+        if (namespace == null || namespace.isBlank()) return AstralCraft.MOD_ID;
+        return namespace;
+    }
+
+    protected Map<String, List<CharacterDefinition>> displayCharacterGroups() {
+        Map<String, List<CharacterDefinition>> result = new LinkedHashMap<>();
+        for (String namespace : this.characterNamespaces()) {
+            if (!this.characterNamespaceFilter.isBlank() && !this.characterNamespaceFilter.equals(namespace)) continue;
+            List<CharacterDefinition> group = this.displayCharacters(namespace);
+            if (!group.isEmpty()) {
+                result.put(namespace, group);
+            }
+        }
+
+        return result;
+    }
+
     protected List<CharacterDefinition> displayCharacters() {
-        List<CharacterDefinition> result = new ArrayList<>(this.characters);
+        List<CharacterDefinition> result = new ArrayList<>();
+        for (List<CharacterDefinition> group : this.displayCharacterGroups().values()) {
+            result.addAll(group);
+        }
+
+        return result;
+    }
+
+    protected List<CharacterDefinition> displayCharacters(String namespace) {
+        List<CharacterDefinition> result = new ArrayList<>();
+        for (CharacterDefinition definition : this.characters) {
+            if (definition.id().getNamespace().equals(namespace)) {
+                result.add(definition);
+            }
+        }
+
         Comparator<CharacterDefinition> fallback = Comparator.comparingInt(CharacterDefinition::sortOrder).thenComparing(value -> value.id().toString());
         if (this.sortMode == CharacterSortMode.PVE_LEVEL) {
             result.sort(Comparator.<CharacterDefinition>comparingInt(value -> this.progressEntry(value.id()).level()).reversed().thenComparing(fallback));
@@ -707,7 +852,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected AstralFancyButton.ButtonStyle backButtonStyle() {
-        return AstralFancyButton.ButtonStyle.button(0xCC2E74FF).withTextScale(1.00F)
+        return AstralFancyButton.ButtonStyle.button(0xCC2E74FF).withTextScale(1.05F)
                 .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
                 .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
                 .withBoxMetrics(2, 2, 3, 3);
@@ -727,6 +872,10 @@ public class CharacterSettingsScreen extends Screen {
                 .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
                 .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
                 .withBoxMetrics(2, 2, 3, 3);
+    }
+
+    protected AstralFancyButton.ButtonStyle limeButtonStyle() {
+        return this.selectedButtonStyle();
     }
 
     protected int drawHeader(GuiGraphicsExtractor graphics, MutableComponent component, int x, int y, int color, int maxWidth) {
@@ -776,6 +925,7 @@ public class CharacterSettingsScreen extends Screen {
         while (!lines.isEmpty() && lines.getLast().isEmpty()) {
             lines.removeLast();
         }
+
         return lines;
     }
 
@@ -791,6 +941,7 @@ public class CharacterSettingsScreen extends Screen {
 
         return Component.literal(out + suffix);
     }
+
     protected void renderPreviewAnimationControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
         int y = layout.previewY + layout.previewH - 26;
         int playX = layout.previewX + 8;
@@ -800,9 +951,9 @@ public class CharacterSettingsScreen extends Screen {
         boolean playHover = this.isInside(mouseX, mouseY, playX, y, playW, 18);
         boolean dropHover = this.isInside(mouseX, mouseY, dropX, y, dropW, 18);
         MutableComponent playText = Component.translatable(this.previewAnimationPlaying ? "gui.astral_craft.character_settings.animation.pause" : "gui.astral_craft.character_settings.animation.play");
-        this.renderFancyButton(graphics, playText, playX, y, playW, 18, false, playHover, this.backButtonStyle().withTextScale(0.88F));
+        this.renderFancyButton(graphics, playText, playX, y, playW, 18, false, playHover, this.backButtonStyle().withTextScale(0.88F).withTextOutlineColors(0x66000000, 0x66000000, 0x66000000));
         MutableComponent actionText = Component.literal(this.previewAnimationAction());
-        this.renderFancyButton(graphics, this.ellipsize(actionText, dropW - 14), dropX, y, dropW, 18, this.previewAnimationDropdownOpen, dropHover, this.pinkButtonStyle().withTextScale(0.88F));
+        this.renderFancyButton(graphics, this.ellipsize(actionText, dropW - 14), dropX, y, dropW, 18, this.previewAnimationDropdownOpen, dropHover, this.pinkButtonStyle().withTextScale(0.88F).withTextOutlineColors(0x66000000, 0x66000000, 0x66000000));
         if (this.previewAnimationDropdownOpen) {
             List<String> actions = this.availablePreviewAnimations();
             int rowH = 17;
@@ -854,17 +1005,14 @@ public class CharacterSettingsScreen extends Screen {
             this.previewAnimationDropdownOpen = false;
             return true;
         }
-
         if (this.isInside(mouseX, mouseY, dropX, y, dropW, 18)) {
             this.previewAnimationDropdownOpen = !this.previewAnimationDropdownOpen;
             return true;
         }
-
         if (this.previewAnimationDropdownOpen && this.isOverPreview(layout, mouseX, mouseY)) {
             this.previewAnimationDropdownOpen = false;
             return true;
         }
-
         return false;
     }
 
@@ -966,6 +1114,7 @@ public class CharacterSettingsScreen extends Screen {
         if (definition.skins().stream().noneMatch(skin -> skin.id().equals(skinId))) {
             return definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
         }
+
         return skinId;
     }
 
@@ -979,8 +1128,17 @@ public class CharacterSettingsScreen extends Screen {
 
     protected float maxCharacterScroll(CharacterLayout layout) {
         int columns = this.characterGridColumns(layout);
-        int rows = (this.displayCharacters().size() + columns - 1) / columns;
-        int content = rows * (layout.characterCardH + CharacterLayout.GRID_GAP) - CharacterLayout.GRID_GAP;
+        int content = 0;
+        for (List<CharacterDefinition> group : this.displayCharacterGroups().values()) {
+            int rows = (group.size() + columns - 1) / columns;
+            content += 22;
+            if (rows > 0) {
+                content += rows * (layout.characterCardH + CharacterLayout.GRID_GAP) - CharacterLayout.GRID_GAP;
+            }
+
+            content += 8;
+        }
+
         return Math.max(0.0F, content - layout.gridH);
     }
 

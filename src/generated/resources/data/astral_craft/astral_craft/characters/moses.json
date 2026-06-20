@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "health": 11
+  },
+  "id": "astral_craft:moses",
+  "name_key": "character.astral_craft.moses.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_moses_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.moses.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 2,
+      "description_key": "character.astral_craft.moses.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.moses.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.moses.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.moses.skill.passive"
+    }
+  ],
+  "sort_order": 33,
+  "title_key": "character.astral_craft.moses.title",
+  "unlock_hint_key": "character.astral_craft.moses.unlock_hint"
+}

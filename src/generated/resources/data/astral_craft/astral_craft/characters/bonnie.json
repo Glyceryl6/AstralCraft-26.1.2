@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "attack": 2,
+    "health": 9
+  },
+  "id": "astral_craft:bonnie",
+  "name_key": "character.astral_craft.bonnie.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_bonnie_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.bonnie.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.bonnie.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.bonnie.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.bonnie.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.bonnie.skill.passive"
+    }
+  ],
+  "sort_order": 36,
+  "title_key": "character.astral_craft.bonnie.title",
+  "unlock_hint_key": "character.astral_craft.bonnie.unlock_hint"
+}

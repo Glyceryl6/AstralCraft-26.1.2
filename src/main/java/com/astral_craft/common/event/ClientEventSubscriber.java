@@ -4,6 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.CardRevealOverlay;
 import com.astral_craft.client.gui.ChipSelectionScreen;
 import com.astral_craft.client.gui.TargetSelectionScreen;
+import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
 import com.astral_craft.client.gui.board.BoardHudOverlay;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
@@ -50,11 +51,11 @@ public class ClientEventSubscriber {
         }
     }
 
-
     @SubscribeEvent
     public static void addClientReloadListeners(AddClientReloadListenersEvent event) {
         event.addListener(AstralCraft.prefix("character_models"), AstralGeoModelManager.INSTANCE);
         event.addListener(AstralCraft.prefix("character_animations"), AstralGeoAnimationManager.INSTANCE);
+        event.addListener(AstralCraft.prefix("skin_rarities"), AstralSkinRarityManager.INSTANCE);
     }
 
     @SubscribeEvent

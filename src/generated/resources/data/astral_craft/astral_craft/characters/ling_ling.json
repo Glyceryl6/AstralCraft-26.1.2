@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "attack": 2,
+    "defense": 2
+  },
+  "id": "astral_craft:ling_ling",
+  "name_key": "character.astral_craft.ling_ling.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_ling_ling_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.ling_ling.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.ling_ling.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.ling_ling.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.ling_ling.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.ling_ling.skill.passive"
+    }
+  ],
+  "sort_order": 37,
+  "title_key": "character.astral_craft.ling_ling.title",
+  "unlock_hint_key": "character.astral_craft.ling_ling.unlock_hint"
+}

@@ -25,8 +25,7 @@ public class CharacterCodecLines {
                     .append(definition.maxFriendshipLevel()).append('|')
                     .append(definition.baseStats().attack()).append(',')
                     .append(definition.baseStats().defense()).append(',')
-                    .append(definition.baseStats().health()).append(',')
-                    .append(definition.baseStats().speed()).append('|')
+                    .append(definition.baseStats().health()).append('|')
                     .append(escapeSkills(definition.skills())).append('|')
                     .append(escapeProfiles(definition.profileSections())).append('|')
                     .append(escapeSkins(definition.skins())).append('|')
@@ -41,8 +40,7 @@ public class CharacterCodecLines {
     public static List<CharacterDefinition> decode(String encoded) {
         List<CharacterDefinition> result = new ArrayList<>();
         if (encoded == null || encoded.isBlank()) {
-            result.add(CharacterDefinition.builtinDefault());
-            return result;
+            return new ArrayList<>();
         }
 
         for (String line : encoded.split("\\n")) {
@@ -76,6 +74,7 @@ public class CharacterCodecLines {
                     maxFriendshipLevel = decodeInt(parts, 8, 5);
                     statsIndex = 9;
                 }
+
                 CharacterStatsDefinition stats = decodeStats(parts[statsIndex]);
                 List<CharacterSkillDefinition> skills = decodeSkills(parts[statsIndex + 1]);
                 List<CharacterProfileSection> profiles = decodeProfiles(parts[statsIndex + 2]);
@@ -87,21 +86,17 @@ public class CharacterCodecLines {
             } catch (Exception ignored) {}
         }
 
-        if (result.isEmpty()) {
-            result.add(CharacterDefinition.builtinDefault());
-        }
-
         return result;
     }
 
     protected static CharacterStatsDefinition decodeStats(String raw) {
         String[] parts = raw.split(",", -1);
-        if (parts.length < 4) {
+        if (parts.length < 3) {
             return CharacterStatsDefinition.defaultStats();
         }
 
         try {
-            return new CharacterStatsDefinition(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
+            return new CharacterStatsDefinition(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
         } catch (NumberFormatException exception) {
             return CharacterStatsDefinition.defaultStats();
         }
@@ -176,7 +171,8 @@ public class CharacterCodecLines {
             builder.append(escape(skin.id())).append(',')
                     .append(escape(skin.nameKey())).append(',')
                     .append(escape(skin.texture().toString())).append(',')
-                    .append(skin.unlockedByDefault());
+                    .append(skin.unlockedByDefault()).append(',')
+                    .append(escape(skin.rarityOrNone()));
         }
 
         return builder.toString();
@@ -185,8 +181,6 @@ public class CharacterCodecLines {
     protected static List<CharacterSkinDefinition> decodeSkins(String raw) {
         List<CharacterSkinDefinition> result = new ArrayList<>();
         if (raw == null || raw.isBlank()) {
-            result.add(new CharacterSkinDefinition("default", "character.astral_craft.skin.default",
-                    AstralCraft.prefix("textures/entity/character/default.png"), true));
             return result;
         }
 
@@ -194,10 +188,11 @@ public class CharacterCodecLines {
             String[] parts = entry.split(",", -1);
             if (parts.length >= 4) {
                 try {
+                    String rarity = parts.length >= 5 ? unescape(parts[4]) : "none";
                     result.add(new CharacterSkinDefinition(
                             unescape(parts[0]), unescape(parts[1]),
                             Identifier.parse(unescape(parts[2])),
-                            Boolean.parseBoolean(parts[3])));
+                            Boolean.parseBoolean(parts[3]), rarity));
                 } catch (Exception ignored) {}
             }
         }

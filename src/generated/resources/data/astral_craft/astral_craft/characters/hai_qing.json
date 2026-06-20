@@ -1,0 +1,27 @@
+{
+  "id": "astral_craft:hai_qing",
+  "name_key": "character.astral_craft.hai_qing.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_hai_qing_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.hai_qing.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.hai_qing.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.hai_qing.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.hai_qing.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.hai_qing.skill.passive"
+    }
+  ],
+  "sort_order": 22,
+  "title_key": "character.astral_craft.hai_qing.title",
+  "unlock_hint_key": "character.astral_craft.hai_qing.unlock_hint"
+}

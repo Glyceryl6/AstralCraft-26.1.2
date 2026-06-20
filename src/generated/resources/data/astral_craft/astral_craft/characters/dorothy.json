@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "defense": 0,
+    "health": 8
+  },
+  "id": "astral_craft:dorothy",
+  "name_key": "character.astral_craft.dorothy.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_dorothy_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.dorothy.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 2,
+      "description_key": "character.astral_craft.dorothy.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.dorothy.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.dorothy.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.dorothy.skill.passive"
+    }
+  ],
+  "sort_order": 41,
+  "title_key": "character.astral_craft.dorothy.title",
+  "unlock_hint_key": "character.astral_craft.dorothy.unlock_hint"
+}

@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "health": 9
+  },
+  "id": "astral_craft:nancy_lu",
+  "name_key": "character.astral_craft.nancy_lu.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_nancy_lu_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.nancy_lu.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.nancy_lu.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.nancy_lu.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.nancy_lu.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.nancy_lu.skill.passive"
+    }
+  ],
+  "sort_order": 28,
+  "title_key": "character.astral_craft.nancy_lu.title",
+  "unlock_hint_key": "character.astral_craft.nancy_lu.unlock_hint"
+}

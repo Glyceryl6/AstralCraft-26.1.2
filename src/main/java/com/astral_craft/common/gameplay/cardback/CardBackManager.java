@@ -18,7 +18,7 @@ import java.util.Map;
 @ParametersAreNonnullByDefault
 public class CardBackManager extends SimpleJsonResourceReloadListener<CardBackDefinition> {
 
-    public static final String DIRECTORY = "astral_party/card_backs";
+    public static final String DIRECTORY = "astral_craft/card_backs";
     public static final CardBackManager INSTANCE = new CardBackManager();
     protected final Map<Identifier, CardBackDefinition> definitions = new LinkedHashMap<>();
 

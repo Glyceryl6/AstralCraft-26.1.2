@@ -1,6 +1,5 @@
 package com.astral_craft.client.render.character;
 
-import com.astral_craft.AstralCraft;
 import com.astral_craft.client.model.character.AstralCharacterAnimationRegistry;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -37,8 +36,8 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
     @Override
     public void extractRenderState(AstralCharacterEntity entity, AstralCharacterRenderState state, float partialTick) {
         super.extractRenderState(entity, state, partialTick);
-        state.characterId = entity.characterId() == null ? AstralCraft.prefix("mimi") : entity.characterId();
-        state.skinId = entity.skinId() == null || entity.skinId().isBlank() ? "default" : entity.skinId();
+        state.characterId = entity.characterId();
+        state.skinId = entity.skinId();
         CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId);
         CharacterSkinDefinition skin = definition.skinOrDefault(state.skinId);
         state.texture = skin.texture();

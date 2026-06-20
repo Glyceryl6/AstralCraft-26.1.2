@@ -1,0 +1,27 @@
+{
+  "id": "astral_craft:zhao",
+  "name_key": "character.astral_craft.zhao.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_zhao_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.zhao.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.zhao.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.zhao.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.zhao.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.zhao.skill.passive"
+    }
+  ],
+  "sort_order": 31,
+  "title_key": "character.astral_craft.zhao.title",
+  "unlock_hint_key": "character.astral_craft.zhao.unlock_hint"
+}

@@ -12,7 +12,7 @@ import java.util.*;
 @ParametersAreNonnullByDefault
 public class CharacterManager extends SimpleJsonResourceReloadListener<CharacterDefinition> {
 
-    public static final String DIRECTORY = "astral_party/characters";
+    public static final String DIRECTORY = "astral_craft/characters";
     public static final CharacterManager INSTANCE = new CharacterManager();
 
     protected final Map<Identifier, CharacterDefinition> definitions = new LinkedHashMap<>();
@@ -25,29 +25,10 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
     @Override
     protected void apply(Map<Identifier, CharacterDefinition> elements, ResourceManager resourceManager, ProfilerFiller profiler) {
         Map<Identifier, CharacterDefinition> loaded = new LinkedHashMap<>();
-        CharacterDefinition fallback = CharacterDefinition.builtinDefault();
-        loaded.put(fallback.id(), fallback);
         for (Map.Entry<Identifier, CharacterDefinition> entry : elements.entrySet()) {
             CharacterDefinition definition = entry.getValue();
             Identifier id = entry.getKey();
-            loaded.put(id, new CharacterDefinition(id,
-                    definition.nameKey(),
-                    definition.titleKey(),
-                    definition.modelKey(),
-                    definition.previewTexture(),
-                    definition.entityTypeKey(),
-                    definition.rendererKey(),
-                    definition.animationSetKey(),
-                    definition.previewAction(),
-                    definition.maxPveLevel(),
-                    definition.maxFriendshipLevel(),
-                    definition.baseStats(),
-                    definition.skills(),
-                    definition.profileSections(),
-                    definition.skins(),
-                    definition.unlockedByDefault(),
-                    definition.unlockHintKey(),
-                    definition.sortOrder()));
+            loaded.put(id, this.withRuntimeIdAndSkins(id, definition));
         }
 
         this.definitions.clear();
@@ -60,8 +41,49 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
 
     public void resetToDefault() {
         this.definitions.clear();
-        CharacterDefinition definition = CharacterDefinition.builtinDefault();
-        this.definitions.put(definition.id(), definition);
+    }
+
+    protected CharacterDefinition withRuntimeIdAndSkins(Identifier id, CharacterDefinition definition) {
+        List<CharacterSkinDefinition> skins = this.mergeImplicitAndAdditionalSkins(id, definition.skins());
+        Identifier previewTexture = skins.isEmpty() ? definition.previewTexture() : skins.getFirst().texture();
+        return new CharacterDefinition(id,
+                definition.nameKey(),
+                definition.titleKey(),
+                definition.modelKey(),
+                previewTexture,
+                definition.entityTypeKey(),
+                definition.rendererKey(),
+                definition.animationSetKey(),
+                definition.previewAction(),
+                definition.maxPveLevel(),
+                definition.maxFriendshipLevel(),
+                definition.baseStats(),
+                definition.skills(),
+                definition.profileSections(),
+                skins,
+                definition.unlockedByDefault(),
+                definition.unlockHintKey(),
+                definition.sortOrder());
+    }
+
+    protected List<CharacterSkinDefinition> mergeImplicitAndAdditionalSkins(Identifier characterId, List<CharacterSkinDefinition> definedSkins) {
+        Map<String, CharacterSkinDefinition> merged = new LinkedHashMap<>();
+        this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
+        this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
+        for (CharacterSkinDefinition skin : definedSkins) {
+            this.putSkin(merged, skin);
+        }
+
+        for (CharacterSkinDefinition skin : CharacterSkinManager.INSTANCE.skinsFor(characterId)) {
+            this.putSkin(merged, skin);
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    protected void putSkin(Map<String, CharacterSkinDefinition> merged, CharacterSkinDefinition skin) {
+        if (skin.id() == null || skin.id().isBlank()) return;
+        merged.put(skin.id(), skin);
     }
 
     public List<CharacterDefinition> values() {

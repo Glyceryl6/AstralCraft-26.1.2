@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "attack": 2
+  },
+  "id": "astral_craft:ink_shadow",
+  "name_key": "character.astral_craft.ink_shadow.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_ink_shadow_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.ink_shadow.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.ink_shadow.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.ink_shadow.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.ink_shadow.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.ink_shadow.skill.passive"
+    }
+  ],
+  "sort_order": 35,
+  "title_key": "character.astral_craft.ink_shadow.title",
+  "unlock_hint_key": "character.astral_craft.ink_shadow.unlock_hint"
+}

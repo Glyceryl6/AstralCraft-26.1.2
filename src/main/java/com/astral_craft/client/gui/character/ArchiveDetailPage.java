@@ -73,6 +73,7 @@ public class ArchiveDetailPage implements CharacterDetailPage {
     protected record SectionArea(int contentX, int y, int maxWidth, int contentTop, int contentBottom) {}
 
     protected class SkillsSection extends ArchiveSectionPage {
+
         @Override
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
@@ -86,9 +87,11 @@ public class ArchiveDetailPage implements CharacterDetailPage {
                 }
                 y += 8;
             }
+
             if (definition.skills().isEmpty()) {
                 ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.empty_skills"), area.contentX(), y, 0xFFD0D0D0, area.maxWidth() - 8);
             }
+
             this.end(graphics, layout, area);
         }
 
@@ -100,6 +103,7 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             if (definition.skills().isEmpty()) {
                 return ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.empty_skills"), maxWidth) + 12;
             }
+
             for (CharacterSkillDefinition skill : definition.skills()) {
                 height += 16;
                 height += ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable(skill.descriptionKey()), maxWidth - 8) + 10;
@@ -107,11 +111,14 @@ public class ArchiveDetailPage implements CharacterDetailPage {
                     height += 14;
                 }
             }
+
             return height;
         }
+
     }
 
     protected class LevelSection extends ArchiveSectionPage {
+
         @Override
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
@@ -129,9 +136,11 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
             return 48 + ArchiveDetailPage.this.screen.progressCardsHeight(definition, Math.max(40, layout.bodyW - 68), 1, definition.maxPveLevel(), ArchiveDetailPage.this.screen.level, "gui.astral_craft.character_settings.pve_level_card", 0xFF8CFF20);
         }
+
     }
 
     protected class PotentialSection extends ArchiveSectionPage {
+
         @Override
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
@@ -143,24 +152,25 @@ public class ArchiveDetailPage implements CharacterDetailPage {
         int estimatedHeight(CharacterLayout layout) {
             return ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), Math.max(40, layout.bodyW - 60)) + 30;
         }
+
     }
 
     protected class ProfileSection extends ArchiveSectionPage {
+
         @Override
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
             int y = area.y();
             CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
             for (CharacterProfileSection section : definition.profileSections()) {
-                if (ArchiveDetailPage.this.screen.shouldRenderProfileSectionHeader(section)) {
-                    y = ArchiveDetailPage.this.screen.drawHeader(graphics, Component.translatable(section.titleKey()), area.contentX(), y, 0xFFFFA0FF, area.maxWidth() - 8);
-                }
                 y = ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable(section.bodyKey()), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
                 y += 8;
             }
+
             if (definition.profileSections().isEmpty()) {
                 ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.empty_profile"), area.contentX(), y, 0xFFD0D0D0, area.maxWidth() - 8);
             }
+
             this.end(graphics, layout, area);
         }
 
@@ -172,13 +182,17 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             if (definition.profileSections().isEmpty()) {
                 return ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.empty_profile"), maxWidth) + 12;
             }
+
             for (CharacterProfileSection section : definition.profileSections()) {
                 if (ArchiveDetailPage.this.screen.shouldRenderProfileSectionHeader(section)) {
                     height += 16;
                 }
                 height += ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable(section.bodyKey()), maxWidth - 8) + 12;
             }
+
             return height;
         }
+
     }
+
 }

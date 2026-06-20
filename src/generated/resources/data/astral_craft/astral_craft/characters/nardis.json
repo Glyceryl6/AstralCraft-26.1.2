@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "health": 9
+  },
+  "id": "astral_craft:nardis",
+  "name_key": "character.astral_craft.nardis.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_nardis_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.nardis.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.nardis.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.nardis.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.nardis.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.nardis.skill.passive"
+    }
+  ],
+  "sort_order": 24,
+  "title_key": "character.astral_craft.nardis.title",
+  "unlock_hint_key": "character.astral_craft.nardis.unlock_hint"
+}

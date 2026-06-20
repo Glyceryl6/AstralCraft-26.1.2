@@ -31,6 +31,7 @@ public class CharacterProgress {
         if (entries != null) {
             this.entries.putAll(entries);
         }
+
         this.ensureEntry(this.selectedCharacter, true);
     }
 
@@ -123,6 +124,7 @@ public class CharacterProgress {
                 result.add(entry.getKey());
             }
         }
+
         return Set.copyOf(result);
     }
 
@@ -164,13 +166,16 @@ public class CharacterProgress {
             if (definition.unlockedByDefault()) {
                 entry = entry.unlock();
             }
+
             for (CharacterSkinDefinition skin : definition.skins()) {
                 if (skin.unlockedByDefault()) {
                     entry = entry.unlockSkin(skin.id());
                 }
             }
+
             this.entries.put(definition.id(), entry);
         }
+
         this.ensureEntry(this.selectedCharacter, true);
     }
 
@@ -180,6 +185,7 @@ public class CharacterProgress {
         if (unlocked && !entry.unlocked()) {
             entry = entry.unlock();
         }
+
         this.entries.put(safeId, entry);
         return entry;
     }

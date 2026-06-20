@@ -1,0 +1,27 @@
+{
+  "id": "astral_craft:jill",
+  "name_key": "character.astral_craft.jill.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_jill_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.jill.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.jill.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.jill.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.jill.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.jill.skill.passive"
+    }
+  ],
+  "sort_order": 40,
+  "title_key": "character.astral_craft.jill.title",
+  "unlock_hint_key": "character.astral_craft.jill.unlock_hint"
+}

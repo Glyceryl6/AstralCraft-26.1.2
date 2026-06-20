@@ -27,9 +27,9 @@ public class SkinsDetailPage implements CharacterDetailPage {
         int cardW = layout.skinCardW;
         int cardH = layout.skinCardH;
         int listLeft = layout.bodyX + 14;
-        int listTop = layout.bodyY + 14;
+        int listTop = layout.bodyY + 10;
         int listRight = layout.bodyX + layout.bodyW - 14;
-        int listBottom = Math.max(listTop + 1, Math.min(layout.bodyY + layout.bodyH - 26, listTop + cardH + 8));
+        int listBottom = Math.max(listTop + 1, Math.min(layout.bodyY + layout.bodyH - 22, listTop + cardH + 8));
         graphics.enableScissor(listLeft, listTop, listRight, listBottom);
         for (int i = 0; i < definition.skins().size(); i++) {
             int x = listLeft + i * (cardW + CharacterLayout.GRID_GAP) - Math.round(this.screen.skinScroll);
@@ -48,7 +48,7 @@ public class SkinsDetailPage implements CharacterDetailPage {
         }
 
         graphics.disableScissor();
-        this.screen.renderHorizontalScrollbar(graphics, listLeft, layout.bodyY + layout.bodyH - 18, listRight - listLeft, this.screen.skinScroll, this.maxScroll(layout));
+        this.screen.renderHorizontalScrollbar(graphics, listLeft, layout.bodyY + layout.bodyH - 14, listRight - listLeft, this.screen.skinScroll, this.maxScroll(layout));
     }
 
     @Override
@@ -57,7 +57,7 @@ public class SkinsDetailPage implements CharacterDetailPage {
         int cardW = layout.skinCardW;
         int cardH = layout.skinCardH;
         int listLeft = layout.bodyX + 14;
-        int listTop = layout.bodyY + 14;
+        int listTop = layout.bodyY + 10;
         for (int i = 0; i < definition.skins().size(); i++) {
             int x = listLeft + i * (cardW + CharacterLayout.GRID_GAP) - Math.round(this.screen.skinScroll);
             int y = listTop + 2;

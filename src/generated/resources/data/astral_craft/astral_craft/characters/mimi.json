@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "health": 9
+  },
+  "name_key": "character.astral_craft.mimi.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_mimi_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.mimi.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.mimi.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.mimi.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.mimi.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.mimi.skill.passive"
+    }
+  ],
+  "sort_order": 17,
+  "title_key": "character.astral_craft.mimi.title",
+  "unlock_hint_key": "character.astral_craft.mimi.unlock_hint",
+  "unlocked_by_default": true
+}

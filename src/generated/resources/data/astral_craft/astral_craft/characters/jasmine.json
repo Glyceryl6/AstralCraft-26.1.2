@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "defense": 0,
+    "health": 9
+  },
+  "id": "astral_craft:jasmine",
+  "name_key": "character.astral_craft.jasmine.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_jasmine_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.jasmine.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 4,
+      "description_key": "character.astral_craft.jasmine.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.jasmine.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.jasmine.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.jasmine.skill.passive"
+    }
+  ],
+  "sort_order": 25,
+  "title_key": "character.astral_craft.jasmine.title",
+  "unlock_hint_key": "character.astral_craft.jasmine.unlock_hint"
+}

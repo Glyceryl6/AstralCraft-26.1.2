@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "defense": 4,
+    "health": 9
+  },
+  "id": "astral_craft:ame",
+  "name_key": "character.astral_craft.ame.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_ame_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.ame.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.ame.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.ame.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.ame.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.ame.skill.passive"
+    }
+  ],
+  "sort_order": 39,
+  "title_key": "character.astral_craft.ame.title",
+  "unlock_hint_key": "character.astral_craft.ame.unlock_hint"
+}

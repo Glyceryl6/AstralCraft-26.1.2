@@ -12,7 +12,7 @@
         "requireAnnotations": true
     },
     "client": [
-        "MixinItemInfoCollector",
-        "MixinChatScreen"
+        "MixinChatScreen",
+        "MixinItemInfoCollector"
     ]
 }

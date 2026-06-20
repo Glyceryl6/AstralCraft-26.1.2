@@ -1,0 +1,7 @@
+{
+  "character": "astral_craft:hai_qing",
+  "id": "train_conductor",
+  "name_key": "character.astral_craft.hai_qing.skin.train_conductor",
+  "rarity": "emerald",
+  "texture": "astral_craft:textures/entity/character/skin_hai_qing_train_conductor.png"
+}

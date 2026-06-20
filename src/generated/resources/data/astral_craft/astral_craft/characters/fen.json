@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "defense": 0
+  },
+  "id": "astral_craft:fen",
+  "name_key": "character.astral_craft.fen.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_fen_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.fen.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.fen.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.fen.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.fen.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.fen.skill.passive"
+    }
+  ],
+  "sort_order": 21,
+  "title_key": "character.astral_craft.fen.title",
+  "unlock_hint_key": "character.astral_craft.fen.unlock_hint"
+}

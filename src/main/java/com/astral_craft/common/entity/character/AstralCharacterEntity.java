@@ -25,7 +25,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         super(entityType, level);
         CharacterDefinition definition = CharacterManager.INSTANCE.defaultCharacter();
         this.setCharacterId(definition.id());
-        this.setSkinId(definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id());
+        this.setSkinId(definition.skins().getFirst().id());
         this.setCharacterLevel(1);
         this.setFriendship(1);
         this.setStarCoins(0);
@@ -37,7 +37,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         super.defineSynchedData(builder);
         CharacterDefinition definition = CharacterManager.INSTANCE.defaultCharacter();
         builder.define(DATA_CHARACTER_ID, definition.id().toString());
-        builder.define(DATA_SKIN_ID, definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id());
+        builder.define(DATA_SKIN_ID, definition.skins().getFirst().id());
         builder.define(DATA_LEVEL, 1);
         builder.define(DATA_FRIENDSHIP, 1);
         builder.define(DATA_STAR_COINS, 0);
@@ -69,12 +69,11 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     public String skinId() {
-        String skinId = this.entityData.get(DATA_SKIN_ID);
-        return skinId == null || skinId.isBlank() ? "default" : skinId;
+        return this.entityData.get(DATA_SKIN_ID);
     }
 
     public void setSkinId(String skinId) {
-        this.entityData.set(DATA_SKIN_ID, skinId == null || skinId.isBlank() ? "default" : skinId);
+        this.entityData.set(DATA_SKIN_ID, skinId);
     }
 
     public int characterLevel() {

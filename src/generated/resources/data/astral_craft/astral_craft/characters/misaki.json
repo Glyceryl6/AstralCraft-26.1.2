@@ -1,0 +1,32 @@
+{
+  "base_stats": {
+    "attack": 0,
+    "defense": 2,
+    "health": 9
+  },
+  "id": "astral_craft:misaki",
+  "name_key": "character.astral_craft.misaki.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_misaki_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.misaki.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.misaki.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.misaki.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.misaki.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.misaki.skill.passive"
+    }
+  ],
+  "sort_order": 23,
+  "title_key": "character.astral_craft.misaki.title",
+  "unlock_hint_key": "character.astral_craft.misaki.unlock_hint"
+}

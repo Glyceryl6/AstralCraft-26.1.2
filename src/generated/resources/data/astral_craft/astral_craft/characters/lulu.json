@@ -1,0 +1,32 @@
+{
+  "base_stats": {
+    "attack": 2,
+    "defense": 2,
+    "health": 9
+  },
+  "id": "astral_craft:lulu",
+  "name_key": "character.astral_craft.lulu.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_lulu_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.lulu.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.lulu.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.lulu.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.lulu.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.lulu.skill.passive"
+    }
+  ],
+  "sort_order": 20,
+  "title_key": "character.astral_craft.lulu.title",
+  "unlock_hint_key": "character.astral_craft.lulu.unlock_hint"
+}

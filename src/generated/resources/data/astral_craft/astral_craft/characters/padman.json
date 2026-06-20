@@ -1,0 +1,32 @@
+{
+  "base_stats": {
+    "attack": 2,
+    "defense": 2,
+    "health": 9
+  },
+  "id": "astral_craft:padman",
+  "name_key": "character.astral_craft.padman.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_padman_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.padman.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.padman.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.padman.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.padman.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.padman.skill.passive"
+    }
+  ],
+  "sort_order": 14,
+  "title_key": "character.astral_craft.padman.title",
+  "unlock_hint_key": "character.astral_craft.padman.unlock_hint"
+}

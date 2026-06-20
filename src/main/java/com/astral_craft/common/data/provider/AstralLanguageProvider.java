@@ -12,9 +12,9 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.common.data.LanguageProvider;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.lang.reflect.Method;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
@@ -123,6 +123,41 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralItems.HANDCARD_MISFORTUNE, "Talisman Card - Misfortune", "符卡-祸");
         this.addKey(AstralItems.HANDCARD_LIVING_BOOK, "Living Book", "活体书页");
         this.addKey(AstralItems.HANDCARD_ENHANCED_BARRICADE, "Enhanced Barricade", "强化拒止");
+        this.addCharacterTranslations();
+    }
+
+    private void addCharacterTranslations() {
+        this.add("character.astral_craft.default.title", "Astral Character", "星趴角色");
+        this.add("gui.astral_craft.character_settings.source.all", "All", "全部");
+        this.add("gui.astral_craft.character_settings.addon_header", "%s Additions", "%s追加");
+        for (AstralCharacterDataCatalog.SkinRarityEntry rarity : AstralCharacterDataCatalog.SKIN_RARITIES) {
+            this.add(rarity.nameKey(), rarity.enName(), rarity.zhName());
+        }
+
+        for (AstralCharacterDataCatalog.CharacterEntry entry : AstralCharacterDataCatalog.CHARACTERS) {
+            String baseKey = "character.astral_craft." + entry.id();
+            this.add(baseKey + ".name", entry.enName(), entry.zhName());
+            this.add(baseKey + ".title", entry.enTitle(), entry.zhTitle());
+            this.add(baseKey + ".skin.default", "Default", "默认");
+            this.add(baseKey + ".skin.bond", "Bond", "羁绊");
+            for (AstralCharacterDataCatalog.SkinEntry skin : entry.skins()) {
+                this.add(baseKey + ".skin." + skin.id(), skin.enName(), skin.zhName());
+            }
+        }
+
+        this.add("event.astral_craft.lucky_find.name", "Lucky Find", "幸运发现");
+        this.add("event.astral_craft.lucky_find.description", "You found a small treasure nearby.", "你在附近发现了一份小小的宝物。");
+        this.add("event.astral_craft.ambush.name", "Sudden Ambush", "突然伏击");
+        this.add("event.astral_craft.ambush.description", "Something dangerous has been drawn to you.", "有什么危险的东西被你吸引过来了。");
+        this.add("event.astral_craft.astral_blessing.name", "Astral Blessing", "星之祝福");
+        this.add("event.astral_craft.astral_blessing.description", "A gentle astral light restores your strength.", "温柔的星光正在恢复你的力量。");
+        this.add("event.astral_craft.low_health_aid.name", "Emergency Aid", "应急援助");
+        this.add("event.astral_craft.low_health_aid.description", "When you are in danger, a small reserve of astral power answers you.", "当你陷入危险时，一小股星力会回应你。");
+        this.add("event.astral_craft.night_ambush.name", "Night Ambush", "夜间伏击");
+        this.add("event.astral_craft.night_ambush.description", "The night connects you with wandering hostile presences.", "夜色将你与游荡的敌意存在连接在了一起。");
+        this.add("event.astral_craft.cave_cache.name", "Cave Cache", "洞窟藏物");
+        this.add("event.astral_craft.cave_cache.description", "Deep underground mining may uncover a small cache.", "在地下深处挖掘时，有机会发现一份小小的藏物。");
+        this.add("message.astral_craft.event.triggered", "%s", "%s");
     }
 
     @Override
@@ -140,19 +175,20 @@ public class AstralLanguageProvider extends LanguageProvider {
     }
 
     private CompletableFuture<?> save(CachedOutput cache, Map<String, String> data) {
-        try {
-            Path prefix = this.output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(AstralCraft.MOD_ID);
-            Path langExtra = prefix.resolve("lang_extra").resolve(String.format("%s.json", this.locale));
-            FileReader reader = new FileReader(langExtra.toString().replace("generated", "main"));
+        Path prefix = this.output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(AstralCraft.MOD_ID);
+        Path langExtra = prefix.resolve("lang_extra").resolve(String.format("%s.json", this.locale));
+        this.mergeLangExtra(data, langExtra.toString().replace("generated", "main"));
+        Path target = prefix.resolve("lang").resolve(String.format("%s.json", this.locale));
+        JsonObject json = new JsonObject();
+        data.forEach(json::addProperty);
+        return DataProvider.saveStable(cache, json, target);
+    }
+
+    private void mergeLangExtra(Map<String, String> data, String path) {
+        try (var reader = Files.newBufferedReader(Path.of(path))) {
             JsonObject fileObject = JsonParser.parseReader(reader).getAsJsonObject();
-            fileObject.keySet().forEach(s -> data.put(s, fileObject.get(s).getAsString()));
-            Path target = prefix.resolve("lang").resolve(String.format("%s.json", this.locale));
-            JsonObject json = new JsonObject();
-            data.forEach(json::addProperty);
-            return DataProvider.saveStable(cache, json, target);
-        } catch (FileNotFoundException e) {
-            return CompletableFuture.allOf();
-        }
+            fileObject.keySet().forEach(key -> data.putIfAbsent(key, fileObject.get(key).getAsString()));
+        } catch (IOException ignored) {}
     }
 
     private String getEnglishName(String path) {

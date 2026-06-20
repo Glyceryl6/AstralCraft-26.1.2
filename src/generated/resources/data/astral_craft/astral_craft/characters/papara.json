@@ -1,0 +1,30 @@
+{
+  "base_stats": {
+    "attack": 2
+  },
+  "id": "astral_craft:papara",
+  "name_key": "character.astral_craft.papara.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_papara_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.papara.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.papara.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.papara.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.papara.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.papara.skill.passive"
+    }
+  ],
+  "sort_order": 15,
+  "title_key": "character.astral_craft.papara.title",
+  "unlock_hint_key": "character.astral_craft.papara.unlock_hint"
+}

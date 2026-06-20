@@ -1,0 +1,31 @@
+{
+  "base_stats": {
+    "attack": 2,
+    "health": 9
+  },
+  "id": "astral_craft:mamushi",
+  "name_key": "character.astral_craft.mamushi.name",
+  "preview_texture": "astral_craft:textures/entity/character/skin_mamushi_default.png",
+  "profile": [
+    {
+      "body_key": "character.astral_craft.mamushi.profile.basic.body",
+      "title_key": ""
+    }
+  ],
+  "skills": [
+    {
+      "cooldown": 3,
+      "description_key": "character.astral_craft.mamushi.skill.active.desc",
+      "id": "active",
+      "name_key": "character.astral_craft.mamushi.skill.active"
+    },
+    {
+      "description_key": "character.astral_craft.mamushi.skill.passive.desc",
+      "id": "passive",
+      "name_key": "character.astral_craft.mamushi.skill.passive"
+    }
+  ],
+  "sort_order": 34,
+  "title_key": "character.astral_craft.mamushi.title",
+  "unlock_hint_key": "character.astral_craft.mamushi.unlock_hint"
+}
