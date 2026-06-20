@@ -3,5 +3,5 @@
   "id": "ketchup_magic",
   "name_key": "character.astral_craft.al.skin.ketchup_magic",
   "rarity": "sapphire",
-  "texture": "astral_craft:textures/entity/character/skin_al_ketchup_magic.png"
+  "texture": "astral_craft:entity/character/skin_al_ketchup_magic"
 }

@@ -3,5 +3,5 @@
   "id": "race_queen",
   "name_key": "character.astral_craft.mimi.skin.race_queen",
   "rarity": "emerald",
-  "texture": "astral_craft:textures/entity/character/skin_mimi_race_queen.png"
+  "texture": "astral_craft:entity/character/skin_mimi_race_queen"
 }

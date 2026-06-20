@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:nancy_lu",
   "name_key": "character.astral_craft.nancy_lu.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_nancy_lu_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_nancy_lu_default",
   "profile": [
     {
       "body_key": "character.astral_craft.nancy_lu.profile.basic.body",

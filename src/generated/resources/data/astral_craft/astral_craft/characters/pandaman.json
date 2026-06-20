@@ -5,7 +5,7 @@
   },
   "id": "astral_craft:pandaman",
   "name_key": "character.astral_craft.pandaman.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_pandaman_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_pandaman_default",
   "profile": [
     {
       "body_key": "character.astral_craft.pandaman.profile.basic.body",

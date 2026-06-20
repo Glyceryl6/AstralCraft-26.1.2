@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:parunan",
   "name_key": "character.astral_craft.parunan.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_parunan_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_parunan_default",
   "profile": [
     {
       "body_key": "character.astral_craft.parunan.profile.basic.body",

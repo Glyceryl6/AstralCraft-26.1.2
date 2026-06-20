@@ -3,5 +3,5 @@
   "id": "fortune_guardian",
   "name_key": "character.astral_craft.parunan.skin.fortune_guardian",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_parunan_fortune_guardian.png"
+  "texture": "astral_craft:entity/character/skin_parunan_fortune_guardian"
 }

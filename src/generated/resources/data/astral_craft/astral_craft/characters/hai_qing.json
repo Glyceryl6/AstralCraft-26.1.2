@@ -1,7 +1,7 @@
 {
   "id": "astral_craft:hai_qing",
   "name_key": "character.astral_craft.hai_qing.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_hai_qing_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_hai_qing_default",
   "profile": [
     {
       "body_key": "character.astral_craft.hai_qing.profile.basic.body",

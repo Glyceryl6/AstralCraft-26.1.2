@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:moses",
   "name_key": "character.astral_craft.moses.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_moses_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_moses_default",
   "profile": [
     {
       "body_key": "character.astral_craft.moses.profile.basic.body",

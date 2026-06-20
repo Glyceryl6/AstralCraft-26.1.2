@@ -5,7 +5,7 @@
   },
   "id": "astral_craft:bonnie",
   "name_key": "character.astral_craft.bonnie.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_bonnie_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_bonnie_default",
   "profile": [
     {
       "body_key": "character.astral_craft.bonnie.profile.basic.body",

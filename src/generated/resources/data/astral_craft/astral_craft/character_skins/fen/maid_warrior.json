@@ -3,5 +3,5 @@
   "id": "maid_warrior",
   "name_key": "character.astral_craft.fen.skin.maid_warrior",
   "rarity": "sapphire",
-  "texture": "astral_craft:textures/entity/character/skin_fen_maid_warrior.png"
+  "texture": "astral_craft:entity/character/skin_fen_maid_warrior"
 }

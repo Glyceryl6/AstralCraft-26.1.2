@@ -6,7 +6,7 @@
   },
   "id": "astral_craft:megas",
   "name_key": "character.astral_craft.megas.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_megas_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_megas_default",
   "profile": [
     {
       "body_key": "character.astral_craft.megas.profile.basic.body",

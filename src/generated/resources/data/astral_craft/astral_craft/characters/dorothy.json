@@ -5,7 +5,7 @@
   },
   "id": "astral_craft:dorothy",
   "name_key": "character.astral_craft.dorothy.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_dorothy_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_dorothy_default",
   "profile": [
     {
       "body_key": "character.astral_craft.dorothy.profile.basic.body",

@@ -28,7 +28,7 @@ public class AstralCharacterSkinBootstrap {
     }
 
     private static Identifier texture(String characterId, String skinId) {
-        return AstralCraft.prefix("textures/entity/character/skin_" + characterId + "_" + skinId + ".png");
+        return AstralCraft.prefix("entity/character/skin_" + characterId + "_" + skinId);
     }
 
 }

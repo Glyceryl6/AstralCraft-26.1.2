@@ -3,5 +3,5 @@
   "id": "festival_dress",
   "name_key": "character.astral_craft.jasmine.skin.festival_dress",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_jasmine_festival_dress.png"
+  "texture": "astral_craft:entity/character/skin_jasmine_festival_dress"
 }

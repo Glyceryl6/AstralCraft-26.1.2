@@ -146,7 +146,7 @@ public record CharacterDefinition(
                 "character.astral_craft.mimi.name",
                 "character.astral_craft.mimi.title",
                 AstralCraft.prefix("humanoid"),
-                AstralCraft.prefix("textures/entity/character/skin_mimi_default.png"),
+                AstralCraft.prefix("entity/character/skin_mimi_default"),
                 AstralCraft.prefix("astral_character"),
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
@@ -156,7 +156,7 @@ public record CharacterDefinition(
                 new CharacterStatsDefinition(1, 1, 9),
                 List.of(new CharacterSkillDefinition("active", "character.astral_craft.mimi.skill.active", "character.astral_craft.mimi.skill.active.desc", 3)),
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
-                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default", AstralCraft.prefix("textures/entity/character/skin_mimi_default.png"), true)),
+                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default", AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
                 true,
                 "character.astral_craft.unlock_hint.default",
                 80);

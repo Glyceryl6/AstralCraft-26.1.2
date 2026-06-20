@@ -3,5 +3,5 @@
   "id": "stylish_grace",
   "name_key": "character.astral_craft.hai_qing.skin.stylish_grace",
   "rarity": "sapphire",
-  "texture": "astral_craft:textures/entity/character/skin_hai_qing_stylish_grace.png"
+  "texture": "astral_craft:entity/character/skin_hai_qing_stylish_grace"
 }

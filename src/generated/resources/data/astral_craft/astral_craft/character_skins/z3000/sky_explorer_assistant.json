@@ -3,5 +3,5 @@
   "id": "sky_explorer_assistant",
   "name_key": "character.astral_craft.z3000.skin.sky_explorer_assistant",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_z3000_sky_explorer_assistant.png"
+  "texture": "astral_craft:entity/character/skin_z3000_sky_explorer_assistant"
 }

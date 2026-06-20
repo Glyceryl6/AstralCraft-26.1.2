@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:komachi",
   "name_key": "character.astral_craft.komachi.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_komachi_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_komachi_default",
   "profile": [
     {
       "body_key": "character.astral_craft.komachi.profile.basic.body",

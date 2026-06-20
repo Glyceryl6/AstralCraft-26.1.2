@@ -29,7 +29,7 @@ public class AstralCharacterBootstrap {
                 "character.astral_craft." + id + ".name",
                 "character.astral_craft." + id + ".title",
                 AstralCraft.prefix("humanoid"),
-                AstralCraft.prefix("textures/entity/character/skin_" + id + "_default.png"),
+                AstralCraft.prefix("entity/character/skin_" + id + "_default"),
                 AstralCraft.prefix("astral_character"),
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),

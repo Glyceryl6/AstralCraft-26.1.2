@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:al",
   "name_key": "character.astral_craft.al.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_al_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_al_default",
   "profile": [
     {
       "body_key": "character.astral_craft.al.profile.basic.body",

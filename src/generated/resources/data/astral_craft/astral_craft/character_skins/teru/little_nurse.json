@@ -3,5 +3,5 @@
   "id": "little_nurse",
   "name_key": "character.astral_craft.teru.skin.little_nurse",
   "rarity": "sapphire",
-  "texture": "astral_craft:textures/entity/character/skin_teru_little_nurse.png"
+  "texture": "astral_craft:entity/character/skin_teru_little_nurse"
 }

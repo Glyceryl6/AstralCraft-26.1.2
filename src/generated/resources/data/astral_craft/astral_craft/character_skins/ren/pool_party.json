@@ -3,5 +3,5 @@
   "id": "pool_party",
   "name_key": "character.astral_craft.ren.skin.pool_party",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_ren_pool_party.png"
+  "texture": "astral_craft:entity/character/skin_ren_pool_party"
 }

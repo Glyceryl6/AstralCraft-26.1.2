@@ -3,5 +3,5 @@
   "id": "harbour_holiday",
   "name_key": "character.astral_craft.rin.skin.harbour_holiday",
   "rarity": "sapphire",
-  "texture": "astral_craft:textures/entity/character/skin_rin_harbour_holiday.png"
+  "texture": "astral_craft:entity/character/skin_rin_harbour_holiday"
 }

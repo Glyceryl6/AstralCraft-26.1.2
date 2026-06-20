@@ -5,7 +5,7 @@
   },
   "id": "astral_craft:luka",
   "name_key": "character.astral_craft.luka.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_luka_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_luka_default",
   "profile": [
     {
       "body_key": "character.astral_craft.luka.profile.basic.body",

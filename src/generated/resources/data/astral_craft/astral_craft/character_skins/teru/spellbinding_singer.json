@@ -3,5 +3,5 @@
   "id": "spellbinding_singer",
   "name_key": "character.astral_craft.teru.skin.spellbinding_singer",
   "rarity": "platinum",
-  "texture": "astral_craft:textures/entity/character/skin_teru_spellbinding_singer.png"
+  "texture": "astral_craft:entity/character/skin_teru_spellbinding_singer"
 }

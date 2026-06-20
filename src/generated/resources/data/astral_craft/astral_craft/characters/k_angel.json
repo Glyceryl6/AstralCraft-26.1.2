@@ -5,7 +5,7 @@
   },
   "id": "astral_craft:k_angel",
   "name_key": "character.astral_craft.k_angel.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_k_angel_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_k_angel_default",
   "profile": [
     {
       "body_key": "character.astral_craft.k_angel.profile.basic.body",

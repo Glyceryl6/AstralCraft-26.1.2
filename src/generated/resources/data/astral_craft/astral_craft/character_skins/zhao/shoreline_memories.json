@@ -3,5 +3,5 @@
   "id": "shoreline_memories",
   "name_key": "character.astral_craft.zhao.skin.shoreline_memories",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_zhao_shoreline_memories.png"
+  "texture": "astral_craft:entity/character/skin_zhao_shoreline_memories"
 }

@@ -3,5 +3,5 @@
   "id": "dragons_ascent",
   "name_key": "character.astral_craft.fen.skin.dragons_ascent",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_fen_dragons_ascent.png"
+  "texture": "astral_craft:entity/character/skin_fen_dragons_ascent"
 }

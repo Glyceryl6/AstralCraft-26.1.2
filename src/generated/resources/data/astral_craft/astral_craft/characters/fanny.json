@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:fanny",
   "name_key": "character.astral_craft.fanny.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_fanny_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_fanny_default",
   "profile": [
     {
       "body_key": "character.astral_craft.fanny.profile.basic.body",

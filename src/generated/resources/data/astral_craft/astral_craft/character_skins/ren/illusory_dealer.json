@@ -3,5 +3,5 @@
   "id": "illusory_dealer",
   "name_key": "character.astral_craft.ren.skin.illusory_dealer",
   "rarity": "platinum",
-  "texture": "astral_craft:textures/entity/character/skin_ren_illusory_dealer.png"
+  "texture": "astral_craft:entity/character/skin_ren_illusory_dealer"
 }

@@ -3,5 +3,5 @@
   "id": "sweet_trap",
   "name_key": "character.astral_craft.lulu.skin.sweet_trap",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_lulu_sweet_trap.png"
+  "texture": "astral_craft:entity/character/skin_lulu_sweet_trap"
 }

@@ -56,7 +56,7 @@ public class CharacterSkinManager extends SimpleJsonResourceReloadListener<Chara
     }
 
     public static Identifier defaultSkinTexture(Identifier characterId, String skinId) {
-        return Identifier.fromNamespaceAndPath(characterId.getNamespace(), "textures/entity/character/skin_" + characterId.getPath() + "_" + skinId + ".png");
+        return AstralCraft.prefix("entity/character/skin_" + characterId.getPath() + "_" + skinId);
     }
 
     public static String implicitSkinNameKey(String characterId, String skinId) {

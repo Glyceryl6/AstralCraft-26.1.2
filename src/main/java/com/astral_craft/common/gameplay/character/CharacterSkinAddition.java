@@ -11,19 +11,17 @@ public record CharacterSkinAddition(Identifier character, String id, String name
             Identifier.CODEC.fieldOf("character").forGetter(CharacterSkinAddition::character),
             Codec.STRING.fieldOf("id").forGetter(CharacterSkinAddition::id),
             Codec.STRING.optionalFieldOf("name_key", "").forGetter(CharacterSkinAddition::nameKey),
-            Identifier.CODEC.optionalFieldOf("texture", AstralCraft.prefix("textures/entity/character/default.png")).forGetter(CharacterSkinAddition::texture),
+            Identifier.CODEC.fieldOf("texture").forGetter(CharacterSkinAddition::texture),
             Codec.BOOL.optionalFieldOf("unlocked_by_default", false).forGetter(CharacterSkinAddition::unlockedByDefault),
             Codec.STRING.optionalFieldOf("rarity", "none").forGetter(CharacterSkinAddition::rarity)
     ).apply(instance, CharacterSkinAddition::new));
 
     public CharacterSkinDefinition toSkinDefinition(Identifier sourceFile) {
         String safeId = this.id == null || this.id.isBlank() ? sourceFile.getPath() : this.id;
-        Identifier safeTexture = this.texture.equals(AstralCraft.prefix("textures/entity/character/default.png"))
-                ? CharacterSkinManager.defaultSkinTexture(this.character, safeId)
-                : this.texture;
+        Identifier safeTexture = this.texture.equals(AstralCraft.prefix("entity/character/default.png"))
+                ? CharacterSkinManager.defaultSkinTexture(this.character, safeId) : this.texture;
         String safeNameKey = this.nameKey == null || this.nameKey.isBlank()
-                ? "character." + this.character.getNamespace() + "." + this.character.getPath() + ".skin." + safeId
-                : this.nameKey;
+                ? "character." + this.character.getNamespace() + "." + this.character.getPath() + ".skin." + safeId : this.nameKey;
         String safeRarity = this.rarity == null || this.rarity.isBlank() ? "none" : this.rarity;
         return new CharacterSkinDefinition(safeId, safeNameKey, safeTexture, this.unlockedByDefault, safeRarity);
     }

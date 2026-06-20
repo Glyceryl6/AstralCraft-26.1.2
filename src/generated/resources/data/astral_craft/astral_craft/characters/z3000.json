@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:z3000",
   "name_key": "character.astral_craft.z3000.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_z3000_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_z3000_default",
   "profile": [
     {
       "body_key": "character.astral_craft.z3000.profile.basic.body",

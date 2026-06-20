@@ -4,7 +4,7 @@
   },
   "id": "astral_craft:rin",
   "name_key": "character.astral_craft.rin.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_rin_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_rin_default",
   "profile": [
     {
       "body_key": "character.astral_craft.rin.profile.basic.body",

@@ -3,5 +3,5 @@
   "id": "throbbing_beach",
   "name_key": "character.astral_craft.alana.skin.throbbing_beach",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_alana_throbbing_beach.png"
+  "texture": "astral_craft:entity/character/skin_alana_throbbing_beach"
 }

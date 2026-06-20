@@ -3,5 +3,5 @@
   "id": "seaside_rescue",
   "name_key": "character.astral_craft.megas.skin.seaside_rescue",
   "rarity": "sapphire",
-  "texture": "astral_craft:textures/entity/character/skin_megas_seaside_rescue.png"
+  "texture": "astral_craft:entity/character/skin_megas_seaside_rescue"
 }

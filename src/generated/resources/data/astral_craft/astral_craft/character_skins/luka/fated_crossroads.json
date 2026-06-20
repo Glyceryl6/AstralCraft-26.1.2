@@ -3,5 +3,5 @@
   "id": "fated_crossroads",
   "name_key": "character.astral_craft.luka.skin.fated_crossroads",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_luka_fated_crossroads.png"
+  "texture": "astral_craft:entity/character/skin_luka_fated_crossroads"
 }

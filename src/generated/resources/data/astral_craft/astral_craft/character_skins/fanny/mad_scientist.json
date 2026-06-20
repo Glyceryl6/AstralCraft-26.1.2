@@ -3,5 +3,5 @@
   "id": "mad_scientist",
   "name_key": "character.astral_craft.fanny.skin.mad_scientist",
   "rarity": "amethyst",
-  "texture": "astral_craft:textures/entity/character/skin_fanny_mad_scientist.png"
+  "texture": "astral_craft:entity/character/skin_fanny_mad_scientist"
 }

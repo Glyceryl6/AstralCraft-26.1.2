@@ -6,7 +6,7 @@
   },
   "id": "astral_craft:misaki",
   "name_key": "character.astral_craft.misaki.name",
-  "preview_texture": "astral_craft:textures/entity/character/skin_misaki_default.png",
+  "preview_texture": "astral_craft:entity/character/skin_misaki_default",
   "profile": [
     {
       "body_key": "character.astral_craft.misaki.profile.basic.body",
