@@ -2,6 +2,7 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
+import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventState;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.neoforged.neoforge.attachment.AttachmentType;
@@ -21,5 +22,8 @@ public final class AstralAttachments {
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralEventState>> EVENT_STATE = ATTACHMENTS.register("event_state",
             () -> AttachmentType.builder(AstralEventState::empty).serialize(AstralEventState.CODEC.fieldOf("event_state")).copyOnDeath().build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralEventPreferences>> EVENT_PREFERENCES = ATTACHMENTS.register("event_preferences",
+            () -> AttachmentType.builder(() -> AstralEventPreferences.DEFAULT).serialize(AstralEventPreferences.CODEC.fieldOf("event_preferences")).copyOnDeath().build());
 
 }
