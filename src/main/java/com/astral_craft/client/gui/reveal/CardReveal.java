@@ -12,5 +12,5 @@ public record CardReveal(
         Identifier frontTexture,
         Identifier backTexture,
         Identifier animation,
-        long startedAtNanos,
+        float startedAtTicks,
         int durationTicks) { }

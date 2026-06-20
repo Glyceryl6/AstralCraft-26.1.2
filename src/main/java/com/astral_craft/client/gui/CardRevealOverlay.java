@@ -27,7 +27,6 @@ import java.util.Map;
 public class CardRevealOverlay {
 
     public static final Identifier LAYER = AstralCraft.prefix("card_reveal_overlay");
-    public static final long TICK_NANOS = 50_000_000L;
 
     public static final CardRevealSettings SETTINGS = new CardRevealSettings();
     public static final CardRevealDebugSettings DEBUG_SETTINGS = new CardRevealDebugSettings();
@@ -88,14 +87,14 @@ public class CardRevealOverlay {
         Identifier animationId = normalizeAnimation(payload.animation());
         CardRevealAnimation animation = ANIMATIONS.get(animationId);
         int defaultDuration = animation.defaultDuration(SETTINGS);
-        int duration = payload.durationTicks() > 0 ? payload.durationTicks() : defaultDuration;
+        int duration = payload.durationTicks() > 0 ? Math.max(payload.durationTicks(), defaultDuration) : defaultDuration;
         active = new CardReveal(payload.cardId(), payload.cardType(),
                 Component.translatable(payload.titleKey()).getString(),
                 Component.translatable(payload.bodyKey()).getString(),
                 makeItemStack(payload.itemId()),
                 Identifier.parse(payload.largeFrontTexture()),
                 Identifier.parse(payload.largeBackTexture()),
-                animationId, System.nanoTime(), duration);
+                animationId, currentClientGameTicks(null), duration);
     }
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
@@ -103,7 +102,7 @@ public class CardRevealOverlay {
             return;
         }
 
-        float ageTicks = (System.nanoTime() - active.startedAtNanos()) / (float) TICK_NANOS;
+        float ageTicks = currentClientGameTicks(deltaTracker) - active.startedAtTicks();
         if (ageTicks >= active.durationTicks()) {
             active = null;
             return;
@@ -123,6 +122,15 @@ public class CardRevealOverlay {
         int modelSize = SETTINGS.responsiveModelSize(graphics.guiWidth(), graphics.guiHeight());
         CardRevealRenderContext context = new CardRevealRenderContext(graphics, minecraft, active, SETTINGS, ageTicks, centerX, centerY, modelSize);
         animation.render(context, RENDERER);
+    }
+
+    private static float currentClientGameTicks(DeltaTracker deltaTracker) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) {
+            return 0.0F;
+        }
+        float partialTick = deltaTracker == null ? 0.0F : deltaTracker.getGameTimeDeltaPartialTick(false);
+        return minecraft.level.getGameTime() + partialTick;
     }
 
     private static ItemStack makeItemStack(String itemId) {
