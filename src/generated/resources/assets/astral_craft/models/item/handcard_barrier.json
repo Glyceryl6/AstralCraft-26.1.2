@@ -2,6 +2,7 @@
   "parent": "astral_craft:item/template_handcard",
   "textures": {
     "frame": "astral_craft:item/template_handcard_counter",
-    "icon": "astral_craft:item/handcard_barrier"
+    "icon": "astral_craft:item/handcard_barrier",
+    "particle": "astral_craft:item/template_handcard_counter"
   }
 }

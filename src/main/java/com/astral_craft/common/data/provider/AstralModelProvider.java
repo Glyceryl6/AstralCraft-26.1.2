@@ -14,6 +14,7 @@ import net.minecraft.client.data.models.MultiVariant;
 import net.minecraft.client.data.models.model.ItemModelUtils;
 import net.minecraft.client.data.models.model.ModelLocationUtils;
 import net.minecraft.client.data.models.model.TextureMapping;
+import net.minecraft.client.data.models.model.TextureSlot;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.Identifier;
@@ -34,7 +35,7 @@ public class AstralModelProvider extends ModelProvider {
             Item item = modelledCardItem.item().get();
             String name = modelledCardItem.cardType().name;
             Material frame = new Material(AstralCraft.prefix("item/template_handcard_").withSuffix(name));
-            TextureMapping mapping = (new TextureMapping()).put(AstralTextureSlot.FRAME, frame)
+            TextureMapping mapping = (new TextureMapping()).put(AstralTextureSlot.FRAME, frame).put(TextureSlot.PARTICLE, frame)
                     .put(AstralTextureSlot.ICON, new Material(ModelLocationUtils.getModelLocation(item)));
             Identifier identifier = AstralModelTemplates.HANDCARD.create(item, mapping, itemModels.modelOutput);
             itemModels.itemModelOutput.accept(item, ItemModelUtils.plainModel(identifier));

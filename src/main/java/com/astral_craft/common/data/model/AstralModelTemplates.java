@@ -10,7 +10,7 @@ import java.util.Optional;
 public class AstralModelTemplates {
 
     public static final ModelTemplate PLATFORM = create("template_platform", TextureSlot.TEXTURE);
-    public static final ModelTemplate HANDCARD = createItem("template_handcard", AstralTextureSlot.FRAME, AstralTextureSlot.ICON);
+    public static final ModelTemplate HANDCARD = createItem("template_handcard", AstralTextureSlot.FRAME, AstralTextureSlot.ICON, TextureSlot.PARTICLE);
 
     public static ModelTemplate create(String id, TextureSlot... slots) {
         return new ModelTemplate(Optional.of(decorateBlockModelLocation(id)), Optional.empty(), slots);

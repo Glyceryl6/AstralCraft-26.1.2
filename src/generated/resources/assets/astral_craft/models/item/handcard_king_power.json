@@ -2,6 +2,7 @@
   "parent": "astral_craft:item/template_handcard",
   "textures": {
     "frame": "astral_craft:item/template_handcard_effect",
-    "icon": "astral_craft:item/handcard_king_power"
+    "icon": "astral_craft:item/handcard_king_power",
+    "particle": "astral_craft:item/template_handcard_effect"
   }
 }
