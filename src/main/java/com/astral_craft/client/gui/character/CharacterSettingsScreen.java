@@ -1,15 +1,17 @@
 package com.astral_craft.client.gui.character;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gui.components.AstralDropdown;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralHorizontalScrollbar;
 import com.astral_craft.client.gui.components.AstralVerticalScrollbar;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoPose;
 import com.astral_craft.client.render.character.AstralCharacterRenderState;
-import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
+import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -25,7 +27,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import com.astral_craft.common.registry.AstralEntities;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -62,8 +63,9 @@ public class CharacterSettingsScreen extends Screen {
     protected String previewAnimationAction = "idle";
     protected boolean previewAnimationPlaying = true;
     protected boolean previewAnimationDropdownOpen;
+    protected boolean sourceDropdownOpen;
+    protected boolean sortDropdownOpen;
     protected float previewAnimationTimeSeconds;
-    protected long lastPreviewAnimationNanos = System.nanoTime();
     protected boolean draggingPreview;
     protected ScrollTarget draggingScrollbar = ScrollTarget.NONE;
     protected int dragButton;
@@ -72,7 +74,10 @@ public class CharacterSettingsScreen extends Screen {
     protected final Map<String, AstralCharacterEntity> previewEntities = new HashMap<>();
     protected boolean hoveredClickable;
 
-    public CharacterSettingsScreen(List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId, int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds, Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
+    public CharacterSettingsScreen(
+            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId,
+            int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds,
+            Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
         this.characters = characters.isEmpty() ? List.of(CharacterDefinition.builtinDefault()) : characters;
         this.selectedCharacterId = selectedCharacterId;
@@ -105,7 +110,8 @@ public class CharacterSettingsScreen extends Screen {
             try {
                 selected = Identifier.parse(payload.selectedCharacterId());
             } catch (Exception ignored) {}
-            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), payload.level(), payload.experience(), payload.friendship(), decodeIdentifierSet(payload.unlockedCharacterIds()), decodeStringSet(payload.unlockedSkinIds()), decodeProgressEntries(payload.encodedProgressEntries())));
+            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), payload.level(), payload.experience(), payload.friendship(),
+                    decodeIdentifierSet(payload.unlockedCharacterIds()), decodeStringSet(payload.unlockedSkinIds()), decodeProgressEntries(payload.encodedProgressEntries())));
         });
     }
 
@@ -117,6 +123,14 @@ public class CharacterSettingsScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (this.previewAnimationPlaying) {
+            this.previewAnimationTimeSeconds += 0.05F;
+        }
     }
 
     @Override
@@ -186,11 +200,7 @@ public class CharacterSettingsScreen extends Screen {
                 return true;
             }
 
-            if (event.button() == 0 && this.handleSourceFilterClick(layout, mouseX, mouseY)) {
-                return true;
-            }
-
-            if (event.button() == 0 && this.handleSortClick(layout, mouseX, mouseY)) {
+            if (event.button() == 0 && this.handleCharacterListDropdownClick(layout, mouseX, mouseY)) {
                 return true;
             }
 
@@ -310,7 +320,6 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderPreview(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
-        this.updatePreviewAnimationClock();
         CharacterDefinition selected = this.selectedCharacter();
         int previewTop = layout.previewY;
         int previewBottom = layout.previewY + layout.previewH;
@@ -320,7 +329,10 @@ public class CharacterSettingsScreen extends Screen {
         graphics.fill(layout.previewX + 4, previewTop + 4, layout.previewX + layout.previewW - 4, previewTop + 5, 0x99FF4FAE);
         LivingEntity entity = this.previewEntity();
         if (entity != null) {
-            this.renderEntityModel(graphics, entity, layout.previewX + 8, previewTop + 8, layout.previewX + layout.previewW - 8, controlsTop - 4, this.previewYaw, this.previewPitch, this.previewRoll, layout.previewEntityScale * this.previewZoom);
+            this.renderEntityModel(graphics, entity, layout.previewX + 8, previewTop + 8,
+                    layout.previewX + layout.previewW - 8, controlsTop - 4,
+                    this.previewYaw, this.previewPitch, this.previewRoll,
+                    layout.previewEntityScale * this.previewZoom);
         }
 
         this.renderPreviewAnimationControls(graphics, layout, mouseX, mouseY);
@@ -410,33 +422,56 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderSourceFilterControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
-        int x = layout.gridX;
-        int y = layout.gridY - 58;
-        int buttonH = 20;
-        List<String> namespaces = this.characterNamespaceOptions();
-        int visibleButtons = Math.clamp(namespaces.size(), 1, 5);
-        int buttonW = Math.clamp((layout.gridW - CharacterLayout.TAB_GAP * (visibleButtons - 1)) / visibleButtons, 48, 86);
-        for (int i = 0; i < visibleButtons; i++) {
-            String namespace = namespaces.get(i);
-            boolean selected = namespace.equals(this.characterNamespaceFilter);
-            boolean hovered = this.isInside(mouseX, mouseY, x, y, buttonW, buttonH);
-            MutableComponent text = namespace.isBlank() ? Component.translatable("gui.astral_craft.character_settings.source.all") : Component.literal(this.displayNamespaceName(namespace));
-            this.renderFancyButton(graphics, this.ellipsize(text, buttonW - 8), x, y, buttonW, buttonH, selected, hovered, selected ? this.selectedButtonStyle() : this.pinkButtonStyle());
-            x += buttonW + CharacterLayout.TAB_GAP;
-        }
+        AstralDropdown.Layout dropdown = this.sourceDropdownLayout(layout);
+        boolean hovered = dropdown.containsButton(mouseX, mouseY) || dropdown.containsMenu(mouseX, mouseY, this.sourceDropdownEntries().size());
+        this.hoveredClickable |= hovered;
+        AstralDropdown.render(graphics, this.font,
+                Component.translatable("gui.astral_craft.character_settings.source.label"),
+                this.sourceDropdownEntries(), this.characterNamespaceFilter, dropdown,
+                this.sourceDropdownOpen, hovered, this.pinkButtonStyle().withTextScale(0.92F));
     }
 
     protected void renderSortControls(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
-        int x = layout.gridX;
-        int y = layout.gridY - 30;
-        int buttonH = 20;
-        int buttonW = Math.clamp((layout.gridW - CharacterLayout.TAB_GAP * (CharacterSortMode.values().length - 1)) / CharacterSortMode.values().length, 58, 88);
-        for (CharacterSortMode value : CharacterSortMode.values()) {
-            boolean selected = this.sortMode == value;
-            boolean hovered = this.isInside(mouseX, mouseY, x, y, buttonW, buttonH);
-            this.renderFancyButton(graphics, Component.translatable(value.translationKey()), x, y, buttonW, buttonH, selected, hovered, selected ? this.selectedButtonStyle() : this.pinkButtonStyle());
-            x += buttonW + CharacterLayout.TAB_GAP;
+        AstralDropdown.Layout dropdown = this.sortDropdownLayout(layout);
+        boolean hovered = dropdown.containsButton(mouseX, mouseY) || dropdown.containsMenu(mouseX, mouseY, this.sortDropdownEntries().size());
+        this.hoveredClickable |= hovered;
+        AstralDropdown.render(graphics, this.font,
+                Component.translatable("gui.astral_craft.character_settings.sort.label"),
+                this.sortDropdownEntries(), this.sortMode.name(), dropdown,
+                this.sortDropdownOpen, hovered, this.pinkButtonStyle().withTextScale(0.92F));
+    }
+
+    protected AstralDropdown.Layout sourceDropdownLayout(CharacterLayout layout) {
+        int labelWidth = Math.clamp(layout.gridW / 6, 42, 58);
+        int width = Math.clamp(layout.gridW - labelWidth - AstralDropdown.LABEL_GAP, 94, 150);
+        return AstralDropdown.layout(layout.gridX, layout.gridY - 58, labelWidth, width);
+    }
+
+    protected AstralDropdown.Layout sortDropdownLayout(CharacterLayout layout) {
+        int labelWidth = Math.clamp(layout.gridW / 6, 42, 58);
+        int width = Math.clamp(layout.gridW - labelWidth - AstralDropdown.LABEL_GAP, 94, 150);
+        return AstralDropdown.layout(layout.gridX, layout.gridY - 30, labelWidth, width);
+    }
+
+    protected List<AstralDropdown.Entry> sourceDropdownEntries() {
+        List<AstralDropdown.Entry> entries = new ArrayList<>();
+        for (String namespace : this.characterNamespaceOptions()) {
+            MutableComponent text = namespace.isBlank()
+                    ? Component.translatable("gui.astral_craft.character_settings.source.all")
+                    : Component.literal(this.displayNamespaceName(namespace));
+            entries.add(AstralDropdown.Entry.of(namespace, text));
         }
+
+        return entries;
+    }
+
+    protected List<AstralDropdown.Entry> sortDropdownEntries() {
+        List<AstralDropdown.Entry> entries = new ArrayList<>();
+        for (CharacterSortMode value : CharacterSortMode.values()) {
+            entries.add(AstralDropdown.Entry.of(value.name(), Component.translatable(value.translationKey())));
+        }
+
+        return entries;
     }
 
     protected void renderCharacterCard(GuiGraphicsExtractor graphics, CharacterDefinition definition, LivingEntity entity, int x, int y, int w, int h, boolean selected, boolean equipped, boolean unlocked, boolean hovered, float scale) {
@@ -455,12 +490,6 @@ public class CharacterSettingsScreen extends Screen {
         MutableComponent locked = Component.translatable("gui.astral_craft.character_settings.locked");
         this.drawCenteredText(graphics, locked, x, y + Math.max(8, h / 2 - 8), w, 0xFFFFFFFF);
         this.drawCenteredText(graphics, this.ellipsize(hint, w - 8), x, y + Math.max(20, h / 2 + 5), w, 0xFFB8B8B8);
-    }
-
-    protected void renderTinyBadge(GuiGraphicsExtractor graphics, int x, int y, int w, MutableComponent text, int fill) {
-        int realW = Math.max(w, this.font.width(text) + 8);
-        AstralFancyButton.renderFlatBox(graphics, x, y, realW, 13, fill, 0xFFFFFFFF, 0xFF101018, 0x33101018, 1, 1);
-        this.drawCenteredText(graphics, this.ellipsize(text, realW - 4), x, y + 2, realW, 0xFF101018);
     }
 
     protected void renderProgressCards(GuiGraphicsExtractor graphics, CharacterDefinition definition, int x, int y, int maxWidth, int minLevel, int maxLevel, int currentLevel, String translationPrefix, int accentColor) {
@@ -536,18 +565,18 @@ public class CharacterSettingsScreen extends Screen {
         return false;
     }
 
-    protected boolean handleSourceFilterClick(CharacterLayout layout, double mouseX, double mouseY) {
-        int x = layout.gridX;
-        int y = layout.gridY - 58;
-        int buttonH = 20;
-        List<String> namespaces = this.characterNamespaceOptions();
-        int visibleButtons = Math.clamp(namespaces.size(), 1, 5);
-        int buttonW = Math.clamp((layout.gridW - CharacterLayout.TAB_GAP * (visibleButtons - 1)) / visibleButtons, 48, 86);
-        for (int i = 0; i < visibleButtons; i++) {
-            String namespace = namespaces.get(i);
-            if (this.isInside(mouseX, mouseY, x, y, buttonW, buttonH)) {
-                this.characterNamespaceFilter = namespace;
+    protected boolean handleCharacterListDropdownClick(CharacterLayout layout, double mouseX, double mouseY) {
+        AstralDropdown.Layout sourceLayout = this.sourceDropdownLayout(layout);
+        AstralDropdown.Layout sortLayout = this.sortDropdownLayout(layout);
+        List<AstralDropdown.Entry> sourceEntries = this.sourceDropdownEntries();
+        List<AstralDropdown.Entry> sortEntries = this.sortDropdownEntries();
+
+        if (this.sourceDropdownOpen) {
+            String selected = AstralDropdown.clickedEntry(sourceEntries, sourceLayout, mouseX, mouseY);
+            if (selected != null) {
+                this.characterNamespaceFilter = selected;
                 this.characterScroll = 0.0F;
+                this.sourceDropdownOpen = false;
                 Identifier first = this.firstDisplayCharacterId();
                 if (!this.hasDisplayedCharacter(this.selectedCharacterId)) {
                     this.selectedCharacterId = first;
@@ -559,25 +588,39 @@ public class CharacterSettingsScreen extends Screen {
                 return true;
             }
 
-            x += buttonW + CharacterLayout.TAB_GAP;
+            if (!sourceLayout.containsButton(mouseX, mouseY)) {
+                this.sourceDropdownOpen = false;
+                return true;
+            }
         }
 
-        return false;
-    }
-
-    protected boolean handleSortClick(CharacterLayout layout, double mouseX, double mouseY) {
-        int x = layout.gridX;
-        int y = layout.gridY - 30;
-        int buttonH = 20;
-        int buttonW = Math.clamp((layout.gridW - CharacterLayout.TAB_GAP * (CharacterSortMode.values().length - 1)) / CharacterSortMode.values().length, 58, 88);
-        for (CharacterSortMode value : CharacterSortMode.values()) {
-            if (this.isInside(mouseX, mouseY, x, y, buttonW, buttonH)) {
-                this.sortMode = value;
+        if (this.sortDropdownOpen) {
+            String selected = AstralDropdown.clickedEntry(sortEntries, sortLayout, mouseX, mouseY);
+            if (selected != null) {
+                try {
+                    this.sortMode = CharacterSortMode.valueOf(selected);
+                } catch (IllegalArgumentException ignored) {}
                 this.characterScroll = 0.0F;
+                this.sortDropdownOpen = false;
                 return true;
             }
 
-            x += buttonW + CharacterLayout.TAB_GAP;
+            if (!sortLayout.containsButton(mouseX, mouseY)) {
+                this.sortDropdownOpen = false;
+                return true;
+            }
+        }
+
+        if (sourceLayout.containsButton(mouseX, mouseY)) {
+            this.sourceDropdownOpen = !this.sourceDropdownOpen;
+            this.sortDropdownOpen = false;
+            return true;
+        }
+
+        if (sortLayout.containsButton(mouseX, mouseY)) {
+            this.sortDropdownOpen = !this.sortDropdownOpen;
+            this.sourceDropdownOpen = false;
+            return true;
         }
 
         return false;
@@ -601,7 +644,7 @@ public class CharacterSettingsScreen extends Screen {
                     this.selectedCharacterId = definition.id();
                     this.selectedSkinId = this.progressEntry(definition.id()).selectedSkin();
                     if (definition.skins().stream().noneMatch(skin -> skin.id().equals(this.selectedSkinId))) {
-                        this.selectedSkinId = definition.skins().isEmpty() ? "default" : definition.skins().get(0).id();
+                        this.selectedSkinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
                     }
 
                     this.syncSelectedProgress();
@@ -873,10 +916,6 @@ public class CharacterSettingsScreen extends Screen {
                 .withBoxMetrics(2, 2, 3, 3);
     }
 
-    protected AstralFancyButton.ButtonStyle limeButtonStyle() {
-        return this.selectedButtonStyle();
-    }
-
     protected int drawHeader(GuiGraphicsExtractor graphics, MutableComponent component, int x, int y, int color, int maxWidth) {
         graphics.fill(x - 6, y - 2, x + maxWidth, y + 12, 0xAA000000);
         graphics.text(this.font, this.ellipsize(component, maxWidth - 6), x, y, color, false);
@@ -990,7 +1029,6 @@ public class CharacterSettingsScreen extends Screen {
                 if (this.isInside(mouseX, mouseY, dropX, rowY, dropW, rowH)) {
                     this.previewAnimationAction = actions.get(i);
                     this.previewAnimationTimeSeconds = 0.0F;
-                    this.lastPreviewAnimationNanos = System.nanoTime();
                     this.previewAnimationPlaying = true;
                     this.previewAnimationDropdownOpen = false;
                     return true;
@@ -1000,7 +1038,6 @@ public class CharacterSettingsScreen extends Screen {
 
         if (this.isInside(mouseX, mouseY, playX, y, playW, 18)) {
             this.previewAnimationPlaying = !this.previewAnimationPlaying;
-            this.lastPreviewAnimationNanos = System.nanoTime();
             this.previewAnimationDropdownOpen = false;
             return true;
         }
@@ -1016,15 +1053,6 @@ public class CharacterSettingsScreen extends Screen {
         }
 
         return false;
-    }
-
-    protected void updatePreviewAnimationClock() {
-        long now = System.nanoTime();
-        if (this.previewAnimationPlaying) {
-            this.previewAnimationTimeSeconds += (now - this.lastPreviewAnimationNanos) / 1_000_000_000.0F;
-        }
-
-        this.lastPreviewAnimationNanos = now;
     }
 
     protected List<String> availablePreviewAnimations() {
@@ -1045,7 +1073,6 @@ public class CharacterSettingsScreen extends Screen {
         List<String> actions = this.availablePreviewAnimations();
         this.previewAnimationAction = actions.contains(action) ? action : actions.getFirst();
         this.previewAnimationTimeSeconds = 0.0F;
-        this.lastPreviewAnimationNanos = System.nanoTime();
         this.previewAnimationDropdownOpen = false;
         this.previewAnimationPlaying = true;
     }
