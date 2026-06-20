@@ -61,6 +61,15 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
         return new ArrayList<>(this.definitions.values());
     }
 
+    public List<String> idStrings() {
+        List<String> result = new ArrayList<>();
+        for (Identifier id : this.definitions.keySet()) {
+            result.add(id.toString());
+        }
+
+        return result;
+    }
+
     public List<AstralEventDefinition> matching(String trigger) {
         List<AstralEventDefinition> result = new ArrayList<>();
         for (AstralEventDefinition definition : this.definitions.values()) {
@@ -68,6 +77,7 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
                 result.add(definition);
             }
         }
+
         return result;
     }
 

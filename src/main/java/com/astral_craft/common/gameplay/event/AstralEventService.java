@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.PendingCardActionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.network.CardRevealPayload;
 import com.astral_craft.common.registry.AstralAttachments;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -67,12 +68,19 @@ public class AstralEventService {
         }
 
         if (contexts.isEmpty()) return false;
-        sendReveal(player, definition);
+        int revealDelay = sendRevealOrMessage(player, definition);
         if (definition.broadcast()) {
-            contexts.stream().map(AstralEventContext::targetPlayer).filter(target -> target != null && !target.getUUID().equals(player.getUUID())).forEach(target -> sendReveal(target, definition));
+            contexts.stream().map(AstralEventContext::targetPlayer)
+                    .filter(target -> target != null && !target.getUUID().equals(player.getUUID()))
+                    .forEach(target -> sendRevealOrMessage(target, definition));
         }
 
-        PendingCardActionManager.schedule(player, DEFAULT_EVENT_REVEAL_DURATION_TICKS, () -> beginEvent(contexts));
+        if (revealDelay > 0) {
+            PendingCardActionManager.schedule(player, revealDelay, () -> beginEvent(contexts));
+        } else {
+            beginEvent(contexts);
+        }
+
         return true;
     }
 
@@ -148,7 +156,12 @@ public class AstralEventService {
         }
     }
 
-    protected static void sendReveal(ServerPlayer viewer, AstralEventDefinition definition) {
+    protected static int sendRevealOrMessage(ServerPlayer viewer, AstralEventDefinition definition) {
+        if (viewer.getData(AstralAttachments.EVENT_PREFERENCES).prefersChat()) {
+            viewer.sendSystemMessage(Component.translatable("message.astral_craft.event.triggered_chat", Component.translatable(definition.nameKey())));
+            return 0;
+        }
+
         PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id().toString(),
                 AstralCraft.MOD_ID + ":event_card",
                 "event",
@@ -158,6 +171,7 @@ public class AstralEventService {
                 CardBackPreferenceManager.selectedTexture(viewer).toString(),
                 CardRevealPayload.ANIMATION_APPROACH,
                 DEFAULT_EVENT_REVEAL_DURATION_TICKS));
+        return DEFAULT_EVENT_REVEAL_DURATION_TICKS;
     }
 
     protected static AstralEventState state(Entity entity) {
@@ -172,6 +186,7 @@ public class AstralEventService {
     }
 
     private static final class ActiveEvent {
+
         private final AstralEventContext context;
         private final String key;
         private AstralActiveEventInstance instance;
@@ -186,22 +201,27 @@ public class AstralEventService {
             if (this.context.target() == null || this.context.target().isRemoved()) {
                 return true;
             }
+
             AstralEventState state = AstralEventService.state(this.context.target());
             if (!state.active(this.key)) {
                 return true;
             }
+
             this.instance = this.instance.tick();
             if (this.instance.intervalLeft() <= 0 && this.context.definition().safeIntervalTicks() > 0) {
                 applyIntervalEffects(this.context);
                 this.instance = this.instance.resetInterval();
             }
+
             if (this.instance.ticksLeft() <= 0) {
                 finishEvent(this.context, this.key);
                 return true;
             }
+
             setState(this.context.target(), state.updateActive(this.key, this.instance));
             return false;
         }
+
     }
 
 }

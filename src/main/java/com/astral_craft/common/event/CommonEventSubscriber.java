@@ -11,16 +11,22 @@ import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterSkinManager;
-import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
 import com.astral_craft.common.gameplay.event.AstralEventManager;
+import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
+import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventService;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -35,7 +41,11 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID)
 public class CommonEventSubscriber {
@@ -51,9 +61,10 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("astral_event")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .then(Commands.literal("trigger")
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("id", StringArgumentType.greedyString())
+                                .suggests(CommonEventSubscriber::suggestAstralEventIds)
                                 .executes(context -> {
                                     String rawId = StringArgumentType.getString(context, "id");
                                     Identifier id = rawId.contains(":") ? Identifier.parse(rawId) : AstralCraft.prefix(rawId);
@@ -62,6 +73,17 @@ public class CommonEventSubscriber {
                                             ? "commands.astral_craft.event.triggered"
                                             : "commands.astral_craft.event.not_triggered", id.toString()), false);
                                     return triggered ? 1 : 0;
+                                })))
+                .then(Commands.literal("presentation")
+                        .then(Commands.argument("mode", StringArgumentType.word())
+                                .suggests((_, builder) -> SharedSuggestionProvider.suggest(List.of(AstralEventPreferences.PRESENTATION_ANIMATION, AstralEventPreferences.PRESENTATION_CHAT), builder))
+                                .executes(context -> {
+                                    String mode = StringArgumentType.getString(context, "mode");
+                                    var player = context.getSource().getPlayerOrException();
+                                    AstralEventPreferences preferences = player.getData(AstralAttachments.EVENT_PREFERENCES).withPresentation(mode);
+                                    player.setData(AstralAttachments.EVENT_PREFERENCES, preferences);
+                                    context.getSource().sendSuccess(() -> Component.translatable("commands.astral_craft.event.presentation", preferences.presentation()), false);
+                                    return 1;
                                 })))
                 .then(Commands.literal("list")
                         .executes(context -> {
@@ -78,6 +100,19 @@ public class CommonEventSubscriber {
 
                             return activeEvents.size();
                         })));
+    }
+
+    protected static CompletableFuture<Suggestions> suggestAstralEventIds(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        String remaining = builder.getRemaining().toLowerCase(Locale.ROOT);
+        Set<String> candidates = new LinkedHashSet<>(AstralEventManager.INSTANCE.idStrings());
+        for (String candidate : candidates) {
+            String lower = candidate.toLowerCase(Locale.ROOT);
+            if (remaining.isBlank() || lower.startsWith(remaining) || lower.contains(remaining)) {
+                builder.suggest(candidate);
+            }
+        }
+
+        return builder.buildFuture();
     }
 
     @SubscribeEvent
@@ -98,14 +133,14 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
         SoulLinkManager.onDamagePre(event);
-        if (event.getEntity() instanceof ServerPlayer damagedPlayer) {
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer damagedPlayer) {
             AstralEventService.applyActiveTrigger(damagedPlayer, "player_hurt");
             AstralEventService.trigger(damagedPlayer, "player_hurt");
             AstralEventService.applyActiveTrigger(damagedPlayer, "entity_hurt_player");
             AstralEventService.trigger(damagedPlayer, "entity_hurt_player");
         }
-        
-        if (event.getSource().getEntity() instanceof ServerPlayer attacker) {
+
+        if (event.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer attacker) {
             AstralEventService.applyActiveTrigger(attacker, "player_hurt_entity");
             AstralEventService.trigger(attacker, "player_hurt_entity");
         }
@@ -113,12 +148,12 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (event.getEntity() instanceof ServerPlayer killedPlayer) {
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer killedPlayer) {
             AstralEventService.applyActiveTrigger(killedPlayer, "player_killed");
             AstralEventService.trigger(killedPlayer, "player_killed");
         }
 
-        if (event.getSource().getEntity() instanceof ServerPlayer killer) {
+        if (event.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer killer) {
             AstralEventService.applyActiveTrigger(killer, "player_killed_entity");
             AstralEventService.trigger(killer, "player_killed_entity");
         }
@@ -142,7 +177,8 @@ public class CommonEventSubscriber {
             event.getPlayer().sendOverlayMessage(Component.translatable("message.astral_craft.board.protected").withStyle(ChatFormatting.YELLOW));
             return;
         }
-        if (event.getPlayer() instanceof ServerPlayer serverPlayer) {
+
+        if (event.getPlayer() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
             AstralEventService.applyActiveTrigger(serverPlayer, "block_break");
             AstralEventService.trigger(serverPlayer, "block_break");
         }
