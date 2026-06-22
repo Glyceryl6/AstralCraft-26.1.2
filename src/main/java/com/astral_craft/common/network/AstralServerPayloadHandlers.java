@@ -65,4 +65,12 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleUseHandCardFromDeck(UseHandCardFromDeckPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CardUseService.useVirtualCard(player, payload.cardId());
+            }
+        });
+    }
+
 }

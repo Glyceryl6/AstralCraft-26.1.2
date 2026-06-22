@@ -4,6 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.CardRevealOverlay;
 import com.astral_craft.client.gui.ChipSelectionScreen;
 import com.astral_craft.client.gui.TargetSelectionScreen;
+import com.astral_craft.client.gui.HandCardDeckScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
 import com.astral_craft.client.gui.board.BoardHudOverlay;
@@ -47,6 +48,12 @@ public class ClientEventSubscriber {
         while (AstralKeyMappings.CHARACTER_SETTINGS.get().consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
                 ClientPacketDistributor.sendToServer(new RequestCharacterSettingsPayload());
+            }
+        }
+
+        while (AstralKeyMappings.HAND_CARD_DECK.get().consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                minecraft.setScreen(new HandCardDeckScreen());
             }
         }
     }

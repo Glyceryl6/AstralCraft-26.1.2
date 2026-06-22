@@ -9,6 +9,7 @@ import com.astral_craft.common.network.CardRevealPayload;
 import com.astral_craft.common.network.CardTargetSelectionPayload;
 import com.astral_craft.common.network.OpenTargetSelectionPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -16,8 +17,10 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
@@ -32,11 +35,36 @@ public class CardUseService {
     public static final int CARD_APPROACH_REVEAL_DURATION_TICKS = 28;
 
     public static InteractionResult use(BaseHandCard card, Level level, Player player, InteractionHand hand) {
-        if (level.isClientSide()) {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.PASS;
         }
 
-        if (!(player instanceof ServerPlayer serverPlayer)) {
+        return useStack(card, level, serverPlayer, hand, player.getItemInHand(hand), true, false);
+    }
+
+    public static InteractionResult useVirtualCard(ServerPlayer player, String rawCardId) {
+        Identifier itemId = resolveCardItemId(rawCardId);
+        Item item = BuiltInRegistries.ITEM.getValue(itemId);
+        if (!(item instanceof BaseHandCard card)) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
+            return InteractionResult.FAIL;
+        }
+
+        ItemStack stack = new ItemStack(item);
+        return useStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack, false, true);
+    }
+
+    protected static Identifier resolveCardItemId(String rawCardId) {
+        String raw = rawCardId == null ? "" : rawCardId.trim();
+        if (raw.contains(":")) {
+            return Identifier.parse(raw);
+        }
+
+        return AstralCraft.prefix(raw);
+    }
+
+    protected static InteractionResult useStack(BaseHandCard card, Level level, ServerPlayer serverPlayer, InteractionHand hand, ItemStack stack, boolean consumeStack, boolean virtualCard) {
+        if (level.isClientSide()) {
             return InteractionResult.PASS;
         }
 
@@ -45,7 +73,6 @@ public class CardUseService {
             return InteractionResult.SUCCESS;
         }
 
-        ItemStack stack = player.getItemInHand(hand);
         CardDefinition definition = card.definition(stack);
         if (definition.combatOnly()) {
             serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.card.combat_only"), true);
@@ -54,27 +81,39 @@ public class CardUseService {
 
         if (definition.needsTarget()) {
             String candidates = CardTargeting.encodeCandidates(serverPlayer, definition);
-            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), hand.ordinal(), definition.minTargets(), definition.maxTargets(), definition.range(), candidates));
+            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), virtualCard ? -1 : hand.ordinal(), definition.minTargets(), definition.maxTargets(), definition.range(), candidates));
             return InteractionResult.SUCCESS;
         }
 
         CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
         if (options.enabled()) {
             thisSendReveal(serverPlayer, stack, definition, options, List.of());
-            consume(serverPlayer, stack);
+            if (consumeStack) consume(serverPlayer, stack);
             PendingCardActionManager.schedule(serverPlayer, options.durationTicks(), () -> card.applyFromSelection(serverPlayer, hand, List.of()));
         } else {
             boolean applied = card.applyFromSelection(serverPlayer, hand, List.of());
-            if (applied) consume(serverPlayer, stack);
+            if (applied && consumeStack) consume(serverPlayer, stack);
         }
 
         return InteractionResult.SUCCESS;
     }
 
     public static void applyTargetSelection(ServerPlayer player, CardTargetSelectionPayload payload) {
+        boolean virtualCard = payload.handIndex() < 0;
         InteractionHand hand = payload.handIndex() == InteractionHand.OFF_HAND.ordinal() ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-        ItemStack stack = player.getItemInHand(hand);
-        if (!(stack.getItem() instanceof BaseHandCard card)) return;
+        ItemStack stack;
+        BaseHandCard card;
+        if (virtualCard) {
+            Identifier itemId = resolveCardItemId(payload.cardId());
+            Item item = BuiltInRegistries.ITEM.getValue(itemId);
+            if (!(item instanceof BaseHandCard baseHandCard)) return;
+            card = baseHandCard;
+            stack = new ItemStack(item);
+        } else {
+            stack = player.getItemInHand(hand);
+            if (!(stack.getItem() instanceof BaseHandCard baseHandCard)) return;
+            card = baseHandCard;
+        }
         CardDefinition definition = card.definition(stack);
         if (!definition.id().equals(payload.cardId()) || !definition.needsTarget()) return;
         List<LivingEntity> targets = new ArrayList<>();
@@ -95,12 +134,12 @@ public class CardUseService {
         CardRevealOptions options = card.revealOptions(player, hand, stack, definition, targets);
         if (options.enabled()) {
             thisSendReveal(player, stack, definition, options, targets);
-            consume(player, stack);
+            if (!virtualCard) consume(player, stack);
             List<LivingEntity> capturedTargets = List.copyOf(targets);
             PendingCardActionManager.schedule(player, options.durationTicks(), () -> card.applyFromSelection(player, hand, capturedTargets));
         } else {
             boolean applied = card.applyFromSelection(player, hand, targets);
-            if (applied) consume(player, stack);
+            if (applied && !virtualCard) consume(player, stack);
         }
     }
 
