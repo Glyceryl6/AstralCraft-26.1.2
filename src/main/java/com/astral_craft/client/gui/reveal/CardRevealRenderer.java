@@ -1,5 +1,6 @@
 package com.astral_craft.client.gui.reveal;
 
+import com.astral_craft.AstralCraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -11,6 +12,7 @@ import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class CardRevealRenderer {
 
@@ -44,8 +46,8 @@ public class CardRevealRenderer {
     }
 
     public Identifier frameTextureFor(String cardType) {
-        String type = cardType == null || cardType.isBlank() ? "effect" : cardType.toLowerCase(java.util.Locale.ROOT);
-        return Identifier.fromNamespaceAndPath("astral_craft", "textures/item/template_handcard_" + type + ".png");
+        String type = cardType == null || cardType.isBlank() ? "effect" : cardType.toLowerCase(Locale.ROOT);
+        return AstralCraft.prefix("textures/item/template_handcard_" + type + ".png");
     }
 
     public void renderCardTexture(GuiGraphicsExtractor graphics, Identifier texture, int centerX, int centerY, int width, int height, float alpha, int textureWidth, int textureHeight) {
@@ -78,20 +80,10 @@ public class CardRevealRenderer {
     public void renderFrontInsetArt(GuiGraphicsExtractor graphics, Identifier texture, CardRevealSettings settings, int centerX, int centerY, int modelSize, float alpha, float widthScale) {
         int artSize = Math.max(18, Math.round(modelSize * settings.frontArtSizeRatio));
         int artW = Math.max(2, Math.round(artSize * widthScale));
-        int artH = artSize;
         int left = centerX - artW / 2;
-        int top = centerY - artH / 2 + Math.round(modelSize * settings.frontArtYOffsetRatio);
+        int top = centerY - artSize / 2 + Math.round(modelSize * settings.frontArtYOffsetRatio);
         int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, left, top, 0.0F, 0.0F, artW, artH, 256, 256, 256, 256, argb);
-    }
-
-    public void renderBackInsetArt(GuiGraphicsExtractor graphics, Identifier texture, CardRevealSettings settings, int centerX, int centerY, int modelSize, float alpha, float widthScale) {
-        int artH = Math.max(18, Math.round(modelSize * settings.backArtHeightRatio));
-        int artW = Math.max(2, Math.round(modelSize * settings.backArtWidthRatio * widthScale));
-        int left = centerX - artW / 2;
-        int top = centerY - artH / 2 + Math.round(modelSize * settings.backArtYOffsetRatio);
-        int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, left, top, 0.0F, 0.0F, artW, artH, 256, 360, 256, 360, argb);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, left, top, 0.0F, 0.0F, artW, artSize, 256, 256, 256, 256, argb);
     }
 
     public void renderCardText(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings, int centerX, int centerY, int textSize, float alpha, float xScale, float yScale) {
@@ -112,7 +104,7 @@ public class CardRevealRenderer {
         this.renderTextBackdrop(graphics, settings, alpha, centerX - titleWidth / 2 - 4, titleY - 3, centerX + titleWidth / 2 + 4, titleY + 10);
         graphics.text(font, shortTitle, centerX - font.width(shortTitle) / 2, titleY, argbTitle, settings.textShadow);
         List<FormattedCharSequence> lines = this.wrappedLines(font, reveal.body(), bodyMaxTextWidth, settings.bodyMaxLines);
-        int lineY = bodyY;
+        int lineY = bodyY + 5;
         for (FormattedCharSequence line : lines) {
             int lineW = font.width(line);
             int x = centerX - lineW / 2;

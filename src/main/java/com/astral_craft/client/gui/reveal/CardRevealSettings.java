@@ -2,14 +2,14 @@ package com.astral_craft.client.gui.reveal;
 
 public class CardRevealSettings {
 
-    public int flipIntroHoldTicks = 8;
-    public int flipRotateTicks = 10;
-    public int flipOutroHoldTicks = 18;
+    public int flipIntroHoldTicks = 10;
+    public int flipRotateTicks = 20;
+    public int flipOutroHoldTicks = 20;
     public int flipFadeTicks = 7;
 
-    public int approachInTicks = 12;
-    public int approachHoldTicks = 4;
-    public int approachOutTicks = 12;
+    public int approachInTicks = 8;
+    public int approachHoldTicks = 30;
+    public int approachOutTicks = 8;
 
     public int modelMinSize = 96;
     public int modelMaxSize = 292;
@@ -17,10 +17,10 @@ public class CardRevealSettings {
     public float modelScreenWidthRatio = 0.48F;
     public int modelScreenMargin = 20;
 
-    public float cardModelScale = 1.0F;
+    public float cardModelScale = 1.2F;
     public float cardTextScale = 1.0F;
 
-    public float cardCenterYOffsetRatio = 0.0F;
+    public float cardCenterYOffsetRatio = -0.04F;
     public int cardCenterYOffsetPixels = 0;
 
     public float approachStartScale = 0.18F;
@@ -30,8 +30,8 @@ public class CardRevealSettings {
     public float cardFrameHeightRatio = 0.96F;
     public float cardFrameYOffsetRatio = 0.0F;
 
-    public float frontArtSizeRatio = 0.54F;
-    public float frontArtYOffsetRatio = -0.040F;
+    public float frontArtSizeRatio = 0.49F;
+    public float frontArtYOffsetRatio = -0.145F;
     public float backArtWidthRatio = 0.58F;
     public float backArtHeightRatio = 0.80F;
     public float backArtYOffsetRatio = 0.010F;
@@ -47,7 +47,7 @@ public class CardRevealSettings {
     public int maxBodyTextWidth = 260;
     public float titleYOffsetRatio = -0.32F;
     public float bodyYOffsetRatio = 0.22F;
-    public float titleExtraYOffsetRatio = 0.0F;
+    public float titleExtraYOffsetRatio = 0.5F;
     public float bodyExtraYOffsetRatio = 0.0F;
     public int titleExtraYOffsetPixels = 0;
     public int bodyExtraYOffsetPixels = 0;
