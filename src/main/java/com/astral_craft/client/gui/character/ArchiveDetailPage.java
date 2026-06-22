@@ -3,8 +3,11 @@ package com.astral_craft.client.gui.character;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterSkillDefinition;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.ARGB;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -31,7 +34,7 @@ public class ArchiveDetailPage implements CharacterDetailPage {
 
     @Override
     public boolean mouseClicked(CharacterLayout layout, double mouseX, double mouseY) {
-        return this.screen.handleArchiveTabClick(layout, mouseX, mouseY);
+        return this.screen.handleArchiveTabClick(layout, mouseX, mouseY) || this.currentSection().mouseClicked(layout, mouseX, mouseY);
     }
 
     @Override
@@ -54,20 +57,25 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             int contentX = layout.bodyX + 18;
             int contentTop = layout.bodyY + 38;
             int contentBottom = layout.bodyY + layout.bodyH - 12;
-            int y = contentTop - Math.round(ArchiveDetailPage.this.screen.bodyScroll);
-            ArchiveDetailPage.this.screen.drawHeader(graphics, Component.translatable(ArchiveDetailPage.this.screen.archiveTab.titleKey()), headerX, headerY, ArchiveDetailPage.this.screen.archiveTab.headerColor(), maxWidth);
+            int y = contentTop - Math.round(screen.bodyScroll);
+            screen.drawHeader(graphics, Component.translatable(screen.archiveTab.titleKey()), headerX, headerY, screen.archiveTab.headerColor(), maxWidth);
             graphics.enableScissor(layout.bodyX + 8, contentTop, layout.bodyX + layout.bodyW - 8, contentBottom);
             return new SectionArea(contentX, y, maxWidth, contentTop, contentBottom);
         }
 
         protected void end(GuiGraphicsExtractor graphics, CharacterLayout layout, SectionArea area) {
             graphics.disableScissor();
-            ArchiveDetailPage.this.screen.renderVerticalScrollbar(graphics, layout.bodyX + layout.bodyW - 5, area.contentTop(), area.contentBottom() - area.contentTop(), ArchiveDetailPage.this.screen.bodyScroll, ArchiveDetailPage.this.maxScroll(layout));
+            screen.renderVerticalScrollbar(graphics, layout.bodyX + layout.bodyW - 5, area.contentTop(), area.contentBottom() - area.contentTop(), screen.bodyScroll, maxScroll(layout));
+        }
+
+        boolean mouseClicked(CharacterLayout layout, double mouseX, double mouseY) {
+            return false;
         }
 
         abstract void render(GuiGraphicsExtractor graphics, CharacterLayout layout);
 
         abstract int estimatedHeight(CharacterLayout layout);
+
     }
 
     protected record SectionArea(int contentX, int y, int maxWidth, int contentTop, int contentBottom) {}
@@ -78,18 +86,27 @@ public class ArchiveDetailPage implements CharacterDetailPage {
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
             int y = area.y();
-            CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
+            CharacterDefinition definition = screen.selectedCharacter();
+            if (this.shouldShowModeSwitch(definition)) {
+                this.renderModeSwitch(graphics, layout, area.contentX(), y, area.maxWidth() - 8);
+                y += 31;
+            }
+
             for (CharacterSkillDefinition skill : definition.skills()) {
-                y = ArchiveDetailPage.this.screen.drawHeader(graphics, Component.translatable(skill.nameKey()), area.contentX(), y, 0xFFFFF2A0, area.maxWidth() - 8);
-                y = ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable(skill.descriptionKey()), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
-                if (skill.cooldown() > 0) {
-                    y = ArchiveDetailPage.this.screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.cooldown", skill.cooldown()), area.contentX() + 8, y + 2, 0xFFB0B0B0, area.maxWidth() - 16);
+                String prefix = "character.astral_craft.skill." + skill.id();
+                int nameColor = skill.id().equals("active") ? ARGB.color(255, 191, 0) : ARGB.color(152, 252, 253);
+                y = screen.drawHeader(graphics, Component.translatable(prefix, Component.translatable(skill.nameKey(screen.skillMode))), area.contentX(), y, nameColor, area.maxWidth() - 8);
+                y = screen.drawWrapped(graphics, Component.translatable(skill.descriptionKey(screen.skillMode)), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
+                int cooldown = skill.cooldown(screen.skillMode);
+                if (cooldown > 0) {
+                    y = screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.cooldown", cooldown), area.contentX() + 8, y + 2, 0xFFB0B0B0, area.maxWidth() - 16);
                 }
+
                 y += 8;
             }
 
             if (definition.skills().isEmpty()) {
-                ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.empty_skills"), area.contentX(), y, 0xFFD0D0D0, area.maxWidth() - 8);
+                screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.empty_skills"), area.contentX(), y, 0xFFD0D0D0, area.maxWidth() - 8);
             }
 
             this.end(graphics, layout, area);
@@ -97,22 +114,57 @@ public class ArchiveDetailPage implements CharacterDetailPage {
 
         @Override
         int estimatedHeight(CharacterLayout layout) {
-            CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
+            CharacterDefinition definition = screen.selectedCharacter();
             int maxWidth = Math.max(40, layout.bodyW - 52);
             int height = 10;
             if (definition.skills().isEmpty()) {
-                return ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.empty_skills"), maxWidth) + 12;
+                return screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.empty_skills"), maxWidth) + 12;
+            }
+
+            if (this.shouldShowModeSwitch(definition)) {
+                height += 31;
             }
 
             for (CharacterSkillDefinition skill : definition.skills()) {
                 height += 16;
-                height += ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable(skill.descriptionKey()), maxWidth - 8) + 10;
-                if (skill.cooldown() > 0) {
+                height += screen.wrappedHeight(Component.translatable(skill.descriptionKey(screen.skillMode)), maxWidth - 8) + 10;
+                if (skill.cooldown(screen.skillMode) > 0) {
                     height += 14;
                 }
             }
 
             return height;
+        }
+
+        @Override
+        boolean mouseClicked(CharacterLayout layout, double mouseX, double mouseY) {
+            CharacterDefinition definition = screen.selectedCharacter();
+            if (!this.shouldShowModeSwitch(definition)) return false;
+            int x = layout.bodyX + 26;
+            int y = layout.bodyY + 38 - Math.round(screen.bodyScroll);
+            int w = Math.clamp(layout.bodyW - 64, 128, 174);
+            if (!screen.isInside(mouseX, mouseY, x, y, w, 22)) return false;
+            screen.skillMode = mouseX < x + w / 2.0D ? CharacterSkillDefinition.SkillMode.PVP : CharacterSkillDefinition.SkillMode.PVE;
+            screen.bodyScroll = 0.0F;
+            return true;
+        }
+
+        private boolean shouldShowModeSwitch(CharacterDefinition definition) {
+            return definition.skills().stream().anyMatch(CharacterSkillDefinition::hasModeSpecificText);
+        }
+
+        private void renderModeSwitch(GuiGraphicsExtractor graphics, CharacterLayout layout, int x, int y, int maxWidth) {
+            int w = Math.clamp(maxWidth, 128, 174);
+            int h = 22;
+            boolean pvp = screen.skillMode == CharacterSkillDefinition.SkillMode.PVP;
+            graphics.fill(x, y, x + w, y + h, 0xAA101018);
+            graphics.fill(x, y, x + w, y + 1, 0x80FFFFFF);
+            int knobX = pvp ? x + 2 : x + w / 2;
+            graphics.fill(knobX, y + 2, knobX + w / 2 - 2, y + h - 2, pvp ? 0xCC9B64FF : 0xCCFF5FB8);
+            MutableComponent pvpText = Component.translatable("gui.astral_craft.character_settings.skill_mode.pvp");
+            MutableComponent pveText = Component.translatable("gui.astral_craft.character_settings.skill_mode.pve");
+            screen.drawCenteredText(graphics, pvpText.withStyle(ChatFormatting.BOLD), x, y + 7, w / 2, pvp ? 0xFFFFFFFF : 0xFFC8C8D8);
+            screen.drawCenteredText(graphics, pveText.withStyle(ChatFormatting.BOLD), x + w / 2, y + 7, w / 2, pvp ? 0xFFC8C8D8 : 0xFFFFFFFF);
         }
 
     }
@@ -123,18 +175,18 @@ public class ArchiveDetailPage implements CharacterDetailPage {
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
             int y = area.y();
-            CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
-            y = ArchiveDetailPage.this.screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.level_value", ArchiveDetailPage.this.screen.level, definition.maxPveLevel()), area.contentX() + 8, y + 2, 0xFFFFFFFF, area.maxWidth() - 16);
-            y = ArchiveDetailPage.this.screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.experience_value", ArchiveDetailPage.this.screen.experience), area.contentX() + 8, y + 2, 0xFFBFE6FF, area.maxWidth() - 16);
+            CharacterDefinition definition = screen.selectedCharacter();
+            y = screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.level_value", screen.level, definition.maxPveLevel()), area.contentX() + 8, y + 2, 0xFFFFFFFF, area.maxWidth() - 16);
+            y = screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.experience_value", screen.experience), area.contentX() + 8, y + 2, 0xFFBFE6FF, area.maxWidth() - 16);
             y += 5;
-            ArchiveDetailPage.this.screen.renderProgressCards(graphics, definition, area.contentX() + 8, y, area.maxWidth() - 16, 1, definition.maxPveLevel(), ArchiveDetailPage.this.screen.level, "gui.astral_craft.character_settings.pve_level_card", 0xFF8CFF20);
+            screen.renderProgressCards(graphics, definition, area.contentX() + 8, y, area.maxWidth() - 16, 1, definition.maxPveLevel(), screen.level, "gui.astral_craft.character_settings.pve_level_card", 0xFF8CFF20);
             this.end(graphics, layout, area);
         }
 
         @Override
         int estimatedHeight(CharacterLayout layout) {
-            CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
-            return 48 + ArchiveDetailPage.this.screen.progressCardsHeight(definition, Math.max(40, layout.bodyW - 68), 1, definition.maxPveLevel(), ArchiveDetailPage.this.screen.level, "gui.astral_craft.character_settings.pve_level_card", 0xFF8CFF20);
+            CharacterDefinition definition = screen.selectedCharacter();
+            return 48 + screen.progressCardsHeight(definition, Math.max(40, layout.bodyW - 68), 1, definition.maxPveLevel(), screen.level, "gui.astral_craft.character_settings.pve_level_card", 0xFF8CFF20);
         }
 
     }
@@ -144,13 +196,13 @@ public class ArchiveDetailPage implements CharacterDetailPage {
         @Override
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
-            ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), area.contentX() + 8, area.y() + 4, 0xFFE7E7E7, area.maxWidth() - 16);
+            screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), area.contentX() + 8, area.y() + 4, 0xFFE7E7E7, area.maxWidth() - 16);
             this.end(graphics, layout, area);
         }
 
         @Override
         int estimatedHeight(CharacterLayout layout) {
-            return ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), Math.max(40, layout.bodyW - 60)) + 30;
+            return screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), Math.max(40, layout.bodyW - 60)) + 30;
         }
 
     }
@@ -161,14 +213,14 @@ public class ArchiveDetailPage implements CharacterDetailPage {
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
             int y = area.y();
-            CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
+            CharacterDefinition definition = screen.selectedCharacter();
             for (CharacterProfileSection section : definition.profileSections()) {
-                y = ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable(section.bodyKey()), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
+                y = screen.drawWrapped(graphics, Component.translatable(section.bodyKey()), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
                 y += 8;
             }
 
             if (definition.profileSections().isEmpty()) {
-                ArchiveDetailPage.this.screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.empty_profile"), area.contentX(), y, 0xFFD0D0D0, area.maxWidth() - 8);
+                screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.empty_profile"), area.contentX(), y, 0xFFD0D0D0, area.maxWidth() - 8);
             }
 
             this.end(graphics, layout, area);
@@ -176,18 +228,19 @@ public class ArchiveDetailPage implements CharacterDetailPage {
 
         @Override
         int estimatedHeight(CharacterLayout layout) {
-            CharacterDefinition definition = ArchiveDetailPage.this.screen.selectedCharacter();
+            CharacterDefinition definition = screen.selectedCharacter();
             int maxWidth = Math.max(40, layout.bodyW - 52);
             int height = 10;
             if (definition.profileSections().isEmpty()) {
-                return ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.empty_profile"), maxWidth) + 12;
+                return screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.empty_profile"), maxWidth) + 12;
             }
 
             for (CharacterProfileSection section : definition.profileSections()) {
-                if (ArchiveDetailPage.this.screen.shouldRenderProfileSectionHeader(section)) {
+                if (screen.shouldRenderProfileSectionHeader(section)) {
                     height += 16;
                 }
-                height += ArchiveDetailPage.this.screen.wrappedHeight(Component.translatable(section.bodyKey()), maxWidth - 8) + 12;
+
+                height += screen.wrappedHeight(Component.translatable(section.bodyKey()), maxWidth - 8) + 12;
             }
 
             return height;

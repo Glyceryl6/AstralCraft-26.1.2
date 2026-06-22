@@ -135,12 +135,12 @@ public class AstralLanguageProvider extends LanguageProvider {
         }
 
         for (AstralCharacterDataCatalog.CharacterEntry entry : AstralCharacterDataCatalog.CHARACTERS) {
-            String baseKey = "character.astral_craft." + entry.id();
-            this.add(baseKey + ".name", entry.enName(), entry.zhName());
-            this.add(baseKey + ".title", entry.enTitle(), entry.zhTitle());
+            String baseKey = "character.astral_craft." + entry.id;
+            this.add(baseKey + ".name", entry.enName, entry.zhName);
+            this.add(baseKey + ".title", entry.enTitle, entry.zhTitle);
             this.add(baseKey + ".skin.default", "Default", "默认");
             this.add(baseKey + ".skin.bond", "Bond", "羁绊");
-            for (AstralCharacterDataCatalog.SkinEntry skin : entry.skins()) {
+            for (AstralCharacterDataCatalog.SkinEntry skin : entry.skins) {
                 this.add(baseKey + ".skin." + skin.id(), skin.enName(), skin.zhName());
             }
         }

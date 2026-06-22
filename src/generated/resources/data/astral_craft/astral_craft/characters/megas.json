@@ -15,15 +15,20 @@
   ],
   "skills": [
     {
-      "cooldown": 3,
-      "description_key": "character.astral_craft.megas.skill.active.desc",
       "id": "active",
-      "name_key": "character.astral_craft.megas.skill.active"
+      "pve_cooldown": 3,
+      "pve_description_key": "character.astral_craft.megas.skill.active.pve.desc",
+      "pve_name_key": "character.astral_craft.megas.skill.active.pve",
+      "pvp_cooldown": 3,
+      "pvp_description_key": "character.astral_craft.megas.skill.active.pvp.desc",
+      "pvp_name_key": "character.astral_craft.megas.skill.active.pvp"
     },
     {
-      "description_key": "character.astral_craft.megas.skill.passive.desc",
       "id": "passive",
-      "name_key": "character.astral_craft.megas.skill.passive"
+      "pve_description_key": "character.astral_craft.megas.skill.passive.pve.desc",
+      "pve_name_key": "character.astral_craft.megas.skill.passive.pve",
+      "pvp_description_key": "character.astral_craft.megas.skill.passive.pvp.desc",
+      "pvp_name_key": "character.astral_craft.megas.skill.passive.pvp"
     }
   ],
   "sort_order": 30,

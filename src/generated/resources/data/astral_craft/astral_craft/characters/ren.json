@@ -14,18 +14,24 @@
   ],
   "skills": [
     {
-      "cooldown": 3,
-      "description_key": "character.astral_craft.ren.skill.active.desc",
       "id": "active",
-      "name_key": "character.astral_craft.ren.skill.active"
+      "pve_cooldown": 3,
+      "pve_description_key": "character.astral_craft.ren.skill.active.pve.desc",
+      "pve_name_key": "character.astral_craft.ren.skill.active.pve",
+      "pvp_cooldown": 3,
+      "pvp_description_key": "character.astral_craft.ren.skill.active.pvp.desc",
+      "pvp_name_key": "character.astral_craft.ren.skill.active.pvp"
     },
     {
-      "description_key": "character.astral_craft.ren.skill.passive.desc",
       "id": "passive",
-      "name_key": "character.astral_craft.ren.skill.passive"
+      "pve_description_key": "character.astral_craft.ren.skill.passive.pve.desc",
+      "pve_name_key": "character.astral_craft.ren.skill.passive.pve",
+      "pvp_description_key": "character.astral_craft.ren.skill.passive.pvp.desc",
+      "pvp_name_key": "character.astral_craft.ren.skill.passive.pvp"
     }
   ],
   "sort_order": 16,
   "title_key": "character.astral_craft.ren.title",
-  "unlock_hint_key": "character.astral_craft.ren.unlock_hint"
+  "unlock_hint_key": "character.astral_craft.ren.unlock_hint",
+  "unlocked_by_default": true
 }

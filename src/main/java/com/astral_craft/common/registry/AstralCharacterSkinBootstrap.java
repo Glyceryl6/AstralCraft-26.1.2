@@ -11,8 +11,8 @@ public class AstralCharacterSkinBootstrap {
 
     public static void bootstrap(BootstrapContext<CharacterSkinAddition> context) {
         for (AstralCharacterDataCatalog.CharacterEntry character : AstralCharacterDataCatalog.CHARACTERS) {
-            for (AstralCharacterDataCatalog.SkinEntry skin : character.skins()) {
-                context.register(key(character.id(), skin.id()), skin(character, skin));
+            for (AstralCharacterDataCatalog.SkinEntry skin : character.skins) {
+                context.register(key(character.id, skin.id()), skin(character, skin));
             }
         }
     }
@@ -22,9 +22,9 @@ public class AstralCharacterSkinBootstrap {
     }
 
     public static CharacterSkinAddition skin(AstralCharacterDataCatalog.CharacterEntry character, AstralCharacterDataCatalog.SkinEntry skin) {
-        return new CharacterSkinAddition(AstralCraft.prefix(character.id()), skin.id(),
-                "character.astral_craft." + character.id() + ".skin." + skin.id(),
-                texture(character.id(), skin.id()), false, skin.rarity());
+        return new CharacterSkinAddition(AstralCraft.prefix(character.id), skin.id(),
+                "character.astral_craft." + character.id + ".skin." + skin.id(),
+                texture(character.id, skin.id()), false, skin.rarity());
     }
 
     private static Identifier texture(String characterId, String skinId) {

@@ -10,12 +10,13 @@ import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class AstralCharacterBootstrap {
 
     public static void bootstrap(BootstrapContext<CharacterDefinition> context) {
         for (AstralCharacterDataCatalog.CharacterEntry entry : AstralCharacterDataCatalog.CHARACTERS) {
-            context.register(key(entry.id()), definition(entry));
+            context.register(key(entry.id), definition(entry));
         }
     }
 
@@ -24,34 +25,34 @@ public class AstralCharacterBootstrap {
     }
 
     public static CharacterDefinition definition(AstralCharacterDataCatalog.CharacterEntry entry) {
-        String id = entry.id();
+        String id = entry.id, prefix = "character.astral_craft." + id;
         return new CharacterDefinition(AstralCraft.prefix(id),
-                "character.astral_craft." + id + ".name",
-                "character.astral_craft." + id + ".title",
+                prefix + ".name", prefix + ".title",
                 AstralCraft.prefix("humanoid"),
                 AstralCraft.prefix("entity/character/skin_" + id + "_default"),
                 AstralCraft.prefix("astral_character"),
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
-                "idle",
-                6,
-                5,
-                new CharacterStatsDefinition(entry.attack(), entry.defense(), entry.health()),
-                List.of(skill("active", id, entry.activeCooldown()), skill("passive", id, 0)),
-                List.of(new CharacterProfileSection("", "character.astral_craft." + id + ".profile.basic.body")),
-                List.of(),
-                true,
-                entry.implicitBondSkin(),
-                entry.unlockedByDefault(),
-                "character.astral_craft." + id + ".unlock_hint",
-                entry.sortOrder());
+                "idle", 6, 5,
+                new CharacterStatsDefinition(entry.attack, entry.defense, entry.health),
+                entry.skillSameIn2Mode ? List.of(skill(id, "active", entry.cooldown), skill(id, "passive", 0))
+                        : List.of(skill(id, "active", entry.pvpCooldown, entry.pveCooldown), skill(id, "passive", -1, -1)),
+                List.of(new CharacterProfileSection("", prefix + ".profile.basic.body")), List.of(), Boolean.TRUE,
+                entry.implicitBondSkin, entry.unlockedByDefault, prefix + ".unlock_hint", entry.sortOrder);
     }
 
-    private static CharacterSkillDefinition skill(String type, String id, int cooldown) {
-        return new CharacterSkillDefinition(type,
-                "character.astral_craft." + id + ".skill." + type,
-                "character.astral_craft." + id + ".skill." + type + ".desc",
-                cooldown);
+    private static CharacterSkillDefinition skill(String id, String type, int cooldown) {
+        String key = "character.astral_craft." + id + ".skill." + type;
+        return new CharacterSkillDefinition(type, key, key + ".desc", cooldown);
+    }
+
+    private static CharacterSkillDefinition skill(String id, String type, int pvpCooldown, int pveCooldown) {
+        String key = "character.astral_craft." + id + ".skill." + type;
+        Function<String, String> nameKey = s -> key + "." + s;
+        Function<String, String> descKey = s -> key + "." + s + ".desc";
+        return new CharacterSkillDefinition(type, "", "", 0,
+                nameKey.apply("pvp"), descKey.apply("pvp"), pvpCooldown,
+                nameKey.apply("pve"), descKey.apply("pve"), pveCooldown);
     }
 
 }

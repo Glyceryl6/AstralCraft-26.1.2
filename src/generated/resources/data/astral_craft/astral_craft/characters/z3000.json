@@ -13,15 +13,20 @@
   ],
   "skills": [
     {
-      "cooldown": 4,
-      "description_key": "character.astral_craft.z3000.skill.active.desc",
       "id": "active",
-      "name_key": "character.astral_craft.z3000.skill.active"
+      "pve_cooldown": 4,
+      "pve_description_key": "character.astral_craft.z3000.skill.active.pve.desc",
+      "pve_name_key": "character.astral_craft.z3000.skill.active.pve",
+      "pvp_cooldown": 3,
+      "pvp_description_key": "character.astral_craft.z3000.skill.active.pvp.desc",
+      "pvp_name_key": "character.astral_craft.z3000.skill.active.pvp"
     },
     {
-      "description_key": "character.astral_craft.z3000.skill.passive.desc",
       "id": "passive",
-      "name_key": "character.astral_craft.z3000.skill.passive"
+      "pve_description_key": "character.astral_craft.z3000.skill.passive.pve.desc",
+      "pve_name_key": "character.astral_craft.z3000.skill.passive.pve",
+      "pvp_description_key": "character.astral_craft.z3000.skill.passive.pvp.desc",
+      "pvp_name_key": "character.astral_craft.z3000.skill.passive.pvp"
     }
   ],
   "sort_order": 18,

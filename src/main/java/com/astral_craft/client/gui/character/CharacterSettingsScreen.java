@@ -8,10 +8,12 @@ import com.astral_craft.client.gui.components.AstralVerticalScrollbar;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoPose;
 import com.astral_craft.client.render.character.AstralCharacterRenderState;
+import com.astral_craft.client.text.AstralInlineTextFormatter;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
 import com.astral_craft.common.registry.AstralEntities;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -53,6 +55,7 @@ public class CharacterSettingsScreen extends Screen {
     protected ScreenMode mode = ScreenMode.LIST;
     protected MainTab mainTab = MainTab.ARCHIVE;
     protected ArchiveTab archiveTab = ArchiveTab.SKILLS;
+    protected CharacterSkillDefinition.SkillMode skillMode = CharacterSkillDefinition.SkillMode.PVP;
     protected CharacterSortMode sortMode = CharacterSortMode.DEFAULT;
     protected String characterNamespaceFilter = "";
     protected float characterScroll;
@@ -340,7 +343,7 @@ public class CharacterSettingsScreen extends Screen {
         this.renderPreviewAnimationControls(graphics, layout, mouseX, mouseY);
         int infoY = layout.previewY + layout.previewH + 10;
         graphics.text(this.font, Component.translatable(selected.nameKey()), layout.leftX + 12, infoY, 0xFFFFFFFF, false);
-        graphics.text(this.font, Component.translatable(selected.titleKey()), layout.leftX + 12, infoY + 13, 0xFFE7E7E7, false);
+        graphics.text(this.font, Component.translatable(selected.titleKey()).withStyle(ChatFormatting.YELLOW), layout.leftX + 12, infoY + 13, 0xFFFFFFFF, false);
     }
 
     protected void renderCharacterListPage(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -939,16 +942,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected int drawWrapped(GuiGraphicsExtractor graphics, MutableComponent component, int x, int y, int color, int maxWidth) {
-        for (String line : this.wrap(component.getString(), maxWidth)) {
-            if (line.isEmpty()) {
-                y += 7;
-                continue;
-            }
-            graphics.text(this.font, Component.literal(line), x, y, color, false);
-            y += 11;
-        }
-
-        return y + 4;
+        return AstralInlineTextFormatter.draw(graphics, this.font, component, x, y, maxWidth, color, false);
     }
 
     protected List<String> wrap(String text, int maxWidth) {
@@ -1200,7 +1194,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected int wrappedHeight(MutableComponent component, int maxWidth) {
-        return this.wrap(component.getString(), maxWidth).size() * 11 + 4;
+        return AstralInlineTextFormatter.height(this.font, component, maxWidth, 0xFFFFFFFF);
     }
 
     protected void clampScrolls() {

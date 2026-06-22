@@ -13,15 +13,20 @@
   ],
   "skills": [
     {
-      "cooldown": 3,
-      "description_key": "character.astral_craft.ink_shadow.skill.active.desc",
       "id": "active",
-      "name_key": "character.astral_craft.ink_shadow.skill.active"
+      "pve_cooldown": 3,
+      "pve_description_key": "character.astral_craft.ink_shadow.skill.active.pve.desc",
+      "pve_name_key": "character.astral_craft.ink_shadow.skill.active.pve",
+      "pvp_cooldown": 3,
+      "pvp_description_key": "character.astral_craft.ink_shadow.skill.active.pvp.desc",
+      "pvp_name_key": "character.astral_craft.ink_shadow.skill.active.pvp"
     },
     {
-      "description_key": "character.astral_craft.ink_shadow.skill.passive.desc",
       "id": "passive",
-      "name_key": "character.astral_craft.ink_shadow.skill.passive"
+      "pve_description_key": "character.astral_craft.ink_shadow.skill.passive.pve.desc",
+      "pve_name_key": "character.astral_craft.ink_shadow.skill.passive.pve",
+      "pvp_description_key": "character.astral_craft.ink_shadow.skill.passive.pvp.desc",
+      "pvp_name_key": "character.astral_craft.ink_shadow.skill.passive.pvp"
     }
   ],
   "sort_order": 35,
