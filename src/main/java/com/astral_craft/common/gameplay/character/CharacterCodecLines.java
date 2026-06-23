@@ -135,7 +135,13 @@ public class CharacterCodecLines {
             builder.append(escape(skill.id())).append(',')
                     .append(escape(skill.nameKey())).append(',')
                     .append(escape(skill.descriptionKey())).append(',')
-                    .append(skill.cooldown());
+                    .append(skill.cooldown()).append(',')
+                    .append(escape(skill.pvpNameKey())).append(',')
+                    .append(escape(skill.pvpDescriptionKey())).append(',')
+                    .append(skill.pvpCooldown()).append(',')
+                    .append(escape(skill.pveNameKey())).append(',')
+                    .append(escape(skill.pveDescriptionKey())).append(',')
+                    .append(skill.pveCooldown());
         }
 
         return builder.toString();
@@ -150,7 +156,13 @@ public class CharacterCodecLines {
                 try {
                     result.add(new CharacterSkillDefinition(
                             unescape(parts[0]), unescape(parts[1]),
-                            unescape(parts[2]), Integer.parseInt(parts[3])));
+                            unescape(parts[2]), Integer.parseInt(parts[3]),
+                            parts.length >= 5 ? unescape(parts[4]) : "",
+                            parts.length >= 6 ? unescape(parts[5]) : "",
+                            parts.length >= 7 ? Integer.parseInt(parts[6]) : -1,
+                            parts.length >= 8 ? unescape(parts[7]) : "",
+                            parts.length >= 9 ? unescape(parts[8]) : "",
+                            parts.length >= 10 ? Integer.parseInt(parts[9]) : -1));
                 } catch (NumberFormatException ignored) {}
             }
         }

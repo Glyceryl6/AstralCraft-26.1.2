@@ -47,7 +47,6 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
         this.definitions.put(definition.id(), this.withRuntimeIdAndSkins(definition.id(), definition));
     }
 
-
     protected CharacterDefinition withRuntimeIdAndSkins(Identifier id, CharacterDefinition definition) {
         List<CharacterSkinDefinition> skins = this.mergeImplicitAndAdditionalSkins(id, definition);
         Identifier previewTexture = skins.isEmpty() ? definition.previewTexture() : skins.getFirst().texture();
@@ -75,10 +74,7 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
 
     protected List<CharacterSkinDefinition> mergeImplicitAndAdditionalSkins(Identifier characterId, CharacterDefinition definition) {
         Map<String, CharacterSkinDefinition> merged = new LinkedHashMap<>();
-        if (definition.implicitDefaultSkin()) {
-            this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
-        }
-
+        this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
         if (definition.implicitBondSkin()) {
             this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
         }
