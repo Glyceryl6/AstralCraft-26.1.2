@@ -14,6 +14,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public class AstralHandCardManager {
@@ -37,6 +40,25 @@ public class AstralHandCardManager {
             save(player, handCards);
         }
         return removed;
+    }
+
+    public static int clear(ServerPlayer player) {
+        if (player == null) return 0;
+        AstralHandCards handCards = hand(player);
+        int count = handCards.totalCount();
+        handCards.clear();
+        save(player, handCards);
+        return count;
+    }
+
+    public static void addRandomEffectCards(ServerPlayer player, int count) {
+        if (player == null || count <= 0) return;
+        List<Identifier> cards = effectCardIds();
+        if (cards.isEmpty()) return;
+        for (int i = 0; i < count; i++) {
+            Identifier cardId = cards.get(player.getRandom().nextInt(cards.size()));
+            add(player, cardId, 1);
+        }
     }
 
     public static void open(ServerPlayer player) {
@@ -72,10 +94,7 @@ public class AstralHandCardManager {
 
     protected static String encodeCreativeEffectCards() {
         StringBuilder builder = new StringBuilder();
-        for (AstralItems.ModelledCardItem modelledCardItem : AstralItems.MODELLED_CARD_ITEMS) {
-            Item item = modelledCardItem.item().get();
-            if (!isUsableEffectCard(item)) continue;
-            Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
+        for (Identifier itemId : effectCardIds()) {
             if (!builder.isEmpty()) {
                 builder.append(';');
             }
@@ -83,6 +102,17 @@ public class AstralHandCardManager {
         }
 
         return builder.toString();
+    }
+
+    protected static List<Identifier> effectCardIds() {
+        List<Identifier> result = new ArrayList<>();
+        for (AstralItems.ModelledCardItem modelledCardItem : AstralItems.MODELLED_CARD_ITEMS) {
+            Item item = modelledCardItem.item().get();
+            if (!isUsableEffectCard(item)) continue;
+            result.add(BuiltInRegistries.ITEM.getKey(item));
+        }
+
+        return result;
     }
 
     protected static void save(ServerPlayer player, AstralHandCards handCards) {

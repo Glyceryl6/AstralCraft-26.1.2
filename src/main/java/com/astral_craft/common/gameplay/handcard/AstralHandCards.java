@@ -64,6 +64,18 @@ public class AstralHandCards {
         return this.cards.isEmpty();
     }
 
+    public int totalCount() {
+        int total = 0;
+        for (int count : this.cards.values()) {
+            total += Math.max(0, count);
+        }
+        return total;
+    }
+
+    public void clear() {
+        this.cards.clear();
+    }
+
     public String encode() {
         StringBuilder builder = new StringBuilder();
         for (Map.Entry<Identifier, Integer> entry : this.cards.entrySet()) {
