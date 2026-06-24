@@ -11,7 +11,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import java.nio.charset.StandardCharsets;
 
 public record OpenCharacterSettingsPayload(
-        String encodedCharacters, String selectedCharacterId, String selectedSkinId, int level, int experience, int friendship,
+        String encodedCharacters, String selectedCharacterId, String selectedSkinId, String activeCharacterId, String activeSkinId, int level, int experience, int friendship,
         String unlockedCharacterIds, String unlockedSkinIds, String encodedProgressEntries) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<OpenCharacterSettingsPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("open_character_settings"));
@@ -24,13 +24,15 @@ public record OpenCharacterSettingsPayload(
             String encodedCharacters = readLargeUtf(buffer);
             String selectedCharacterId = ByteBufCodecs.STRING_UTF8.decode(buffer);
             String selectedSkinId = ByteBufCodecs.STRING_UTF8.decode(buffer);
+            String activeCharacterId = ByteBufCodecs.STRING_UTF8.decode(buffer);
+            String activeSkinId = ByteBufCodecs.STRING_UTF8.decode(buffer);
             int level = ByteBufCodecs.VAR_INT.decode(buffer);
             int experience = ByteBufCodecs.VAR_INT.decode(buffer);
             int friendship = ByteBufCodecs.VAR_INT.decode(buffer);
             String unlockedCharacterIds = readLargeUtf(buffer);
             String unlockedSkinIds = readLargeUtf(buffer);
             String encodedProgressEntries = readLargeUtf(buffer);
-            return new OpenCharacterSettingsPayload(encodedCharacters, selectedCharacterId, selectedSkinId,
+            return new OpenCharacterSettingsPayload(encodedCharacters, selectedCharacterId, selectedSkinId, activeCharacterId, activeSkinId,
                     level, experience, friendship, unlockedCharacterIds, unlockedSkinIds, encodedProgressEntries);
         }
 
@@ -39,6 +41,8 @@ public record OpenCharacterSettingsPayload(
             writeLargeUtf(buffer, payload.encodedCharacters());
             ByteBufCodecs.STRING_UTF8.encode(buffer, payload.selectedCharacterId());
             ByteBufCodecs.STRING_UTF8.encode(buffer, payload.selectedSkinId());
+            ByteBufCodecs.STRING_UTF8.encode(buffer, payload.activeCharacterId());
+            ByteBufCodecs.STRING_UTF8.encode(buffer, payload.activeSkinId());
             ByteBufCodecs.VAR_INT.encode(buffer, payload.level());
             ByteBufCodecs.VAR_INT.encode(buffer, payload.experience());
             ByteBufCodecs.VAR_INT.encode(buffer, payload.friendship());

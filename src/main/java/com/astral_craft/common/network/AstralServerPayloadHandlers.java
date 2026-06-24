@@ -1,6 +1,7 @@
 package com.astral_craft.common.network;
 
 import com.astral_craft.common.gameplay.CardUseService;
+import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.ChipSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
@@ -57,6 +58,14 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleRequestHandCardDeck(RequestHandCardDeckPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                AstralHandCardManager.open(player);
+            }
+        });
+    }
+
     public static void handleCharacterSkinSelection(CharacterSkinSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
@@ -68,7 +77,7 @@ public class AstralServerPayloadHandlers {
     public static void handleUseHandCardFromDeck(UseHandCardFromDeckPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                CardUseService.useVirtualCard(player, payload.cardId());
+                CardUseService.useDeckCard(player, payload.cardId());
             }
         });
     }
