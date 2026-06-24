@@ -10,6 +10,7 @@ import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.gameplay.character.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.AstralPlayerCharacterApplier;
 import com.astral_craft.common.gameplay.character.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.AstralEventManager;
@@ -170,6 +171,7 @@ public class CommonEventSubscriber {
         AstralEventService.serverTick(event.getServer());
         event.getServer().getPlayerList().getPlayers().forEach(player -> {
             AstralPlayerCharacterApplier.apply(player);
+            AstralCharacterSkillService.serverTick(player);
             AstralEventService.trigger(player, "tick");
         });
     }

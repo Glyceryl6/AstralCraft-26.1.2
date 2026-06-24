@@ -24,11 +24,16 @@ public class AstralKeyMappings {
             "key.astral_craft.hand_card_deck", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
 
+    public static final Lazy<KeyMapping> CHARACTER_SKILL = Lazy.of(() -> new KeyMapping(
+            "key.astral_craft.character_skill", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY));
+
     public static void register(RegisterKeyMappingsEvent event) {
         event.registerCategory(CATEGORY);
         event.register(CARD_BACK_SELECTION.get());
         event.register(CHARACTER_SETTINGS.get());
         event.register(HAND_CARD_DECK.get());
+        event.register(CHARACTER_SKILL.get());
     }
 
 }

@@ -64,6 +64,12 @@ public class ClientEventSubscriber {
                 ClientPacketDistributor.sendToServer(new RequestHandCardDeckPayload());
             }
         }
+
+        while (AstralKeyMappings.CHARACTER_SKILL.get().consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                ClientPacketDistributor.sendToServer(new RequestCharacterSkillPayload());
+            }
+        }
     }
 
     @SubscribeEvent

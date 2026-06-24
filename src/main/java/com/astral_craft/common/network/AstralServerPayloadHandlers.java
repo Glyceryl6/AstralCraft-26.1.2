@@ -5,6 +5,7 @@ import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.ChipSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
+import com.astral_craft.common.gameplay.character.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -70,6 +71,14 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 CharacterProgressManager.selectSkin(player, payload.characterId(), payload.skinId());
+            }
+        });
+    }
+
+    public static void handleRequestCharacterSkill(RequestCharacterSkillPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                AstralCharacterSkillService.useActiveSkill(player);
             }
         });
     }

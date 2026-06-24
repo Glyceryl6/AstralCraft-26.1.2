@@ -3,6 +3,7 @@ package com.astral_craft.common.registry;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
+import com.astral_craft.common.gameplay.character.CharacterSkillState;
 import com.astral_craft.common.gameplay.handcard.AstralHandCards;
 import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventState;
@@ -31,6 +32,13 @@ public final class AstralAttachments {
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralHandCards>> HAND_CARDS = ATTACHMENTS.register("hand_cards",
             () -> AttachmentType.builder(AstralHandCards::empty).serialize(AstralHandCards.CODEC.fieldOf("hand_cards")).copyOnDeath().build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<CharacterSkillState>> CHARACTER_SKILLS = ATTACHMENTS.register("character_skills",
+            () -> AttachmentType.builder(CharacterSkillState::empty)
+                    .serialize(CharacterSkillState.CODEC.fieldOf("character_skills"))
+                    .sync(CharacterSkillState.STREAM_CODEC)
+                    .copyOnDeath()
+                    .build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralEventState>> EVENT_STATE = ATTACHMENTS.register("event_state",
             () -> AttachmentType.builder(AstralEventState::empty).serialize(AstralEventState.CODEC.fieldOf("event_state")).copyOnDeath().build());

@@ -52,6 +52,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(CardBackSelectionPayload.TYPE, CardBackSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardBackSelection);
         registrar.playToServer(RequestCharacterSettingsPayload.TYPE, RequestCharacterSettingsPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleRequestCharacterSettings);
         registrar.playToServer(RequestHandCardDeckPayload.TYPE, RequestHandCardDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleRequestHandCardDeck);
+        registrar.playToServer(RequestCharacterSkillPayload.TYPE, RequestCharacterSkillPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleRequestCharacterSkill);
         registrar.playToServer(CharacterSelectionPayload.TYPE, CharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCharacterSelection);
         registrar.playToServer(CharacterSkinSelectionPayload.TYPE, CharacterSkinSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCharacterSkinSelection);
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
