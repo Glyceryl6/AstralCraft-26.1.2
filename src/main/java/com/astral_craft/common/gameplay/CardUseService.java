@@ -102,7 +102,6 @@ public class CardUseService {
         }
 
         if (PendingCardActionManager.isExclusiveBusy(serverPlayer)) {
-            sendRevealBusyMessage(serverPlayer);
             return InteractionResult.SUCCESS;
         }
 
@@ -132,7 +131,6 @@ public class CardUseService {
         CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
         if (options.enabled()) {
             if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()), () -> card.applyFromSelection(serverPlayer, hand, List.of()))) {
-                sendRevealBusyMessage(serverPlayer);
                 return InteractionResult.SUCCESS;
             }
             thisSendReveal(serverPlayer, stack, definition, options, List.of());
@@ -148,11 +146,7 @@ public class CardUseService {
     }
 
     public static void applyTargetSelection(ServerPlayer player, CardTargetSelectionPayload payload) {
-        if (PendingCardActionManager.isExclusiveBusy(player)) {
-            sendRevealBusyMessage(player);
-            return;
-        }
-
+        if (PendingCardActionManager.isExclusiveBusy(player)) return;
         boolean virtualCard = payload.handIndex() == VIRTUAL_CARD_HAND_INDEX;
         boolean deckCard = payload.handIndex() == DECK_CARD_HAND_INDEX;
         InteractionHand hand = payload.handIndex() == InteractionHand.OFF_HAND.ordinal() ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
@@ -201,7 +195,6 @@ public class CardUseService {
         if (options.enabled()) {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
             if (!PendingCardActionManager.scheduleExclusive(player, revealLockTicks(options.durationTicks()), () -> card.applyFromSelection(player, hand, capturedTargets))) {
-                sendRevealBusyMessage(player);
                 return;
             }
             thisSendReveal(player, stack, definition, options, targets);
@@ -279,18 +272,9 @@ public class CardUseService {
 
     protected static Component useRestrictionMessage(ServerPlayer player, CardDefinition definition) {
         CardUseRestriction restriction = definition.restrictions();
-        if (restriction == null || restriction.unrestricted()) {
-            return null;
-        }
-
-        if (restriction.creativeBypass() && player.getAbilities().instabuild) {
-            return null;
-        }
-
-        if (restriction.characters().isEmpty()) {
-            return null;
-        }
-
+        if (restriction.unrestricted()) return null;
+        if (restriction.creativeBypass() && player.getAbilities().instabuild) return null;
+        if (restriction.characters().isEmpty()) return null;
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         if (!state.active()) {
             return Component.translatable("message.astral_craft.hand_card_deck.need_character");
@@ -362,10 +346,6 @@ public class CardUseService {
         if (!player.getAbilities().instabuild) {
             stack.shrink(1);
         }
-    }
-
-    private static void sendRevealBusyMessage(ServerPlayer player) {
-        player.sendSystemMessage(Component.translatable("message.astral_craft.card_reveal.busy"), true);
     }
 
 }

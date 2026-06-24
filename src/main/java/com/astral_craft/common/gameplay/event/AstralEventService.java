@@ -57,10 +57,7 @@ public class AstralEventService {
     public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition, boolean force, String trigger) {
         if (player == null || definition == null) return false;
         if (!definition.canTriggerInDifficulty(player.level().getDifficulty())) return false;
-        if (PendingCardActionManager.isExclusiveBusy(player)) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.card_reveal.busy"), true);
-            return false;
-        }
+        if (PendingCardActionManager.isExclusiveBusy(player)) return false;
         AstralEventContext base = AstralEventContext.of(player, player, definition, trigger);
         if (!force && !definition.testConditions(base)) return false;
         double chance = Math.clamp(definition.chance(), 0.0D, 1.0D);
@@ -75,17 +72,14 @@ public class AstralEventService {
 
         if (contexts.isEmpty()) return false;
         int revealDelay = revealDelay(player);
-        if (revealDelay > 0 && !PendingCardActionManager.scheduleExclusive(player, revealDelay, () -> beginEvent(contexts))) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.card_reveal.busy"), true);
-            return false;
-        }
-
+        if (revealDelay > 0 && !PendingCardActionManager.scheduleExclusive(player, revealDelay, () -> beginEvent(contexts))) return false;
         sendRevealOrMessage(player, definition);
         if (definition.broadcast()) {
             contexts.stream().map(AstralEventContext::targetPlayer)
                     .filter(target -> target != null && !target.getUUID().equals(player.getUUID()))
                     .forEach(target -> sendRevealOrMessage(target, definition));
         }
+
         if (revealDelay > 0) {
             CardUseService.sendEntityRevealAround(player,
                     definition.id().toString(),
