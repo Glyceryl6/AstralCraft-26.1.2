@@ -64,6 +64,9 @@ public class BaseHandCard extends Item {
         for (String line : component.getString().split("[\\n|]")) {
             builder.accept(Component.literal(line.trim()));
         }
+        if (!definition.restrictions().unrestricted()) {
+            builder.accept(Component.translatable("tooltips.astral_craft.handcard.restricted").withStyle(ChatFormatting.GRAY));
+        }
     }
 
 }

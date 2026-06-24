@@ -20,7 +20,8 @@ public record CardDefinition(
         int range,
         boolean combatOnly,
         int minTargets,
-        int maxTargets) {
+        int maxTargets,
+        CardUseRestriction restrictions) {
 
     public static final Codec<CardDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.optionalFieldOf("id", "").forGetter(CardDefinition::id),
@@ -33,7 +34,8 @@ public record CardDefinition(
             Codec.INT.fieldOf("range").forGetter(CardDefinition::range),
             Codec.BOOL.fieldOf("combat_only").forGetter(CardDefinition::combatOnly),
             Codec.INT.fieldOf("min_targets").forGetter(CardDefinition::minTargets),
-            Codec.INT.fieldOf("max_targets").forGetter(CardDefinition::maxTargets)
+            Codec.INT.fieldOf("max_targets").forGetter(CardDefinition::maxTargets),
+            CardUseRestriction.CODEC.optionalFieldOf("restrictions", CardUseRestriction.NONE).forGetter(CardDefinition::restrictions)
     ).apply(instance, CardDefinition::new));
 
     public static final StreamCodec<ByteBuf, CardDefinition> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
@@ -65,19 +67,27 @@ public record CardDefinition(
     public CardDefinition withId(String id) {
         return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id),
                 this.largeBackTexture, this.type, this.targetMode, this.range,
-                this.combatOnly, this.minTargets, this.maxTargets);
+                this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withType(CardType cardType) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, cardType,
-                this.targetMode, this.range, this.combatOnly, this.minTargets, this.maxTargets);
+                this.targetMode, this.range, this.combatOnly, this.minTargets, this.maxTargets,
+                this.restrictions);
     }
 
     public CardDefinition withBackTexture(String texture) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, texture, this.type, this.targetMode,
-                this.range, this.combatOnly, this.minTargets, this.maxTargets);
+                this.range, this.combatOnly, this.minTargets, this.maxTargets,
+                this.restrictions);
+    }
+
+    public CardDefinition withRestrictions(CardUseRestriction restrictions) {
+        return new CardDefinition(this.id, this.nameKey, this.effectKey,
+                this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
+                this.range, this.combatOnly, this.minTargets, this.maxTargets, restrictions);
     }
 
     /** Preferred factory for hand card classes. The final id is derived from the item registry id in AstralItems#registerCard. */
@@ -88,7 +98,7 @@ public record CardDefinition(
     /** Legacy overload. Kept so old card classes or external mods do not have to migrate immediately. */
     public static CardDefinition create(String id, CardType type, CardTargetMode targetMode, int range, boolean combatOnly) {
         return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id), defaultBackTexture(),
-                type, targetMode, range, combatOnly, minTargets(targetMode), maxTargets(targetMode));
+                type, targetMode, range, combatOnly, minTargets(targetMode), maxTargets(targetMode), CardUseRestriction.NONE);
     }
 
     public static CardDefinition fallback() {
