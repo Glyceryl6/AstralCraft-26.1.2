@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.event;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.CardUseService;
 import com.astral_craft.common.gameplay.PendingCardActionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
@@ -55,6 +56,10 @@ public class AstralEventService {
 
     public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition, boolean force, String trigger) {
         if (player == null || definition == null) return false;
+        if (PendingCardActionManager.isExclusiveBusy(player)) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.card_reveal.busy"), true);
+            return false;
+        }
         AstralEventContext base = AstralEventContext.of(player, player, definition, trigger);
         if (!force && !definition.testConditions(base)) return false;
         double chance = Math.clamp(definition.chance(), 0.0D, 1.0D);
@@ -68,15 +73,29 @@ public class AstralEventService {
         }
 
         if (contexts.isEmpty()) return false;
-        int revealDelay = sendRevealOrMessage(player, definition);
+        int revealDelay = revealDelay(player);
+        if (revealDelay > 0 && !PendingCardActionManager.scheduleExclusive(player, revealDelay, () -> beginEvent(contexts))) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.card_reveal.busy"), true);
+            return false;
+        }
+
+        sendRevealOrMessage(player, definition);
         if (definition.broadcast()) {
             contexts.stream().map(AstralEventContext::targetPlayer)
                     .filter(target -> target != null && !target.getUUID().equals(player.getUUID()))
                     .forEach(target -> sendRevealOrMessage(target, definition));
         }
-
         if (revealDelay > 0) {
-            PendingCardActionManager.schedule(player, revealDelay, () -> beginEvent(contexts));
+            CardUseService.sendEntityRevealAround(player,
+                    definition.id().toString(),
+                    AstralCraft.MOD_ID + ":event_card",
+                    "event",
+                    definition.nameKey(),
+                    definition.descriptionKey(),
+                    definition.texture().toString(),
+                    CardBackPreferenceManager.selectedTexture(player).toString(),
+                    CardRevealPayload.ANIMATION_APPROACH,
+                    Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks()));
         } else {
             beginEvent(contexts);
         }
@@ -156,6 +175,13 @@ public class AstralEventService {
         }
     }
 
+    protected static int revealDelay(ServerPlayer viewer) {
+        if (viewer.getData(AstralAttachments.EVENT_PREFERENCES).prefersChat()) {
+            return 0;
+        }
+        return Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks());
+    }
+
     protected static int sendRevealOrMessage(ServerPlayer viewer, AstralEventDefinition definition) {
         if (viewer.getData(AstralAttachments.EVENT_PREFERENCES).prefersChat()) {
             viewer.sendSystemMessage(Component.translatable("message.astral_craft.event.triggered_chat", Component.translatable(definition.nameKey())));
@@ -170,8 +196,8 @@ public class AstralEventService {
                 definition.texture().toString(),
                 CardBackPreferenceManager.selectedTexture(viewer).toString(),
                 CardRevealPayload.ANIMATION_APPROACH,
-                DEFAULT_EVENT_REVEAL_DURATION_TICKS));
-        return DEFAULT_EVENT_REVEAL_DURATION_TICKS;
+                Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks())));
+        return Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks());
     }
 
     protected static AstralEventState state(Entity entity) {

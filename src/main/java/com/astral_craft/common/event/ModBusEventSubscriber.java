@@ -38,17 +38,20 @@ public class ModBusEventSubscriber {
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
+        registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
         registrar.playToClient(OpenTargetSelectionPayload.TYPE, OpenTargetSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenBattleScenePayload.TYPE, OpenBattleScenePayload.STREAM_CODEC);
         registrar.playToClient(OpenChipSelectionPayload.TYPE, OpenChipSelectionPayload.STREAM_CODEC);
         registrar.playToClient(BoardHudSnapshotPayload.TYPE, BoardHudSnapshotPayload.STREAM_CODEC);
         registrar.playToClient(OpenCardBackSelectionPayload.TYPE, OpenCardBackSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenCharacterSettingsPayload.TYPE, OpenCharacterSettingsPayload.STREAM_CODEC);
+        registrar.playToClient(OpenHandCardDeckPayload.TYPE, OpenHandCardDeckPayload.STREAM_CODEC);
         registrar.playToServer(CardTargetSelectionPayload.TYPE, CardTargetSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardTargets);
         registrar.playToServer(ChipSelectionPayload.TYPE, ChipSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleChipSelection);
         registrar.playToServer(RequestCardBackSelectionPayload.TYPE, RequestCardBackSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleRequestCardBackSelection);
         registrar.playToServer(CardBackSelectionPayload.TYPE, CardBackSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardBackSelection);
         registrar.playToServer(RequestCharacterSettingsPayload.TYPE, RequestCharacterSettingsPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleRequestCharacterSettings);
+        registrar.playToServer(RequestHandCardDeckPayload.TYPE, RequestHandCardDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleRequestHandCardDeck);
         registrar.playToServer(CharacterSelectionPayload.TYPE, CharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCharacterSelection);
         registrar.playToServer(CharacterSkinSelectionPayload.TYPE, CharacterSkinSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCharacterSkinSelection);
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
