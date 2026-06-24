@@ -2,6 +2,11 @@
   "chance": 0.004,
   "cooldown_ticks": 2400,
   "description_key": "event.astral_craft.ambush.description",
+  "difficulties": [
+    "easy",
+    "normal",
+    "hard"
+  ],
   "effects": [
     {
       "type": "astral_craft:summon_entity",

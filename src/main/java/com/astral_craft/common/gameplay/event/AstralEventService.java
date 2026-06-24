@@ -56,6 +56,7 @@ public class AstralEventService {
 
     public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition, boolean force, String trigger) {
         if (player == null || definition == null) return false;
+        if (!definition.canTriggerInDifficulty(player.level().getDifficulty())) return false;
         if (PendingCardActionManager.isExclusiveBusy(player)) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card_reveal.busy"), true);
             return false;
@@ -126,6 +127,7 @@ public class AstralEventService {
             if (!AstralEventManager.INSTANCE.contains(id)) continue;
             AstralEventDefinition definition = AstralEventManager.INSTANCE.get(id);
             if (!definition.canApplyDuring(trigger)) continue;
+            if (!definition.canTriggerInDifficulty(player.level().getDifficulty())) continue;
             AstralEventContext context = AstralEventContext.of(player, player, definition, trigger);
             if (definition.testConditions(context)) {
                 applyEffects(context, definition.activeEffects());

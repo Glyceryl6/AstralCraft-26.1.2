@@ -5,6 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.Difficulty;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ public record AstralEventDefinition(
         Identifier texture,
         List<String> triggers,
         List<AstralEventCondition> conditions,
+        List<Difficulty> difficulties,
         AstralEventTargetDefinition target,
         AstralEventTriggerSettings triggerSettings,
         List<AstralEventEffect> effects,
@@ -41,6 +43,7 @@ public record AstralEventDefinition(
     private static final MapCodec<AstralEventTriggerPart> TRIGGER_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.STRING.listOf().optionalFieldOf("triggers", List.of()).forGetter(AstralEventTriggerPart::triggers),
             AstralEventCondition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(AstralEventTriggerPart::conditions),
+            Difficulty.CODEC.listOf().optionalFieldOf("difficulties", List.of()).forGetter(AstralEventTriggerPart::difficulties),
             AstralEventTargetDefinition.CODEC.optionalFieldOf("target", AstralEventTargetDefinition.DEFAULT).forGetter(AstralEventTriggerPart::target),
             AstralEventTriggerSettings.CODEC.optionalFieldOf("trigger_settings", AstralEventTriggerSettings.DEFAULT).forGetter(AstralEventTriggerPart::triggerSettings),
             Codec.INT.optionalFieldOf("cooldown_ticks", 600).forGetter(AstralEventTriggerPart::cooldownTicks),
@@ -74,6 +77,7 @@ public record AstralEventDefinition(
                 identity.texture(),
                 trigger.triggers(),
                 trigger.conditions(),
+                trigger.difficulties(),
                 trigger.target(),
                 trigger.triggerSettings(),
                 effects.effects(),
@@ -94,7 +98,7 @@ public record AstralEventDefinition(
     }
 
     private AstralEventTriggerPart triggerPart() {
-        return new AstralEventTriggerPart(this.triggers, this.conditions, this.target, this.triggerSettings, this.cooldownTicks, this.chance, this.broadcast);
+        return new AstralEventTriggerPart(this.triggers, this.conditions, this.difficulties, this.target, this.triggerSettings, this.cooldownTicks, this.chance, this.broadcast);
     }
 
     private AstralEventEffectsPart effectsPart() {
@@ -104,6 +108,12 @@ public record AstralEventDefinition(
     public boolean canTriggerFrom(String trigger) {
         if (trigger == null || trigger.isBlank()) return false;
         return this.triggers.contains(trigger) || this.triggers.contains("*");
+    }
+
+    public boolean canTriggerInDifficulty(Difficulty difficulty) {
+        if (this.difficulties == null || this.difficulties.isEmpty()) return true;
+        Difficulty safeDifficulty = difficulty == null ? Difficulty.NORMAL : difficulty;
+        return this.difficulties.contains(safeDifficulty);
     }
 
     public boolean canApplyDuring(String trigger) {
@@ -149,6 +159,7 @@ public record AstralEventDefinition(
     private record AstralEventTriggerPart(
             List<String> triggers,
             List<AstralEventCondition> conditions,
+            List<Difficulty> difficulties,
             AstralEventTargetDefinition target,
             AstralEventTriggerSettings triggerSettings,
             int cooldownTicks,

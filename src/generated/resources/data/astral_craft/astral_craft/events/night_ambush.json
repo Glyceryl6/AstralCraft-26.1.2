@@ -9,6 +9,11 @@
   ],
   "cooldown_ticks": 3600,
   "description_key": "event.astral_craft.night_ambush.description",
+  "difficulties": [
+    "easy",
+    "normal",
+    "hard"
+  ],
   "effects": [
     {
       "type": "astral_craft:summon_entity",

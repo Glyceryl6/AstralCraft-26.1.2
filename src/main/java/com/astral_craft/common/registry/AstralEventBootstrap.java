@@ -19,6 +19,7 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 
@@ -56,13 +57,17 @@ public class AstralEventBootstrap {
     }
 
     public static AstralEventDefinition ambush() {
-        return event("ambush", "bad", List.of("tick"), List.of(), AstralEventTargetDefinition.DEFAULT, new AstralEventTriggerSettings("cooldown", "", 2400, 0, true),
-                List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.ZOMBIE.builtInRegistryHolder()), 1)), List.of(), List.of(), List.of(), 2400, 0.004D, "instant", 0, 20);
+        return event("ambush", "bad", List.of("tick"), List.of(),
+                List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD), AstralEventTargetDefinition.DEFAULT,
+                new AstralEventTriggerSettings("cooldown", "", 2400, 0, true),
+                List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.ZOMBIE.builtInRegistryHolder()), 1)),
+                List.of(), List.of(), List.of(), 2400, 0.004D, "instant", 0, 20);
     }
 
     public static AstralEventDefinition astralBlessing() {
         AstralEventEffect bonusMining = new ChanceEventEffect(0.25D, new GiveItemEventEffect(Identifier.parse("minecraft:lapis_lazuli"), 1));
-        return event("astral_blessing", "good", List.of("tick"), List.of(), AstralEventTargetDefinition.DEFAULT, new AstralEventTriggerSettings("while_inactive", "", 2400, 0, true),
+        return event("astral_blessing", "good", List.of("tick"), List.of(), AstralEventTargetDefinition.DEFAULT,
+                new AstralEventTriggerSettings("while_inactive", "", 2400, 0, true),
                 List.of(new MobEffectEventEffect(MobEffects.REGENERATION, 200, 0)),
                 List.of(), List.of("block_break"), List.of(bonusMining),
                 2400, 0.004D, "duration", 200, 40);
@@ -76,7 +81,8 @@ public class AstralEventBootstrap {
     }
 
     public static AstralEventDefinition nightAmbush() {
-        return event("night_ambush", "bad", List.of("tick"), List.of(new TimeOfDayEventCondition(13000L, 23000L)), AstralEventTargetDefinition.DEFAULT,
+        return event("night_ambush", "bad", List.of("tick"), List.of(new TimeOfDayEventCondition(13000L, 23000L)),
+                List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD), AstralEventTargetDefinition.DEFAULT,
                 new AstralEventTriggerSettings("cooldown", "", 3600, 0, true),
                 List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.SKELETON.builtInRegistryHolder()), 2, 4.0D)),
                 List.of(), List.of(), List.of(), 3600, 0.002D, "instant", 0, 20);
@@ -89,43 +95,40 @@ public class AstralEventBootstrap {
                 List.of(), List.of(), List.of(), 1200, 0.08D, "instant", 0, 20);
     }
 
-    public static AstralEventDefinition event(String id,
-                                              String kind,
-                                              List<String> triggers,
-                                              List<AstralEventCondition> conditions,
-                                              AstralEventTargetDefinition target,
-                                              AstralEventTriggerSettings triggerSettings,
-                                              List<AstralEventEffect> effects,
-                                              List<AstralEventEffect> intervalEffects,
-                                              List<String> activeTriggers,
-                                              List<AstralEventEffect> activeEffects,
-                                              int cooldownTicks,
-                                              double chance,
-                                              String timing,
-                                              int durationTicks,
-                                              int intervalTicks) {
-        return new AstralEventDefinition(AstralCraft.prefix(id),
-                "event.astral_craft." + id + ".name",
-                "event.astral_craft." + id + ".description",
-                kind,
-                AstralCraft.prefix("textures/gui/cards/event_" + kind + ".png"),
-                triggers,
-                conditions,
-                target,
-                triggerSettings,
-                effects,
-                intervalEffects,
-                activeTriggers,
-                activeEffects,
-                List.of(),
-                cooldownTicks,
-                chance,
-                false,
-                timing,
-                durationTicks,
-                intervalTicks);
+    public static AstralEventDefinition event(
+            String id, String kind, List<String> triggers,
+            List<AstralEventCondition> conditions,
+            AstralEventTargetDefinition target,
+            AstralEventTriggerSettings triggerSettings,
+            List<AstralEventEffect> effects,
+            List<AstralEventEffect> intervalEffects,
+            List<String> activeTriggers,
+            List<AstralEventEffect> activeEffects,
+            int cooldownTicks, double chance, String timing,
+            int durationTicks, int intervalTicks) {
+        return event(id, kind, triggers, conditions, List.of(), target, triggerSettings, effects, intervalEffects, activeTriggers, activeEffects, cooldownTicks, chance, timing, durationTicks, intervalTicks);
     }
 
-    private AstralEventBootstrap() {}
+    public static AstralEventDefinition event(
+            String id, String kind, List<String> triggers,
+            List<AstralEventCondition> conditions,
+            List<Difficulty> difficulties,
+            AstralEventTargetDefinition target,
+            AstralEventTriggerSettings triggerSettings,
+            List<AstralEventEffect> effects,
+            List<AstralEventEffect> intervalEffects,
+            List<String> activeTriggers,
+            List<AstralEventEffect> activeEffects,
+            int cooldownTicks, double chance, String timing,
+            int durationTicks, int intervalTicks) {
+        return new AstralEventDefinition(AstralCraft.prefix(id),
+                "event.astral_craft." + id + ".name",
+                "event.astral_craft." + id + ".description", kind,
+                AstralCraft.prefix("textures/gui/cards/event_" + kind + ".png"),
+                triggers, conditions, difficulties, target, triggerSettings,
+                effects, intervalEffects, activeTriggers, activeEffects,
+                List.of(), cooldownTicks, chance, false, timing,
+                durationTicks, intervalTicks);
+    }
 
 }

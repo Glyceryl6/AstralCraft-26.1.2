@@ -38,6 +38,7 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
                     definition.texture(),
                     definition.triggers(),
                     definition.conditions(),
+                    definition.difficulties(),
                     definition.target(),
                     definition.triggerSettings(),
                     definition.effects(),
