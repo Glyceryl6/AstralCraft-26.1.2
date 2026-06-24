@@ -38,9 +38,9 @@ public class SkinsDetailPage implements CharacterDetailPage {
             CharacterSkinDefinition skin = definition.skins().get(i);
             boolean selected = skin.id().equals(this.screen.selectedSkinId);
             boolean equipped = skin.id().equals(this.screen.equippedSkinId) && definition.id().equals(this.screen.equippedCharacterId);
-            boolean unlocked = this.screen.isCharacterUnlocked(definition) && this.screen.isSkinUnlocked(definition, skin);
+            boolean unlocked = this.screen.isSkinUnlocked(definition, skin);
             boolean hovered = this.screen.isInside(mouseX, mouseY, x, y, cardW, cardH);
-            new SkinCardComponent(this.screen, definition, skin, this.screen.entityFor(definition, skin.id()), x, y, cardW, cardH, selected, equipped, unlocked, hovered, layout.skinEntityScale).render(graphics);
+            new SkinCardComponent(this.screen, definition, skin, this.screen.listEntityFor(definition, skin.id()), x, y, cardW, cardH, selected, equipped, unlocked, hovered, layout.skinEntityScale).render(graphics);
         }
 
         if (definition.skins().isEmpty()) {
@@ -65,6 +65,7 @@ public class SkinsDetailPage implements CharacterDetailPage {
                 CharacterSkinDefinition skin = definition.skins().get(i);
                 this.screen.selectedSkinId = skin.id();
                 if (this.screen.isCharacterUnlocked(definition) && this.screen.isSkinUnlocked(definition, skin)) {
+                    this.screen.equippedCharacterId = definition.id();
                     this.screen.equippedSkinId = this.screen.selectedSkinId;
                     ClientPacketDistributor.sendToServer(new CharacterSkinSelectionPayload(definition.id().toString(), this.screen.selectedSkinId));
                 }

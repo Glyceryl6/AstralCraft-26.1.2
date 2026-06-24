@@ -3,12 +3,12 @@ package com.astral_craft.common.event;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.CardRevealOverlay;
 import com.astral_craft.client.gui.ChipSelectionScreen;
-import com.astral_craft.client.gui.TargetSelectionScreen;
 import com.astral_craft.client.gui.HandCardDeckScreen;
-import com.astral_craft.client.gui.character.AstralSkinRarityManager;
+import com.astral_craft.client.gui.TargetSelectionScreen;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
 import com.astral_craft.client.gui.board.BoardHudOverlay;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
+import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
 import com.astral_craft.client.input.AstralKeyMappings;
 import com.astral_craft.client.model.LargeCuboidModelLoader;
@@ -16,8 +16,11 @@ import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoModelManager;
 import com.astral_craft.client.model.entity.FirecrackersModel;
 import com.astral_craft.client.render.AstralDiceRenderer;
-import com.astral_craft.client.render.character.AstralCharacterRenderer;
+import com.astral_craft.client.render.CardRevealEntityOverlay;
+import com.astral_craft.client.render.CardRevealPlayerLayer;
 import com.astral_craft.client.render.SoulLinkRenderer;
+import com.astral_craft.client.render.character.AstralCharacterRenderStateModifier;
+import com.astral_craft.client.render.character.AstralCharacterRenderer;
 import com.astral_craft.client.render.effect.FallingBrickRenderer;
 import com.astral_craft.client.render.effect.LaserStrikeRenderer;
 import com.astral_craft.client.render.projectile.FirecrackersRenderer;
@@ -26,18 +29,23 @@ import com.astral_craft.client.render.projectile.SnowballAttackProjectileRendere
 import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.world.entity.player.PlayerModelType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
+import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
 public class ClientEventSubscriber {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
+        CardRevealEntityOverlay.tick();
         Minecraft minecraft = Minecraft.getInstance();
         while (AstralKeyMappings.CARD_BACK_SELECTION.get().consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
@@ -53,7 +61,7 @@ public class ClientEventSubscriber {
 
         while (AstralKeyMappings.HAND_CARD_DECK.get().consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.setScreen(new HandCardDeckScreen());
+                ClientPacketDistributor.sendToServer(new RequestHandCardDeckPayload());
             }
         }
     }
@@ -87,6 +95,21 @@ public class ClientEventSubscriber {
     }
 
     @SubscribeEvent
+    public static void addPlayerLayers(EntityRenderersEvent.AddLayers event) {
+        for (PlayerModelType type : event.getSkins()) {
+            AvatarRenderer<AbstractClientPlayer> renderer = event.getPlayerRenderer(type);
+            if (renderer != null) {
+                renderer.addLayer(new CardRevealPlayerLayer(renderer));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void registerRenderStateModifiers(RegisterRenderStateModifiersEvent event) {
+        event.registerAvatarEntityModifier(new AstralCharacterRenderStateModifier());
+    }
+
+    @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
@@ -101,12 +124,14 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerClientPayloadHandlers(RegisterClientPayloadHandlersEvent event) {
         event.register(CardRevealPayload.TYPE, CardRevealOverlay::show);
+        event.register(CardRevealEntityPayload.TYPE, CardRevealEntityOverlay::show);
         event.register(OpenTargetSelectionPayload.TYPE, TargetSelectionScreen::open);
         event.register(OpenBattleScenePayload.TYPE, BattleSceneScreen::open);
         event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
+        event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);
     }
 
 }

@@ -38,20 +38,4 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
-/docs/IMPLEMENTATION_NOTES (1).md
-/docs/IMPLEMENTATION_NOTES (2).md
-/docs/IMPLEMENTATION_NOTES (3).md
-/docs/IMPLEMENTATION_NOTES (4).md
-/docs/IMPLEMENTATION_NOTES (5).md
-/docs/IMPLEMENTATION_NOTES (6).md
-/docs/IMPLEMENTATION_NOTES (7).md
-/docs/IMPLEMENTATION_NOTES (8).md
-/docs/IMPLEMENTATION_NOTES (9).md
-/docs/IMPLEMENTATION_NOTES (10).md
-/docs/IMPLEMENTATION_NOTES (11).md
-/docs/IMPLEMENTATION_NOTES (12).md
-/docs/IMPLEMENTATION_NOTES (13).md
-/docs/IMPLEMENTATION_NOTES (14).md
-/docs/IMPLEMENTATION_NOTES (15).md
-/docs/IMPLEMENTATION_NOTES (16).md
-/docs/更新日志.zip
+/docs/

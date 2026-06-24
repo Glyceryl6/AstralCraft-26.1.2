@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
 import com.astral_craft.common.registry.AstralAttachments;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -18,6 +19,32 @@ public class CharacterProgressManager {
         return progress;
     }
 
+    public static ActiveCharacterState activeState(ServerPlayer player) {
+        ActiveCharacterState state = player.getData(AstralAttachments.ACTIVE_CHARACTER);
+        if (!state.active()) {
+            return state;
+        }
+
+        if (!CharacterManager.INSTANCE.contains(state.characterId())) {
+            player.setData(AstralAttachments.ACTIVE_CHARACTER, ActiveCharacterState.NONE);
+            return ActiveCharacterState.NONE;
+        }
+
+        CharacterProgress progress = progress(player);
+        CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
+        CharacterProgressEntry entry = progress.entry(definition.id());
+        ActiveCharacterState refreshed = ActiveCharacterState.of(definition, entry);
+        if (!refreshed.equals(state)) {
+            player.setData(AstralAttachments.ACTIVE_CHARACTER, refreshed);
+        }
+        
+        return refreshed;
+    }
+
+    public static boolean hasActiveCharacter(ServerPlayer player) {
+        return player.getData(AstralAttachments.ACTIVE_CHARACTER).active();
+    }
+
     public static void open(ServerPlayer player) {
         CharacterProgress progress = progress(player);
         CharacterDefinition selected = CharacterManager.INSTANCE.get(progress.selectedCharacter());
@@ -31,17 +58,20 @@ public class CharacterProgressManager {
         if (!selected.skins().isEmpty() && selected.skins().stream().noneMatch(skin -> skin.id().equals(progress.selectedSkin()))) {
             CharacterDefinition finalSelected = selected;
             CharacterSkinDefinition skin = selected.skins().stream()
-                    .filter(value -> value.unlockedByDefault() || progress.isSkinUnlocked(finalSelected.id(), value.id()))
+                    .filter(value -> isDefaultSkin(finalSelected, value) || value.unlockedByDefault() || progress.isSkinUnlocked(finalSelected.id(), value.id()))
                     .findFirst().orElse(selected.skins().getFirst());
             progress.unlockSkin(selected.id(), skin.id());
             progress.setSelectedSkin(skin.id());
         }
 
         save(player, progress);
+        ActiveCharacterState activeState = activeState(player);
         PacketDistributor.sendToPlayer(player, new OpenCharacterSettingsPayload(
                 CharacterManager.INSTANCE.encodeList(),
                 progress.selectedCharacter().toString(),
                 progress.selectedSkin(),
+                activeState.active() ? activeState.characterId().toString() : "",
+                activeState.active() ? activeState.skinId() : "",
                 progress.level(),
                 progress.experience(),
                 progress.friendship(),
@@ -59,25 +89,30 @@ public class CharacterProgressManager {
         progress.setSelectedCharacter(id);
         if (!definition.skins().isEmpty()) {
             CharacterSkinDefinition skin = definition.skins().stream()
-                    .filter(value -> value.unlockedByDefault() || progress.isSkinUnlocked(definition.id(), value.id()))
+                    .filter(value -> isDefaultSkin(definition, value) || value.unlockedByDefault() || progress.isSkinUnlocked(definition.id(), value.id()))
                     .findFirst().orElse(definition.skins().getFirst());
             progress.unlockSkin(definition.id(), skin.id());
             progress.setSelectedSkin(skin.id());
         }
 
         save(player, progress);
+        refreshActiveCharacter(player, definition.id());
+        player.sendSystemMessage(Component.translatable("message.astral_craft.character_settings.character_active", Component.translatable(definition.nameKey())), true);
     }
 
     public static void selectSkin(ServerPlayer player, String rawCharacterId, String skinId) {
         CharacterProgress progress = progress(player);
         Identifier characterId = safeParse(rawCharacterId, progress.selectedCharacter());
+        if (!CharacterManager.INSTANCE.contains(characterId)) return;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
-        if (!definition.id().equals(progress.selectedCharacter())) return;
         if (!definition.unlockedByDefault() && !progress.isCharacterUnlocked(definition.id())) return;
         CharacterSkinDefinition skin = definition.skinOrDefault(skinId);
-        if (skin.unlockedByDefault() || progress.isSkinUnlocked(definition.id(), skin.id())) {
+        if (isDefaultSkin(definition, skin) || skin.unlockedByDefault() || progress.isSkinUnlocked(definition.id(), skin.id())) {
+            progress.setSelectedCharacter(definition.id());
+            progress.unlockSkin(definition.id(), skin.id());
             progress.setSelectedSkin(skin.id());
             save(player, progress);
+            refreshActiveCharacter(player, definition.id());
         }
     }
 
@@ -87,7 +122,7 @@ public class CharacterProgressManager {
         progress.unlockCharacter(characterId);
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
         for (CharacterSkinDefinition skin : definition.skins()) {
-            if (skin.unlockedByDefault()) {
+            if (isDefaultSkin(definition, skin) || skin.unlockedByDefault()) {
                 progress.unlockSkin(characterId, skin.id());
             }
         }
@@ -105,11 +140,18 @@ public class CharacterProgressManager {
         save(player, progress);
     }
 
+    private static boolean isDefaultSkin(CharacterDefinition definition, CharacterSkinDefinition skin) {
+        if (definition == null || skin == null) return false;
+        if ("default".equals(skin.id())) return true;
+        return !definition.skins().isEmpty() && definition.skins().getFirst().id().equals(skin.id());
+    }
+
     public static void addExperience(ServerPlayer player, Identifier characterId, int amount) {
         if (!CharacterManager.INSTANCE.contains(characterId)) return;
         CharacterProgress progress = progress(player);
         progress.addExperience(characterId, amount);
         save(player, progress);
+        refreshActiveIfSame(player, characterId);
     }
 
     public static void addFriendship(ServerPlayer player, Identifier characterId, int amount) {
@@ -117,6 +159,7 @@ public class CharacterProgressManager {
         CharacterProgress progress = progress(player);
         progress.addFriendship(characterId, amount);
         save(player, progress);
+        refreshActiveIfSame(player, characterId);
     }
 
     public static void setLevel(ServerPlayer player, Identifier characterId, int level) {
@@ -124,6 +167,7 @@ public class CharacterProgressManager {
         CharacterProgress progress = progress(player);
         progress.setLevel(characterId, level);
         save(player, progress);
+        refreshActiveIfSame(player, characterId);
     }
 
     public static void setFriendshipLevel(ServerPlayer player, Identifier characterId, int level) {
@@ -131,6 +175,22 @@ public class CharacterProgressManager {
         CharacterProgress progress = progress(player);
         progress.setFriendshipLevel(characterId, level);
         save(player, progress);
+        refreshActiveIfSame(player, characterId);
+    }
+
+    public static void refreshActiveIfSame(ServerPlayer player, Identifier characterId) {
+        ActiveCharacterState state = player.getData(AstralAttachments.ACTIVE_CHARACTER);
+        if (state.active() && state.characterId().equals(characterId)) {
+            refreshActiveCharacter(player, characterId);
+        }
+    }
+
+    public static void refreshActiveCharacter(ServerPlayer player, Identifier characterId) {
+        if (!CharacterManager.INSTANCE.contains(characterId)) return;
+        CharacterProgress progress = progress(player);
+        CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
+        CharacterProgressEntry entry = progress.entry(characterId);
+        player.setData(AstralAttachments.ACTIVE_CHARACTER, ActiveCharacterState.of(definition, entry));
     }
 
     public static Identifier safeParse(String rawId, Identifier fallback) {

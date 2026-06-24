@@ -11,6 +11,7 @@ import com.astral_craft.client.render.character.AstralCharacterRenderState;
 import com.astral_craft.client.text.AstralInlineTextFormatter;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
+import com.astral_craft.common.network.CharacterSelectionPayload;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.ChatFormatting;
@@ -29,6 +30,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -80,15 +82,15 @@ public class CharacterSettingsScreen extends Screen {
     protected boolean hoveredClickable;
 
     public CharacterSettingsScreen(
-            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId,
+            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
             int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds,
             Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
         this.characters = characters.isEmpty() ? List.of(CharacterDefinition.builtinDefault()) : characters;
         this.selectedCharacterId = selectedCharacterId;
-        this.equippedCharacterId = selectedCharacterId;
+        this.equippedCharacterId = activeCharacterId;
         this.selectedSkinId = selectedSkinId == null || selectedSkinId.isBlank() ? "default" : selectedSkinId;
-        this.equippedSkinId = this.selectedSkinId;
+        this.equippedSkinId = activeSkinId == null || activeSkinId.isBlank() ? "default" : activeSkinId;
         this.unlockedCharacterIds = new HashSet<>(unlockedCharacterIds);
         this.unlockedSkinIds = new HashSet<>(unlockedSkinIds);
         this.progressEntries = new HashMap<>(progressEntries);
@@ -97,11 +99,14 @@ public class CharacterSettingsScreen extends Screen {
         this.friendship = CharacterProgressEntry.clampFriendshipLevel(friendship);
         this.syncDefaultUnlocks();
         if (!this.hasCharacter(this.equippedCharacterId)) {
-            this.equippedCharacterId = this.firstDisplayCharacterId();
-            this.equippedSkinId = this.skinIdFor(this.selectedCharacter());
+            this.equippedCharacterId = null;
+            this.equippedSkinId = "default";
         }
 
-        this.selectedCharacterId = this.firstDisplayCharacterId();
+        if (!this.hasDisplayedCharacter(this.selectedCharacterId)) {
+            this.selectedCharacterId = this.firstDisplayCharacterId();
+        }
+
         this.selectedSkinId = this.skinIdFor(this.selectedCharacter());
         this.registerDetailPages();
         this.syncSelectedProgress();
@@ -112,10 +117,16 @@ public class CharacterSettingsScreen extends Screen {
         context.enqueueWork(() -> {
             List<CharacterDefinition> definitions = CharacterCodecLines.decode(payload.encodedCharacters());
             Identifier selected = definitions.stream().findFirst().map(CharacterDefinition::id).orElse(CharacterDefinition.builtinDefault().id());
+            Identifier active = null;
             try {
                 selected = Identifier.parse(payload.selectedCharacterId());
             } catch (Exception ignored) {}
-            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), payload.level(), payload.experience(), payload.friendship(),
+            try {
+                if (!payload.activeCharacterId().isBlank()) {
+                    active = Identifier.parse(payload.activeCharacterId());
+                }
+            } catch (Exception ignored) {}
+            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), active, payload.activeSkinId(), payload.level(), payload.experience(), payload.friendship(),
                     decodeIdentifierSet(payload.unlockedCharacterIds()), decodeStringSet(payload.unlockedSkinIds()), decodeProgressEntries(payload.encodedProgressEntries())));
         });
     }
@@ -196,6 +207,10 @@ public class CharacterSettingsScreen extends Screen {
         }
 
         if (this.mode == ScreenMode.LIST) {
+            if (event.button() == 0 && this.handleEquipCharacterClick(layout, mouseX, mouseY)) {
+                return true;
+            }
+
             if (event.button() == 0 && this.isInside(mouseX, mouseY, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH)) {
                 this.mode = ScreenMode.DETAIL;
                 this.mainTab = MainTab.ARCHIVE;
@@ -347,6 +362,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderCharacterListPage(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
+        this.renderEquipCharacterButton(graphics, layout, mouseX, mouseY);
         boolean detailHover = this.isInside(mouseX, mouseY, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH);
         MutableComponent detailText = Component.translatable("gui.astral_craft.character_settings.character_detail");
         this.renderFancyButton(graphics, detailText, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH, false, detailHover, this.pinkButtonStyle());
@@ -384,7 +400,7 @@ public class CharacterSettingsScreen extends Screen {
                 boolean equipped = definition.id().equals(this.equippedCharacterId);
                 boolean unlocked = this.isCharacterUnlocked(definition);
                 boolean hovered = this.isInside(mouseX, mouseY, cardX, cardY, cardW, cardH);
-                this.renderCharacterCard(graphics, definition, this.entityFor(definition, this.skinIdFor(definition)), cardX, cardY, cardW, cardH, selected, equipped, unlocked, hovered, layout.cardEntityScale);
+                this.renderCharacterCard(graphics, definition, this.listEntityFor(definition, this.skinIdFor(definition)), cardX, cardY, cardW, cardH, selected, equipped, unlocked, hovered, layout.cardEntityScale);
             }
 
             int rows = (definitions.size() + columns - 1) / columns;
@@ -579,6 +595,43 @@ public class CharacterSettingsScreen extends Screen {
         return false;
     }
 
+    protected void renderEquipCharacterButton(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
+        CharacterDefinition definition = this.selectedCharacter();
+        int buttonW = Math.clamp(layout.rightW / 4, 86, 120);
+        int buttonH = layout.detailButtonH;
+        int buttonX = layout.detailButtonX - buttonW - CharacterLayout.TAB_GAP;
+        int buttonY = layout.detailButtonY;
+        boolean unlocked = this.isCharacterUnlocked(definition);
+        boolean equipped = definition.id().equals(this.equippedCharacterId);
+        boolean hovered = this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH);
+        MutableComponent text = Component.translatable(!unlocked
+                ? "gui.astral_craft.character_settings.character_locked_short"
+                : equipped ? "gui.astral_craft.character_settings.character_equipped"
+                : "gui.astral_craft.character_settings.character_equip");
+        this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, equipped, hovered && unlocked, equipped ? this.selectedButtonStyle() : this.pinkButtonStyle());
+    }
+
+    protected boolean handleEquipCharacterClick(CharacterLayout layout, double mouseX, double mouseY) {
+        int buttonW = Math.clamp(layout.rightW / 4, 86, 120);
+        int buttonH = layout.detailButtonH;
+        int buttonX = layout.detailButtonX - buttonW - CharacterLayout.TAB_GAP;
+        int buttonY = layout.detailButtonY;
+        if (!this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH)) {
+            return false;
+        }
+
+        CharacterDefinition definition = this.selectedCharacter();
+        if (!this.isCharacterUnlocked(definition)) {
+            return true;
+        }
+
+        this.equippedCharacterId = definition.id();
+        this.equippedSkinId = this.skinIdFor(definition);
+        this.selectedSkinId = this.equippedSkinId;
+        ClientPacketDistributor.sendToServer(new CharacterSelectionPayload(definition.id().toString()));
+        return true;
+    }
+
     protected boolean handleCharacterListDropdownClick(CharacterLayout layout, double mouseX, double mouseY) {
         AstralDropdown.Layout sourceLayout = this.sourceDropdownLayout(layout);
         AstralDropdown.Layout sortLayout = this.sortDropdownLayout(layout);
@@ -717,7 +770,13 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected boolean isSkinUnlocked(CharacterDefinition definition, CharacterSkinDefinition skin) {
-        return skin.unlockedByDefault() || this.unlockedSkinIds.contains(this.skinKey(definition.id(), skin.id())) || this.unlockedSkinIds.contains(skin.id());
+        return this.isDefaultSkin(definition, skin) || skin.unlockedByDefault() || this.unlockedSkinIds.contains(this.skinKey(definition.id(), skin.id())) || this.unlockedSkinIds.contains(skin.id());
+    }
+
+    protected boolean isDefaultSkin(CharacterDefinition definition, CharacterSkinDefinition skin) {
+        if (definition == null || skin == null) return false;
+        if ("default".equals(skin.id())) return true;
+        return !definition.skins().isEmpty() && definition.skins().getFirst().id().equals(skin.id());
     }
 
     protected String skinKey(Identifier characterId, String skinId) {
@@ -733,7 +792,7 @@ public class CharacterSettingsScreen extends Screen {
             }
 
             for (CharacterSkinDefinition skin : definition.skins()) {
-                if (skin.unlockedByDefault()) {
+                if (this.isDefaultSkin(definition, skin) || skin.unlockedByDefault()) {
                     this.unlockedSkinIds.add(this.skinKey(definition.id(), skin.id()));
                     entry = entry.unlockSkin(skin.id());
                 }
@@ -889,7 +948,7 @@ public class CharacterSettingsScreen extends Screen {
             CharacterDefinition definition = this.characters.stream().filter(value -> value.id().equals(safeId)).findFirst().orElse(this.characters.getFirst());
             entry = definition.unlockedByDefault() ? CharacterProgressEntry.unlockedDefault() : CharacterProgressEntry.locked();
             for (CharacterSkinDefinition skin : definition.skins()) {
-                if (skin.unlockedByDefault()) {
+                if (this.isDefaultSkin(definition, skin) || skin.unlockedByDefault()) {
                     entry = entry.unlockSkin(skin.id());
                 }
             }
@@ -1118,14 +1177,25 @@ public class CharacterSettingsScreen extends Screen {
 
     protected LivingEntity previewEntity() {
         CharacterDefinition definition = this.selectedCharacter();
-        return this.entityFor(definition, this.selectedSkinId);
+        return this.previewEntityFor(definition, this.selectedSkinId);
     }
 
-    protected LivingEntity entityFor(CharacterDefinition definition, String skinId) {
+    protected LivingEntity previewEntityFor(CharacterDefinition definition, String skinId) {
+        return this.configuredEntity("preview", definition, skinId, this.safeAnimationAction(definition, this.previewAnimationAction()), Math.max(0, Math.round(this.previewAnimationTimeSeconds * 20.0F)));
+    }
+
+    protected LivingEntity listEntityFor(CharacterDefinition definition, String skinId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        int tickOffset = Math.floorMod((definition == null ? "" : definition.id().toString()).hashCode(), 80);
+        int tick = minecraft.level == null ? tickOffset : (int) ((minecraft.level.getGameTime() + tickOffset) % Integer.MAX_VALUE);
+        return this.configuredEntity("list", definition, skinId, this.safeAnimationAction(definition, definition == null ? "idle" : definition.previewAction()), tick);
+    }
+
+    protected AstralCharacterEntity configuredEntity(String scope, CharacterDefinition definition, String skinId, String animationAction, int tickCount) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || definition == null) return null;
         String safeSkin = skinId == null || skinId.isBlank() ? this.skinIdFor(definition) : skinId;
-        String key = definition.id() + "#" + safeSkin;
+        String key = scope + "#" + definition.id() + "#" + safeSkin;
         AstralCharacterEntity entity = this.previewEntities.get(key);
         if (entity == null) {
             entity = new AstralCharacterEntity(AstralEntities.ASTRAL_CHARACTER.get(), minecraft.level);
@@ -1137,9 +1207,19 @@ public class CharacterSettingsScreen extends Screen {
         entity.setSkinId(safeSkin);
         entity.setCharacterLevel(progress.level());
         entity.setFriendship(progress.friendship());
-        entity.setAnimationAction(this.previewAnimationAction());
-        entity.tickCount = Math.max(0, Math.round(this.previewAnimationTimeSeconds * 20.0F));
+        entity.setAnimationAction(animationAction);
+        entity.tickCount = Math.max(0, tickCount);
         return entity;
+    }
+
+    protected String safeAnimationAction(CharacterDefinition definition, String preferred) {
+        if (definition == null) return "idle";
+        List<String> actions = AstralGeoAnimationManager.INSTANCE.animationNames(definition.animationSetKey());
+        if (actions.isEmpty()) return preferred == null || preferred.isBlank() ? "idle" : preferred;
+        if (preferred != null && actions.contains(preferred)) return preferred;
+        String preview = definition.previewAction();
+        if (preview != null && actions.contains(preview)) return preview;
+        return actions.getFirst();
     }
 
     protected String skinIdFor(CharacterDefinition definition) {

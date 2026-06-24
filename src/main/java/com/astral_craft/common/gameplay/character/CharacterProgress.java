@@ -168,7 +168,7 @@ public class CharacterProgress {
             }
 
             for (CharacterSkinDefinition skin : definition.skins()) {
-                if (skin.unlockedByDefault()) {
+                if (isDefaultSkin(definition, skin) || skin.unlockedByDefault()) {
                     entry = entry.unlockSkin(skin.id());
                 }
             }
@@ -177,6 +177,12 @@ public class CharacterProgress {
         }
 
         this.ensureEntry(this.selectedCharacter, true);
+    }
+
+    private static boolean isDefaultSkin(CharacterDefinition definition, CharacterSkinDefinition skin) {
+        if (definition == null || skin == null) return false;
+        if ("default".equals(skin.id())) return true;
+        return !definition.skins().isEmpty() && definition.skins().getFirst().id().equals(skin.id());
     }
 
     protected CharacterProgressEntry ensureEntry(Identifier characterId, boolean unlocked) {
