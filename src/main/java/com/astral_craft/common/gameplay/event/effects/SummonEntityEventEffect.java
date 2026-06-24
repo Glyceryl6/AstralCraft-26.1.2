@@ -9,9 +9,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.HashSet;
@@ -19,7 +22,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-public record SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int count, double spread, boolean silent) implements AstralEventEffect {
+public record SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int count, double spread, boolean silent,
+                                      boolean respectDifficulty, boolean allowPeacefulMonsters) implements AstralEventEffect {
 
     public static final int MAX_POSITION_ATTEMPTS = 48;
     public static final int VERTICAL_SEARCH_RADIUS = 4;
@@ -28,15 +32,21 @@ public record SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int 
             RegistryCodecs.homogeneousList(Registries.ENTITY_TYPE).fieldOf("entity").forGetter(SummonEntityEventEffect::entityTypes),
             Codec.INT.optionalFieldOf("count", 1).forGetter(SummonEntityEventEffect::count),
             Codec.DOUBLE.optionalFieldOf("spread", 2.0D).forGetter(SummonEntityEventEffect::spread),
-            Codec.BOOL.optionalFieldOf("silent", true).forGetter(SummonEntityEventEffect::silent)
+            Codec.BOOL.optionalFieldOf("silent", true).forGetter(SummonEntityEventEffect::silent),
+            Codec.BOOL.optionalFieldOf("respect_difficulty", true).forGetter(SummonEntityEventEffect::respectDifficulty),
+            Codec.BOOL.optionalFieldOf("allow_peaceful_monsters", false).forGetter(SummonEntityEventEffect::allowPeacefulMonsters)
     ).apply(instance, SummonEntityEventEffect::new));
 
+    public SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int count, double spread, boolean silent) {
+        this(entityTypes, count, spread, silent, true, false);
+    }
+
     public SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int count, double spread) {
-        this(entityTypes, count, spread, true);
+        this(entityTypes, count, spread, true, true, false);
     }
 
     public SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int count) {
-        this(entityTypes, count, 2.0D, true);
+        this(entityTypes, count, 2.0D, true, true, false);
     }
 
     @Override
@@ -59,10 +69,19 @@ public record SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int 
         for (int i = 0; i < safeCount; i++) {
             Optional<Holder<EntityType<?>>> entityType = this.entityTypes.getRandomElement(level.getRandom());
             if (entityType.isEmpty()) return;
-            Entity entity = entityType.get().value().create(level, EntitySpawnReason.TRIGGERED);
+            EntityType<?> type = entityType.get().value();
+            if (!this.canSpawnInCurrentDifficulty(level, type, null)) continue;
+            Entity entity = type.create(level, EntitySpawnReason.TRIGGERED);
             if (entity == null) continue;
+            if (!this.canSpawnInCurrentDifficulty(level, type, entity)) {
+                entity.discard();
+                continue;
+            }
             BlockPos spawnPos = this.findSpawnPos(context, level, entity, safeSpread, usedPositions);
-            if (spawnPos == null) continue;
+            if (spawnPos == null) {
+                entity.discard();
+                continue;
+            }
             entity.setUUID(UUID.randomUUID());
             entity.setSilent(this.silent);
             entity.snapTo(spawnPos.getX() + 0.5D, spawnPos.getY(), spawnPos.getZ() + 0.5D,
@@ -73,6 +92,13 @@ public record SummonEntityEventEffect(HolderSet<EntityType<?>> entityTypes, int 
                 entity.discard();
             }
         }
+    }
+
+    private boolean canSpawnInCurrentDifficulty(ServerLevel level, EntityType<?> type, Entity entity) {
+        if (!this.respectDifficulty || this.allowPeacefulMonsters || level.getDifficulty() != Difficulty.PEACEFUL) {
+            return true;
+        }
+        return type.getCategory() != MobCategory.MONSTER && !(entity instanceof Monster);
     }
 
     private BlockPos findSpawnPos(AstralEventContext context, ServerLevel level, Entity entity, double safeSpread, Set<BlockPos> usedPositions) {

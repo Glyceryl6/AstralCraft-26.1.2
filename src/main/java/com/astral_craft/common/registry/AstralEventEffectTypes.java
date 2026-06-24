@@ -2,20 +2,7 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
-import com.astral_craft.common.gameplay.event.effects.AddExperienceEventEffect;
-import com.astral_craft.common.gameplay.event.effects.AddHungerEventEffect;
-import com.astral_craft.common.gameplay.event.effects.ChanceEventEffect;
-import com.astral_craft.common.gameplay.event.effects.ClearMobEffectEventEffect;
-import com.astral_craft.common.gameplay.event.effects.CommandEventEffect;
-import com.astral_craft.common.gameplay.event.effects.DamageEventEffect;
-import com.astral_craft.common.gameplay.event.effects.DropItemEventEffect;
-import com.astral_craft.common.gameplay.event.effects.GainSelectedCharacterFriendshipEventEffect;
-import com.astral_craft.common.gameplay.event.effects.GiveItemEventEffect;
-import com.astral_craft.common.gameplay.event.effects.HealEventEffect;
-import com.astral_craft.common.gameplay.event.effects.MobEffectEventEffect;
-import com.astral_craft.common.gameplay.event.effects.NoopEventEffect;
-import com.astral_craft.common.gameplay.event.effects.SetFireEventEffect;
-import com.astral_craft.common.gameplay.event.effects.SummonEntityEventEffect;
+import com.astral_craft.common.gameplay.event.effects.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.Registry;
@@ -24,6 +11,7 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+@SuppressWarnings("unused")
 public class AstralEventEffectTypes {
 
     public static final ResourceKey<Registry<MapCodec<? extends AstralEventEffect>>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("astral_event_effect_types"));
@@ -32,6 +20,10 @@ public class AstralEventEffectTypes {
 
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<NoopEventEffect>> NOOP = register("noop", NoopEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<ChanceEventEffect>> CHANCE = register("chance", ChanceEventEffect.CODEC);
+    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<ConditionalEventEffect>> CONDITIONAL = register("conditional", ConditionalEventEffect.CODEC);
+    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<RepeatEventEffect>> REPEAT = register("repeat", RepeatEventEffect.CODEC);
+    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<RandomChoiceEventEffect>> RANDOM_CHOICE = register("random_choice", RandomChoiceEventEffect.CODEC);
+    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<ForNearbyEntitiesEventEffect>> FOR_NEARBY_ENTITIES = register("for_nearby_entities", ForNearbyEntitiesEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<GiveItemEventEffect>> GIVE_ITEM = register("give_item", GiveItemEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<DropItemEventEffect>> DROP_ITEM = register("drop_item", DropItemEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<SummonEntityEventEffect>> SUMMON_ENTITY = register("summon_entity", SummonEntityEventEffect.CODEC);
@@ -66,6 +58,7 @@ public class AstralEventEffectTypes {
         if (rawId == null || rawId.isBlank()) {
             return AstralCraft.prefix("noop");
         }
+
         try {
             return rawId.contains(":") ? Identifier.parse(rawId) : AstralCraft.prefix(rawId);
         } catch (Exception ignored) {

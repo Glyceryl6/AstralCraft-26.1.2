@@ -26,6 +26,7 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+@SuppressWarnings("unused")
 public class AstralEventConditionTypes {
 
     public static final ResourceKey<Registry<MapCodec<? extends AstralEventCondition>>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("astral_event_condition_types"));
@@ -77,5 +78,4 @@ public class AstralEventConditionTypes {
         }
     }
 
-    private AstralEventConditionTypes() {}
 }
