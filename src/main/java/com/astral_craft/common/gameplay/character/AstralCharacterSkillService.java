@@ -1,40 +1,20 @@
 package com.astral_craft.common.gameplay.character;
 
-import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
+import com.astral_craft.common.config.AstralGameplayConfig;
+import com.astral_craft.common.network.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralAttachments;
+import com.astral_craft.common.registry.AstralCharacterSkills;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class AstralCharacterSkillService {
 
     public static final double PUBLIC_CUTIN_RANGE = 96.0D;
-
-    protected static final Map<String, AstralCharacterSkill> SKILLS = new LinkedHashMap<>();
-
-    static {
-        register("mimi", AstralCharacterSkillService::useMimiSkill);
-        register("fen", AstralCharacterSkillService::useHealSkill);
-        register("dorothy", AstralCharacterSkillService::useHealSkill);
-        register("lulu", AstralCharacterSkillService::useHealSkill);
-        register("ame", AstralCharacterSkillService::useHealSkill);
-        register("nardis", AstralCharacterSkillService::useNardisSkill);
-        register("pandaman", AstralCharacterSkillService::usePandamanSkill);
-        register("jill", AstralCharacterSkillService::useDrawOneSkill);
-        register("megas", AstralCharacterSkillService::useDrawOneSkill);
-    }
-
-    public static void register(String characterPath, AstralCharacterSkill skill) {
-        if (characterPath == null || characterPath.isBlank() || skill == null) return;
-        SKILLS.put(characterPath, skill);
-    }
 
     public static void useActiveSkill(ServerPlayer player) {
         if (player == null) return;
@@ -52,7 +32,14 @@ public class AstralCharacterSkillService {
         }
 
         CharacterSkillDefinition skill = maybeSkill.get();
-        String key = cooldownKey(definition, skill);
+        Identifier handlerId = skill.safeHandler(definition.id());
+        AstralCharacterSkillSet skillSet = AstralCharacterSkills.get(handlerId).orElseGet(() -> AstralCharacterSkills.getOrDefault(definition.id()));
+        if (!skillSet.hasActiveSkill()) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.skill.no_active"), true);
+            return;
+        }
+
+        String key = thisCooldownKey(definition, skill, handlerId);
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
         int cooldown = skillState.cooldown(key);
         if (cooldown > 0 && !canBypassCooldown(player)) {
@@ -60,8 +47,8 @@ public class AstralCharacterSkillService {
             return;
         }
 
-        AstralCharacterSkill handler = SKILLS.getOrDefault(definition.id().getPath(), AstralCharacterSkillService::useFallbackSkill);
-        if (!handler.use(player, state, definition, skill)) {
+        CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
+        if (!skillSet.useActive(context)) {
             return;
         }
 
@@ -70,14 +57,24 @@ public class AstralCharacterSkillService {
             skillState.setCooldown(key, nextCooldown);
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
-//        sendCutin(player, definition, skill);
+        sendCutin(player, state, definition, skill, skillSet);
         player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(skill))).withStyle(ChatFormatting.AQUA), true);
     }
 
     public static void serverTick(ServerPlayer player) {
         if (player == null) return;
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
-        if (skillState.tick()) {
+        boolean changed = skillState.tick();
+        ActiveCharacterState state = CharacterProgressManager.activeState(player);
+        if (state.active()) {
+            CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
+            Optional<CharacterSkillDefinition> maybeSkill = activeSkill(definition);
+            CharacterSkillDefinition skill = maybeSkill.orElse(new CharacterSkillDefinition("passive", "", "", 0));
+            Identifier handlerId = skill.safeHandler(definition.id());
+            AstralCharacterSkillSet skillSet = AstralCharacterSkills.get(handlerId).orElseGet(() -> AstralCharacterSkills.getOrDefault(definition.id()));
+            skillSet.serverTick(new CharacterSkillContext(player, state, definition, skill, skillState));
+        }
+        if (changed) {
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
     }
@@ -89,26 +86,27 @@ public class AstralCharacterSkillService {
                 return Optional.of(skill);
             }
         }
-
         for (CharacterSkillDefinition skill : definition.skills()) {
-            if (skill.cooldown() > 0 || skill.pvpCooldown() > 0 || skill.pveCooldown() > 0) {
+            if (skill.cooldown() > 0 || skill.pvpCooldown() > 0 || skill.pveCooldown() > 0 || skill.cooldownSeconds() > 0 || skill.pvpCooldownSeconds() > 0 || skill.pveCooldownSeconds() > 0) {
                 return Optional.of(skill);
             }
         }
-
         return Optional.empty();
     }
 
-    protected static String cooldownKey(CharacterDefinition definition, CharacterSkillDefinition skill) {
-        return definition.id() + ":" + skill.id();
+    protected static String thisCooldownKey(CharacterDefinition definition, CharacterSkillDefinition skill, Identifier handlerId) {
+        return definition.id() + ":" + handlerId + ":" + skill.id();
     }
 
     protected static int cooldownTicks(CharacterSkillDefinition skill) {
-        int rounds = skill.cooldown();
-        if (rounds <= 0 && skill.pvpCooldown() >= 0) rounds = skill.pvpCooldown();
-        if (rounds <= 0 && skill.pveCooldown() >= 0) rounds = skill.pveCooldown();
-        if (rounds <= 0) return 0;
-        return Math.clamp(rounds * 20 * 10, 20, 20 * 60 * 10);
+        int seconds = skill.cooldownSeconds(CharacterSkillDefinition.SkillMode.PVP);
+        if (seconds <= 0) {
+            int rounds = skill.cooldown(CharacterSkillDefinition.SkillMode.PVP);
+            if (rounds <= 0) return 0;
+            seconds = rounds * AstralGameplayConfig.skillCooldownSecondsPerRound();
+        }
+        seconds = Math.clamp(seconds, AstralGameplayConfig.skillMinimumCooldownSeconds(), AstralGameplayConfig.skillMaximumCooldownSeconds());
+        return Math.max(0, seconds * 20);
     }
 
     protected static int seconds(int ticks) {
@@ -126,45 +124,34 @@ public class AstralCharacterSkillService {
         return "message.astral_craft.skill.default_name";
     }
 
-    protected static boolean useMimiSkill(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill) {
-        int cleared = AstralHandCardManager.clear(player);
-        AstralHandCardManager.addRandomEffectCards(player, cleared + 1);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.mimi", cleared + 1), true);
-        return true;
+    protected static String displayDescriptionKey(CharacterSkillDefinition skill) {
+        if (!skill.descriptionKey().isBlank()) return skill.descriptionKey();
+        if (!skill.pvpDescriptionKey().isBlank()) return skill.pvpDescriptionKey();
+        if (!skill.pveDescriptionKey().isBlank()) return skill.pveDescriptionKey();
+        return "message.astral_craft.skill.default_description";
     }
 
-    protected static boolean useHealSkill(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill) {
-        float amount = Math.clamp(state.friendship(), 2.0F, 6.0F);
-        player.heal(amount);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.heal", (int) amount), true);
-        return true;
-    }
+    protected static void sendCutin(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill, AstralCharacterSkillSet skillSet) {
+        int duration = AstralGameplayConfig.skillCutinDurationTicks();
+        if (duration <= 0) return;
+        String action = skill.safeAnimationAction();
+        if ("skill".equals(action) && skillSet != null) {
+            action = skillSet.fallbackAnimation();
+        }
+        CharacterSkillCutinPayload payload = new CharacterSkillCutinPayload(definition.id().toString(), state.skinId(), skill.id(), action, duration);
+        String audience = AstralGameplayConfig.skillCutinAudience();
+        if ("none".equals(audience)) return;
+        if ("nearby".equals(audience)) {
+            double maxDistanceSqr = PUBLIC_CUTIN_RANGE * PUBLIC_CUTIN_RANGE;
+            for (ServerPlayer viewer : player.level().players()) {
+                if (viewer.distanceToSqr(player) <= maxDistanceSqr) {
+                    PacketDistributor.sendToPlayer(viewer, payload);
+                }
+            }
+            return;
+        }
 
-    protected static boolean useNardisSkill(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill) {
-        AstralHandCardManager.addRandomEffectCards(player, 3);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.draw", 3), true);
-        return true;
-    }
-
-    protected static boolean usePandamanSkill(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill) {
-        List<Identifier> foods = List.of(AstralCraft.prefix("handcard_hamburger"), AstralCraft.prefix("handcard_chocolate_cake"));
-        Identifier card = foods.get(player.getRandom().nextInt(foods.size()));
-        AstralHandCardManager.add(player, card, 1);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.food"), true);
-        return true;
-    }
-
-    protected static boolean useDrawOneSkill(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill) {
-        AstralHandCardManager.addRandomEffectCards(player, 1);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.draw", 1), true);
-        return true;
-    }
-
-    protected static boolean useFallbackSkill(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill) {
-        player.heal(1.0F);
-        AstralHandCardManager.addRandomEffectCards(player, 1);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.fallback"), true);
-        return true;
+        PacketDistributor.sendToPlayer(player, payload);
     }
 
 }

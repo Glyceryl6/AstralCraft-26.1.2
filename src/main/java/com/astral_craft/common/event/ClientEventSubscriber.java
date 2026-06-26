@@ -1,10 +1,7 @@
 package com.astral_craft.common.event;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.client.gui.CardRevealOverlay;
-import com.astral_craft.client.gui.ChipSelectionScreen;
-import com.astral_craft.client.gui.HandCardDeckScreen;
-import com.astral_craft.client.gui.TargetSelectionScreen;
+import com.astral_craft.client.gui.*;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
 import com.astral_craft.client.gui.board.BoardHudOverlay;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
@@ -130,6 +127,7 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerClientPayloadHandlers(RegisterClientPayloadHandlersEvent event) {
         event.register(CardRevealPayload.TYPE, CardRevealOverlay::show);
+        event.register(CharacterSkillCutinPayload.TYPE, CharacterSkillCutinOverlay::show);
         event.register(CardRevealEntityPayload.TYPE, CardRevealEntityOverlay::show);
         event.register(OpenTargetSelectionPayload.TYPE, TargetSelectionScreen::open);
         event.register(OpenBattleScenePayload.TYPE, BattleSceneScreen::open);

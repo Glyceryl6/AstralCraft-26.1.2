@@ -4,6 +4,7 @@ import com.astral_craft.common.gameplay.AstralBuiltinCards;
 import com.astral_craft.common.gameplay.AstralBuiltinChips;
 import com.astral_craft.common.gameplay.AstralPartyChips;
 import com.astral_craft.common.gameplay.PanelTypes;
+import com.astral_craft.common.registry.AstralCharacterSkills;
 import com.astral_craft.common.registry.AstralEventEffectTypes;
 import com.astral_craft.common.registry.*;
 import net.minecraft.resources.Identifier;
@@ -28,6 +29,7 @@ public class AstralCraft {
         AstralBlocks.BLOCKS.register(modEventBus);
         AstralEntities.ENTITIES.register(modEventBus);
         AstralAttachments.ATTACHMENTS.register(modEventBus);
+        AstralCharacterSkills.SKILL_SETS.register(modEventBus);
         AstralEventEffectTypes.EFFECT_TYPES.register(modEventBus);
         AstralEventConditionTypes.CONDITION_TYPES.register(modEventBus);
         AstralDataComponents.DATA_COMPONENT_TYPE.register(modEventBus);
