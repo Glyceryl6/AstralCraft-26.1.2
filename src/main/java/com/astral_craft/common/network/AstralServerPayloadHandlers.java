@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.character.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+@SuppressWarnings("unused")
 public class AstralServerPayloadHandlers {
 
     public static void handleCardTargets(CardTargetSelectionPayload payload, IPayloadContext context) {
@@ -55,6 +56,14 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 CharacterProgressManager.selectCharacter(player, payload.characterId());
+            }
+        });
+    }
+
+    public static void handleUnlockAllCharacters(UnlockAllCharactersPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CharacterProgressManager.unlockAllForTesting(player);
             }
         });
     }

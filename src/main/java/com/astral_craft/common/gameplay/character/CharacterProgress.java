@@ -160,6 +160,11 @@ public class CharacterProgress {
         return this.ensureEntry(characterId, false);
     }
 
+    public void setEntry(Identifier characterId, CharacterProgressEntry entry) {
+        if (characterId == null || entry == null) return;
+        this.entries.put(characterId, entry);
+    }
+
     public void syncUnlockedDefaults(Iterable<CharacterDefinition> definitions) {
         for (CharacterDefinition definition : definitions) {
             CharacterProgressEntry entry = this.entry(definition.id());

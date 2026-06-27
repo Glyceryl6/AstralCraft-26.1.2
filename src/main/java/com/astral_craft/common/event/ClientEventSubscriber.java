@@ -33,6 +33,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.*;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
@@ -86,10 +87,18 @@ public class ClientEventSubscriber {
         AstralKeyMappings.register(event);
     }
 
+
+    @SubscribeEvent
+    public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+        AstralStatusMobEffectClientExtensions.register(event);
+    }
+
     @SubscribeEvent
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(BoardHudOverlay.LAYER, BoardHudOverlay::render);
+        event.registerAboveAll(AstralHandCardHudOverlay.LAYER, AstralHandCardHudOverlay::render);
         event.registerAboveAll(CardRevealOverlay.LAYER, CardRevealOverlay::render);
+        event.registerAboveAll(CharacterSkillCutinOverlay.LAYER, CharacterSkillCutinOverlay::render);
     }
 
     @SubscribeEvent

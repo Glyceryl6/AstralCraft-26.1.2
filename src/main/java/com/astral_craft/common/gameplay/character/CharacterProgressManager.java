@@ -2,7 +2,6 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
 import com.astral_craft.common.registry.AstralAttachments;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -11,6 +10,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class CharacterProgressManager {
+
+    public static final Identifier NORMAL_PLAYER_ID = Identifier.fromNamespaceAndPath("minecraft", "player");
+    public static final Identifier NORMAL_CHARACTER_ID = Identifier.fromNamespaceAndPath("minecraft", "normal");
+    public static final Identifier NONE_CHARACTER_ID = Identifier.fromNamespaceAndPath("minecraft", "none");
 
     public static CharacterProgress progress(ServerPlayer player) {
         CharacterProgress progress = player.getData(AstralAttachments.CHARACTER_PROGRESS);
@@ -37,7 +40,7 @@ public class CharacterProgressManager {
         if (!refreshed.equals(state)) {
             player.setData(AstralAttachments.ACTIVE_CHARACTER, refreshed);
         }
-        
+
         return refreshed;
     }
 
@@ -81,6 +84,11 @@ public class CharacterProgressManager {
     }
 
     public static void selectCharacter(ServerPlayer player, String rawId) {
+        if (isInactiveCharacterId(rawId)) {
+            deactivateCharacter(player);
+            return;
+        }
+
         Identifier id = safeParse(rawId, CharacterManager.INSTANCE.defaultCharacter().id());
         if (!CharacterManager.INSTANCE.contains(id)) return;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(id);
@@ -97,7 +105,15 @@ public class CharacterProgressManager {
 
         save(player, progress);
         refreshActiveCharacter(player, definition.id());
-        player.sendSystemMessage(Component.translatable("message.astral_craft.character_settings.character_active", Component.translatable(definition.nameKey())), true);
+        player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.character_active", net.minecraft.network.chat.Component.translatable(definition.nameKey())), true);
+    }
+
+    public static void deactivateCharacter(ServerPlayer player) {
+        if (player == null) return;
+        ActiveCharacterState previous = player.getData(AstralAttachments.ACTIVE_CHARACTER);
+        player.setData(AstralAttachments.ACTIVE_CHARACTER, previous.inactive());
+        AstralCharacterSkillService.clearStatusEffects(player);
+        player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.character_inactive"), true);
     }
 
     public static void selectSkin(ServerPlayer player, String rawCharacterId, String skinId) {
@@ -114,6 +130,28 @@ public class CharacterProgressManager {
             save(player, progress);
             refreshActiveCharacter(player, definition.id());
         }
+    }
+
+
+    public static void unlockAllForTesting(ServerPlayer player) {
+        if (player == null) return;
+        if (!player.getAbilities().instabuild) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.unlock_all_forbidden"), true);
+            return;
+        }
+
+        CharacterProgress progress = progress(player);
+        for (CharacterDefinition definition : CharacterManager.INSTANCE.values()) {
+            CharacterProgressEntry entry = progress.entry(definition.id()).unlock();
+            for (CharacterSkinDefinition skin : definition.skins()) {
+                entry = entry.unlockSkin(skin.id());
+            }
+            progress.setEntry(definition.id(), entry);
+        }
+
+        save(player, progress);
+        player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.unlock_all_done"), true);
+        open(player);
     }
 
     public static void unlockCharacter(ServerPlayer player, Identifier characterId) {
@@ -191,6 +229,13 @@ public class CharacterProgressManager {
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
         CharacterProgressEntry entry = progress.entry(characterId);
         player.setData(AstralAttachments.ACTIVE_CHARACTER, ActiveCharacterState.of(definition, entry));
+    }
+
+
+    public static boolean isInactiveCharacterId(String rawId) {
+        if (rawId == null || rawId.isBlank()) return true;
+        Identifier id = safeParse(rawId, NONE_CHARACTER_ID);
+        return NONE_CHARACTER_ID.equals(id) || NORMAL_CHARACTER_ID.equals(id) || NORMAL_PLAYER_ID.equals(id);
     }
 
     public static Identifier safeParse(String rawId, Identifier fallback) {
