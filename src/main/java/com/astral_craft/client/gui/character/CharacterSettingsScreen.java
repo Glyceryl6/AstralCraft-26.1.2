@@ -13,6 +13,7 @@ import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.network.CharacterSelectionPayload;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
+import com.astral_craft.common.network.UnlockAllCharactersPayload;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -82,7 +83,8 @@ public class CharacterSettingsScreen extends Screen {
     protected boolean hoveredClickable;
 
     public CharacterSettingsScreen(
-            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
+            List<CharacterDefinition> characters, Identifier selectedCharacterId,
+            String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
             int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds,
             Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
@@ -207,6 +209,10 @@ public class CharacterSettingsScreen extends Screen {
         }
 
         if (this.mode == ScreenMode.LIST) {
+            if (event.button() == 0 && this.handleUnlockAllButtonClick(layout, mouseX, mouseY)) {
+                return true;
+            }
+
             if (event.button() == 0 && this.handleEquipCharacterClick(layout, mouseX, mouseY)) {
                 return true;
             }
@@ -339,6 +345,36 @@ public class CharacterSettingsScreen extends Screen {
         graphics.text(this.font, title, layout.rightX + 14, layout.topY + 13, 0xFFFFFFFF, false);
     }
 
+    protected void renderUnlockAllButton(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
+        if (!this.canRequestUnlockAll()) return;
+        int buttonW = this.actionButtonWidth(layout);
+        int buttonH = layout.detailButtonH;
+        int buttonX = this.unlockAllButtonX(layout);
+        int buttonY = layout.detailButtonY;
+        boolean hovered = this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH);
+        MutableComponent text = Component.translatable("gui.astral_craft.character_settings.unlock_all");
+        this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, false, hovered, this.pinkButtonStyle());
+    }
+
+    protected boolean handleUnlockAllButtonClick(CharacterLayout layout, double mouseX, double mouseY) {
+        if (!this.canRequestUnlockAll()) return false;
+        int buttonW = this.actionButtonWidth(layout);
+        int buttonH = layout.detailButtonH;
+        int buttonX = this.unlockAllButtonX(layout);
+        int buttonY = layout.detailButtonY;
+        if (!this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH)) {
+            return false;
+        }
+
+        ClientPacketDistributor.sendToServer(new UnlockAllCharactersPayload());
+        return true;
+    }
+
+    protected boolean canRequestUnlockAll() {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.player != null && minecraft.player.getAbilities().instabuild;
+    }
+
     protected void renderPreview(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
         CharacterDefinition selected = this.selectedCharacter();
         int previewTop = layout.previewY;
@@ -362,6 +398,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderCharacterListPage(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
+        this.renderUnlockAllButton(graphics, layout, mouseX, mouseY);
         this.renderEquipCharacterButton(graphics, layout, mouseX, mouseY);
         boolean detailHover = this.isInside(mouseX, mouseY, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH);
         MutableComponent detailText = Component.translatable("gui.astral_craft.character_settings.character_detail");
@@ -597,24 +634,37 @@ public class CharacterSettingsScreen extends Screen {
 
     protected void renderEquipCharacterButton(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
         CharacterDefinition definition = this.selectedCharacter();
-        int buttonW = Math.clamp(layout.rightW / 4, 86, 120);
+        int buttonW = this.actionButtonWidth(layout);
         int buttonH = layout.detailButtonH;
-        int buttonX = layout.detailButtonX - buttonW - CharacterLayout.TAB_GAP;
+        int buttonX = this.equipButtonX(layout);
         int buttonY = layout.detailButtonY;
         boolean unlocked = this.isCharacterUnlocked(definition);
         boolean equipped = definition.id().equals(this.equippedCharacterId);
         boolean hovered = this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH);
         MutableComponent text = Component.translatable(!unlocked
                 ? "gui.astral_craft.character_settings.character_locked_short"
-                : equipped ? "gui.astral_craft.character_settings.character_equipped"
+                : equipped ? "gui.astral_craft.character_settings.character_unequip"
                 : "gui.astral_craft.character_settings.character_equip");
         this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, equipped, hovered && unlocked, equipped ? this.selectedButtonStyle() : this.pinkButtonStyle());
     }
 
+
+    protected int actionButtonWidth(CharacterLayout layout) {
+        return Math.clamp(layout.rightW / 4, 86, 120);
+    }
+
+    protected int equipButtonX(CharacterLayout layout) {
+        return layout.detailButtonX - this.actionButtonWidth(layout) - CharacterLayout.TAB_GAP;
+    }
+
+    protected int unlockAllButtonX(CharacterLayout layout) {
+        return this.equipButtonX(layout) - this.actionButtonWidth(layout) - CharacterLayout.TAB_GAP;
+    }
+
     protected boolean handleEquipCharacterClick(CharacterLayout layout, double mouseX, double mouseY) {
-        int buttonW = Math.clamp(layout.rightW / 4, 86, 120);
+        int buttonW = this.actionButtonWidth(layout);
         int buttonH = layout.detailButtonH;
-        int buttonX = layout.detailButtonX - buttonW - CharacterLayout.TAB_GAP;
+        int buttonX = this.equipButtonX(layout);
         int buttonY = layout.detailButtonY;
         if (!this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH)) {
             return false;
@@ -622,6 +672,13 @@ public class CharacterSettingsScreen extends Screen {
 
         CharacterDefinition definition = this.selectedCharacter();
         if (!this.isCharacterUnlocked(definition)) {
+            return true;
+        }
+
+        if (definition.id().equals(this.equippedCharacterId)) {
+            this.equippedCharacterId = null;
+            this.equippedSkinId = "default";
+            ClientPacketDistributor.sendToServer(new CharacterSelectionPayload("none"));
             return true;
         }
 
