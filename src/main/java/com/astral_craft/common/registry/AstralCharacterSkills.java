@@ -1,10 +1,7 @@
 package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.character.AstralCharacterActiveSkill;
-import com.astral_craft.common.gameplay.character.AstralCharacterPassiveSkill;
-import com.astral_craft.common.gameplay.character.AstralCharacterSkillSet;
-import com.astral_craft.common.gameplay.character.CharacterSkillContext;
+import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
@@ -14,9 +11,12 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+@SuppressWarnings("unused")
 public class AstralCharacterSkills {
 
     public static final ResourceKey<Registry<AstralCharacterSkillSet>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("character_skill_sets"));
@@ -25,23 +25,29 @@ public class AstralCharacterSkills {
 
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> DEFAULT = register("default", AstralCharacterSkills::useFallbackSkill);
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> MIMI = register("mimi", AstralCharacterSkills::useMimiSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> FEN = register("fen", AstralCharacterSkills::useHealSkill, List.of(AstralCharacterSkills::passiveRegenWhenHungry));
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> DOROTHY = register("dorothy", AstralCharacterSkills::useHealSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> LULU = register("lulu", AstralCharacterSkills::useHealSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> AME = register("ame", AstralCharacterSkills::useHealSkill);
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> FEN = register("fen", AstralCharacterSkills::useRecoverySkill, List.of(AstralCharacterSkills::passiveRecoveryPulse));
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> DOROTHY = register("dorothy", AstralCharacterSkills::useRecoverySkill);
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> LULU = register("lulu", AstralCharacterSkills::useRecoverySkill);
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> AME = register("ame", AstralCharacterSkills::useRecoverySkill);
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> NARDIS = register("nardis", AstralCharacterSkills::useNardisSkill);
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> PANDAMAN = register("pandaman", AstralCharacterSkills::useFoodSkill);
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> PADMAN = register("padman", AstralCharacterSkills::useFoodSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> JILL = register("jill", AstralCharacterSkills::useDrawOneSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> MEGAS = register("megas", AstralCharacterSkills::useDrawOneSkill);
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> JILL = register("jill", AstralCharacterSkills::useAttackPulseSkill);
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> MEGAS = register("megas", AstralCharacterSkills::useAttackPulseSkill);
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> Z3000 = register("z3000", AstralCharacterSkills::useArmorPulseSkill);
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> INK_SHADOW = register("ink_shadow", AstralCharacterSkills::useInvisibilitySkill);
 
     public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill) {
         return register(characterPath, activeSkill, List.of());
     }
 
     public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill, List<AstralCharacterPassiveSkill> passiveSkills) {
-        return SKILL_SETS.register(characterPath, () -> new AstralCharacterSkillSet(AstralCraft.prefix(characterPath), activeSkill, passiveSkills, "skill"));
+        return register(characterPath, activeSkill, passiveSkills, null);
+    }
+
+    public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill, List<AstralCharacterPassiveSkill> passiveSkills, AstralCharacterSkillEffectHandler effectHandler) {
+        Identifier characterId = AstralCraft.prefix(characterPath);
+        return SKILL_SETS.register(characterPath, () -> new AstralCharacterSkillSet(characterId, activeSkill, passiveSkills, effectHandler, "skill"));
     }
 
     public static DeferredRegister<AstralCharacterSkillSet> createRegister(String modId) {
@@ -53,11 +59,14 @@ public class AstralCharacterSkills {
     }
 
     public static AstralCharacterSkillSet getOrDefault(Identifier id) {
-        return get(id).orElseGet(DEFAULT);
+        return get(id).orElseGet(DEFAULT::get);
     }
 
     public static Collection<DeferredHolder<AstralCharacterSkillSet, ? extends AstralCharacterSkillSet>> allHolders() {
         return SKILL_SETS.getEntries();
+    }
+
+    public static void bootstrap() {
     }
 
     protected static boolean useMimiSkill(CharacterSkillContext context) {
@@ -67,10 +76,12 @@ public class AstralCharacterSkills {
         return true;
     }
 
-    protected static boolean useHealSkill(CharacterSkillContext context) {
-        float amount = Math.clamp(context.state().friendship(), 2.0F, 6.0F);
-        context.player().heal(amount);
-        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.heal", (int) amount), true);
+    protected static boolean useRecoverySkill(CharacterSkillContext context) {
+        int duration = AstralCharacterSkillService.durationTicks(context.skill());
+        int amount = Math.max(1, Math.min(6, context.state().friendship()));
+        AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.RECOVERY_PULSE_ID, "effect.astral_craft.character_skill.generic", duration,
+                Map.of(AstralStatusEffects.propertyKey(AstralCraft.prefix("recovery_amount")), String.valueOf(amount))));
+        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.heal", amount), true);
         return true;
     }
 
@@ -84,34 +95,61 @@ public class AstralCharacterSkills {
         List<Identifier> foods = List.of(AstralCraft.prefix("handcard_hamburger"), AstralCraft.prefix("handcard_chocolate_cake"));
         Identifier card = foods.get(context.player().getRandom().nextInt(foods.size()));
         AstralHandCardManager.add(context.player(), card, 1);
+        int duration = AstralCharacterSkillService.durationTicks(context.skill());
+        AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.SNACK_TIME_ID, "effect.astral_craft.character_skill.snack_time", duration,
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), "12")));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.food"), true);
         return true;
     }
 
-    protected static boolean useDrawOneSkill(CharacterSkillContext context) {
+    protected static boolean useAttackPulseSkill(CharacterSkillContext context) {
         AstralHandCardManager.addRandomEffectCards(context.player(), 1);
-        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.draw", 1), true);
+        int duration = AstralCharacterSkillService.durationTicks(context.skill());
+        AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.ATTACK_PULSE_ID, "effect.astral_craft.character_skill.attack_pulse", duration,
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_ATTACK_BONUS), "2")));
+        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.attack_pulse", duration / 20), true);
         return true;
     }
 
     protected static boolean useArmorPulseSkill(CharacterSkillContext context) {
-        context.player().setAbsorptionAmount(Math.max(context.player().getAbsorptionAmount(), 4.0F));
+        int duration = AstralCharacterSkillService.durationTicks(context.skill());
+        AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.ARMOR_PULSE_ID, "effect.astral_craft.character_skill.armor_pulse", duration,
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_DEFENSE_BONUS), "4")));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.shield", 4), true);
         return true;
     }
 
+    protected static boolean useInvisibilitySkill(CharacterSkillContext context) {
+        int duration = AstralCharacterSkillService.durationTicks(context.skill());
+        AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.SHADOW_CLOAK_ID, "effect.astral_craft.character_skill.shadow_cloak", duration,
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), "18", AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_VISIBILITY_MODE), "shadow")));
+        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.shadow_cloak", duration / 20), true);
+        return true;
+    }
+
     protected static boolean useFallbackSkill(CharacterSkillContext context) {
-        context.player().heal(1.0F);
         AstralHandCardManager.addRandomEffectCards(context.player(), 1);
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.fallback"), true);
         return true;
     }
 
-    protected static void passiveRegenWhenHungry(CharacterSkillContext context) {
+    protected static CharacterSkillEffect status(CharacterSkillContext context, Identifier statusId, String nameKey, int duration, Map<String, String> properties) {
+        Identifier handler = context.skill().safeHandler(context.definition().id());
+        Identifier safeStatusId = statusId == null ? AstralStatusEffects.GENERIC_STATUS_ID : statusId;
+        Map<String, String> mergedProperties = new LinkedHashMap<>();
+        if (properties != null) {
+            mergedProperties.putAll(properties);
+        }
+        mergedProperties.putIfAbsent(AstralStatusEffects.propertyKey(AstralStatusEffects.PROPERTY_SKIN), context.state().skinId());
+        return new CharacterSkillEffect(safeStatusId.toString(), context.definition().id(), handler, nameKey, duration, 0, mergedProperties);
+    }
+
+    protected static void passiveRecoveryPulse(CharacterSkillContext context) {
         if (context.player().tickCount % 200 != 0) return;
-        if (context.player().getHealth() >= context.player().getMaxHealth()) return;
         if (context.player().getFoodData().getFoodLevel() < 16) return;
-        context.player().heal(0.5F);
+        int duration = 100;
+        AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.PASSIVE_RECOVERY_ID, "effect.astral_craft.character_skill.generic", duration,
+                Map.of(AstralStatusEffects.propertyKey(AstralCraft.prefix("recovery_amount")), "1")));
     }
 
 }

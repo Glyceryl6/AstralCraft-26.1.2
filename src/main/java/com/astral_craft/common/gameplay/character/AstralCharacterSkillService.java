@@ -3,18 +3,23 @@ package com.astral_craft.common.gameplay.character;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.network.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralAttachments;
+import com.astral_craft.common.registry.AstralStatusEffects;
 import com.astral_craft.common.registry.AstralCharacterSkills;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.List;
 import java.util.Optional;
 
 public class AstralCharacterSkillService {
 
     public static final double PUBLIC_CUTIN_RANGE = 96.0D;
+    public static final int DEFAULT_STATUS_DURATION_SECONDS = 20;
 
     public static void useActiveSkill(ServerPlayer player) {
         if (player == null) return;
@@ -39,7 +44,7 @@ public class AstralCharacterSkillService {
             return;
         }
 
-        String key = thisCooldownKey(definition, skill, handlerId);
+        String key = cooldownKey(definition, skill, handlerId);
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
         int cooldown = skillState.cooldown(key);
         if (cooldown > 0 && !canBypassCooldown(player)) {
@@ -65,18 +70,91 @@ public class AstralCharacterSkillService {
         if (player == null) return;
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
         boolean changed = skillState.tick();
+        CharacterSkillEffectState effectState = player.getData(AstralAttachments.CHARACTER_SKILL_EFFECTS);
+        boolean effectChanged = tickEffects(player, effectState);
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         if (state.active()) {
+            List<CharacterSkillEffect> removed = effectState.removeEffectsNotFrom(state.characterId());
+            for (CharacterSkillEffect effect : removed) {
+                callEffectEnd(player, effect);
+            }
+            effectChanged |= !removed.isEmpty();
             CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
-            Optional<CharacterSkillDefinition> maybeSkill = activeSkill(definition);
-            CharacterSkillDefinition skill = maybeSkill.orElse(new CharacterSkillDefinition("passive", "", "", 0));
+            CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition("passive", "", "", 0));
             Identifier handlerId = skill.safeHandler(definition.id());
             AstralCharacterSkillSet skillSet = AstralCharacterSkills.get(handlerId).orElseGet(() -> AstralCharacterSkills.getOrDefault(definition.id()));
             skillSet.serverTick(new CharacterSkillContext(player, state, definition, skill, skillState));
+        } else {
+            List<CharacterSkillEffect> removed = effectState.clearAndCollectRemoved();
+            for (CharacterSkillEffect effect : removed) {
+                callEffectEnd(player, effect);
+            }
+            effectChanged |= !removed.isEmpty();
         }
         if (changed) {
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
+        if (effectChanged) {
+            player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
+        }
+    }
+
+    public static void addStatusEffect(ServerPlayer player, CharacterSkillEffect effect) {
+        if (player == null || effect == null || effect.durationTicks() <= 0) return;
+        CharacterSkillEffectState effectState = player.getData(AstralAttachments.CHARACTER_SKILL_EFFECTS);
+        CharacterSkillEffect replaced = effectState.add(effect);
+        if (replaced != null) {
+            callEffectEnd(player, replaced);
+        }
+        player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
+        callEffectStart(player, effect);
+    }
+
+    public static void addStatusEffect(LivingEntity target, CharacterSkillEffect effect) {
+        if (target instanceof ServerPlayer player) {
+            addStatusEffect(player, effect);
+            return;
+        }
+        AstralCharacterSkillEffects.add(target, effect);
+    }
+
+    public static boolean hasStatusEffect(Entity target, String id) {
+        Identifier statusId = AstralStatusEffects.parseIdentifier(id, null);
+        return AstralCharacterSkillEffects.has(target, id) || (AstralCharacterSkillEffects.hasStatusType(target, statusId));
+    }
+
+    public static boolean hasStatusEffect(Entity target, Identifier id) {
+        return AstralCharacterSkillEffects.has(target, id) || AstralCharacterSkillEffects.hasStatusType(target, id);
+    }
+
+    public static boolean hasStatusType(Entity target, Identifier id) {
+        return AstralCharacterSkillEffects.hasStatusType(target, id);
+    }
+
+    public static void clearStatusEffects(ServerPlayer player) {
+        if (player == null) return;
+        CharacterSkillEffectState effectState = player.getData(AstralAttachments.CHARACTER_SKILL_EFFECTS);
+        List<CharacterSkillEffect> removed = effectState.clearAndCollectRemoved();
+        for (CharacterSkillEffect effect : removed) {
+            callEffectEnd(player, effect);
+        }
+        if (!removed.isEmpty()) {
+            player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
+        }
+    }
+
+    public static void serverTickEntity(LivingEntity entity) {
+        if (entity instanceof ServerPlayer) return;
+        AstralCharacterSkillEffects.tickNonPlayer(entity);
+    }
+
+    public static int durationTicks(CharacterSkillDefinition skill) {
+        int seconds = skill.durationSeconds();
+        if (seconds <= 0) {
+            seconds = DEFAULT_STATUS_DURATION_SECONDS;
+        }
+        seconds = Math.clamp(seconds, 1, AstralGameplayConfig.skillMaximumCooldownSeconds());
+        return Math.max(1, seconds * 20);
     }
 
     protected static Optional<CharacterSkillDefinition> activeSkill(CharacterDefinition definition) {
@@ -87,24 +165,57 @@ public class AstralCharacterSkillService {
             }
         }
         for (CharacterSkillDefinition skill : definition.skills()) {
-            if (skill.cooldown() > 0 || skill.pvpCooldown() > 0 || skill.pveCooldown() > 0 || skill.cooldownSeconds() > 0 || skill.pvpCooldownSeconds() > 0 || skill.pveCooldownSeconds() > 0) {
+            if (skill.cooldown() > 0 || skill.pvpCooldown() > 0 || skill.pveCooldown() > 0) {
                 return Optional.of(skill);
             }
         }
         return Optional.empty();
     }
 
-    protected static String thisCooldownKey(CharacterDefinition definition, CharacterSkillDefinition skill, Identifier handlerId) {
+    protected static boolean tickEffects(ServerPlayer player, CharacterSkillEffectState effectState) {
+        CharacterSkillEffectState.TickResult result = effectState.tickAndCollectExpired();
+        for (CharacterSkillEffect effect : result.ticked()) {
+            callEffectTick(player, effect);
+        }
+        for (CharacterSkillEffect effect : result.expired()) {
+            callEffectEnd(player, effect);
+        }
+        return result.changed();
+    }
+
+    protected static CharacterSkillContext contextForEffect(ServerPlayer player, CharacterSkillEffect effect) {
+        ActiveCharacterState state = CharacterProgressManager.activeState(player);
+        CharacterDefinition definition = CharacterManager.INSTANCE.get(effect.safeCharacterId());
+        CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition(effect.safeId(), effect.safeNameKey(), "", 0));
+        return new CharacterSkillContext(player, state, definition, skill, player.getData(AstralAttachments.CHARACTER_SKILLS));
+    }
+
+    protected static AstralCharacterSkillSet skillSetForEffect(CharacterSkillEffect effect) {
+        return AstralCharacterSkills.get(effect.safeHandlerId()).orElseGet(() -> AstralCharacterSkills.getOrDefault(effect.safeCharacterId()));
+    }
+
+    protected static void callEffectStart(ServerPlayer player, CharacterSkillEffect effect) {
+        AstralStatusEffects.applyMobEffectBridge(player, effect);
+        skillSetForEffect(effect).onEffectStart(contextForEffect(player, effect), effect);
+    }
+
+    protected static void callEffectTick(ServerPlayer player, CharacterSkillEffect effect) {
+        skillSetForEffect(effect).onEffectTick(contextForEffect(player, effect), effect);
+    }
+
+    protected static void callEffectEnd(ServerPlayer player, CharacterSkillEffect effect) {
+        AstralStatusEffects.removeMobEffectBridge(player, effect);
+        skillSetForEffect(effect).onEffectEnd(contextForEffect(player, effect), effect);
+    }
+
+    protected static String cooldownKey(CharacterDefinition definition, CharacterSkillDefinition skill, Identifier handlerId) {
         return definition.id() + ":" + handlerId + ":" + skill.id();
     }
 
     protected static int cooldownTicks(CharacterSkillDefinition skill) {
-        int seconds = skill.cooldownSeconds(CharacterSkillDefinition.SkillMode.PVP);
-        if (seconds <= 0) {
-            int rounds = skill.cooldown(CharacterSkillDefinition.SkillMode.PVP);
-            if (rounds <= 0) return 0;
-            seconds = rounds * AstralGameplayConfig.skillCooldownSecondsPerRound();
-        }
+        int rounds = skill.cooldown(CharacterSkillDefinition.SkillMode.PVP);
+        if (rounds <= 0) return 0;
+        int seconds = rounds * AstralGameplayConfig.skillCooldownSecondsPerRound();
         seconds = Math.clamp(seconds, AstralGameplayConfig.skillMinimumCooldownSeconds(), AstralGameplayConfig.skillMaximumCooldownSeconds());
         return Math.max(0, seconds * 20);
     }

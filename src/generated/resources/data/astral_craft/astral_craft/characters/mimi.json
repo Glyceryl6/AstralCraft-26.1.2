@@ -14,11 +14,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.mimi.skill.active.desc",
+      "handler": "astral_craft:mimi",
       "id": "active",
       "name_key": "character.astral_craft.mimi.skill.active"
     },
     {
       "description_key": "character.astral_craft.mimi.skill.passive.desc",
+      "handler": "astral_craft:mimi",
       "id": "passive",
       "name_key": "character.astral_craft.mimi.skill.passive"
     }

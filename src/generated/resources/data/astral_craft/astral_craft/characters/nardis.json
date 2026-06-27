@@ -15,11 +15,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.nardis.skill.active.desc",
+      "handler": "astral_craft:nardis",
       "id": "active",
       "name_key": "character.astral_craft.nardis.skill.active"
     },
     {
       "description_key": "character.astral_craft.nardis.skill.passive.desc",
+      "handler": "astral_craft:nardis",
       "id": "passive",
       "name_key": "character.astral_craft.nardis.skill.passive"
     }

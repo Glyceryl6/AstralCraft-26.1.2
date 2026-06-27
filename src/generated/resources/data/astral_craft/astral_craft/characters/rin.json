@@ -13,6 +13,7 @@
   ],
   "skills": [
     {
+      "handler": "astral_craft:rin",
       "id": "active",
       "pve_cooldown": 3,
       "pve_description_key": "character.astral_craft.rin.skill.active.pve.desc",
@@ -22,6 +23,7 @@
       "pvp_name_key": "character.astral_craft.rin.skill.active.pvp"
     },
     {
+      "handler": "astral_craft:rin",
       "id": "passive",
       "pve_description_key": "character.astral_craft.rin.skill.passive.pve.desc",
       "pve_name_key": "character.astral_craft.rin.skill.passive.pve",

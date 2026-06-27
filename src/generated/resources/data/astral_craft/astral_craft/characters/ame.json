@@ -17,11 +17,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.ame.skill.active.desc",
+      "handler": "astral_craft:ame",
       "id": "active",
       "name_key": "character.astral_craft.ame.skill.active"
     },
     {
       "description_key": "character.astral_craft.ame.skill.passive.desc",
+      "handler": "astral_craft:ame",
       "id": "passive",
       "name_key": "character.astral_craft.ame.skill.passive"
     }

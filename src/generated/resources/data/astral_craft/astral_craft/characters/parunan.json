@@ -15,11 +15,13 @@
     {
       "cooldown": 2,
       "description_key": "character.astral_craft.parunan.skill.active.desc",
+      "handler": "astral_craft:parunan",
       "id": "active",
       "name_key": "character.astral_craft.parunan.skill.active"
     },
     {
       "description_key": "character.astral_craft.parunan.skill.passive.desc",
+      "handler": "astral_craft:parunan",
       "id": "passive",
       "name_key": "character.astral_craft.parunan.skill.passive"
     }

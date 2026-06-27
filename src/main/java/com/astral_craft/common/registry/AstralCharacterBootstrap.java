@@ -43,7 +43,7 @@ public class AstralCharacterBootstrap {
 
     private static CharacterSkillDefinition skill(String id, String type, int cooldown) {
         String key = "character.astral_craft." + id + ".skill." + type;
-        return new CharacterSkillDefinition(type, key, key + ".desc", cooldown, 0, AstralCraft.prefix(id), "skill");
+        return new CharacterSkillDefinition(type, key, key + ".desc", cooldown, AstralCraft.prefix(id), "skill");
     }
 
     private static CharacterSkillDefinition skill(String id, String type, int pvpCooldown, int pveCooldown) {
@@ -51,8 +51,8 @@ public class AstralCharacterBootstrap {
         Function<String, String> nameKey = s -> key + "." + s;
         Function<String, String> descKey = s -> key + "." + s + ".desc";
         return new CharacterSkillDefinition(type, "", "", 0, 0, AstralCraft.prefix(id), "skill",
-                nameKey.apply("pvp"), descKey.apply("pvp"), pvpCooldown, -1,
-                nameKey.apply("pve"), descKey.apply("pve"), pveCooldown, -1);
+                nameKey.apply("pvp"), descKey.apply("pvp"), pvpCooldown,
+                nameKey.apply("pve"), descKey.apply("pve"), pveCooldown);
     }
 
 }

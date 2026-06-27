@@ -15,11 +15,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.komachi.skill.active.desc",
+      "handler": "astral_craft:komachi",
       "id": "active",
       "name_key": "character.astral_craft.komachi.skill.active"
     },
     {
       "description_key": "character.astral_craft.komachi.skill.passive.desc",
+      "handler": "astral_craft:komachi",
       "id": "passive",
       "name_key": "character.astral_craft.komachi.skill.passive"
     }

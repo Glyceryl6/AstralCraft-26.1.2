@@ -17,11 +17,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.padman.skill.active.desc",
+      "handler": "astral_craft:padman",
       "id": "active",
       "name_key": "character.astral_craft.padman.skill.active"
     },
     {
       "description_key": "character.astral_craft.padman.skill.passive.desc",
+      "handler": "astral_craft:padman",
       "id": "passive",
       "name_key": "character.astral_craft.padman.skill.passive"
     }

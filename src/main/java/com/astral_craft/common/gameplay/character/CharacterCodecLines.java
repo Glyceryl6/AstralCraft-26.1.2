@@ -142,11 +142,9 @@ public class CharacterCodecLines {
                     .append(escape(skill.pveNameKey())).append(',')
                     .append(escape(skill.pveDescriptionKey())).append(',')
                     .append(skill.pveCooldown()).append(',')
-                    .append(skill.cooldownSeconds()).append(',')
                     .append(escape(skill.handler().toString())).append(',')
                     .append(escape(skill.animationAction())).append(',')
-                    .append(skill.pvpCooldownSeconds()).append(',')
-                    .append(skill.pveCooldownSeconds());
+                    .append(skill.durationSeconds());
         }
 
         return builder.toString();
@@ -159,20 +157,28 @@ public class CharacterCodecLines {
             String[] parts = entry.split(",", -1);
             if (parts.length >= 4) {
                 try {
+                    boolean legacyHasCooldownSeconds = parts.length >= 16;
+                    Identifier handler = legacyHasCooldownSeconds
+                            ? parseIdentifier(unescape(parts[11]), AstralCraft.prefix("default"))
+                            : parts.length >= 11 ? parseIdentifier(unescape(parts[10]), AstralCraft.prefix("default")) : AstralCraft.prefix("default");
+                    String animation = legacyHasCooldownSeconds
+                            ? parts.length >= 13 ? unescape(parts[12]) : "skill"
+                            : parts.length >= 12 ? unescape(parts[11]) : "skill";
+                    int duration = legacyHasCooldownSeconds
+                            ? parts.length >= 16 ? Integer.parseInt(parts[15]) : 0
+                            : parts.length >= 13 ? Integer.parseInt(parts[12]) : 0;
                     result.add(new CharacterSkillDefinition(
                             unescape(parts[0]), unescape(parts[1]),
                             unescape(parts[2]), Integer.parseInt(parts[3]),
-                            parts.length >= 11 ? Integer.parseInt(parts[10]) : 0,
-                            parts.length >= 12 ? parseIdentifier(unescape(parts[11]), AstralCraft.prefix("default")) : AstralCraft.prefix("default"),
-                            parts.length >= 13 ? unescape(parts[12]) : "skill",
+                            duration,
+                            handler,
+                            animation,
                             parts.length >= 5 ? unescape(parts[4]) : "",
                             parts.length >= 6 ? unescape(parts[5]) : "",
                             parts.length >= 7 ? Integer.parseInt(parts[6]) : -1,
-                            parts.length >= 14 ? Integer.parseInt(parts[13]) : -1,
                             parts.length >= 8 ? unescape(parts[7]) : "",
                             parts.length >= 9 ? unescape(parts[8]) : "",
-                            parts.length >= 10 ? Integer.parseInt(parts[9]) : -1,
-                            parts.length >= 15 ? Integer.parseInt(parts[14]) : -1));
+                            parts.length >= 10 ? Integer.parseInt(parts[9]) : -1));
                 } catch (NumberFormatException ignored) {}
             }
         }

@@ -15,11 +15,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.alana.skill.active.desc",
+      "handler": "astral_craft:alana",
       "id": "active",
       "name_key": "character.astral_craft.alana.skill.active"
     },
     {
       "description_key": "character.astral_craft.alana.skill.passive.desc",
+      "handler": "astral_craft:alana",
       "id": "passive",
       "name_key": "character.astral_craft.alana.skill.passive"
     }

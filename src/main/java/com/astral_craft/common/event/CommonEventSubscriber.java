@@ -9,14 +9,14 @@ import com.astral_craft.common.gameplay.SoulLinkManager;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
-import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.AstralCharacterSkillService;
-import com.astral_craft.common.gameplay.character.AstralPlayerCharacterApplier;
+import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterSkinManager;
-import com.astral_craft.common.gameplay.event.AstralEventManager;
 import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
+import com.astral_craft.common.gameplay.event.AstralEventManager;
 import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventService;
+import com.astral_craft.common.registry.AstralAttachments;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -28,7 +28,9 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
-import com.astral_craft.common.registry.AstralAttachments;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -170,10 +172,17 @@ public class CommonEventSubscriber {
         BoardHudSyncManager.serverTick();
         AstralEventService.serverTick(event.getServer());
         event.getServer().getPlayerList().getPlayers().forEach(player -> {
-            AstralPlayerCharacterApplier.apply(player);
             AstralCharacterSkillService.serverTick(player);
             AstralEventService.trigger(player, "tick");
         });
+
+        for (ServerLevel level : event.getServer().getAllLevels()) {
+            for (Entity entity : level.getAllEntities()) {
+                if (entity instanceof LivingEntity livingEntity && !(livingEntity instanceof ServerPlayer)) {
+                    AstralCharacterSkillService.serverTickEntity(livingEntity);
+                }
+            }
+        }
     }
 
     @SubscribeEvent
@@ -184,7 +193,7 @@ public class CommonEventSubscriber {
             return;
         }
 
-        if (event.getPlayer() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+        if (event.getPlayer() instanceof ServerPlayer serverPlayer) {
             AstralEventService.applyActiveTrigger(serverPlayer, "block_break");
             AstralEventService.trigger(serverPlayer, "block_break");
         }

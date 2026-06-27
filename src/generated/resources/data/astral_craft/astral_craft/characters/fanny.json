@@ -15,11 +15,13 @@
     {
       "cooldown": 3,
       "description_key": "character.astral_craft.fanny.skill.active.desc",
+      "handler": "astral_craft:fanny",
       "id": "active",
       "name_key": "character.astral_craft.fanny.skill.active"
     },
     {
       "description_key": "character.astral_craft.fanny.skill.passive.desc",
+      "handler": "astral_craft:fanny",
       "id": "passive",
       "name_key": "character.astral_craft.fanny.skill.passive"
     }
