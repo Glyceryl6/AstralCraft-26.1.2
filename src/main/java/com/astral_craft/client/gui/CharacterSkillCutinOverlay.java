@@ -23,6 +23,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.List;
+
 public class CharacterSkillCutinOverlay {
 
     public static final Identifier LAYER = AstralCraft.prefix("character_skill_cutin");
@@ -39,9 +41,9 @@ public class CharacterSkillCutinOverlay {
     public static void show(CharacterSkillCutinPayload payload) {
         active = new Cutin(
                 parse(payload.characterId(), CharacterManager.INSTANCE.defaultCharacter().id()),
-                payload.skinId() == null || payload.skinId().isBlank() ? "default" : payload.skinId(),
-                payload.skillId() == null || payload.skillId().isBlank() ? "active" : payload.skillId(),
-                payload.animationAction() == null || payload.animationAction().isBlank() ? "skill" : payload.animationAction(),
+                payload.skinId().isBlank() ? "default" : payload.skinId(),
+                payload.skillId().isBlank() ? "active" : payload.skillId(),
+                payload.animationAction().isBlank() ? "skill" : payload.animationAction(),
                 currentClientGameTicks(null),
                 Math.max(20, payload.durationTicks()));
     }
@@ -118,7 +120,7 @@ public class CharacterSkillCutinOverlay {
 
     protected static String safeAnimationAction(CharacterDefinition definition, String preferred) {
         if (definition == null) return "idle";
-        java.util.List<String> actions = AstralGeoAnimationManager.INSTANCE.animationNames(definition.animationSetKey());
+        List<String> actions = AstralGeoAnimationManager.INSTANCE.animationNames(definition.animationSetKey());
         if (actions.isEmpty()) return preferred == null || preferred.isBlank() ? "idle" : preferred;
         if (preferred != null && actions.contains(preferred)) return preferred;
         String preview = definition.previewAction();
