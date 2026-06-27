@@ -23,11 +23,13 @@ public class AstralCraft {
         PanelTypes.bootstrap();
         AstralBuiltinChips.bootstrap();
         AstralBuiltinCards.bootstrap();
+        AstralCharacterSkills.bootstrap();
         PanelTypes.PANEL_TYPES.register(modEventBus);
         AstralPartyChips.CHIPS.register(modEventBus);
         AstralCharacterSkills.SKILL_SETS.register(modEventBus);
         AstralStatusEffects.STATUS_EFFECTS.register(modEventBus);
         AstralStatusEffects.MOB_EFFECTS.register(modEventBus);
+        AstralAttributes.ATTRIBUTES.register(modEventBus);
         AstralTabs.TABS.register(modEventBus);
         AstralItems.ITEMS.register(modEventBus);
         AstralBlocks.BLOCKS.register(modEventBus);

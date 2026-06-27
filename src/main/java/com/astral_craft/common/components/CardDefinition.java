@@ -2,12 +2,15 @@ package com.astral_craft.common.components;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.CardTargetMode;
+import com.astral_craft.common.gameplay.CardRangeResolver;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
 public record CardDefinition(
         String id,
@@ -60,6 +63,18 @@ public record CardDefinition(
         return !this.combatOnly && this.type == CardType.EFFECT;
     }
 
+    public int effectiveRange(Player player, ItemStack stack) {
+        return CardRangeResolver.effectiveRange(player, stack, this);
+    }
+
+    public int targetingRange(Player player, ItemStack stack) {
+        return CardRangeResolver.targetingRange(player, stack, this);
+    }
+
+    public CardDefinition resolveDynamic(Player player, ItemStack stack) {
+        return CardRangeResolver.effectiveDefinition(player, stack, this);
+    }
+
     public boolean isAstralItemPath(String path) {
         return this.id.equals(path);
     }
@@ -88,6 +103,13 @@ public record CardDefinition(
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
                 this.range, this.combatOnly, this.minTargets, this.maxTargets, restrictions);
+    }
+
+    public CardDefinition withRange(int range) {
+        return new CardDefinition(this.id, this.nameKey, this.effectKey,
+                this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
+                range, this.combatOnly, this.minTargets, this.maxTargets,
+                this.restrictions);
     }
 
     /** Preferred factory for hand card classes. The final id is derived from the item registry id in AstralItems#registerCard. */

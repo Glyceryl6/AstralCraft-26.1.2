@@ -28,7 +28,6 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
@@ -175,10 +174,9 @@ public class CommonEventSubscriber {
             AstralCharacterSkillService.serverTick(player);
             AstralEventService.trigger(player, "tick");
         });
-
         for (ServerLevel level : event.getServer().getAllLevels()) {
             for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof LivingEntity livingEntity && !(livingEntity instanceof ServerPlayer)) {
+                if (entity instanceof LivingEntity livingEntity && !(livingEntity instanceof net.minecraft.server.level.ServerPlayer)) {
                     AstralCharacterSkillService.serverTickEntity(livingEntity);
                 }
             }
@@ -193,7 +191,7 @@ public class CommonEventSubscriber {
             return;
         }
 
-        if (event.getPlayer() instanceof ServerPlayer serverPlayer) {
+        if (event.getPlayer() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
             AstralEventService.applyActiveTrigger(serverPlayer, "block_break");
             AstralEventService.trigger(serverPlayer, "block_break");
         }

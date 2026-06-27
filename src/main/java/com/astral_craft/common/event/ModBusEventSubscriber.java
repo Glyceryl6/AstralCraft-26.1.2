@@ -9,10 +9,13 @@ import com.astral_craft.common.gameplay.character.SkinRarityDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
 import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralDataPackRegistryKeys;
+import com.astral_craft.common.registry.AstralAttributes;
 import com.astral_craft.common.registry.AstralEntities;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.minecraft.world.entity.EntityType;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.registries.DataPackRegistryEvent;
@@ -23,6 +26,11 @@ public class ModBusEventSubscriber {
     @SubscribeEvent
     public static void registerEntityAttributes(EntityAttributeCreationEvent event) {
         event.put(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterEntity.createAttributes().build());
+    }
+
+    @SubscribeEvent
+    public static void modifyDefaultAttributes(EntityAttributeModificationEvent event) {
+        event.add(EntityType.PLAYER, AstralAttributes.HAND_CARD_RANGE, 0.0D);
     }
 
     @SubscribeEvent

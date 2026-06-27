@@ -123,8 +123,9 @@ public class CardUseService {
         }
 
         if (definition.needsTarget()) {
-            String candidates = CardTargeting.encodeCandidates(serverPlayer, definition);
-            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), targetSelectionHandIndex, definition.minTargets(), definition.maxTargets(), definition.range(), candidates));
+            int effectiveRange = CardRangeResolver.effectiveRange(serverPlayer, stack, definition);
+            String candidates = CardTargeting.encodeCandidates(serverPlayer, stack, definition);
+            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), targetSelectionHandIndex, definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
             return InteractionResult.SUCCESS;
         }
 
@@ -181,7 +182,7 @@ public class CardUseService {
             if (raw.isBlank()) continue;
             try {
                 Entity entity = player.level().getEntity(Integer.parseInt(raw));
-                if (entity instanceof LivingEntity living && CardTargeting.isValidTarget(player, living, definition) && !targets.contains(living)) {
+                if (entity instanceof LivingEntity living && CardTargeting.isValidTarget(player, living, stack, definition) && !targets.contains(living)) {
                     targets.add(living);
                 }
             } catch (NumberFormatException ignored) {}

@@ -2,6 +2,7 @@ package com.astral_craft.client.gui;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.CardRangeResolver;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.OpenHandCardDeckPayload;
 import com.astral_craft.common.network.UseHandCardFromDeckPayload;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -139,12 +141,14 @@ public class HandCardDeckScreen extends Screen {
 
     protected List<FormattedCharSequence> tooltipLines(CardEntry card) {
         List<FormattedCharSequence> lines = new ArrayList<>();
+        CardType cardType = card.definition().type();
+        String name = cardType.getSerializedName();
         this.addWrappedTooltipLine(lines, Component.translatable(card.definition().nameKey()).withStyle(ChatFormatting.BOLD));
-        this.addWrappedTooltipLine(lines, Component.translatable("tooltips.astral_craft.handcard.card_type." + card.definition().type().getSerializedName()).withColor(card.definition().type().color));
-        for (String line : Component.translatable(card.definition().effectKey()).getString().split("[\\n|]")) {
-            if (!line.isBlank()) {
-                this.addWrappedTooltipLine(lines, Component.literal(line.trim()).withStyle(ChatFormatting.GRAY));
-            }
+        this.addWrappedTooltipLine(lines, Component.translatable("tooltips.astral_craft.handcard.card_type." + name).withColor(cardType.color));
+        int effectiveRange = CardRangeResolver.effectiveRange(this.minecraft.player, card.stack, card.definition);
+        MutableComponent component = Component.translatable(card.definition().effectKey(), effectiveRange);
+        for (String line : component.getString().split("[\\n|]")) {
+            this.addWrappedTooltipLine(lines, Component.literal(line.trim()));
         }
 
         if (!card.definition().restrictions().unrestricted()) {

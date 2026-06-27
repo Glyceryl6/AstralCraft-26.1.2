@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-@SuppressWarnings("unused")
 public class AstralStatusEffects {
 
     public static final ResourceKey<Registry<AstralStatusEffectType>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("status_effects"));

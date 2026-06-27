@@ -85,7 +85,7 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralItems.HANDCARD_SCAVENGING, "Scavenging", "拾荒");
         this.addKey(AstralItems.HANDCARD_RANDOM_PORTAL, "Random Portal", "随机传送门");
         this.addKey(AstralItems.HANDCARD_DIRECTED_BOOST, "Directed Boost", "定向加速");
-        this.addKey(AstralItems.HANDCARD_SNOWBALL_ATTACK, "Snowball Attack", "");
+        this.addKey(AstralItems.HANDCARD_SNOWBALL_ATTACK, "Snowball Attack", "雪球攻击");
         this.addKey(AstralItems.HANDCARD_BARRIER, "Barrier", "保护屏障");
         this.addKey(AstralItems.HANDCARD_EYE_FOR_AN_EYE, "Eye for an Eye", "以牙还牙");
         this.addKey(AstralItems.HANDCARD_RANDOM_SELECT, "Random Select", "错误的目标");
