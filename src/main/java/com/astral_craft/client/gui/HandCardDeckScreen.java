@@ -1,21 +1,20 @@
 package com.astral_craft.client.gui;
 
-import com.astral_craft.AstralCraft;
-import com.astral_craft.client.config.HandCardDeckClientSettings;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.OpenHandCardDeckPayload;
 import com.astral_craft.common.network.UseHandCardFromDeckPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -28,10 +27,13 @@ import java.util.List;
 
 public class HandCardDeckScreen extends Screen {
 
-    protected static final int CARD_W = 66;
-    protected static final int CARD_H = 96;
-    protected static final int PANEL_H = 150;
-    protected static final int CARD_ART_SIZE = 48;
+    protected static final int PANEL_H = 148;
+    protected static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
+    protected static final int CARD_H = HandCardRenderHelper.FRAMED_CARD_H;
+    protected static final int CARD_GAP = 6;
+    protected static final int TOOLTIP_W = 250;
+    protected static final int TOOLTIP_MAX_H = 124;
+    protected static final int SCROLLBAR_H = 7;
 
     protected final List<CardEntry> cards = new ArrayList<>();
     protected boolean creativeMode;
@@ -39,6 +41,10 @@ public class HandCardDeckScreen extends Screen {
     protected CardEntry draggedCard;
     protected int dragX;
     protected int dragY;
+    protected float scrollX;
+    protected boolean draggingScrollbar;
+    protected double dragStartX;
+    protected float dragStartScrollX;
 
     public HandCardDeckScreen(String encodedCards, boolean creativeMode) {
         super(Component.translatable("gui.astral_craft.hand_card_deck.title"));
@@ -60,78 +66,115 @@ public class HandCardDeckScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        this.clampScroll();
         int panelY = this.panelY();
-        graphics.fill(0, panelY, this.width, this.height, 0xD00B0B12);
-        graphics.fill(0, panelY, this.width, panelY + 1, 0x80FFFFFF);
+        graphics.fill(0, panelY, this.width, this.height, 0xE00B0B12);
+        graphics.fill(0, panelY, this.width, panelY + 1, 0x90FFFFFF);
         graphics.text(this.font, this.title, 12, panelY + 10, 0xFFFFFFFF, false);
         Component hint = Component.translatable(this.creativeMode ? "gui.astral_craft.hand_card_deck.hint_creative" : "gui.astral_craft.hand_card_deck.hint");
         graphics.text(this.font, hint, this.width - this.font.width(hint) - 12, panelY + 10, 0xFFBFC8FF, false);
 
         if (this.cards.isEmpty()) {
             Component empty = Component.translatable(this.creativeMode ? "gui.astral_craft.hand_card_deck.empty_creative" : "gui.astral_craft.hand_card_deck.empty");
-            graphics.text(this.font, empty, this.width / 2 - this.font.width(empty) / 2, panelY + 72, 0xFFA6A8BC, false);
+            graphics.text(this.font, empty, this.width / 2 - this.font.width(empty) / 2, panelY + 80, 0xFFA6A8BC, false);
             return;
         }
 
-        List<CardLayout> layouts = this.activeLayouts(mouseX, mouseY);
-        graphics.enableScissor(0, Math.max(0, panelY - 56), this.width, this.height);
+        CardLayout hovered = this.layoutAt(mouseX, mouseY);
+        List<CardLayout> layouts = this.visibleLayouts();
+        int listLeft = this.listLeft();
+        int listTop = this.listTop();
+        int listRight = this.listRight();
+        int listBottom = this.listBottom();
+        graphics.enableScissor(listLeft, listTop - 4, listRight, listBottom + 4);
         for (CardLayout layout : layouts) {
-            if (this.draggingCard && layout.entry().equals(this.draggedCard)) {
-                continue;
-            }
-
-            this.renderLayoutCard(graphics, layout, mouseX, mouseY);
+            if (this.draggingCard && layout.entry().equals(this.draggedCard)) continue;
+            this.renderCard(graphics, layout.entry(), layout.left(), layout.top(), mouseX, mouseY, hovered != null && hovered.entry().equals(layout.entry()), false);
         }
 
         graphics.disableScissor();
+        this.renderScrollbar(graphics);
         if (this.draggingCard && this.draggedCard != null) {
-            this.renderCard(graphics, this.draggedCard, mouseX - this.dragX, mouseY - this.dragY, mouseX, mouseY, true);
+            this.renderCard(graphics, this.draggedCard, mouseX - this.dragX, mouseY - this.dragY, mouseX, mouseY, false, true);
+        } else if (hovered != null) {
+            this.renderCardTooltip(graphics, hovered.entry(), mouseX, mouseY);
         }
     }
 
-    protected void renderLayoutCard(GuiGraphicsExtractor graphics, CardLayout layout, int mouseX, int mouseY) {
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(layout.centerX(), layout.centerY());
-        if (Math.abs(layout.angleDegrees()) > 0.001F) {
-            graphics.pose().rotate((float) Math.toRadians(layout.angleDegrees()));
+    protected void renderCard(GuiGraphicsExtractor graphics, CardEntry card, int x, int y, int mouseX, int mouseY, boolean hovered, boolean dragging) {
+        HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(), card.texture(), Component.translatable(card.definition().nameKey()), x, y, mouseX, mouseY, dragging);
+        if (!card.creative()) {
+            HandCardRenderHelper.renderCardCount(graphics, this.font, card.count(), x, y);
         }
 
-        graphics.pose().translate(-CARD_W / 2.0F, -CARD_H / 2.0F);
-        this.renderCard(graphics, layout.entry(), 0, 0, mouseX, mouseY, false);
-        graphics.pose().popMatrix();
+        if (hovered && !dragging) {
+            graphics.fill(x, y, x + CARD_W, y + CARD_H, 0x22FFF08A);
+            graphics.fill(x, y, x + CARD_W, y + 1, 0xCCFFF08A);
+            graphics.fill(x, y + CARD_H - 1, x + CARD_W, y + CARD_H, 0xCCFFF08A);
+            graphics.fill(x, y, x + 1, y + CARD_H, 0xCCFFF08A);
+            graphics.fill(x + CARD_W - 1, y, x + CARD_W, y + CARD_H, 0xCCFFF08A);
+        }
     }
 
-    protected void renderCard(GuiGraphicsExtractor graphics, CardEntry card, int x, int y, int mouseX, int mouseY, boolean dragging) {
-        Identifier frame = AstralCraft.prefix("textures/item/template_handcard_effect.png");
-        graphics.blit(RenderPipelines.GUI_TEXTURED, frame, x, y, 0.0F, 0.0F, CARD_W, CARD_H, 256, 360, 256, 360, 0xFFFFFFFF);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, card.texture(), x + 9, y + 10, 0.0F, 0.0F, CARD_ART_SIZE, CARD_ART_SIZE, 256, 360, 256, 360, 0xFFFFFFFF);
-        Component name = Component.translatable(card.definition().nameKey());
-        Component trimmed = this.ellipsize(name, CARD_W - 8);
-        graphics.text(this.font, trimmed, x + CARD_W / 2 - this.font.width(trimmed) / 2, y + CARD_H - 24, 0xFFFFFFFF, true);
-        if (!card.creative() && card.count() > 1) {
-            Component count = Component.literal(String.valueOf(card.count()));
-            int badgeW = Math.max(14, this.font.width(count) + 6);
-            int badgeX = x + CARD_W - badgeW - 4;
-            int badgeY = y + 4;
-            graphics.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 13, 0xE0111122);
-            graphics.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 1, 0xB0FFFFFF);
-            graphics.text(this.font, count, badgeX + badgeW / 2 - this.font.width(count) / 2, badgeY + 3, 0xFFFFF08A, true);
+    protected void renderCardTooltip(GuiGraphicsExtractor graphics, CardEntry card, int mouseX, int mouseY) {
+        List<FormattedCharSequence> lines = this.tooltipLines(card);
+        int lineH = 10;
+        int tooltipH = Math.min(TOOLTIP_MAX_H, lines.size() * lineH + 10);
+        int tooltipX = Math.min(mouseX + 14, this.width - TOOLTIP_W - 8);
+        int tooltipY = Math.max(8, Math.min(mouseY - 8, this.height - tooltipH - 8));
+        graphics.fill(tooltipX, tooltipY, tooltipX + TOOLTIP_W, tooltipY + tooltipH, 0xF0141424);
+        graphics.fill(tooltipX, tooltipY, tooltipX + TOOLTIP_W, tooltipY + 1, 0xB0FFFFFF);
+        int y = tooltipY + 6;
+        int maxLines = Math.max(1, (tooltipH - 10) / lineH);
+        for (int i = 0; i < Math.min(maxLines, lines.size()); i++) {
+            graphics.text(this.font, lines.get(i), tooltipX + 6, y, 0xFFFFFFFF, false);
+            y += lineH;
         }
 
-        if (dragging) {
-            graphics.fill(x, y, x + CARD_W, y + CARD_H, 0x33FFFFFF);
+        if (lines.size() > maxLines) {
+            Component more = Component.translatable("gui.astral_craft.hand_card_deck.tooltip.more");
+            graphics.text(this.font, more, tooltipX + TOOLTIP_W - this.font.width(more) - 6, tooltipY + tooltipH - lineH, 0xFFBFC8FF, false);
         }
+    }
+
+    protected List<FormattedCharSequence> tooltipLines(CardEntry card) {
+        List<FormattedCharSequence> lines = new ArrayList<>();
+        this.addWrappedTooltipLine(lines, Component.translatable(card.definition().nameKey()).withStyle(ChatFormatting.BOLD));
+        this.addWrappedTooltipLine(lines, Component.translatable("tooltips.astral_craft.handcard.card_type." + card.definition().type().getSerializedName()).withColor(card.definition().type().color));
+        for (String line : Component.translatable(card.definition().effectKey()).getString().split("[\\n|]")) {
+            if (!line.isBlank()) {
+                this.addWrappedTooltipLine(lines, Component.literal(line.trim()).withStyle(ChatFormatting.GRAY));
+            }
+        }
+
+        if (!card.definition().restrictions().unrestricted()) {
+            this.addWrappedTooltipLine(lines, Component.translatable("tooltips.astral_craft.handcard.restricted").withStyle(ChatFormatting.DARK_GRAY));
+        }
+
+        if (!card.creative()) {
+            this.addWrappedTooltipLine(lines, Component.translatable("gui.astral_craft.hand_card_deck.tooltip.count", card.count()).withStyle(ChatFormatting.YELLOW));
+        }
+
+        return lines;
+    }
+
+    protected void addWrappedTooltipLine(List<FormattedCharSequence> lines, Component component) {
+        lines.addAll(this.font.split(component, TOOLTIP_W - 12));
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
+        if (this.startScrollbarDrag(event.x(), event.y())) {
+            return true;
+        }
+
         CardLayout layout = this.layoutAt(event.x(), event.y());
         if (layout != null) {
             this.draggingCard = true;
             this.draggedCard = layout.entry();
-            this.dragX = (int) event.x() - layout.left();
-            this.dragY = (int) event.y() - layout.top();
+            this.dragX = Math.clamp((int) event.x() - layout.left(), 0, CARD_W);
+            this.dragY = Math.clamp((int) event.y() - layout.top(), 0, CARD_H);
             return true;
         }
 
@@ -139,7 +182,22 @@ public class HandCardDeckScreen extends Screen {
     }
 
     @Override
+    public boolean mouseDragged(@NonNull MouseButtonEvent event, double dragX, double dragY) {
+        if (this.draggingScrollbar) {
+            this.updateScrollbarDrag(event.x());
+            return true;
+        }
+
+        return super.mouseDragged(event, dragX, dragY);
+    }
+
+    @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (event.button() == 0 && this.draggingScrollbar) {
+            this.draggingScrollbar = false;
+            return true;
+        }
+
         if (event.button() == 0 && this.draggingCard) {
             CardEntry card = this.draggedCard;
             this.draggingCard = false;
@@ -148,7 +206,9 @@ public class HandCardDeckScreen extends Screen {
                 ClientPacketDistributor.sendToServer(new UseHandCardFromDeckPayload(card.itemId().toString()));
                 if (!card.creative()) {
                     this.removeOneLocal(card);
+                    this.clampScroll();
                 }
+
                 return true;
             }
 
@@ -158,96 +218,137 @@ public class HandCardDeckScreen extends Screen {
         return super.mouseReleased(event);
     }
 
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+        if (mouseY >= this.listTop() && mouseY <= this.listBottom()) {
+            this.scrollX = Mth.clamp(this.scrollX - (float) deltaY * 42.0F - (float) deltaX * 42.0F, 0.0F, this.maxScroll());
+            return true;
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
+    }
+
+    protected List<CardLayout> visibleLayouts() {
+        List<CardLayout> result = new ArrayList<>();
+        int y = this.listTop();
+        int x = this.listLeft() - Math.round(this.scrollX);
+        int minX = this.listLeft() - CARD_W - CARD_GAP;
+        int maxX = this.listRight() + CARD_GAP;
+        for (CardEntry card : this.cards) {
+            if (x >= minX && x <= maxX) {
+                result.add(new CardLayout(card, x, y));
+            }
+            x += CARD_W + CARD_GAP;
+        }
+        return result;
+    }
+
     protected CardLayout layoutAt(double mouseX, double mouseY) {
-        List<CardLayout> layouts = this.activeLayouts((int) mouseX, (int) mouseY);
-        for (int i = layouts.size() - 1; i >= 0; i--) {
-            CardLayout layout = layouts.get(i);
-            int padding = 8;
-            if (mouseX >= layout.left() - padding && mouseX <= layout.left() + CARD_W + padding
-                    && mouseY >= layout.top() - padding && mouseY <= layout.top() + CARD_H + padding) {
+        if (mouseY < this.listTop() || mouseY > this.listBottom()) return null;
+        for (CardLayout layout : this.visibleLayouts()) {
+            if (mouseX >= layout.left() && mouseX <= layout.left() + CARD_W && mouseY >= layout.top() && mouseY <= layout.top() + CARD_H) {
                 return layout;
             }
         }
-
         return null;
     }
 
-    protected List<CardLayout> activeLayouts(int mouseX, int mouseY) {
-        return HandCardDeckClientSettings.fanLayout() ? this.fanLayouts(mouseX, mouseY) : this.classicLayouts(mouseX, mouseY);
+    protected int listLeft() {
+        return 12;
     }
 
-    protected List<CardLayout> classicLayouts(int mouseX, int mouseY) {
-        List<CardLayout> result = new ArrayList<>(this.cards.size());
-        int n = this.cards.size();
-        if (n == 0) return result;
-        float available = Math.max(1.0F, this.width - 38.0F);
-        float spacing = n == 1 ? 0.0F : Mth.clamp(available / Math.max(1, n - 1), 24.0F, 72.0F);
-        float totalWidth = (n - 1) * spacing + CARD_W;
-        float startX = Math.max(12.0F + CARD_W / 2.0F, this.width / 2.0F - totalWidth / 2.0F + CARD_W / 2.0F);
-        int centerY = this.panelY() + 92;
-        for (int i = 0; i < n; i++) {
-            int centerX = Math.round(startX + i * spacing);
-            int left = centerX - CARD_W / 2;
-            int top = centerY - CARD_H / 2;
-            boolean hovered = mouseX >= left && mouseX <= left + CARD_W && mouseY >= top && mouseY <= top + CARD_H;
-            if (hovered && !this.draggingCard) {
-                top -= 8;
-                centerY -= 8;
-            }
-
-            result.add(new CardLayout(this.cards.get(i), centerX, top + CARD_H / 2, left, top, 0.0F));
-            if (hovered && !this.draggingCard) {
-                centerY += 8;
-            }
-        }
-
-        return result;
+    protected int listRight() {
+        return this.width - 12;
     }
 
-    protected List<CardLayout> fanLayouts(int mouseX, int mouseY) {
-        List<CardLayout> result = new ArrayList<>(this.cards.size());
-        int n = this.cards.size();
-        if (n == 0) return result;
-        float maxOffset = Math.max(1.0F, (n - 1) / 2.0F);
-        float available = Math.max(1.0F, this.width - 46.0F);
-        float spacing = n == 1 ? 0.0F : Mth.clamp(available / Math.max(1, n - 1), 8.0F, 38.0F);
-        float baseX = this.width / 2.0F;
-        float baseY = this.panelY() + 104.0F;
-        for (int i = 0; i < n; i++) {
-            float offset = i - (n - 1) / 2.0F;
-            float t = Math.abs(offset) / maxOffset;
-            float angle = n == 1 ? 0.0F : Mth.clamp(offset * 4.4F, -30.0F, 30.0F);
-            int centerX = Math.round(baseX + offset * spacing);
-            int centerY = Math.round(baseY + t * 18.0F);
-            int left = centerX - CARD_W / 2;
-            int top = centerY - CARD_H / 2;
-            boolean hovered = mouseX >= left && mouseX <= left + CARD_W && mouseY >= top && mouseY <= top + CARD_H;
-            if (hovered && !this.draggingCard) {
-                centerY -= 10;
-                top -= 10;
-            }
+    protected int listTop() {
+        return this.panelY() + 40;
+    }
 
-            result.add(new CardLayout(this.cards.get(i), centerX, centerY, left, top, angle));
-        }
+    protected int listBottom() {
+        return this.listTop() + CARD_H;
+    }
 
-        return result;
+    protected int scrollbarLeft() {
+        return this.listLeft();
+    }
+
+    protected int scrollbarTop() {
+        return this.height - 12;
+    }
+
+    protected int scrollbarWidth() {
+        return this.listRight() - this.listLeft();
+    }
+
+    protected int scrollbarThumbWidth() {
+        int width = this.scrollbarWidth();
+        int contentWidth = Math.max(width, this.cards.size() * (CARD_W + CARD_GAP) - CARD_GAP);
+        return Mth.clamp(Math.round(width * (width / (float) contentWidth)), 24, width);
+    }
+
+    protected int scrollbarThumbLeft() {
+        float maxScroll = this.maxScroll();
+        if (maxScroll <= 0.0F) return this.scrollbarLeft();
+        int width = this.scrollbarWidth();
+        int thumbW = this.scrollbarThumbWidth();
+        return this.scrollbarLeft() + Math.round((width - thumbW) * (this.scrollX / maxScroll));
     }
 
     protected int panelY() {
         return Math.max(0, this.height - PANEL_H);
     }
 
-    protected Component ellipsize(Component input, int maxWidth) {
-        String text = input.getString();
-        if (this.font.width(text) <= maxWidth) return input;
-        String suffix = "...";
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < text.length(); i++) {
-            if (this.font.width(out.toString()) + this.font.width(suffix) >= maxWidth) break;
-            out.append(text.charAt(i));
-        }
+    protected float maxScroll() {
+        int contentWidth = this.cards.size() * (CARD_W + CARD_GAP) - CARD_GAP;
+        return Math.max(0.0F, contentWidth - (this.listRight() - this.listLeft()));
+    }
 
-        return Component.literal(out + suffix);
+    protected void clampScroll() {
+        this.scrollX = Mth.clamp(this.scrollX, 0.0F, this.maxScroll());
+    }
+
+    protected void renderScrollbar(GuiGraphicsExtractor graphics) {
+        float maxScroll = this.maxScroll();
+        if (maxScroll <= 0.0F) return;
+        int x = this.scrollbarLeft();
+        int y = this.scrollbarTop();
+        int width = this.scrollbarWidth();
+        int thumbW = this.scrollbarThumbWidth();
+        int thumbX = this.scrollbarThumbLeft();
+        graphics.fill(x, y, x + width, y + SCROLLBAR_H, 0x55000000);
+        graphics.fill(thumbX, y, thumbX + thumbW, y + SCROLLBAR_H, this.draggingScrollbar ? 0xEEFFFFFF : 0xAAFFFFFF);
+    }
+
+    protected boolean startScrollbarDrag(double mouseX, double mouseY) {
+        if (this.maxScroll() <= 0.0F) return false;
+        int x = this.scrollbarLeft();
+        int y = this.scrollbarTop();
+        int width = this.scrollbarWidth();
+        if (mouseX < x || mouseX > x + width || mouseY < y - 2 || mouseY > y + SCROLLBAR_H + 2) {
+            return false;
+        }
+        int thumbX = this.scrollbarThumbLeft();
+        int thumbW = this.scrollbarThumbWidth();
+        if (mouseX < thumbX || mouseX > thumbX + thumbW) {
+            this.updateScrollbarFromThumbCenter(mouseX);
+        }
+        this.draggingScrollbar = true;
+        this.dragStartX = mouseX;
+        this.dragStartScrollX = this.scrollX;
+        return true;
+    }
+
+    protected void updateScrollbarDrag(double mouseX) {
+        int movable = Math.max(1, this.scrollbarWidth() - this.scrollbarThumbWidth());
+        float next = this.dragStartScrollX + (float) ((mouseX - this.dragStartX) / movable * this.maxScroll());
+        this.scrollX = Mth.clamp(next, 0.0F, this.maxScroll());
+    }
+
+    protected void updateScrollbarFromThumbCenter(double mouseX) {
+        int movable = Math.max(1, this.scrollbarWidth() - this.scrollbarThumbWidth());
+        double centerOffset = mouseX - this.scrollbarLeft() - this.scrollbarThumbWidth() / 2.0D;
+        this.scrollX = Mth.clamp((float) (centerOffset / movable * this.maxScroll()), 0.0F, this.maxScroll());
     }
 
     protected List<CardEntry> decodeCards(String encodedCards, boolean creative) {
@@ -285,7 +386,7 @@ public class HandCardDeckScreen extends Screen {
 
         CardDefinition definition = card.definition(stack);
         Identifier texture = Identifier.parse(definition.largeFrontTexture());
-        return new CardEntry(itemId, definition, texture, Math.max(1, count), creative);
+        return new CardEntry(itemId, definition, texture, stack, Math.max(1, count), creative);
     }
 
     protected void removeOneLocal(CardEntry card) {
@@ -295,15 +396,15 @@ public class HandCardDeckScreen extends Screen {
                 if (current.count() <= 1) {
                     this.cards.remove(i);
                 } else {
-                    this.cards.set(i, new CardEntry(current.itemId(), current.definition(), current.texture(), current.count() - 1, false));
+                    this.cards.set(i, new CardEntry(current.itemId(), current.definition(), current.texture(), current.stack(), current.count() - 1, false));
                 }
                 return;
             }
         }
     }
 
-    protected record CardEntry(Identifier itemId, CardDefinition definition, Identifier texture, int count, boolean creative) {}
+    protected record CardEntry(Identifier itemId, CardDefinition definition, Identifier texture, ItemStack stack, int count, boolean creative) {}
 
-    protected record CardLayout(CardEntry entry, int centerX, int centerY, int left, int top, float angleDegrees) {}
+    protected record CardLayout(CardEntry entry, int left, int top) {}
 
 }

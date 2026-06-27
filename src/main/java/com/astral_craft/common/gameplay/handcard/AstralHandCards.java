@@ -2,6 +2,9 @@ package com.astral_craft.common.gameplay.handcard;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashMap;
@@ -14,6 +17,32 @@ public class AstralHandCards {
     public static final Codec<AstralHandCards> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             CARD_MAP_CODEC.optionalFieldOf("cards", Map.of()).forGetter(AstralHandCards::cards)
     ).apply(instance, AstralHandCards::new));
+
+    public static final StreamCodec<ByteBuf, AstralHandCards> STREAM_CODEC = new StreamCodec<>() {
+        @Override
+        public AstralHandCards decode(ByteBuf buffer) {
+            int size = ByteBufCodecs.VAR_INT.decode(buffer);
+            Map<Identifier, Integer> cards = new LinkedHashMap<>();
+            for (int i = 0; i < size; i++) {
+                Identifier cardId = Identifier.STREAM_CODEC.decode(buffer);
+                int count = ByteBufCodecs.VAR_INT.decode(buffer);
+                if (count > 0) {
+                    cards.put(cardId, count);
+                }
+            }
+            return new AstralHandCards(cards);
+        }
+
+        @Override
+        public void encode(ByteBuf buffer, AstralHandCards value) {
+            Map<Identifier, Integer> cards = value == null ? Map.of() : value.cards();
+            ByteBufCodecs.VAR_INT.encode(buffer, cards.size());
+            for (Map.Entry<Identifier, Integer> entry : cards.entrySet()) {
+                Identifier.STREAM_CODEC.encode(buffer, entry.getKey());
+                ByteBufCodecs.VAR_INT.encode(buffer, Math.max(0, entry.getValue()));
+            }
+        }
+    };
 
     protected Map<Identifier, Integer> cards = new LinkedHashMap<>();
 
@@ -70,6 +99,15 @@ public class AstralHandCards {
             total += Math.max(0, count);
         }
         return total;
+    }
+
+    public Identifier firstCardId() {
+        for (Map.Entry<Identifier, Integer> entry : this.cards.entrySet()) {
+            if (entry.getValue() > 0) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     public void clear() {
