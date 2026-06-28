@@ -3,7 +3,7 @@ package com.astral_craft.common.event;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.KnockdownManager;
-import com.astral_craft.common.gameplay.PendingCardActionManager;
+import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.PendingCounterEffectManager;
 import com.astral_craft.common.gameplay.SoulLinkManager;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;

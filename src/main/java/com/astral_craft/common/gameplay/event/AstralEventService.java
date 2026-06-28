@@ -2,8 +2,8 @@ package com.astral_craft.common.gameplay.event;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.config.AstralGameplayConfig;
-import com.astral_craft.common.gameplay.CardUseService;
-import com.astral_craft.common.gameplay.PendingCardActionManager;
+import com.astral_craft.common.gameplay.handcard.CardUseService;
+import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.network.CardRevealPayload;
 import com.astral_craft.common.registry.AstralAttachments;

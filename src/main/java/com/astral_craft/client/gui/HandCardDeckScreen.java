@@ -2,7 +2,7 @@ package com.astral_craft.client.gui;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.CardRangeResolver;
+import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.OpenHandCardDeckPayload;
 import com.astral_craft.common.network.UseHandCardFromDeckPayload;

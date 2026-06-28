@@ -1,6 +1,6 @@
 package com.astral_craft.common.network;
 
-import com.astral_craft.common.gameplay.CardUseService;
+import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.ChipSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;

@@ -2,9 +2,9 @@ package com.astral_craft.common.items;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.CardRangeResolver;
-import com.astral_craft.common.gameplay.CardRevealOptions;
-import com.astral_craft.common.gameplay.CardUseService;
+import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
+import com.astral_craft.common.gameplay.handcard.CardRevealOptions;
+import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;

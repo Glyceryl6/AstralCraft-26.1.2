@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.gameplay.handcard;
 
 import net.minecraft.server.level.ServerPlayer;
 

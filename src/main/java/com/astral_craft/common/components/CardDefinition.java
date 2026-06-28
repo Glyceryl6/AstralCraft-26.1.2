@@ -1,8 +1,8 @@
 package com.astral_craft.common.components;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.CardTargetMode;
-import com.astral_craft.common.gameplay.CardRangeResolver;
+import com.astral_craft.common.gameplay.handcard.CardTargetMode;
+import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;

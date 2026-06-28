@@ -1,16 +1,16 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardUseRestriction;
 import com.astral_craft.common.config.AstralGameplayConfig;
+import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
-import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.CardRevealEntityPayload;
 import com.astral_craft.common.network.CardRevealPayload;
