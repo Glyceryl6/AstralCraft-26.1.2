@@ -11,7 +11,6 @@ import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
-import java.util.function.Function;
 
 public class AstralCharacterBootstrap {
 
@@ -34,27 +33,22 @@ public class AstralCharacterBootstrap {
                 AstralCraft.prefix("astral_character"),
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
-                "idle", 6, 5,
+                "idle", 6, 6,
                 new CharacterStatsDefinition(entry.attack, entry.defense, entry.health),
                 entry.skillSameIn2Mode ? List.of(skill(id, "active", entry.cooldown), skill(id, "passive", 0))
                         : List.of(skill(id, "active", entry.pvpCooldown, entry.pveCooldown), skill(id, "passive", -1, -1)),
                 List.of(new CharacterProfileSection("", prefix + ".profile.basic.body")), List.of(), entry.hasPotential,
-                entry.hasPotential ? CharacterPotentialDefinition.of(prefix + ".potential.desc", prefix + ".potential.effect", entry.potentialRequiredLevel, entry.potentialRequiredFriendship, entry.potentialRequiredExperience) : CharacterPotentialDefinition.NONE,
+                entry.hasPotential ? new CharacterPotentialDefinition(true, entry.potentialRequiredLevel, entry.potentialRequiredFriendship,
+                        entry.potentialRequiredExperience, entry.potentialMaterials) : CharacterPotentialDefinition.NONE,
                 Boolean.TRUE, entry.implicitBondSkin, entry.unlockedByDefault, prefix + ".unlock_hint", entry.sortOrder);
     }
 
     private static CharacterSkillDefinition skill(String id, String type, int cooldown) {
-        String key = "character.astral_craft." + id + ".skill." + type;
-        return new CharacterSkillDefinition(type, key, key + ".desc", cooldown, AstralCraft.prefix(id), "skill");
+        return new CharacterSkillDefinition(type, cooldown, AstralCraft.prefix(id), "skill");
     }
 
     private static CharacterSkillDefinition skill(String id, String type, int pvpCooldown, int pveCooldown) {
-        String key = "character.astral_craft." + id + ".skill." + type;
-        Function<String, String> nameKey = s -> key + "." + s;
-        Function<String, String> descKey = s -> key + "." + s + ".desc";
-        return new CharacterSkillDefinition(type, "", "", 0, 0, AstralCraft.prefix(id), "skill",
-                nameKey.apply("pvp"), descKey.apply("pvp"), pvpCooldown,
-                nameKey.apply("pve"), descKey.apply("pve"), pveCooldown);
+        return new CharacterSkillDefinition(type, 0, 0, AstralCraft.prefix(id), "skill", true, true, pvpCooldown, pveCooldown);
     }
 
 }

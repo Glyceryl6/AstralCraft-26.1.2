@@ -1,5 +1,8 @@
 package com.astral_craft.common.data.provider;
 
+import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
+import com.astral_craft.common.gameplay.character.CharacterPotentialMaterialRequirement;
+
 import java.util.List;
 
 public class AstralCharacterDataCatalog {
@@ -170,6 +173,7 @@ public class AstralCharacterDataCatalog {
         public int potentialRequiredLevel = 1;
         public int potentialRequiredFriendship = 1;
         public int potentialRequiredExperience;
+        public List<CharacterPotentialMaterialRequirement> potentialMaterials = CharacterPotentialDefinition.DEFAULT_MATERIALS;
 
         public CharacterEntry setId(String id) {
             this.id = id;
@@ -241,6 +245,11 @@ public class AstralCharacterDataCatalog {
             this.potentialRequiredLevel = level;
             this.potentialRequiredFriendship = friendship;
             this.potentialRequiredExperience = experience;
+            return this;
+        }
+
+        public CharacterEntry setPotentialMaterials(CharacterPotentialMaterialRequirement... requirements) {
+            this.potentialMaterials = requirements.length == 0 ? CharacterPotentialDefinition.DEFAULT_MATERIALS : List.of(requirements);
             return this;
         }
 

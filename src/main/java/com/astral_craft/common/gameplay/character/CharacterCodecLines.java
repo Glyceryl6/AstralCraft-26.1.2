@@ -141,14 +141,10 @@ public class CharacterCodecLines {
         for (CharacterSkillDefinition skill : skills) {
             if (!builder.isEmpty()) builder.append('~');
             builder.append(escape(skill.id())).append(',')
-                    .append(escape(skill.nameKey())).append(',')
-                    .append(escape(skill.descriptionKey())).append(',')
                     .append(skill.cooldown()).append(',')
-                    .append(escape(skill.pvpNameKey())).append(',')
-                    .append(escape(skill.pvpDescriptionKey())).append(',')
+                    .append(skill.hasPvpVariant()).append(',')
+                    .append(skill.hasPveVariant()).append(',')
                     .append(skill.pvpCooldown()).append(',')
-                    .append(escape(skill.pveNameKey())).append(',')
-                    .append(escape(skill.pveDescriptionKey())).append(',')
                     .append(skill.pveCooldown()).append(',')
                     .append(escape(skill.handler().toString())).append(',')
                     .append(escape(skill.animationAction())).append(',')
@@ -163,8 +159,31 @@ public class CharacterCodecLines {
         if (raw == null || raw.isBlank()) return result;
         for (String entry : raw.split("~")) {
             String[] parts = entry.split(",", -1);
-            if (parts.length >= 4) {
-                try {
+            if (parts.length < 2) continue;
+            try {
+                if (parts.length >= 9 && isBooleanToken(parts[2]) && isBooleanToken(parts[3])) {
+                    result.add(new CharacterSkillDefinition(
+                            unescape(parts[0]),
+                            parseInt(parts[1], 0),
+                            parseInt(parts[8], 0),
+                            parseIdentifier(unescape(parts[6]), AstralCraft.prefix("default")),
+                            unescape(parts[7]),
+                            Boolean.parseBoolean(parts[2]),
+                            Boolean.parseBoolean(parts[3]),
+                            parseInt(parts[4], -1),
+                            parseInt(parts[5], -1)));
+                } else if (parts.length >= 15 && isBooleanToken(parts[4]) && isBooleanToken(parts[5])) {
+                    result.add(new CharacterSkillDefinition(
+                            unescape(parts[0]),
+                            parseInt(parts[3], 0),
+                            parseInt(parts[14], 0),
+                            parseIdentifier(unescape(parts[12]), AstralCraft.prefix("default")),
+                            unescape(parts[13]),
+                            Boolean.parseBoolean(parts[4]),
+                            Boolean.parseBoolean(parts[5]),
+                            parseInt(parts[8], -1),
+                            parseInt(parts[11], -1)));
+                } else if (parts.length >= 4) {
                     boolean legacyHasCooldownSeconds = parts.length >= 16;
                     Identifier handler = legacyHasCooldownSeconds
                             ? parseIdentifier(unescape(parts[11]), AstralCraft.prefix("default"))
@@ -173,25 +192,29 @@ public class CharacterCodecLines {
                             ? parts.length >= 13 ? unescape(parts[12]) : "skill"
                             : parts.length >= 12 ? unescape(parts[11]) : "skill";
                     int duration = legacyHasCooldownSeconds
-                            ? parts.length >= 16 ? Integer.parseInt(parts[15]) : 0
-                            : parts.length >= 13 ? Integer.parseInt(parts[12]) : 0;
+                            ? parts.length >= 16 ? parseInt(parts[15], 0) : 0
+                            : parts.length >= 13 ? parseInt(parts[12], 0) : 0;
+                    int pvpCooldown = parts.length >= 7 ? parseInt(parts[6], -1) : -1;
+                    int pveCooldown = parts.length >= 10 ? parseInt(parts[9], -1) : -1;
                     result.add(new CharacterSkillDefinition(
-                            unescape(parts[0]), unescape(parts[1]),
-                            unescape(parts[2]), Integer.parseInt(parts[3]),
+                            unescape(parts[0]),
+                            parseInt(parts[3], 0),
                             duration,
                             handler,
                             animation,
-                            parts.length >= 5 ? unescape(parts[4]) : "",
-                            parts.length >= 6 ? unescape(parts[5]) : "",
-                            parts.length >= 7 ? Integer.parseInt(parts[6]) : -1,
-                            parts.length >= 8 ? unescape(parts[7]) : "",
-                            parts.length >= 9 ? unescape(parts[8]) : "",
-                            parts.length >= 10 ? Integer.parseInt(parts[9]) : -1));
-                } catch (NumberFormatException ignored) {}
-            }
+                            pvpCooldown >= 0,
+                            pveCooldown >= 0,
+                            pvpCooldown,
+                            pveCooldown));
+                }
+            } catch (Exception ignored) {}
         }
 
         return result;
+    }
+
+    protected static boolean isBooleanToken(String raw) {
+        return "true".equalsIgnoreCase(raw) || "false".equalsIgnoreCase(raw);
     }
 
     protected static Identifier parseIdentifier(String raw, Identifier fallback) {
@@ -229,8 +252,7 @@ public class CharacterCodecLines {
     protected static String escapePotential(CharacterDefinition definition) {
         if (!definition.hasPotential()) return "0";
         CharacterPotentialDefinition potential = definition.potentialOrDefault();
-        return "1," + escape(potential.descriptionKey()) + "," + escape(potential.effectKey()) + ","
-                + potential.requiredLevel() + "," + potential.requiredFriendship() + "," + potential.requiredExperience();
+        return "1," + potential.requiredLevel() + "," + potential.requiredFriendship() + "," + potential.requiredExperience() + "," + escapeMaterials(potential.materialRequirements());
     }
 
     protected static boolean isPotentialField(String raw) {
@@ -251,14 +273,52 @@ public class CharacterCodecLines {
         if (parts.length < 1 || !("1".equals(parts[0]) || "true".equalsIgnoreCase(parts[0]) || "potential".equalsIgnoreCase(parts[0]))) {
             return CharacterPotentialDefinition.NONE;
         }
-        String path = characterId == null ? "mimi" : characterId.getPath();
-        String namespace = characterId == null ? AstralCraft.MOD_ID : characterId.getNamespace();
-        String description = parts.length >= 2 && !parts[1].isBlank() ? unescape(parts[1]) : "character." + namespace + "." + path + ".potential.desc";
-        String effect = parts.length >= 3 && !parts[2].isBlank() ? unescape(parts[2]) : "character." + namespace + "." + path + ".potential.effect";
-        int requiredLevel = parts.length >= 4 ? parseInt(parts[3], 1) : 1;
-        int requiredFriendship = parts.length >= 5 ? parseInt(parts[4], 1) : 1;
-        int requiredExperience = parts.length >= 6 ? parseInt(parts[5], 0) : 0;
-        return CharacterPotentialDefinition.of(description, effect, requiredLevel, requiredFriendship, requiredExperience);
+        int requiredLevel;
+        int requiredFriendship;
+        int requiredExperience;
+        List<CharacterPotentialMaterialRequirement> materials;
+        if (parts.length >= 4 && isInteger(parts[1])) {
+            requiredLevel = parseInt(parts[1], 1);
+            requiredFriendship = parseInt(parts[2], 1);
+            requiredExperience = parseInt(parts[3], 0);
+            materials = parts.length >= 5 ? decodeMaterials(unescape(parts[4])) : CharacterPotentialDefinition.DEFAULT_MATERIALS;
+        } else {
+            requiredLevel = parts.length >= 4 ? parseInt(parts[3], 1) : 1;
+            requiredFriendship = parts.length >= 5 ? parseInt(parts[4], 1) : 1;
+            requiredExperience = parts.length >= 6 ? parseInt(parts[5], 0) : 0;
+            materials = parts.length >= 7 ? decodeMaterials(unescape(parts[6])) : CharacterPotentialDefinition.DEFAULT_MATERIALS;
+        }
+        return new CharacterPotentialDefinition(true, requiredLevel, requiredFriendship, requiredExperience, materials);
+    }
+
+    protected static String escapeMaterials(List<CharacterPotentialMaterialRequirement> requirements) {
+        StringBuilder builder = new StringBuilder();
+        for (CharacterPotentialMaterialRequirement requirement : requirements) {
+            if (!builder.isEmpty()) builder.append(';');
+            builder.append(requirement.encode());
+        }
+        return escape(builder.toString());
+    }
+
+    protected static List<CharacterPotentialMaterialRequirement> decodeMaterials(String raw) {
+        List<CharacterPotentialMaterialRequirement> result = new ArrayList<>();
+        if (raw == null || raw.isBlank()) return CharacterPotentialDefinition.DEFAULT_MATERIALS;
+        for (String entry : raw.split(";")) {
+            try {
+                result.add(CharacterPotentialMaterialRequirement.decode(entry));
+            } catch (Exception ignored) {}
+        }
+        return result.isEmpty() ? CharacterPotentialDefinition.DEFAULT_MATERIALS : result;
+    }
+
+    protected static boolean isInteger(String raw) {
+        if (raw == null || raw.isBlank()) return false;
+        try {
+            Integer.parseInt(raw);
+            return true;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
     }
 
     protected static int parseInt(String raw, int fallback) {

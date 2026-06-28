@@ -2,53 +2,52 @@ package com.astral_craft.common.gameplay.character;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Player;
+
+import java.util.List;
 
 public record CharacterPotentialDefinition(
         boolean enabled,
-        String descriptionKey,
-        String effectKey,
         int requiredLevel,
         int requiredFriendship,
-        int requiredExperience) {
+        int requiredExperience,
+        List<CharacterPotentialMaterialRequirement> materialRequirements) {
 
-    public static final CharacterPotentialDefinition NONE = new CharacterPotentialDefinition(false, "", "", 0, 0, 0);
+    public static final List<CharacterPotentialMaterialRequirement> DEFAULT_MATERIALS = List.of(
+            new CharacterPotentialMaterialRequirement(Identifier.withDefaultNamespace("gold_ingot"), 16),
+            new CharacterPotentialMaterialRequirement(Identifier.withDefaultNamespace("emerald"), 4),
+            new CharacterPotentialMaterialRequirement(Identifier.withDefaultNamespace("diamond"), 1));
+    public static final CharacterPotentialDefinition NONE = new CharacterPotentialDefinition(false, 0, 0, 0, List.of());
 
     public static final Codec<CharacterPotentialDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.BOOL.optionalFieldOf("enabled", true).forGetter(CharacterPotentialDefinition::enabled),
-            Codec.STRING.optionalFieldOf("description_key", "").forGetter(CharacterPotentialDefinition::descriptionKey),
-            Codec.STRING.optionalFieldOf("effect_key", "").forGetter(CharacterPotentialDefinition::effectKey),
             Codec.INT.optionalFieldOf("required_level", 1).forGetter(CharacterPotentialDefinition::requiredLevel),
             Codec.INT.optionalFieldOf("required_friendship", 1).forGetter(CharacterPotentialDefinition::requiredFriendship),
-            Codec.INT.optionalFieldOf("required_experience", 0).forGetter(CharacterPotentialDefinition::requiredExperience)
+            Codec.INT.optionalFieldOf("required_experience", 0).forGetter(CharacterPotentialDefinition::requiredExperience),
+            CharacterPotentialMaterialRequirement.CODEC.listOf().optionalFieldOf("materials", DEFAULT_MATERIALS).forGetter(CharacterPotentialDefinition::materialRequirements)
     ).apply(instance, CharacterPotentialDefinition::new));
 
     public CharacterPotentialDefinition {
         if (!enabled) {
-            descriptionKey = "";
-            effectKey = "";
             requiredLevel = 0;
             requiredFriendship = 0;
             requiredExperience = 0;
+            materialRequirements = List.of();
         } else {
-            descriptionKey = descriptionKey == null ? "" : descriptionKey;
-            effectKey = effectKey == null ? "" : effectKey;
             requiredLevel = Math.max(1, requiredLevel);
             requiredFriendship = Math.max(1, requiredFriendship);
             requiredExperience = Math.max(0, requiredExperience);
+            materialRequirements = materialRequirements == null || materialRequirements.isEmpty() ? DEFAULT_MATERIALS : List.copyOf(materialRequirements);
         }
     }
 
-    public static CharacterPotentialDefinition of(String descriptionKey, String effectKey, int requiredLevel, int requiredFriendship, int requiredExperience) {
-        return new CharacterPotentialDefinition(true, descriptionKey, effectKey, requiredLevel, requiredFriendship, requiredExperience);
+    public static CharacterPotentialDefinition create(int requiredFriendship, int requiredExperience, List<CharacterPotentialMaterialRequirement> materialRequirements) {
+        return new CharacterPotentialDefinition(true, 1, requiredFriendship, requiredExperience, materialRequirements);
     }
 
     public static CharacterPotentialDefinition defaultRequirement() {
-        return new CharacterPotentialDefinition(true, "", "", 1, 1, 0);
-    }
-
-    public CharacterPotentialDefinition withLocalizationKeys(String descriptionKey, String effectKey) {
-        if (!this.enabled) return NONE;
-        return new CharacterPotentialDefinition(true, descriptionKey, effectKey, this.requiredLevel, this.requiredFriendship, this.requiredExperience);
+        return new CharacterPotentialDefinition(true, 1, 1, 0, DEFAULT_MATERIALS);
     }
 
     public boolean canActivate(CharacterProgressEntry entry) {
@@ -59,8 +58,29 @@ public record CharacterPotentialDefinition(
         return entry.experience() >= this.requiredExperience;
     }
 
+    public boolean canActivate(CharacterProgressEntry entry, CharacterDefinition definition, Player player) {
+        if (!this.canActivate(entry)) return false;
+        if (definition != null && entry.level() < definition.maxPveLevel()) return false;
+        return this.hasMaterials(player);
+    }
+
+    public boolean hasMaterials(Player player) {
+        if (!this.enabled) return false;
+        for (CharacterPotentialMaterialRequirement requirement : this.materialRequirements) {
+            if (!requirement.satisfied(player)) return false;
+        }
+        return true;
+    }
+
+    public void consumeMaterials(Player player) {
+        if (!this.enabled) return;
+        for (CharacterPotentialMaterialRequirement requirement : this.materialRequirements) {
+            requirement.consume(player);
+        }
+    }
+
     public boolean hasRequirement() {
-        return this.requiredLevel > 1 || this.requiredFriendship > 1 || this.requiredExperience > 0;
+        return this.requiredFriendship > 1 || this.requiredExperience > 0 || !this.materialRequirements.isEmpty();
     }
 
 }

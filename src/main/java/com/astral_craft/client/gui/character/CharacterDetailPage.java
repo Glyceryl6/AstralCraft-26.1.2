@@ -18,4 +18,16 @@ public interface CharacterDetailPage {
         return 0.0F;
     }
 
+    default int bodyScrollBarX(CharacterLayout layout) {
+        return layout.bodyX + layout.bodyW - 5;
+    }
+
+    default int bodyScrollBarY(CharacterLayout layout) {
+        return layout.bodyY + 38;
+    }
+
+    default int bodyScrollBarHeight(CharacterLayout layout) {
+        return Math.max(10, layout.bodyH - 50);
+    }
+
 }

@@ -659,7 +659,7 @@ public class CharacterSettingsScreen extends Screen {
     protected boolean canActivatePotential(CharacterDefinition definition) {
         if (definition == null) return false;
         if (!definition.supportsPotential()) return false;
-        return definition.potentialOrDefault().canActivate(this.progressEntry(definition.id()));
+        return definition.potentialOrDefault().canActivate(this.progressEntry(definition.id()), definition, Minecraft.getInstance().player);
     }
 
     protected void activatePotential(CharacterDefinition definition) {
@@ -1422,9 +1422,9 @@ public class CharacterSettingsScreen extends Screen {
                     return true;
                 }
             } else {
-                int scrollX = layout.bodyX + layout.bodyW - 5;
-                int scrollY = layout.bodyY + 38;
-                int scrollH = Math.max(10, layout.bodyH - 50);
+                int scrollX = page.bodyScrollBarX(layout);
+                int scrollY = page.bodyScrollBarY(layout);
+                int scrollH = page.bodyScrollBarHeight(layout);
                 float maxScroll = page.maxScroll(layout);
                 if (AstralVerticalScrollbar.contains(mouseX, mouseY, scrollX, scrollY, scrollH, maxScroll)) {
                     this.draggingScrollbar = ScrollTarget.BODY;
@@ -1443,7 +1443,8 @@ public class CharacterSettingsScreen extends Screen {
         } else if (this.draggingScrollbar == ScrollTarget.SKINS) {
             this.skinScroll = AstralHorizontalScrollbar.scrollFromMouse(mouseX, layout.bodyX + 14, Math.max(10, layout.bodyW - 28), this.maxSkinScroll(layout));
         } else if (this.draggingScrollbar == ScrollTarget.BODY) {
-            this.bodyScroll = AstralVerticalScrollbar.scrollFromMouse(mouseY, layout.bodyY + 38, Math.max(10, layout.bodyH - 50), this.currentDetailPage().maxScroll(layout));
+            CharacterDetailPage page = this.currentDetailPage();
+            this.bodyScroll = AstralVerticalScrollbar.scrollFromMouse(mouseY, page.bodyScrollBarY(layout), page.bodyScrollBarHeight(layout), page.maxScroll(layout));
         }
     }
 

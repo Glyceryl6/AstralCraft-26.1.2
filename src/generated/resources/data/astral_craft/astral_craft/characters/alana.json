@@ -3,6 +3,7 @@
     "health": 9
   },
   "id": "astral_craft:alana",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.alana.name",
   "preview_texture": "astral_craft:entity/character/skin_alana_default",
   "profile": [
@@ -14,16 +15,12 @@
   "skills": [
     {
       "cooldown": 3,
-      "description_key": "character.astral_craft.alana.skill.active.desc",
       "handler": "astral_craft:alana",
-      "id": "active",
-      "name_key": "character.astral_craft.alana.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.alana.skill.passive.desc",
       "handler": "astral_craft:alana",
-      "id": "passive",
-      "name_key": "character.astral_craft.alana.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 12,

@@ -2,10 +2,9 @@
   "has_potential": true,
   "id": "astral_craft:jill",
   "implicit_bond_skin": false,
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.jill.name",
   "potential": {
-    "description_key": "character.astral_craft.jill.potential.desc",
-    "effect_key": "character.astral_craft.jill.potential.effect",
     "required_friendship": 2,
     "required_level": 4
   },
@@ -19,21 +18,17 @@
   "skills": [
     {
       "handler": "astral_craft:jill",
+      "has_pve_variant": true,
+      "has_pvp_variant": true,
       "id": "active",
       "pve_cooldown": 3,
-      "pve_description_key": "character.astral_craft.jill.skill.active.pve.desc",
-      "pve_name_key": "character.astral_craft.jill.skill.active.pve",
-      "pvp_cooldown": 3,
-      "pvp_description_key": "character.astral_craft.jill.skill.active.pvp.desc",
-      "pvp_name_key": "character.astral_craft.jill.skill.active.pvp"
+      "pvp_cooldown": 3
     },
     {
       "handler": "astral_craft:jill",
-      "id": "passive",
-      "pve_description_key": "character.astral_craft.jill.skill.passive.pve.desc",
-      "pve_name_key": "character.astral_craft.jill.skill.passive.pve",
-      "pvp_description_key": "character.astral_craft.jill.skill.passive.pvp.desc",
-      "pvp_name_key": "character.astral_craft.jill.skill.passive.pvp"
+      "has_pve_variant": true,
+      "has_pvp_variant": true,
+      "id": "passive"
     }
   ],
   "sort_order": 40,

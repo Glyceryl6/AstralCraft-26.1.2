@@ -5,6 +5,7 @@
   },
   "id": "astral_craft:ame",
   "implicit_bond_skin": false,
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.ame.name",
   "preview_texture": "astral_craft:entity/character/skin_ame_default",
   "profile": [
@@ -16,16 +17,12 @@
   "skills": [
     {
       "cooldown": 3,
-      "description_key": "character.astral_craft.ame.skill.active.desc",
       "handler": "astral_craft:ame",
-      "id": "active",
-      "name_key": "character.astral_craft.ame.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.ame.skill.passive.desc",
       "handler": "astral_craft:ame",
-      "id": "passive",
-      "name_key": "character.astral_craft.ame.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 39,

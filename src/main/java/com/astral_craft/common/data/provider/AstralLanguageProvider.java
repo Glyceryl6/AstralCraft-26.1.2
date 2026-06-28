@@ -143,6 +143,10 @@ public class AstralLanguageProvider extends LanguageProvider {
             for (AstralCharacterDataCatalog.SkinEntry skin : entry.skins) {
                 this.add(baseKey + ".skin." + skin.id(), skin.enName(), skin.zhName());
             }
+            if (entry.hasPotential) {
+                this.add(baseKey + ".potential.desc", "This character has an unlockable potential.", "该角色拥有可以激发的潜能。");
+                this.add(baseKey + ".potential.effect", "After activation, this character's skill is enhanced.", "激发后，该角色的技能会获得强化。");
+            }
         }
 
         this.add("event.astral_craft.lucky_find.name", "Lucky Find", "幸运发现");

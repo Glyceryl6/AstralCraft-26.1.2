@@ -3,6 +3,7 @@
     "health": 9
   },
   "id": "astral_craft:komachi",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.komachi.name",
   "preview_texture": "astral_craft:entity/character/skin_komachi_default",
   "profile": [
@@ -14,16 +15,12 @@
   "skills": [
     {
       "cooldown": 3,
-      "description_key": "character.astral_craft.komachi.skill.active.desc",
       "handler": "astral_craft:komachi",
-      "id": "active",
-      "name_key": "character.astral_craft.komachi.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.komachi.skill.passive.desc",
       "handler": "astral_craft:komachi",
-      "id": "passive",
-      "name_key": "character.astral_craft.komachi.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 13,

@@ -154,11 +154,12 @@ public class CharacterProgressManager {
             player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_already_active"), true);
             return;
         }
-        if (!potential.canActivate(entry)) {
+        if (!potential.canActivate(entry, definition, player)) {
             player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_requirement_not_met"), true);
             return;
         }
 
+        potential.consumeMaterials(player);
         progress.activatePotential(characterId);
         save(player, progress);
         refreshActiveIfSame(player, characterId);

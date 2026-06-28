@@ -48,7 +48,7 @@ public class AstralCharacterSkillService {
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
         int cooldown = skillState.cooldown(key);
         if (cooldown > 0 && !canBypassCooldown(player)) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.skill.cooldown", Component.translatable(displayNameKey(skill)), seconds(cooldown)), true);
+            player.sendSystemMessage(Component.translatable("message.astral_craft.skill.cooldown", Component.translatable(displayNameKey(definition, skill)), seconds(cooldown)), true);
             return;
         }
 
@@ -63,7 +63,7 @@ public class AstralCharacterSkillService {
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
         sendCutin(player, state, definition, skill, skillSet);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(skill))).withStyle(ChatFormatting.AQUA), true);
+        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(definition, skill))).withStyle(ChatFormatting.AQUA), true);
     }
 
     public static void serverTick(ServerPlayer player) {
@@ -80,7 +80,7 @@ public class AstralCharacterSkillService {
             }
             effectChanged |= !removed.isEmpty();
             CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
-            CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition("passive", "", "", 0));
+            CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition("passive", 0));
             Identifier handlerId = skill.safeHandler(definition.id());
             AstralCharacterSkillSet skillSet = AstralCharacterSkills.get(handlerId).orElseGet(() -> AstralCharacterSkills.getOrDefault(definition.id()));
             skillSet.serverTick(new CharacterSkillContext(player, state, definition, skill, skillState));
@@ -106,6 +106,7 @@ public class AstralCharacterSkillService {
         if (replaced != null) {
             callEffectEnd(player, replaced);
         }
+
         player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
         callEffectStart(player, effect);
     }
@@ -115,6 +116,7 @@ public class AstralCharacterSkillService {
             addStatusEffect(player, effect);
             return;
         }
+
         AstralCharacterSkillEffects.add(target, effect);
     }
 
@@ -186,7 +188,7 @@ public class AstralCharacterSkillService {
     protected static CharacterSkillContext contextForEffect(ServerPlayer player, CharacterSkillEffect effect) {
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         CharacterDefinition definition = CharacterManager.INSTANCE.get(effect.safeCharacterId());
-        CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition(effect.safeId(), effect.safeNameKey(), "", 0));
+        CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition(effect.safeId(), 0, effect.safeHandlerId(), "skill"));
         return new CharacterSkillContext(player, state, definition, skill, player.getData(AstralAttachments.CHARACTER_SKILLS));
     }
 
@@ -228,17 +230,13 @@ public class AstralCharacterSkillService {
         return player.getAbilities().instabuild;
     }
 
-    protected static String displayNameKey(CharacterSkillDefinition skill) {
-        if (!skill.nameKey().isBlank()) return skill.nameKey();
-        if (!skill.pvpNameKey().isBlank()) return skill.pvpNameKey();
-        if (!skill.pveNameKey().isBlank()) return skill.pveNameKey();
+    protected static String displayNameKey(CharacterDefinition definition, CharacterSkillDefinition skill) {
+        if (definition != null && skill != null) return definition.skillNameKey(skill, CharacterSkillDefinition.SkillMode.PVP);
         return "message.astral_craft.skill.default_name";
     }
 
-    protected static String displayDescriptionKey(CharacterSkillDefinition skill) {
-        if (!skill.descriptionKey().isBlank()) return skill.descriptionKey();
-        if (!skill.pvpDescriptionKey().isBlank()) return skill.pvpDescriptionKey();
-        if (!skill.pveDescriptionKey().isBlank()) return skill.pveDescriptionKey();
+    protected static String displayDescriptionKey(CharacterDefinition definition, CharacterSkillDefinition skill) {
+        if (definition != null && skill != null) return definition.skillDescriptionKey(skill, CharacterSkillDefinition.SkillMode.PVP);
         return "message.astral_craft.skill.default_description";
     }
 

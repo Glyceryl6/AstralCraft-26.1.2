@@ -3,6 +3,7 @@
     "defense": 2
   },
   "id": "astral_craft:parunan",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.parunan.name",
   "preview_texture": "astral_craft:entity/character/skin_parunan_default",
   "profile": [
@@ -14,16 +15,12 @@
   "skills": [
     {
       "cooldown": 2,
-      "description_key": "character.astral_craft.parunan.skill.active.desc",
       "handler": "astral_craft:parunan",
-      "id": "active",
-      "name_key": "character.astral_craft.parunan.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.parunan.skill.passive.desc",
       "handler": "astral_craft:parunan",
-      "id": "passive",
-      "name_key": "character.astral_craft.parunan.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 10,

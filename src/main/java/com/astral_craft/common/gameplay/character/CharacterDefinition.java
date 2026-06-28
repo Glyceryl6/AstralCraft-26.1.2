@@ -167,12 +167,9 @@ public record CharacterDefinition(
                 AstralCraft.prefix("astral_character"),
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
-                "idle",
-                6,
-                5,
+                "idle", 6, 5,
                 new CharacterStatsDefinition(1, 1, 9),
-                List.of(new CharacterSkillDefinition("active", "character.astral_craft.mimi.skill.active",
-                        "character.astral_craft.mimi.skill.active.desc", 3)),
+                List.of(new CharacterSkillDefinition("active", 3)),
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
                 List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",
                         AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
@@ -199,13 +196,35 @@ public record CharacterDefinition(
 
     public CharacterPotentialDefinition potentialOrDefault() {
         if (!this.supportsPotential()) return CharacterPotentialDefinition.NONE;
-        CharacterPotentialDefinition value = this.potential == null || !this.potential.enabled()
+        return this.potential == null || !this.potential.enabled()
                 ? CharacterPotentialDefinition.defaultRequirement() : this.potential;
-        return value.withLocalizationKeys(this.potentialDescriptionKey(), this.potentialEffectKey());
     }
 
     private String potentialLocalizationKey(String suffix) {
         return "character." + this.id.getNamespace() + "." + this.id.getPath() + ".potential." + suffix;
+    }
+
+    public String skillNameKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode) {
+        return this.skillLocalizationKey(skill, mode, "");
+    }
+
+    public String skillDescriptionKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode) {
+        return this.skillLocalizationKey(skill, mode, ".desc");
+    }
+
+    private String skillLocalizationKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode, String suffix) {
+        String skillId = skill == null || skill.id() == null || skill.id().isBlank() ? "active" : skill.id();
+        String base = "character." + this.id.getNamespace() + "." + this.id.getPath() + ".skill." + skillId;
+        if (skill != null) {
+            if (mode == CharacterSkillDefinition.SkillMode.PVE && skill.hasPveSpecificText()) {
+                return base + ".pve" + suffix;
+            }
+            if (mode == CharacterSkillDefinition.SkillMode.PVP && skill.hasPvpSpecificText()) {
+                return base + ".pvp" + suffix;
+            }
+        }
+
+        return base + suffix;
     }
 
     public CharacterSkinDefinition skinOrDefault(String skinId) {

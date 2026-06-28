@@ -3,6 +3,7 @@
     "defense": 2
   },
   "id": "astral_craft:fanny",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.fanny.name",
   "preview_texture": "astral_craft:entity/character/skin_fanny_default",
   "profile": [
@@ -14,16 +15,12 @@
   "skills": [
     {
       "cooldown": 3,
-      "description_key": "character.astral_craft.fanny.skill.active.desc",
       "handler": "astral_craft:fanny",
-      "id": "active",
-      "name_key": "character.astral_craft.fanny.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.fanny.skill.passive.desc",
       "handler": "astral_craft:fanny",
-      "id": "passive",
-      "name_key": "character.astral_craft.fanny.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 11,

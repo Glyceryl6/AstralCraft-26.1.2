@@ -3,6 +3,7 @@
     "attack": 2
   },
   "id": "astral_craft:papara",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.papara.name",
   "preview_texture": "astral_craft:entity/character/skin_papara_default",
   "profile": [
@@ -14,16 +15,12 @@
   "skills": [
     {
       "cooldown": 3,
-      "description_key": "character.astral_craft.papara.skill.active.desc",
       "handler": "astral_craft:papara",
-      "id": "active",
-      "name_key": "character.astral_craft.papara.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.papara.skill.passive.desc",
       "handler": "astral_craft:papara",
-      "id": "passive",
-      "name_key": "character.astral_craft.papara.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 15,

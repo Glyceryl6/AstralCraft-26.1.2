@@ -4,6 +4,7 @@
         "health": 9
     },
     "id": "astral_craft:jasmine",
+    "max_friendship_level": 6,
     "name_key": "character.astral_craft.jasmine.name",
     "preview_texture": "astral_craft:entity/character/skin_jasmine_default",
     "profile": [
@@ -15,16 +16,12 @@
     "skills": [
         {
             "cooldown": 4,
-            "description_key": "character.astral_craft.jasmine.skill.active.desc",
             "handler": "astral_craft:jasmine",
-            "id": "active",
-            "name_key": "character.astral_craft.jasmine.skill.active"
+            "id": "active"
         },
         {
-            "description_key": "character.astral_craft.jasmine.skill.passive.desc",
             "handler": "astral_craft:jasmine",
-            "id": "passive",
-            "name_key": "character.astral_craft.jasmine.skill.passive"
+            "id": "passive"
         }
     ],
     "sort_order": 25,

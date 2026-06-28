@@ -5,6 +5,7 @@
     "health": 9
   },
   "id": "astral_craft:padman",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.padman.name",
   "preview_texture": "astral_craft:entity/character/skin_padman_default",
   "profile": [
@@ -16,16 +17,12 @@
   "skills": [
     {
       "cooldown": 3,
-      "description_key": "character.astral_craft.padman.skill.active.desc",
       "handler": "astral_craft:padman",
-      "id": "active",
-      "name_key": "character.astral_craft.padman.skill.active"
+      "id": "active"
     },
     {
-      "description_key": "character.astral_craft.padman.skill.passive.desc",
       "handler": "astral_craft:padman",
-      "id": "passive",
-      "name_key": "character.astral_craft.padman.skill.passive"
+      "id": "passive"
     }
   ],
   "sort_order": 14,

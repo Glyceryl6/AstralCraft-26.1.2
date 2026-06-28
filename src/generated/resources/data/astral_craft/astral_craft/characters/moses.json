@@ -3,6 +3,7 @@
     "health": 11
   },
   "id": "astral_craft:moses",
+  "max_friendship_level": 6,
   "name_key": "character.astral_craft.moses.name",
   "preview_texture": "astral_craft:entity/character/skin_moses_default",
   "profile": [
@@ -14,21 +15,17 @@
   "skills": [
     {
       "handler": "astral_craft:moses",
+      "has_pve_variant": true,
+      "has_pvp_variant": true,
       "id": "active",
       "pve_cooldown": 2,
-      "pve_description_key": "character.astral_craft.moses.skill.active.pve.desc",
-      "pve_name_key": "character.astral_craft.moses.skill.active.pve",
-      "pvp_cooldown": 2,
-      "pvp_description_key": "character.astral_craft.moses.skill.active.pvp.desc",
-      "pvp_name_key": "character.astral_craft.moses.skill.active.pvp"
+      "pvp_cooldown": 2
     },
     {
       "handler": "astral_craft:moses",
-      "id": "passive",
-      "pve_description_key": "character.astral_craft.moses.skill.passive.pve.desc",
-      "pve_name_key": "character.astral_craft.moses.skill.passive.pve",
-      "pvp_description_key": "character.astral_craft.moses.skill.passive.pvp.desc",
-      "pvp_name_key": "character.astral_craft.moses.skill.passive.pvp"
+      "has_pve_variant": true,
+      "has_pvp_variant": true,
+      "id": "passive"
     }
   ],
   "sort_order": 33,
