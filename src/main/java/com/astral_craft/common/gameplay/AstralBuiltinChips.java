@@ -1,7 +1,6 @@
 package com.astral_craft.common.gameplay;
 
-/** Built-in chip definitions. Addons can call {@link AstralPartyChips#register(ChipDefinition)} themselves. */
-public final class AstralBuiltinChips {
+public class AstralBuiltinChips {
 
     public static final ChipDefinition BOXING_GLOVES_BASIC = chip("boxing_gloves_basic", ChipRarity.BLUE, null, new StatBundle(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
     public static final ChipDefinition BOXING_GLOVES_FAIR = chip("boxing_gloves_fair", ChipRarity.PURPLE, null, new StatBundle(2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
@@ -25,10 +24,6 @@ public final class AstralBuiltinChips {
     public static final ChipDefinition MEDICAL_KIT_FULL = chip("medical_kit_full", ChipRarity.GOLD, BuffKinds.HEAL, new StatBundle(0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0));
     public static final ChipDefinition MARKING_SPRAY = chip("marking_spray", ChipRarity.BLUE, BuffKinds.MARK, new StatBundle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1));
     public static final ChipDefinition STANDARD_SIGHT = chip("standard_sight", ChipRarity.PURPLE, BuffKinds.MARK, new StatBundle(2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1));
-
-    public static void bootstrap() {
-        // Class loading registers the static definitions above.
-    }
 
     private static ChipDefinition chip(String id, ChipRarity rarity, BuffKind keyword, StatBundle stats) {
         return AstralPartyChips.register(new ChipDefinition(id, ChipDefinition.nameKey(id), ChipDefinition.effectKey(id), rarity, keyword, stats));

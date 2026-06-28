@@ -1,12 +1,7 @@
 package com.astral_craft;
 
-import com.astral_craft.common.gameplay.AstralBuiltinCards;
-import com.astral_craft.common.gameplay.AstralBuiltinChips;
 import com.astral_craft.common.gameplay.AstralPartyChips;
 import com.astral_craft.common.gameplay.PanelTypes;
-import com.astral_craft.common.registry.AstralCharacterSkills;
-import com.astral_craft.common.registry.AstralEventEffectTypes;
-import com.astral_craft.common.registry.AstralStatusEffects;
 import com.astral_craft.common.registry.*;
 import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
@@ -20,9 +15,6 @@ public class AstralCraft {
     public static final String MOD_ID = "astral_craft";
 
     public AstralCraft(IEventBus modEventBus) {
-        PanelTypes.bootstrap();
-        AstralBuiltinChips.bootstrap();
-        AstralBuiltinCards.bootstrap();
         PanelTypes.PANEL_TYPES.register(modEventBus);
         AstralPartyChips.CHIPS.register(modEventBus);
         AstralCharacterSkills.SKILL_SETS.register(modEventBus);

@@ -7,14 +7,13 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import java.util.Collection;
 import java.util.Optional;
 
-public final class PanelTypes {
+public class PanelTypes {
 
     public static final ResourceKey<Registry<PanelType>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("panel_types"));
     public static final DeferredRegister<PanelType> PANEL_TYPES = DeferredRegister.create(REGISTRY_KEY, AstralCraft.MOD_ID);
-    public static final Registry<PanelType> REGISTRY = PANEL_TYPES.makeRegistry(builder -> {});
+    public static final Registry<PanelType> REGISTRY = PANEL_TYPES.makeRegistry(_ -> {});
 
     public static final DeferredHolder<PanelType, PanelType> START = registerBuiltin("start", PanelTrigger.LANDING);
     public static final DeferredHolder<PanelType, PanelType> CHECK_POINT = registerBuiltin("check_point", PanelTrigger.LANDING);
@@ -41,8 +40,6 @@ public final class PanelTypes {
     public static final DeferredHolder<PanelType, PanelType> GIMMICK = registerBuiltin("gimmick", PanelTrigger.LANDING);
     public static final DeferredHolder<PanelType, PanelType> EMPTY = registerBuiltin("empty", PanelTrigger.LANDING);
 
-    private PanelTypes() {}
-
     public static DeferredHolder<PanelType, PanelType> register(String path, PanelTrigger trigger, String nameKey, String descriptionKey) {
         Identifier id = AstralCraft.prefix(path);
         return PANEL_TYPES.register(path, () -> new PanelType(id, trigger, nameKey, descriptionKey));
@@ -57,15 +54,7 @@ public final class PanelTypes {
     }
 
     public static PanelType getOrEmpty(Identifier id) {
-        return get(id).orElseGet(EMPTY::get);
-    }
-
-    public static Collection<DeferredHolder<PanelType, ? extends PanelType>> holders() {
-        return PANEL_TYPES.getEntries();
-    }
-
-    public static void bootstrap() {
-        // Class loading creates built-in DeferredHolder entries above.
+        return get(id).orElseGet(EMPTY);
     }
 
     private static DeferredHolder<PanelType, PanelType> registerBuiltin(String path, PanelTrigger trigger) {
