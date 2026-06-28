@@ -29,6 +29,7 @@ public class CharacterCodecLines {
                     .append(escapeSkills(definition.skills())).append('|')
                     .append(escapeProfiles(definition.profileSections())).append('|')
                     .append(escapeSkins(definition.skins())).append('|')
+                    .append(escapePotential(definition)).append('|')
                     .append(definition.implicitDefaultSkin()).append(',')
                     .append(definition.implicitBondSkin()).append('|')
                     .append(definition.unlockedByDefault()).append('|')
@@ -82,9 +83,16 @@ public class CharacterCodecLines {
                 List<CharacterSkillDefinition> skills = decodeSkills(parts[statsIndex + 1]);
                 List<CharacterProfileSection> profiles = decodeProfiles(parts[statsIndex + 2]);
                 List<CharacterSkinDefinition> skins = decodeSkins(parts[statsIndex + 3]);
+                boolean hasPotential = false;
+                CharacterPotentialDefinition potential = CharacterPotentialDefinition.NONE;
                 boolean implicitDefaultSkin = true;
                 boolean implicitBondSkin = true;
                 int metadataOffset = statsIndex + 4;
+                if (parts.length > metadataOffset && isPotentialField(parts[metadataOffset])) {
+                    potential = decodePotential(parts[metadataOffset], id);
+                    hasPotential = potential.enabled();
+                    metadataOffset++;
+                }
                 if (parts.length > metadataOffset && parts[metadataOffset].contains(",")) {
                     String[] implicit = parts[metadataOffset].split(",", -1);
                     implicitDefaultSkin = implicit.length < 1 || Boolean.parseBoolean(implicit[0]);
@@ -95,7 +103,7 @@ public class CharacterCodecLines {
                 boolean unlockedByDefault = parts.length > metadataOffset && Boolean.parseBoolean(parts[metadataOffset]);
                 String unlockHintKey = parts.length > metadataOffset + 1 && !parts[metadataOffset + 1].isBlank() ? unescape(parts[metadataOffset + 1]) : "character.astral_craft.unlock_hint.placeholder";
                 int sortOrder = decodeInt(parts, metadataOffset + 2, 1000);
-                result.add(new CharacterDefinition(id, nameKey, titleKey, model, texture, entityType, renderer, animationSet, previewAction, maxPveLevel, maxFriendshipLevel, stats, skills, profiles, skins, implicitDefaultSkin, implicitBondSkin, unlockedByDefault, unlockHintKey, sortOrder));
+                result.add(new CharacterDefinition(id, nameKey, titleKey, model, texture, entityType, renderer, animationSet, previewAction, maxPveLevel, maxFriendshipLevel, stats, skills, profiles, skins, hasPotential, potential, implicitDefaultSkin, implicitBondSkin, unlockedByDefault, unlockHintKey, sortOrder));
             } catch (Exception ignored) {}
         }
 
@@ -215,6 +223,50 @@ public class CharacterCodecLines {
         }
 
         return result;
+    }
+
+
+    protected static String escapePotential(CharacterDefinition definition) {
+        if (!definition.hasPotential()) return "0";
+        CharacterPotentialDefinition potential = definition.potentialOrDefault();
+        return "1," + escape(potential.descriptionKey()) + "," + escape(potential.effectKey()) + ","
+                + potential.requiredLevel() + "," + potential.requiredFriendship() + "," + potential.requiredExperience();
+    }
+
+    protected static boolean isPotentialField(String raw) {
+        if (raw == null) return false;
+        if (raw.isBlank() || "0".equals(raw) || "false".equalsIgnoreCase(raw)) return true;
+        return isPotentialToken(raw);
+    }
+
+    protected static boolean isPotentialToken(String raw) {
+        if (raw == null || raw.isBlank()) return false;
+        String[] parts = raw.split(",", -1);
+        if (parts.length < 1) return false;
+        return "1".equals(parts[0]) || "true".equalsIgnoreCase(parts[0]) || "potential".equalsIgnoreCase(parts[0]);
+    }
+
+    protected static CharacterPotentialDefinition decodePotential(String raw, Identifier characterId) {
+        String[] parts = raw.split(",", -1);
+        if (parts.length < 1 || !("1".equals(parts[0]) || "true".equalsIgnoreCase(parts[0]) || "potential".equalsIgnoreCase(parts[0]))) {
+            return CharacterPotentialDefinition.NONE;
+        }
+        String path = characterId == null ? "mimi" : characterId.getPath();
+        String namespace = characterId == null ? AstralCraft.MOD_ID : characterId.getNamespace();
+        String description = parts.length >= 2 && !parts[1].isBlank() ? unescape(parts[1]) : "character." + namespace + "." + path + ".potential.desc";
+        String effect = parts.length >= 3 && !parts[2].isBlank() ? unescape(parts[2]) : "character." + namespace + "." + path + ".potential.effect";
+        int requiredLevel = parts.length >= 4 ? parseInt(parts[3], 1) : 1;
+        int requiredFriendship = parts.length >= 5 ? parseInt(parts[4], 1) : 1;
+        int requiredExperience = parts.length >= 6 ? parseInt(parts[5], 0) : 0;
+        return CharacterPotentialDefinition.of(description, effect, requiredLevel, requiredFriendship, requiredExperience);
+    }
+
+    protected static int parseInt(String raw, int fallback) {
+        try {
+            return Integer.parseInt(raw);
+        } catch (Exception exception) {
+            return fallback;
+        }
     }
 
     protected static String escapeSkins(List<CharacterSkinDefinition> skins) {

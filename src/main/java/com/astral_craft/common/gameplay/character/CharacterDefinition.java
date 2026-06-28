@@ -24,6 +24,8 @@ public record CharacterDefinition(
         List<CharacterSkillDefinition> skills,
         List<CharacterProfileSection> profileSections,
         List<CharacterSkinDefinition> skins,
+        boolean hasPotential,
+        CharacterPotentialDefinition potential,
         boolean implicitDefaultSkin,
         boolean implicitBondSkin,
         boolean unlockedByDefault,
@@ -55,6 +57,8 @@ public record CharacterDefinition(
             CharacterSkillDefinition.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(CharacterContent::skills),
             CharacterProfileSection.CODEC.listOf().optionalFieldOf("profile", List.of()).forGetter(CharacterContent::profileSections),
             CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(CharacterContent::skins),
+            Codec.BOOL.optionalFieldOf("has_potential", false).forGetter(CharacterContent::hasPotential),
+            CharacterPotentialDefinition.CODEC.optionalFieldOf("potential", CharacterPotentialDefinition.NONE).forGetter(CharacterContent::potential),
             Codec.BOOL.optionalFieldOf("implicit_default_skin", true).forGetter(CharacterContent::implicitDefaultSkin),
             Codec.BOOL.optionalFieldOf("implicit_bond_skin", true).forGetter(CharacterContent::implicitBondSkin)
     ).apply(instance, CharacterContent::new));
@@ -82,6 +86,8 @@ public record CharacterDefinition(
                 content.skills(),
                 content.profileSections(),
                 content.skins(),
+                content.hasPotential() || content.potential().enabled(),
+                content.potential(),
                 content.implicitDefaultSkin(),
                 content.implicitBondSkin(),
                 progressionMetadata.unlockedByDefault(),
@@ -117,6 +123,8 @@ public record CharacterDefinition(
                 this.skills,
                 this.profileSections,
                 this.skins,
+                this.hasPotential,
+                this.potential,
                 this.implicitDefaultSkin,
                 this.implicitBondSkin);
     }
@@ -144,6 +152,8 @@ public record CharacterDefinition(
             List<CharacterSkillDefinition> skills,
             List<CharacterProfileSection> profileSections,
             List<CharacterSkinDefinition> skins,
+            boolean hasPotential,
+            CharacterPotentialDefinition potential,
             boolean implicitDefaultSkin,
             boolean implicitBondSkin) { }
 
@@ -166,11 +176,36 @@ public record CharacterDefinition(
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
                 List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",
                         AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
+                false,
+                CharacterPotentialDefinition.NONE,
                 true,
                 true,
                 true,
                 "character.astral_craft.unlock_hint.default",
                 80);
+    }
+
+    public boolean supportsPotential() {
+        return this.hasPotential;
+    }
+
+    public String potentialDescriptionKey() {
+        return this.potentialLocalizationKey("desc");
+    }
+
+    public String potentialEffectKey() {
+        return this.potentialLocalizationKey("effect");
+    }
+
+    public CharacterPotentialDefinition potentialOrDefault() {
+        if (!this.supportsPotential()) return CharacterPotentialDefinition.NONE;
+        CharacterPotentialDefinition value = this.potential == null || !this.potential.enabled()
+                ? CharacterPotentialDefinition.defaultRequirement() : this.potential;
+        return value.withLocalizationKeys(this.potentialDescriptionKey(), this.potentialEffectKey());
+    }
+
+    private String potentialLocalizationKey(String suffix) {
+        return "character." + this.id.getNamespace() + "." + this.id.getPath() + ".potential." + suffix;
     }
 
     public CharacterSkinDefinition skinOrDefault(String skinId) {

@@ -45,12 +45,12 @@ public class AstralCharacterDataCatalog {
                             skin("cute_captain", "Cute Captain", "可爱船长", "amethyst"), 
                             skin("illusory_dealer", "Illusory Dealer", "卡牌魔术", "platinum")),
             character("mimi").setEnName("Mimi").setZhName("米米").setEnTitle("Kanban Musume").setZhTitle("看板娘")
-                    .setAttack(1).setDefense(1).setHealth(9).setUnlockedByDefault(true).setSkillSameIn2Mode(true).setSortOrder(17).setCooldown(3)
+                    .setAttack(1).setDefense(1).setHealth(9).setUnlockedByDefault(true).setSkillSameIn2Mode(true).setSortOrder(17).setCooldown(3).setPotentialRequirement(3, 2, 0)
                     .setSkins(skin("slushie_express", "Slushie Express", "冰沙快递", "sapphire"),
                             skin("transport_magic", "Transport Magic", "运输魔法", "amethyst"), 
                             skin("race_queen", "Race Queen", "赛车女郎", "emerald")),
             character("z3000").setEnName("Z3000").setZhName("Z3000").setEnTitle("Waste-Collecting Robot").setZhTitle("垃圾箱")
-                    .setAttack(1).setDefense(2).setHealth(10).setSortOrder(18).setCooldown(3, 4)
+                    .setAttack(1).setDefense(2).setHealth(10).setSortOrder(18).setCooldown(3, 4).setPotentialRequirement(3, 2, 0)
                     .setSkins(skin("sky_explorer_assistant", "Sky Explorer Assistant", "探天助手", "amethyst")),
             character("pandaman").setEnName("Pandaman").setZhName("潘大猛").setEnTitle("Human Chariot").setZhTitle("肉弹战车")
                     .setAttack(1).setDefense(0).setHealth(14).setSortOrder(19).setCooldown(4,3),
@@ -59,7 +59,7 @@ public class AstralCharacterDataCatalog {
                     .setSkins(skin("mimic", "Mimic", "宝箱怪", "sapphire"),
                             skin("sweet_trap", "Sweet Trap", "甜蜜陷阱", "amethyst")),
             character("fen").setEnName("Fen").setZhName("枫").setEnTitle("Cheongsam Girl").setZhTitle("旗袍娘")
-                    .setAttack(1).setDefense(0).setHealth(10).setSortOrder(21).setCooldown(3)
+                    .setAttack(1).setDefense(0).setHealth(10).setSortOrder(21).setCooldown(3).setPotentialRequirement(3, 3, 0)
                     .setSkins(skin("maid_warrior", "Maid Warrior", "战斗女仆", "sapphire"),
                             skin("dragon_ascent", "Dragon's Ascent", "锦跃游龙", "amethyst"), 
                             skin("trendy_princess", "Trendy Princess", "潮流公主", "sapphire")),
@@ -132,7 +132,7 @@ public class AstralCharacterDataCatalog {
                     .setAttack(1).setDefense(4).setHealth(9).setImplicitBondSkin(false).setSkillSameIn2Mode(true).setSortOrder(39).setCooldown(3)
                     .setSkins(skin("casual_daily", "Casual Daily", "休闲日常", "platinum")),
             character("jill").setEnName("Jill").setZhName("吉尔").setEnTitle("Jill Stingray").setZhTitle("吉尔·斯汀雷")
-                    .setAttack(1).setDefense(1).setHealth(10).setImplicitBondSkin(false).setSortOrder(40).setCooldown(3),
+                    .setAttack(1).setDefense(1).setHealth(10).setImplicitBondSkin(false).setSortOrder(40).setCooldown(3).setPotentialRequirement(4, 2, 0),
             character("dorothy").setEnName("Dorothy").setZhName("多萝西").setEnTitle("Dorothy Haze").setZhTitle("多萝西·海兹")
                     .setAttack(1).setDefense(0).setHealth(8).setImplicitBondSkin(false).setSortOrder(41).setCooldown(3, 2));
 
@@ -166,6 +166,10 @@ public class AstralCharacterDataCatalog {
         public int pvpCooldown = -1;
         public int pveCooldown = -1;
         public List<SkinEntry> skins = List.of();
+        public boolean hasPotential;
+        public int potentialRequiredLevel = 1;
+        public int potentialRequiredFriendship = 1;
+        public int potentialRequiredExperience;
 
         public CharacterEntry setId(String id) {
             this.id = id;
@@ -224,6 +228,19 @@ public class AstralCharacterDataCatalog {
 
         public CharacterEntry setSortOrder(int sortOrder) {
             this.sortOrder = sortOrder;
+            return this;
+        }
+
+        public CharacterEntry setPotential(boolean hasPotential) {
+            this.hasPotential = hasPotential;
+            return this;
+        }
+
+        public CharacterEntry setPotentialRequirement(int level, int friendship, int experience) {
+            this.hasPotential = true;
+            this.potentialRequiredLevel = level;
+            this.potentialRequiredFriendship = friendship;
+            this.potentialRequiredExperience = experience;
             return this;
         }
 

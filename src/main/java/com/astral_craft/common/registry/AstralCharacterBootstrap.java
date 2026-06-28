@@ -4,6 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.data.provider.AstralCharacterDataCatalog;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProfileSection;
+import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
 import com.astral_craft.common.gameplay.character.CharacterSkillDefinition;
 import com.astral_craft.common.gameplay.character.CharacterStatsDefinition;
 import net.minecraft.data.worldgen.BootstrapContext;
@@ -37,8 +38,9 @@ public class AstralCharacterBootstrap {
                 new CharacterStatsDefinition(entry.attack, entry.defense, entry.health),
                 entry.skillSameIn2Mode ? List.of(skill(id, "active", entry.cooldown), skill(id, "passive", 0))
                         : List.of(skill(id, "active", entry.pvpCooldown, entry.pveCooldown), skill(id, "passive", -1, -1)),
-                List.of(new CharacterProfileSection("", prefix + ".profile.basic.body")), List.of(), Boolean.TRUE,
-                entry.implicitBondSkin, entry.unlockedByDefault, prefix + ".unlock_hint", entry.sortOrder);
+                List.of(new CharacterProfileSection("", prefix + ".profile.basic.body")), List.of(), entry.hasPotential,
+                entry.hasPotential ? CharacterPotentialDefinition.of(prefix + ".potential.desc", prefix + ".potential.effect", entry.potentialRequiredLevel, entry.potentialRequiredFriendship, entry.potentialRequiredExperience) : CharacterPotentialDefinition.NONE,
+                Boolean.TRUE, entry.implicitBondSkin, entry.unlockedByDefault, prefix + ".unlock_hint", entry.sortOrder);
     }
 
     private static CharacterSkillDefinition skill(String id, String type, int cooldown) {

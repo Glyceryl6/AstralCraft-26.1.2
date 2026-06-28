@@ -2,7 +2,14 @@
   "base_stats": {
     "health": 9
   },
+  "has_potential": true,
   "name_key": "character.astral_craft.mimi.name",
+  "potential": {
+    "description_key": "character.astral_craft.mimi.potential.desc",
+    "effect_key": "character.astral_craft.mimi.potential.effect",
+    "required_friendship": 2,
+    "required_level": 3
+  },
   "preview_texture": "astral_craft:entity/character/skin_mimi_default",
   "profile": [
     {

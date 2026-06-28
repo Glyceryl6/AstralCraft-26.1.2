@@ -8,4 +8,13 @@ public record CharacterSkillContext(
         CharacterDefinition definition,
         CharacterSkillDefinition skill,
         CharacterSkillState skillState) {
+
+    public CharacterProgressEntry progressEntry() {
+        return CharacterProgressManager.progress(this.player).entry(this.definition.id());
+    }
+
+    public boolean potentialActivated() {
+        return this.definition.supportsPotential() && this.progressEntry().potentialActivated();
+    }
+
 }

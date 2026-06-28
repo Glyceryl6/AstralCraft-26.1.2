@@ -2,6 +2,8 @@ package com.astral_craft.client.gui.character;
 
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProfileSection;
+import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
+import com.astral_craft.common.gameplay.character.CharacterProgressEntry;
 import com.astral_craft.common.gameplay.character.CharacterSkillDefinition;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -196,13 +198,67 @@ public class ArchiveDetailPage implements CharacterDetailPage {
         @Override
         void render(GuiGraphicsExtractor graphics, CharacterLayout layout) {
             SectionArea area = this.begin(graphics, layout);
-            screen.drawWrapped(graphics, Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), area.contentX() + 8, area.y() + 4, 0xFFE7E7E7, area.maxWidth() - 16);
+            CharacterDefinition definition = screen.selectedCharacter();
+            CharacterPotentialDefinition potential = definition.potentialOrDefault();
+            CharacterProgressEntry progress = screen.progressEntry(definition.id());
+            int y = area.y() + 4;
+            y = screen.drawWrapped(graphics, Component.translatable(potential.descriptionKey()), area.contentX() + 8, y, 0xFFE7E7E7, area.maxWidth() - 16);
+            y += 8;
+            y = screen.drawHeader(graphics, Component.translatable("gui.astral_craft.character_settings.potential_effect"), area.contentX() + 8, y, 0xFFDFA0FF, area.maxWidth() - 16);
+            y = screen.drawWrapped(graphics, Component.translatable(potential.effectKey()), area.contentX() + 16, y, 0xFFFFE7FF, area.maxWidth() - 24);
+            y += 8;
+            if (potential.hasRequirement()) {
+                y = screen.drawHeader(graphics, Component.translatable("gui.astral_craft.character_settings.potential_requirement"), area.contentX() + 8, y, 0xFFBFC8FF, area.maxWidth() - 16);
+                y = screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.potential_requirement.level", progress.level(), potential.requiredLevel()), area.contentX() + 16, y, progress.level() >= potential.requiredLevel() ? 0xFF92FF22 : 0xFFFF8888, area.maxWidth() - 24);
+                y = screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.potential_requirement.friendship", progress.friendship(), potential.requiredFriendship()), area.contentX() + 16, y, progress.friendship() >= potential.requiredFriendship() ? 0xFF92FF22 : 0xFFFF8888, area.maxWidth() - 24);
+                if (potential.requiredExperience() > 0) {
+                    y = screen.drawLine(graphics, Component.translatable("gui.astral_craft.character_settings.potential_requirement.experience", progress.experience(), potential.requiredExperience()), area.contentX() + 16, y, progress.experience() >= potential.requiredExperience() ? 0xFF92FF22 : 0xFFFF8888, area.maxWidth() - 24);
+                }
+                y += 8;
+            }
+
+            this.renderPotentialButton(graphics, layout, area, definition);
             this.end(graphics, layout, area);
         }
 
         @Override
+        boolean mouseClicked(CharacterLayout layout, double mouseX, double mouseY) {
+            CharacterDefinition definition = screen.selectedCharacter();
+            if (screen.isPotentialActivated(definition) || !screen.canActivatePotential(definition)) return false;
+            int buttonW = Math.clamp(layout.bodyW / 3, 90, 132);
+            int buttonH = 22;
+            int buttonX = layout.bodyX + layout.bodyW - buttonW - 20;
+            int buttonY = layout.bodyY + layout.bodyH - buttonH - 20;
+            if (!screen.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH)) return false;
+            screen.activatePotential(definition);
+            return true;
+        }
+
+        @Override
         int estimatedHeight(CharacterLayout layout) {
-            return screen.wrappedHeight(Component.translatable("gui.astral_craft.character_settings.potential_placeholder"), Math.max(40, layout.bodyW - 60)) + 30;
+            CharacterDefinition definition = screen.selectedCharacter();
+            CharacterPotentialDefinition potential = definition.potentialOrDefault();
+            int maxWidth = Math.max(40, layout.bodyW - 60);
+            int height = 38;
+            height += screen.wrappedHeight(Component.translatable(potential.descriptionKey()), maxWidth) + 10;
+            height += 18 + screen.wrappedHeight(Component.translatable(potential.effectKey()), maxWidth - 8) + 10;
+            if (potential.hasRequirement()) {
+                height += 58;
+                if (potential.requiredExperience() > 0) height += 12;
+            }
+            return height;
+        }
+
+        protected void renderPotentialButton(GuiGraphicsExtractor graphics, CharacterLayout layout, SectionArea area, CharacterDefinition definition) {
+            int buttonW = Math.clamp(layout.bodyW / 3, 90, 132);
+            int buttonH = 22;
+            int buttonX = layout.bodyX + layout.bodyW - buttonW - 20;
+            int buttonY = layout.bodyY + layout.bodyH - buttonH - 20;
+            boolean activated = screen.isPotentialActivated(definition);
+            boolean canActivate = screen.canActivatePotential(definition);
+            boolean hovered = screen.isInside(screen.lastMouseX, screen.lastMouseY, buttonX, buttonY, buttonW, buttonH);
+            MutableComponent text = Component.translatable(activated ? "gui.astral_craft.character_settings.potential_active" : "gui.astral_craft.character_settings.potential_activate");
+            screen.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, false, hovered && canActivate && !activated, activated || !canActivate ? screen.disabledButtonStyle() : screen.pinkButtonStyle());
         }
 
     }

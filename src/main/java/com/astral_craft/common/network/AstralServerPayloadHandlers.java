@@ -60,6 +60,14 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleActivateCharacterPotential(ActivateCharacterPotentialPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CharacterProgressManager.activatePotential(player, payload.characterId());
+            }
+        });
+    }
+
     public static void handleUnlockAllCharacters(UnlockAllCharactersPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {

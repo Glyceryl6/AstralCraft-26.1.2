@@ -65,6 +65,8 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
                 definition.skills(),
                 definition.profileSections(),
                 skins,
+                definition.hasPotential(),
+                definition.potential(),
                 definition.implicitDefaultSkin(),
                 definition.implicitBondSkin(),
                 definition.unlockedByDefault(),

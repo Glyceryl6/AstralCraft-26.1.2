@@ -11,6 +11,7 @@ import com.astral_craft.client.render.character.AstralCharacterRenderState;
 import com.astral_craft.client.text.AstralInlineTextFormatter;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
+import com.astral_craft.common.network.ActivateCharacterPotentialPayload;
 import com.astral_craft.common.network.CharacterSelectionPayload;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
 import com.astral_craft.common.network.UnlockAllCharactersPayload;
@@ -81,10 +82,11 @@ public class CharacterSettingsScreen extends Screen {
     protected double lastDragY;
     protected final Map<String, AstralCharacterEntity> previewEntities = new HashMap<>();
     protected boolean hoveredClickable;
+    protected int lastMouseX;
+    protected int lastMouseY;
 
     public CharacterSettingsScreen(
-            List<CharacterDefinition> characters, Identifier selectedCharacterId,
-            String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
+            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
             int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds,
             Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
@@ -108,7 +110,6 @@ public class CharacterSettingsScreen extends Screen {
         if (!this.hasDisplayedCharacter(this.selectedCharacterId)) {
             this.selectedCharacterId = this.firstDisplayCharacterId();
         }
-
         this.selectedSkinId = this.skinIdFor(this.selectedCharacter());
         this.registerDetailPages();
         this.syncSelectedProgress();
@@ -156,6 +157,8 @@ public class CharacterSettingsScreen extends Screen {
 
     @Override
     public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
         this.clampScrolls();
         this.hoveredClickable = false;
         CharacterLayout layout = this.layout();
@@ -464,7 +467,11 @@ public class CharacterSettingsScreen extends Screen {
     protected void renderArchiveTabs(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
         int x = layout.subTabX;
         int tabW = layout.subTabW;
-        for (ArchiveTab value : ArchiveTab.values()) {
+        if (!this.visibleArchiveTabs().contains(this.archiveTab)) {
+            this.archiveTab = ArchiveTab.SKILLS;
+            this.bodyScroll = 0.0F;
+        }
+        for (ArchiveTab value : this.visibleArchiveTabs()) {
             boolean selected = this.archiveTab == value;
             boolean hovered = this.isInside(mouseX, mouseY, x, layout.subTabY, tabW, layout.subTabH);
             MutableComponent text = Component.translatable(value.titleKey());
@@ -619,7 +626,7 @@ public class CharacterSettingsScreen extends Screen {
 
     protected boolean handleArchiveTabClick(CharacterLayout layout, double mouseX, double mouseY) {
         int x = layout.subTabX;
-        for (ArchiveTab value : ArchiveTab.values()) {
+        for (ArchiveTab value : this.visibleArchiveTabs()) {
             if (this.isInside(mouseX, mouseY, x, layout.subTabY, layout.subTabW, layout.subTabH)) {
                 this.archiveTab = value;
                 this.bodyScroll = 0.0F;
@@ -630,6 +637,36 @@ public class CharacterSettingsScreen extends Screen {
         }
 
         return false;
+    }
+
+    protected List<ArchiveTab> visibleArchiveTabs() {
+        List<ArchiveTab> tabs = new ArrayList<>();
+        for (ArchiveTab value : ArchiveTab.values()) {
+            if (value == ArchiveTab.POTENTIAL && !this.selectedCharacter().supportsPotential()) {
+                continue;
+            }
+            tabs.add(value);
+        }
+
+        return tabs;
+    }
+
+    protected boolean isPotentialActivated(CharacterDefinition definition) {
+        if (definition == null) return false;
+        return this.progressEntry(definition.id()).potentialActivated();
+    }
+
+    protected boolean canActivatePotential(CharacterDefinition definition) {
+        if (definition == null) return false;
+        if (!definition.supportsPotential()) return false;
+        return definition.potentialOrDefault().canActivate(this.progressEntry(definition.id()));
+    }
+
+    protected void activatePotential(CharacterDefinition definition) {
+        if (definition == null || !this.canActivatePotential(definition)) return;
+        CharacterProgressEntry entry = this.progressEntry(definition.id()).activatePotential();
+        this.progressEntries.put(definition.id(), entry);
+        ClientPacketDistributor.sendToServer(new ActivateCharacterPotentialPayload(definition.id().toString()));
     }
 
     protected void renderEquipCharacterButton(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -897,7 +934,8 @@ public class CharacterSettingsScreen extends Screen {
                 int experience = parseInt(parts[4], 0);
                 int friendship = parseInt(parts[5], CharacterProgressEntry.MIN_FRIENDSHIP_LEVEL);
                 Set<String> skins = parts.length > 6 ? decodeStringSet(parts[6]) : Set.of("default");
-                result.put(id, new CharacterProgressEntry(unlocked, selectedSkin, level, experience, friendship, skins));
+                boolean potentialActivated = parts.length > 7 && Boolean.parseBoolean(parts[7]);
+                result.put(id, new CharacterProgressEntry(unlocked, selectedSkin, level, experience, friendship, skins, potentialActivated));
             } catch (Exception ignored) {}
         }
 
@@ -1034,6 +1072,14 @@ public class CharacterSettingsScreen extends Screen {
         return AstralFancyButton.ButtonStyle.button(0xFFE83CA8).withTextScale(1.0F)
                 .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
                 .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+                .withBoxMetrics(2, 2, 3, 3);
+    }
+
+    protected AstralFancyButton.ButtonStyle disabledButtonStyle() {
+        return AstralFancyButton.ButtonStyle.button(0xFF5B5B66).withTextScale(1.0F)
+                .withTextColors(0xFFAFAFB8, 0xFFAFAFB8, 0xFFAFAFB8)
+                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
+                .withBorderColors(0xFF777783, 0xFF777783, 0xFF777783)
                 .withBoxMetrics(2, 2, 3, 3);
     }
 

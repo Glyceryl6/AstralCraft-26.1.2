@@ -77,8 +77,8 @@ public class CharacterSkillCutinOverlay {
         int x0 = x1 - boxW;
         int y0 = y1 - boxH;
         int shadowAlpha = (int) (shown * 108.0F) << 24;
-        graphics.fill(x0 + boxW / 4, y1 - 12, x1 - boxW / 8, y1 - 5, shadowAlpha | 0x000000);
-        renderEntityModel(graphics, entity, x0, y0, x1, y1, -218.0F, -9.0F, -4.0F, 1.16F + 0.08F * Mth.sin(age * 0.18F));
+        graphics.fill(x0 + boxW / 4, y1 - 12, x1 - boxW / 8, y1 - 5, shadowAlpha);
+        renderEntityModel(graphics, entity, x0, y0, x1, y1, -218.0F, -9.0F, -4.0F, 1.0F + 0.08F * Mth.sin(age * 0.18F));
     }
 
     protected static float smooth(float value) {
@@ -109,6 +109,7 @@ public class CharacterSkillCutinOverlay {
             previewEntityKey = definition.id();
             previewSkinId = skinId;
         }
+
         previewEntity.setCharacterId(definition.id());
         previewEntity.setSkinId(skinId);
         previewEntity.setAnimationAction(animationAction);

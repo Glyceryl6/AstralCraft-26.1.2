@@ -88,15 +88,13 @@ public record CardDefinition(
     public CardDefinition withType(CardType cardType) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, cardType,
-                this.targetMode, this.range, this.combatOnly, this.minTargets, this.maxTargets,
-                this.restrictions);
+                this.targetMode, this.range, this.combatOnly,
+                this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withBackTexture(String texture) {
-        return new CardDefinition(this.id, this.nameKey, this.effectKey,
-                this.largeFrontTexture, texture, this.type, this.targetMode,
-                this.range, this.combatOnly, this.minTargets, this.maxTargets,
-                this.restrictions);
+        return new CardDefinition(this.id, this.nameKey, this.effectKey, this.largeFrontTexture, texture, this.type,
+                this.targetMode, this.range, this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withRestrictions(CardUseRestriction restrictions) {
@@ -108,8 +106,7 @@ public record CardDefinition(
     public CardDefinition withRange(int range) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
-                range, this.combatOnly, this.minTargets, this.maxTargets,
-                this.restrictions);
+                range, this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     /** Preferred factory for hand card classes. The final id is derived from the item registry id in AstralItems#registerCard. */

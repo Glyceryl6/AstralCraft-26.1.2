@@ -10,13 +10,11 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@SuppressWarnings("unused")
 public class AstralCharacterSkills {
 
     public static final ResourceKey<Registry<AstralCharacterSkillSet>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("character_skill_sets"));
@@ -59,26 +57,20 @@ public class AstralCharacterSkills {
     }
 
     public static AstralCharacterSkillSet getOrDefault(Identifier id) {
-        return get(id).orElseGet(DEFAULT::get);
-    }
-
-    public static Collection<DeferredHolder<AstralCharacterSkillSet, ? extends AstralCharacterSkillSet>> allHolders() {
-        return SKILL_SETS.getEntries();
-    }
-
-    public static void bootstrap() {
+        return get(id).orElseGet(DEFAULT);
     }
 
     protected static boolean useMimiSkill(CharacterSkillContext context) {
         int cleared = AstralHandCardManager.clear(context.player());
-        AstralHandCardManager.addRandomEffectCards(context.player(), cleared + 1);
-        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.mimi", cleared + 1), true);
+        int drawCount = cleared + 1 + (context.potentialActivated() ? 1 : 0);
+        AstralHandCardManager.addRandomEffectCards(context.player(), drawCount);
+        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.mimi", drawCount), true);
         return true;
     }
 
     protected static boolean useRecoverySkill(CharacterSkillContext context) {
         int duration = AstralCharacterSkillService.durationTicks(context.skill());
-        int amount = Math.max(1, Math.min(6, context.state().friendship()));
+        int amount = Math.clamp(context.state().friendship(), 1, 6) + (context.potentialActivated() ? 1 : 0);
         AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.RECOVERY_PULSE_ID, "effect.astral_craft.character_skill.generic", duration,
                 Map.of(AstralStatusEffects.propertyKey(AstralCraft.prefix("recovery_amount")), String.valueOf(amount))));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.heal", amount), true);
@@ -86,8 +78,9 @@ public class AstralCharacterSkills {
     }
 
     protected static boolean useNardisSkill(CharacterSkillContext context) {
-        AstralHandCardManager.addRandomEffectCards(context.player(), 3);
-        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.draw", 3), true);
+        int drawCount = context.potentialActivated() ? 4 : 3;
+        AstralHandCardManager.addRandomEffectCards(context.player(), drawCount);
+        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.draw", drawCount), true);
         return true;
     }
 
@@ -95,9 +88,9 @@ public class AstralCharacterSkills {
         List<Identifier> foods = List.of(AstralCraft.prefix("handcard_hamburger"), AstralCraft.prefix("handcard_chocolate_cake"));
         Identifier card = foods.get(context.player().getRandom().nextInt(foods.size()));
         AstralHandCardManager.add(context.player(), card, 1);
-        int duration = AstralCharacterSkillService.durationTicks(context.skill());
+        int duration = AstralCharacterSkillService.durationTicks(context.skill()) + (context.potentialActivated() ? 200 : 0);
         AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.SNACK_TIME_ID, "effect.astral_craft.character_skill.snack_time", duration,
-                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), "12")));
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), context.potentialActivated() ? "18" : "12")));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.food"), true);
         return true;
     }
@@ -106,7 +99,7 @@ public class AstralCharacterSkills {
         AstralHandCardManager.addRandomEffectCards(context.player(), 1);
         int duration = AstralCharacterSkillService.durationTicks(context.skill());
         AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.ATTACK_PULSE_ID, "effect.astral_craft.character_skill.attack_pulse", duration,
-                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_ATTACK_BONUS), "2")));
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_ATTACK_BONUS), context.potentialActivated() ? "3" : "2")));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.attack_pulse", duration / 20), true);
         return true;
     }
@@ -114,21 +107,21 @@ public class AstralCharacterSkills {
     protected static boolean useArmorPulseSkill(CharacterSkillContext context) {
         int duration = AstralCharacterSkillService.durationTicks(context.skill());
         AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.ARMOR_PULSE_ID, "effect.astral_craft.character_skill.armor_pulse", duration,
-                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_DEFENSE_BONUS), "4")));
-        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.shield", 4), true);
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_DEFENSE_BONUS), context.potentialActivated() ? "6" : "4")));
+        context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.shield", context.potentialActivated() ? 6 : 4), true);
         return true;
     }
 
     protected static boolean useInvisibilitySkill(CharacterSkillContext context) {
         int duration = AstralCharacterSkillService.durationTicks(context.skill());
         AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.SHADOW_CLOAK_ID, "effect.astral_craft.character_skill.shadow_cloak", duration,
-                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), "18", AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_VISIBILITY_MODE), "shadow")));
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), context.potentialActivated() ? "24" : "18", AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_VISIBILITY_MODE), context.potentialActivated() ? "deep_shadow" : "shadow")));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.shadow_cloak", duration / 20), true);
         return true;
     }
 
     protected static boolean useFallbackSkill(CharacterSkillContext context) {
-        AstralHandCardManager.addRandomEffectCards(context.player(), 1);
+        AstralHandCardManager.addRandomEffectCards(context.player(), context.potentialActivated() ? 2 : 1);
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.fallback"), true);
         return true;
     }

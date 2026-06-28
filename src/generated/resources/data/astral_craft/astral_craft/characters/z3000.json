@@ -2,8 +2,15 @@
   "base_stats": {
     "defense": 2
   },
+  "has_potential": true,
   "id": "astral_craft:z3000",
   "name_key": "character.astral_craft.z3000.name",
+  "potential": {
+    "description_key": "character.astral_craft.z3000.potential.desc",
+    "effect_key": "character.astral_craft.z3000.potential.effect",
+    "required_friendship": 2,
+    "required_level": 3
+  },
   "preview_texture": "astral_craft:entity/character/skin_z3000_default",
   "profile": [
     {

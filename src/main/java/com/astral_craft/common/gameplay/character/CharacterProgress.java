@@ -144,6 +144,14 @@ public class CharacterProgress {
         this.entries.put(characterId, this.entry(characterId).unlockSkin(skinId));
     }
 
+    public boolean isPotentialActivated(Identifier characterId) {
+        return this.entry(characterId).potentialActivated();
+    }
+
+    public void activatePotential(Identifier characterId) {
+        this.entries.put(characterId, this.entry(characterId).activatePotential());
+    }
+
     public Set<String> unlockedSkins() {
         return this.unlockedSkins(this.selectedCharacter);
     }

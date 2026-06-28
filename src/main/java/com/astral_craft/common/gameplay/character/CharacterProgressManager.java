@@ -40,7 +40,6 @@ public class CharacterProgressManager {
         if (!refreshed.equals(state)) {
             player.setData(AstralAttachments.ACTIVE_CHARACTER, refreshed);
         }
-
         return refreshed;
     }
 
@@ -132,6 +131,40 @@ public class CharacterProgressManager {
         }
     }
 
+
+
+    public static void activatePotential(ServerPlayer player, String rawCharacterId) {
+        if (player == null) return;
+        Identifier characterId = safeParse(rawCharacterId, CharacterManager.INSTANCE.defaultCharacter().id());
+        if (!CharacterManager.INSTANCE.contains(characterId)) return;
+        CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
+        CharacterPotentialDefinition potential = definition.potentialOrDefault();
+        if (!definition.supportsPotential()) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_missing"), true);
+            return;
+        }
+
+        CharacterProgress progress = progress(player);
+        CharacterProgressEntry entry = progress.entry(characterId);
+        if (!entry.unlocked() && !definition.unlockedByDefault()) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_locked"), true);
+            return;
+        }
+        if (entry.potentialActivated()) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_already_active"), true);
+            return;
+        }
+        if (!potential.canActivate(entry)) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_requirement_not_met"), true);
+            return;
+        }
+
+        progress.activatePotential(characterId);
+        save(player, progress);
+        refreshActiveIfSame(player, characterId);
+        player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.astral_craft.character_settings.potential_activated", net.minecraft.network.chat.Component.translatable(definition.nameKey())), true);
+        open(player);
+    }
 
     public static void unlockAllForTesting(ServerPlayer player) {
         if (player == null) return;
@@ -273,7 +306,8 @@ public class CharacterProgressManager {
                 + entry.level() + "|"
                 + entry.experience() + "|"
                 + entry.friendship() + "|"
-                + encodeStrings(entry.unlockedSkins());
+                + encodeStrings(entry.unlockedSkins()) + "|"
+                + entry.potentialActivated();
     }
 
     public static String skinKey(Identifier characterId, String skinId) {

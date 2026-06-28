@@ -2,8 +2,15 @@
   "base_stats": {
     "defense": 0
   },
+  "has_potential": true,
   "id": "astral_craft:fen",
   "name_key": "character.astral_craft.fen.name",
+  "potential": {
+    "description_key": "character.astral_craft.fen.potential.desc",
+    "effect_key": "character.astral_craft.fen.potential.effect",
+    "required_friendship": 3,
+    "required_level": 3
+  },
   "preview_texture": "astral_craft:entity/character/skin_fen_default",
   "profile": [
     {

@@ -13,7 +13,8 @@ public record CharacterProgressEntry(
         int level,
         int experience,
         int friendship,
-        Set<String> unlockedSkins) {
+        Set<String> unlockedSkins,
+        boolean potentialActivated) {
 
     public static final int MIN_PVE_LEVEL = 1;
     public static final int MAX_PVE_LEVEL = 6;
@@ -28,15 +29,16 @@ public record CharacterProgressEntry(
             Codec.INT.optionalFieldOf("level", MIN_PVE_LEVEL).forGetter(CharacterProgressEntry::level),
             Codec.INT.optionalFieldOf("experience", 0).forGetter(CharacterProgressEntry::experience),
             Codec.INT.optionalFieldOf("friendship", MIN_FRIENDSHIP_LEVEL).forGetter(CharacterProgressEntry::friendship),
-            STRING_SET_CODEC.optionalFieldOf("unlocked_skins", Set.of("default")).forGetter(CharacterProgressEntry::unlockedSkins)
+            STRING_SET_CODEC.optionalFieldOf("unlocked_skins", Set.of("default")).forGetter(CharacterProgressEntry::unlockedSkins),
+            Codec.BOOL.optionalFieldOf("potential_activated", false).forGetter(CharacterProgressEntry::potentialActivated)
     ).apply(instance, CharacterProgressEntry::new));
 
     public static CharacterProgressEntry locked() {
-        return new CharacterProgressEntry(false, "default", MIN_PVE_LEVEL, 0, MIN_FRIENDSHIP_LEVEL, Set.of("default"));
+        return new CharacterProgressEntry(false, "default", MIN_PVE_LEVEL, 0, MIN_FRIENDSHIP_LEVEL, Set.of("default"), false);
     }
 
     public static CharacterProgressEntry unlockedDefault() {
-        return new CharacterProgressEntry(true, "default", MIN_PVE_LEVEL, 0, MIN_FRIENDSHIP_LEVEL, Set.of("default"));
+        return new CharacterProgressEntry(true, "default", MIN_PVE_LEVEL, 0, MIN_FRIENDSHIP_LEVEL, Set.of("default"), false);
     }
 
     public CharacterProgressEntry {
@@ -61,37 +63,41 @@ public record CharacterProgressEntry(
     }
 
     public CharacterProgressEntry unlock() {
-        return new CharacterProgressEntry(true, this.selectedSkin, this.level, this.experience, this.friendship, this.unlockedSkins);
+        return new CharacterProgressEntry(true, this.selectedSkin, this.level, this.experience, this.friendship, this.unlockedSkins, this.potentialActivated);
     }
 
     public CharacterProgressEntry withSelectedSkin(String skinId) {
         String safeSkin = skinId == null || skinId.isBlank() ? "default" : skinId;
         Set<String> next = new HashSet<>(this.unlockedSkins);
         next.add(safeSkin);
-        return new CharacterProgressEntry(this.unlocked, safeSkin, this.level, this.experience, this.friendship, next);
+        return new CharacterProgressEntry(this.unlocked, safeSkin, this.level, this.experience, this.friendship, next, this.potentialActivated);
     }
 
     public CharacterProgressEntry unlockSkin(String skinId) {
         String safeSkin = skinId == null || skinId.isBlank() ? "default" : skinId;
         Set<String> next = new HashSet<>(this.unlockedSkins);
         next.add(safeSkin);
-        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, this.experience, this.friendship, next);
+        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, this.experience, this.friendship, next, this.potentialActivated);
     }
 
     public CharacterProgressEntry withLevel(int value) {
-        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, clampPveLevel(value), this.experience, this.friendship, this.unlockedSkins);
+        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, clampPveLevel(value), this.experience, this.friendship, this.unlockedSkins, this.potentialActivated);
     }
 
     public CharacterProgressEntry addExperience(int amount) {
-        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, Math.max(0, this.experience + amount), this.friendship, this.unlockedSkins);
+        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, Math.max(0, this.experience + amount), this.friendship, this.unlockedSkins, this.potentialActivated);
     }
 
     public CharacterProgressEntry withFriendshipLevel(int value) {
-        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, this.experience, clampFriendshipLevel(value), this.unlockedSkins);
+        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, this.experience, clampFriendshipLevel(value), this.unlockedSkins, this.potentialActivated);
     }
 
     public CharacterProgressEntry addFriendship(int amount) {
         return this.withFriendshipLevel(this.friendship + amount);
+    }
+
+    public CharacterProgressEntry activatePotential() {
+        return new CharacterProgressEntry(this.unlocked, this.selectedSkin, this.level, this.experience, this.friendship, this.unlockedSkins, true);
     }
 
     public boolean isSkinUnlocked(String skinId) {

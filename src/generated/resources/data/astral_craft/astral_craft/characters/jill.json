@@ -1,7 +1,14 @@
 {
+  "has_potential": true,
   "id": "astral_craft:jill",
   "implicit_bond_skin": false,
   "name_key": "character.astral_craft.jill.name",
+  "potential": {
+    "description_key": "character.astral_craft.jill.potential.desc",
+    "effect_key": "character.astral_craft.jill.potential.effect",
+    "required_friendship": 2,
+    "required_level": 4
+  },
   "preview_texture": "astral_craft:entity/character/skin_jill_default",
   "profile": [
     {

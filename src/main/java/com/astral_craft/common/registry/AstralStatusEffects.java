@@ -41,20 +41,8 @@ public class AstralStatusEffects {
     public static final Identifier SHADOW_CLOAK_ID = AstralCraft.prefix("shadow_cloak");
 
     public static final DeferredHolder<MobEffect, MobEffect> GENERIC_STATUS_MOB = registerMobEffect("generic_status", MobEffectCategory.NEUTRAL, 0xD1FE00);
-    public static final DeferredHolder<MobEffect, MobEffect> RECOVERY_PULSE_MOB = registerMobEffect("recovery_pulse", MobEffectCategory.BENEFICIAL, 0x68FFB5);
-    public static final DeferredHolder<MobEffect, MobEffect> PASSIVE_RECOVERY_MOB = registerMobEffect("passive_recovery", MobEffectCategory.BENEFICIAL, 0x68FFB5);
-    public static final DeferredHolder<MobEffect, MobEffect> SNACK_TIME_MOB = registerMobEffect("snack_time", MobEffectCategory.BENEFICIAL, 0xFFD27D);
-    public static final DeferredHolder<MobEffect, MobEffect> ATTACK_PULSE_MOB = registerMobEffect("attack_pulse", MobEffectCategory.BENEFICIAL, 0xFF7777);
-    public static final DeferredHolder<MobEffect, MobEffect> ARMOR_PULSE_MOB = registerMobEffect("armor_pulse", MobEffectCategory.BENEFICIAL, 0x9CB7FF);
-    public static final DeferredHolder<MobEffect, MobEffect> SHADOW_CLOAK_MOB = registerMobEffect("shadow_cloak", MobEffectCategory.BENEFICIAL, 0x7A5CFF);
 
     public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> GENERIC_STATUS = register("generic_status", () -> GENERIC_STATUS_MOB, null);
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> RECOVERY_PULSE = register("recovery_pulse", () -> RECOVERY_PULSE_MOB, null);
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> PASSIVE_RECOVERY = register("passive_recovery", () -> PASSIVE_RECOVERY_MOB, null);
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> SNACK_TIME = register("snack_time", () -> SNACK_TIME_MOB, null);
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> ATTACK_PULSE = register("attack_pulse", () -> ATTACK_PULSE_MOB, null);
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> ARMOR_PULSE = register("armor_pulse", () -> ARMOR_PULSE_MOB, null);
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> SHADOW_CLOAK = register("shadow_cloak", () -> SHADOW_CLOAK_MOB, null);
 
     public static DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> register(String path, Supplier<Holder<MobEffect>> mobEffect, Identifier defaultIcon) {
         Identifier id = AstralCraft.prefix(path);
