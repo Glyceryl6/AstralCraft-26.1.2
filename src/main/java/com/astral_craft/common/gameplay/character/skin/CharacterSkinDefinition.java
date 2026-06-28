@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay.character;
+package com.astral_craft.common.gameplay.character.skin;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;

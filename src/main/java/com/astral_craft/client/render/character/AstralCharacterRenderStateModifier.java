@@ -4,7 +4,7 @@ import com.astral_craft.client.render.CardRevealEntityOverlay;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.gameplay.character.CharacterSkinDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;

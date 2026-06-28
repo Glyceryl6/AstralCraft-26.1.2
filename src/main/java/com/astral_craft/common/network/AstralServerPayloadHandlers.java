@@ -5,7 +5,7 @@ import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.ChipSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
-import com.astral_craft.common.gameplay.character.AstralCharacterSkillService;
+import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 

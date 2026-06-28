@@ -2,6 +2,7 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.*;
+import com.astral_craft.common.gameplay.character.skill.*;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
@@ -22,18 +23,6 @@ public class AstralCharacterSkills {
     public static final Registry<AstralCharacterSkillSet> REGISTRY = SKILL_SETS.makeRegistry(_ -> {});
 
     public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> DEFAULT = register("default", AstralCharacterSkills::useFallbackSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> MIMI = register("mimi", AstralCharacterSkills::useMimiSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> FEN = register("fen", AstralCharacterSkills::useRecoverySkill, List.of(AstralCharacterSkills::passiveRecoveryPulse));
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> DOROTHY = register("dorothy", AstralCharacterSkills::useRecoverySkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> LULU = register("lulu", AstralCharacterSkills::useRecoverySkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> AME = register("ame", AstralCharacterSkills::useRecoverySkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> NARDIS = register("nardis", AstralCharacterSkills::useNardisSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> PANDAMAN = register("pandaman", AstralCharacterSkills::useFoodSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> PADMAN = register("padman", AstralCharacterSkills::useFoodSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> JILL = register("jill", AstralCharacterSkills::useAttackPulseSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> MEGAS = register("megas", AstralCharacterSkills::useAttackPulseSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> Z3000 = register("z3000", AstralCharacterSkills::useArmorPulseSkill);
-    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> INK_SHADOW = register("ink_shadow", AstralCharacterSkills::useInvisibilitySkill);
 
     public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill) {
         return register(characterPath, activeSkill, List.of());
@@ -115,7 +104,8 @@ public class AstralCharacterSkills {
     protected static boolean useInvisibilitySkill(CharacterSkillContext context) {
         int duration = AstralCharacterSkillService.durationTicks(context.skill());
         AstralCharacterSkillService.addStatusEffect(context.player(), status(context, AstralStatusEffects.SHADOW_CLOAK_ID, "effect.astral_craft.character_skill.shadow_cloak", duration,
-                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), context.potentialActivated() ? "24" : "18", AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_VISIBILITY_MODE), context.potentialActivated() ? "deep_shadow" : "shadow")));
+                Map.of(AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_SPEED_BONUS_PERCENT), context.potentialActivated() ? "24" : "18",
+                        AstralStatusEffects.propertyKey(AstralCharacterStatSystem.PROPERTY_VISIBILITY_MODE), context.potentialActivated() ? "deep_shadow" : "shadow")));
         context.player().sendSystemMessage(Component.translatable("message.astral_craft.skill.shadow_cloak", duration / 20), true);
         return true;
     }

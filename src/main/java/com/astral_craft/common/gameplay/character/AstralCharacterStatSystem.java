@@ -1,6 +1,8 @@
 package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillEffect;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillEffectState;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;

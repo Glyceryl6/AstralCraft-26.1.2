@@ -1,7 +1,7 @@
 package com.astral_craft.client.gui.character;
 
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterSkinDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.network.CharacterSkinSelectionPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;

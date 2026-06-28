@@ -4,13 +4,13 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.cardback.CardBackDefinition;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterSkinAddition;
-import com.astral_craft.common.gameplay.character.SkinRarityDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinAddition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinRarityDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
 import com.astral_craft.common.network.*;
-import com.astral_craft.common.registry.AstralDataPackRegistryKeys;
 import com.astral_craft.common.registry.AstralAttributes;
 import com.astral_craft.common.registry.AstralEntities;
+import com.astral_craft.common.registry.bootstrap.*;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.minecraft.world.entity.EntityType;
@@ -35,11 +35,11 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
-        event.dataPackRegistry(AstralDataPackRegistryKeys.CHARACTERS, CharacterDefinition.CODEC, CharacterDefinition.CODEC);
-        event.dataPackRegistry(AstralDataPackRegistryKeys.CHARACTER_SKINS, CharacterSkinAddition.CODEC, CharacterSkinAddition.CODEC);
-        event.dataPackRegistry(AstralDataPackRegistryKeys.SKIN_RARITIES, SkinRarityDefinition.CODEC, SkinRarityDefinition.CODEC);
-        event.dataPackRegistry(AstralDataPackRegistryKeys.CARD_BACKS, CardBackDefinition.CODEC, CardBackDefinition.CODEC);
-        event.dataPackRegistry(AstralDataPackRegistryKeys.EVENTS, AstralEventDefinition.CODEC, AstralEventDefinition.CODEC);
+        event.dataPackRegistry(AstralCharacterBootstrap.CHARACTERS, CharacterDefinition.CODEC, CharacterDefinition.CODEC);
+        event.dataPackRegistry(AstralCharacterSkinBootstrap.CHARACTER_SKINS, CharacterSkinAddition.CODEC, CharacterSkinAddition.CODEC);
+        event.dataPackRegistry(AstralSkinRarityBootstrap.SKIN_RARITIES, CharacterSkinRarityDefinition.CODEC, CharacterSkinRarityDefinition.CODEC);
+        event.dataPackRegistry(AstralCardBackBootstrap.CARD_BACKS, CardBackDefinition.CODEC, CardBackDefinition.CODEC);
+        event.dataPackRegistry(AstralEventBootstrap.EVENTS, AstralEventDefinition.CODEC, AstralEventDefinition.CODEC);
     }
 
     @SubscribeEvent

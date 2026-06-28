@@ -109,7 +109,7 @@ public record CardDefinition(
                 range, this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
     }
 
-    /** Preferred factory for hand card classes. The final id is derived from the item registry id in AstralItems#registerCard. */
+    /** Preferred factory for hand card classes. The final item is derived from the item registry item in AstralItems#registerCard. */
     public static CardDefinition create(CardType type, CardTargetMode targetMode, int range, boolean combatOnly) {
         return create("", type, targetMode, range, combatOnly);
     }

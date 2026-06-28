@@ -2,8 +2,8 @@ package com.astral_craft.client.gui.character;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterSkinDefinition;
-import com.astral_craft.common.gameplay.character.SkinRarityDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinRarityDefinition;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -60,7 +60,7 @@ public class SkinCardComponent {
     protected void renderRarityBadge(GuiGraphicsExtractor graphics) {
         String rarity = this.skin.rarityOrNone();
         if (!AstralSkinRarityManager.INSTANCE.shouldRenderBadge(rarity)) return;
-        SkinRarityDefinition definition = AstralSkinRarityManager.INSTANCE.getOrDefault(rarity);
+        CharacterSkinRarityDefinition definition = AstralSkinRarityManager.INSTANCE.getOrDefault(rarity);
         int color = definition.borderColor();
         graphics.fill(this.x + 2, this.y + 2, this.x + this.width - 2, this.y + 4, color);
         graphics.fill(this.x + 2, this.y + 2, this.x + 4, this.y + this.height - 2, color);

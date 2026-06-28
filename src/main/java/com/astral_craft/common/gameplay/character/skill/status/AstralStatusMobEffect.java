@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay.character.status;
+package com.astral_craft.common.gameplay.character.skill.status;
 
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffect;

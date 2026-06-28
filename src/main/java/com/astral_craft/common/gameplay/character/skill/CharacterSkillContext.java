@@ -1,5 +1,9 @@
-package com.astral_craft.common.gameplay.character;
+package com.astral_craft.common.gameplay.character.skill;
 
+import com.astral_craft.common.gameplay.character.ActiveCharacterState;
+import com.astral_craft.common.gameplay.character.CharacterDefinition;
+import com.astral_craft.common.gameplay.character.CharacterProgressEntry;
+import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import net.minecraft.server.level.ServerPlayer;
 
 public record CharacterSkillContext(

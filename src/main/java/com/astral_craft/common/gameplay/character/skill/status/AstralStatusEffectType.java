@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay.character.status;
+package com.astral_craft.common.gameplay.character.skill.status;
 
 import com.astral_craft.AstralCraft;
 import net.minecraft.core.Holder;

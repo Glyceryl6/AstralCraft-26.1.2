@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay.character;
+package com.astral_craft.common.gameplay.character.skill;
 
 import com.astral_craft.AstralCraft;
 import net.minecraft.resources.Identifier;

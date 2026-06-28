@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;

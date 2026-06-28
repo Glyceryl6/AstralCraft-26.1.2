@@ -3,19 +3,19 @@ package com.astral_craft.common.event;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.KnockdownManager;
-import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
-import com.astral_craft.common.gameplay.PendingCounterEffectManager;
 import com.astral_craft.common.gameplay.SoulLinkManager;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
-import com.astral_craft.common.gameplay.character.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.gameplay.character.CharacterSkinManager;
+import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
 import com.astral_craft.common.gameplay.event.AstralEventManager;
 import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventService;
+import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
+import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -28,6 +28,7 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
@@ -136,14 +137,14 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
         SoulLinkManager.onDamagePre(event);
-        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer damagedPlayer) {
+        if (event.getEntity() instanceof ServerPlayer damagedPlayer) {
             AstralEventService.applyActiveTrigger(damagedPlayer, "player_hurt");
             AstralEventService.trigger(damagedPlayer, "player_hurt");
             AstralEventService.applyActiveTrigger(damagedPlayer, "entity_hurt_player");
             AstralEventService.trigger(damagedPlayer, "entity_hurt_player");
         }
 
-        if (event.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer attacker) {
+        if (event.getSource().getEntity() instanceof ServerPlayer attacker) {
             AstralEventService.applyActiveTrigger(attacker, "player_hurt_entity");
             AstralEventService.trigger(attacker, "player_hurt_entity");
         }
@@ -151,12 +152,12 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer killedPlayer) {
+        if (event.getEntity() instanceof ServerPlayer killedPlayer) {
             AstralEventService.applyActiveTrigger(killedPlayer, "player_killed");
             AstralEventService.trigger(killedPlayer, "player_killed");
         }
 
-        if (event.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer killer) {
+        if (event.getSource().getEntity() instanceof ServerPlayer killer) {
             AstralEventService.applyActiveTrigger(killer, "player_killed_entity");
             AstralEventService.trigger(killer, "player_killed_entity");
         }
@@ -174,9 +175,10 @@ public class CommonEventSubscriber {
             AstralCharacterSkillService.serverTick(player);
             AstralEventService.trigger(player, "tick");
         });
+
         for (ServerLevel level : event.getServer().getAllLevels()) {
             for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof LivingEntity livingEntity && !(livingEntity instanceof net.minecraft.server.level.ServerPlayer)) {
+                if (entity instanceof LivingEntity livingEntity && !(livingEntity instanceof ServerPlayer)) {
                     AstralCharacterSkillService.serverTickEntity(livingEntity);
                 }
             }
@@ -191,7 +193,7 @@ public class CommonEventSubscriber {
             return;
         }
 
-        if (event.getPlayer() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+        if (event.getPlayer() instanceof ServerPlayer serverPlayer) {
             AstralEventService.applyActiveTrigger(serverPlayer, "block_break");
             AstralEventService.trigger(serverPlayer, "block_break");
         }

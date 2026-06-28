@@ -1,9 +1,9 @@
 package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.character.CharacterSkillEffect;
-import com.astral_craft.common.gameplay.character.status.AstralStatusEffectType;
-import com.astral_craft.common.gameplay.character.status.AstralStatusMobEffect;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillEffect;
+import com.astral_craft.common.gameplay.character.skill.status.AstralStatusEffectType;
+import com.astral_craft.common.gameplay.character.skill.status.AstralStatusMobEffect;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;

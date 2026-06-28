@@ -87,7 +87,6 @@ public class ClientEventSubscriber {
         AstralKeyMappings.register(event);
     }
 
-
     @SubscribeEvent
     public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
         AstralStatusMobEffectClientExtensions.register(event);

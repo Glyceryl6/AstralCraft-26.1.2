@@ -6,16 +6,15 @@ import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-public record GiveItemEventEffect(Identifier id, int count) implements AstralEventEffect {
+public record GiveItemEventEffect(Holder<Item> item, int count) implements AstralEventEffect {
 
     public static final MapCodec<GiveItemEventEffect> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Identifier.CODEC.fieldOf("id").forGetter(GiveItemEventEffect::id),
+            Item.CODEC.fieldOf("id").forGetter(GiveItemEventEffect::item),
             Codec.INT.optionalFieldOf("count", 1).forGetter(GiveItemEventEffect::count)
     ).apply(instance, GiveItemEventEffect::new));
 
@@ -33,8 +32,7 @@ public record GiveItemEventEffect(Identifier id, int count) implements AstralEve
     public void apply(AstralEventContext context) {
         ServerPlayer receiver = context.targetPlayer() != null ? context.targetPlayer() : context.triggerPlayer();
         if (receiver == null) return;
-        Item item = BuiltInRegistries.ITEM.getValue(this.id);
-        ItemStack stack = new ItemStack(item, Math.max(1, this.count));
+        ItemStack stack = new ItemStack(this.item, Math.max(1, this.count));
         if (!receiver.addItem(stack) && !stack.isEmpty()) {
             receiver.drop(stack, false);
         }

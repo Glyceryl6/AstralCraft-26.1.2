@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay.character;
+package com.astral_craft.common.gameplay.character.skill;
 
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralStatusEffects;
@@ -48,6 +48,7 @@ public class AstralCharacterSkillEffects {
                 return Optional.of(effect);
             }
         }
+
         return Optional.empty();
     }
 
@@ -58,6 +59,7 @@ public class AstralCharacterSkillEffects {
         if (replaced != null) {
             AstralStatusEffects.removeMobEffectBridge(target, replaced);
         }
+
         target.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, state);
         AstralStatusEffects.applyMobEffectBridge(target, effect);
     }
@@ -86,8 +88,10 @@ public class AstralCharacterSkillEffects {
                     AstralStatusEffects.removeMobEffectBridge(livingEntity, effect);
                 }
             }
+
             entity.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, state);
         }
+
         return !removed.isEmpty();
     }
 

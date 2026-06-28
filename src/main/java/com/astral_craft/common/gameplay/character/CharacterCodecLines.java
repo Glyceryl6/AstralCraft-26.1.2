@@ -1,6 +1,8 @@
 package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;

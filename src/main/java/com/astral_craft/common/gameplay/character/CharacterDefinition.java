@@ -1,6 +1,8 @@
 package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;

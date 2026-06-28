@@ -1,5 +1,7 @@
 package com.astral_craft.common.gameplay.character;
 
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;

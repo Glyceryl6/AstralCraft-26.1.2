@@ -1,4 +1,4 @@
-package com.astral_craft.common.gameplay.character;
+package com.astral_craft.common.gameplay.character.skill;
 
 import com.astral_craft.AstralCraft;
 import com.mojang.serialization.Codec;
@@ -13,14 +13,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record CharacterSkillEffect(
-        String id,
-        Identifier characterId,
-        Identifier handlerId,
-        String nameKey,
-        int durationTicks,
-        int amplifier,
-        Map<String, String> properties) {
+public record CharacterSkillEffect(String id, Identifier characterId, Identifier handlerId, String nameKey, int durationTicks, int amplifier, Map<String, String> properties) {
 
     private static final Codec<Map<String, String>> PROPERTY_CODEC = Codec.unboundedMap(Codec.STRING, Codec.STRING);
 
@@ -53,6 +46,7 @@ public record CharacterSkillEffect(
                     properties.put(key, value);
                 }
             }
+
             return new CharacterSkillEffect(id, characterId, handlerId, nameKey, durationTicks, amplifier, properties);
         }
 
@@ -109,6 +103,7 @@ public record CharacterSkillEffect(
                 copy.put(key, value);
             }
         }
+
         return new CharacterSkillEffect(this.safeId(), this.safeCharacterId(), this.safeHandlerId(), this.safeNameKey(), this.durationTicks, this.amplifier, copy);
     }
 

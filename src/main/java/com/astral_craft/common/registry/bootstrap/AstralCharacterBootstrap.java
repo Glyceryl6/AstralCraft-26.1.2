@@ -1,18 +1,21 @@
-package com.astral_craft.common.registry;
+package com.astral_craft.common.registry.bootstrap;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.data.provider.AstralCharacterDataCatalog;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
-import com.astral_craft.common.gameplay.character.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
 import com.astral_craft.common.gameplay.character.CharacterStatsDefinition;
+import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
 
 public class AstralCharacterBootstrap {
+
+    public static final ResourceKey<Registry<CharacterDefinition>> CHARACTERS = ResourceKey.createRegistryKey(AstralCraft.prefix("characters"));
 
     public static void bootstrap(BootstrapContext<CharacterDefinition> context) {
         for (AstralCharacterDataCatalog.CharacterEntry entry : AstralCharacterDataCatalog.CHARACTERS) {
@@ -21,7 +24,7 @@ public class AstralCharacterBootstrap {
     }
 
     public static ResourceKey<CharacterDefinition> key(String path) {
-        return ResourceKey.create(AstralDataPackRegistryKeys.CHARACTERS, AstralCraft.prefix(path));
+        return ResourceKey.create(CHARACTERS, AstralCraft.prefix(path));
     }
 
     public static CharacterDefinition definition(AstralCharacterDataCatalog.CharacterEntry entry) {

@@ -1,6 +1,10 @@
-package com.astral_craft.common.gameplay.character;
+package com.astral_craft.common.gameplay.character.skill;
 
 import com.astral_craft.common.config.AstralGameplayConfig;
+import com.astral_craft.common.gameplay.character.ActiveCharacterState;
+import com.astral_craft.common.gameplay.character.CharacterDefinition;
+import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.network.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralStatusEffects;
@@ -53,15 +57,13 @@ public class AstralCharacterSkillService {
         }
 
         CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
-        if (!skillSet.useActive(context)) {
-            return;
-        }
-
+        if (!skillSet.useActive(context)) return;
         int nextCooldown = cooldownTicks(skill);
         if (nextCooldown > 0 && !canBypassCooldown(player)) {
             skillState.setCooldown(key, nextCooldown);
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
+
         sendCutin(player, state, definition, skill, skillSet);
         player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(definition, skill))).withStyle(ChatFormatting.AQUA), true);
     }
@@ -78,6 +80,7 @@ public class AstralCharacterSkillService {
             for (CharacterSkillEffect effect : removed) {
                 callEffectEnd(player, effect);
             }
+
             effectChanged |= !removed.isEmpty();
             CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
             CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition("passive", 0));
@@ -140,6 +143,7 @@ public class AstralCharacterSkillService {
         for (CharacterSkillEffect effect : removed) {
             callEffectEnd(player, effect);
         }
+
         if (!removed.isEmpty()) {
             player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
         }
@@ -155,6 +159,7 @@ public class AstralCharacterSkillService {
         if (seconds <= 0) {
             seconds = DEFAULT_STATUS_DURATION_SECONDS;
         }
+
         seconds = Math.clamp(seconds, 1, AstralGameplayConfig.skillMaximumCooldownSeconds());
         return Math.max(1, seconds * 20);
     }
@@ -166,11 +171,13 @@ public class AstralCharacterSkillService {
                 return Optional.of(skill);
             }
         }
+
         for (CharacterSkillDefinition skill : definition.skills()) {
             if (skill.cooldown() > 0 || skill.pvpCooldown() > 0 || skill.pveCooldown() > 0) {
                 return Optional.of(skill);
             }
         }
+
         return Optional.empty();
     }
 

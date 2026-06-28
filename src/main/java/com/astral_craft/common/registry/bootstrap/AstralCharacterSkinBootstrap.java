@@ -1,13 +1,16 @@
-package com.astral_craft.common.registry;
+package com.astral_craft.common.registry.bootstrap;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.data.provider.AstralCharacterDataCatalog;
-import com.astral_craft.common.gameplay.character.CharacterSkinAddition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinAddition;
+import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 
 public class AstralCharacterSkinBootstrap {
+
+    public static final ResourceKey<Registry<CharacterSkinAddition>> CHARACTER_SKINS = ResourceKey.createRegistryKey(AstralCraft.prefix("character_skins"));
 
     public static void bootstrap(BootstrapContext<CharacterSkinAddition> context) {
         for (AstralCharacterDataCatalog.CharacterEntry character : AstralCharacterDataCatalog.CHARACTERS) {
@@ -18,7 +21,7 @@ public class AstralCharacterSkinBootstrap {
     }
 
     public static ResourceKey<CharacterSkinAddition> key(String characterId, String skinId) {
-        return ResourceKey.create(AstralDataPackRegistryKeys.CHARACTER_SKINS, AstralCraft.prefix(characterId + "/" + skinId));
+        return ResourceKey.create(CHARACTER_SKINS, AstralCraft.prefix(characterId + "/" + skinId));
     }
 
     public static CharacterSkinAddition skin(AstralCharacterDataCatalog.CharacterEntry character, AstralCharacterDataCatalog.SkinEntry skin) {

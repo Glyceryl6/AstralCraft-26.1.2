@@ -11,6 +11,8 @@ import com.astral_craft.client.render.character.AstralCharacterRenderState;
 import com.astral_craft.client.text.AstralInlineTextFormatter;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.network.ActivateCharacterPotentialPayload;
 import com.astral_craft.common.network.CharacterSelectionPayload;
 import com.astral_craft.common.network.OpenCharacterSettingsPayload;
@@ -86,7 +88,8 @@ public class CharacterSettingsScreen extends Screen {
     protected int lastMouseY;
 
     public CharacterSettingsScreen(
-            List<CharacterDefinition> characters, Identifier selectedCharacterId, String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
+            List<CharacterDefinition> characters, Identifier selectedCharacterId,
+            String selectedSkinId, Identifier activeCharacterId, String activeSkinId,
             int level, int experience, int friendship, Set<Identifier> unlockedCharacterIds,
             Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
@@ -110,6 +113,7 @@ public class CharacterSettingsScreen extends Screen {
         if (!this.hasDisplayedCharacter(this.selectedCharacterId)) {
             this.selectedCharacterId = this.firstDisplayCharacterId();
         }
+
         this.selectedSkinId = this.skinIdFor(this.selectedCharacter());
         this.registerDetailPages();
         this.syncSelectedProgress();
@@ -365,10 +369,7 @@ public class CharacterSettingsScreen extends Screen {
         int buttonH = layout.detailButtonH;
         int buttonX = this.unlockAllButtonX(layout);
         int buttonY = layout.detailButtonY;
-        if (!this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH)) {
-            return false;
-        }
-
+        if (!this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH)) return false;
         ClientPacketDistributor.sendToServer(new UnlockAllCharactersPayload());
         return true;
     }
@@ -471,6 +472,7 @@ public class CharacterSettingsScreen extends Screen {
             this.archiveTab = ArchiveTab.SKILLS;
             this.bodyScroll = 0.0F;
         }
+
         for (ArchiveTab value : this.visibleArchiveTabs()) {
             boolean selected = this.archiveTab == value;
             boolean hovered = this.isInside(mouseX, mouseY, x, layout.subTabY, tabW, layout.subTabH);

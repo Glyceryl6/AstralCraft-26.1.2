@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay;
 
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
+import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
@@ -13,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-/** Shared helpers used by individual card item classes. No card id switch lives here. */
+/** Shared helpers used by individual card item classes. No card item switch lives here. */
 public class AstralCardEffects {
 
     public static void applyChip(Player player, ChipDefinition chip) {

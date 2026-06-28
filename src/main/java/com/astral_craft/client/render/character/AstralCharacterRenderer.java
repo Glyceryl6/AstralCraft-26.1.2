@@ -5,7 +5,7 @@ import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.gameplay.character.CharacterSkinDefinition;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;

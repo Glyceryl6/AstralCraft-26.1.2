@@ -9,7 +9,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 /**
  * World-space card reveal payload.
  *
- * <p>This mirrors {@link CardRevealPayload}, but also carries the source entity id so the client can render the
+ * <p>This mirrors {@link CardRevealPayload}, but also carries the source entity item so the client can render the
  * same card reveal above that entity instead of forcing another player's full-screen overlay.</p>
  */
 public record CardRevealEntityPayload(
