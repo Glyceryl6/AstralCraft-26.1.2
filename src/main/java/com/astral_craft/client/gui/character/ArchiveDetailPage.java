@@ -138,8 +138,8 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             }
 
             for (CharacterSkillDefinition skill : definition.skills()) {
-                String prefix = "character.astral_craft.skill." + skill.id();
-                int nameColor = skill.id().equals("active") ? ARGB.color(255, 191, 0) : ARGB.color(152, 252, 253);
+                String prefix = "character.astral_craft.skill." + skill.serializedId();
+                int nameColor = skill.id().isActive() ? ARGB.color(255, 191, 0) : ARGB.color(152, 252, 253);
                 y = screen.drawHeader(graphics, Component.translatable(prefix, Component.translatable(definition.skillNameKey(skill, screen.skillMode))), area.contentX(), y, nameColor, area.maxWidth() - 8);
                 y = screen.drawWrapped(graphics, Component.translatable(definition.skillDescriptionKey(skill, screen.skillMode)), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
                 int cooldown = skill.cooldown(screen.skillMode);

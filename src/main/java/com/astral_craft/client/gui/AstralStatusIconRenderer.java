@@ -4,7 +4,6 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillEffect;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralStatusEffects;
@@ -20,20 +19,6 @@ public class AstralStatusIconRenderer {
 
     public static final int MOB_EFFECT_ICON_SIZE = 18;
     public static final int SKILL_STATUS_ICON_SIZE = 22;
-
-    public static void renderEffectIcon(GuiGraphicsExtractor graphics, CharacterSkillEffect effect, int x, int y, int size, int alpha) {
-        Identifier explicitIcon = AstralStatusEffects.configuredIcon(effect).orElse(null);
-        if (explicitIcon != null) {
-            renderTextureIcon(graphics, normalizeTexture(explicitIcon), x, y, size, alpha);
-            return;
-        }
-
-        if (effect != null && renderCharacterSkinHead(graphics, effect.safeCharacterId(), effect.property(AstralStatusEffects.PROPERTY_SKIN), x, y, size, alpha)) {
-            return;
-        }
-
-        thisCannotHappenFallback(graphics, AstralStatusEffects.statusId(effect), x, y, size, alpha);
-    }
 
     public static void renderMobEffectIcon(GuiGraphicsExtractor graphics, Identifier statusId, int x, int y, int size, int alpha) {
         Identifier configuredIcon = AstralStatusEffects.defaultIcon(statusId).orElse(null);
@@ -82,7 +67,7 @@ public class AstralStatusIconRenderer {
     }
 
     public static Identifier normalizeTexture(Identifier raw) {
-        if (raw == null) return AstralCraft.prefix("textures/mob_effect/generic_status.png");
+        if (raw == null) return AstralCraft.prefix("textures/mob_effect/shadow_cloak.png");
         String path = raw.getPath();
         if (path.startsWith("textures/") && path.endsWith(".png")) {
             return raw;

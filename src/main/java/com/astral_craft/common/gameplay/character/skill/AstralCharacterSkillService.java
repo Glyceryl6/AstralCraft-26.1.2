@@ -6,18 +6,15 @@ import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.network.CharacterSkillCutinPayload;
-import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralStatusEffects;
+import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralCharacterSkills;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.List;
 import java.util.Optional;
 
 public class AstralCharacterSkillService {
@@ -42,8 +39,9 @@ public class AstralCharacterSkillService {
 
         CharacterSkillDefinition skill = maybeSkill.get();
         Identifier handlerId = skill.safeHandler(definition.id());
-        AstralCharacterSkillSet skillSet = AstralCharacterSkills.get(handlerId).orElseGet(() -> AstralCharacterSkills.getOrDefault(definition.id()));
-        if (!skillSet.hasActiveSkill()) {
+        Optional<AstralCharacterSkillSet> skillSet = AstralCharacterSkills.get(handlerId);
+        if (skillSet.isEmpty()) return;
+        if (!skillSet.get().hasActiveSkill()) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.skill.no_active"), true);
             return;
         }
@@ -57,14 +55,14 @@ public class AstralCharacterSkillService {
         }
 
         CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
-        if (!skillSet.useActive(context)) return;
+        if (!skillSet.get().useActive(context)) return;
         int nextCooldown = cooldownTicks(skill);
         if (nextCooldown > 0 && !canBypassCooldown(player)) {
             skillState.setCooldown(key, nextCooldown);
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
 
-        sendCutin(player, state, definition, skill, skillSet);
+        sendCutin(player, state, definition, skill, skillSet.get());
         player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(definition, skill))).withStyle(ChatFormatting.AQUA), true);
     }
 
@@ -72,86 +70,37 @@ public class AstralCharacterSkillService {
         if (player == null) return;
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
         boolean changed = skillState.tick();
-        CharacterSkillEffectState effectState = player.getData(AstralAttachments.CHARACTER_SKILL_EFFECTS);
-        boolean effectChanged = tickEffects(player, effectState);
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         if (state.active()) {
-            List<CharacterSkillEffect> removed = effectState.removeEffectsNotFrom(state.characterId());
-            for (CharacterSkillEffect effect : removed) {
-                callEffectEnd(player, effect);
-            }
-
-            effectChanged |= !removed.isEmpty();
+            AstralCharacterSkillEffects.removeStatusEffectsNotOwnedByActiveCharacter(player);
             CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
-            CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition("passive", 0));
-            Identifier handlerId = skill.safeHandler(definition.id());
-            AstralCharacterSkillSet skillSet = AstralCharacterSkills.get(handlerId).orElseGet(() -> AstralCharacterSkills.getOrDefault(definition.id()));
-            skillSet.serverTick(new CharacterSkillContext(player, state, definition, skill, skillState));
+            CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition(CharacterSkillType.PASSIVE, 0));
+            CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
+            AstralCharacterSkills.get(skill.safeHandler(definition.id())).ifPresent(skillSet -> skillSet.serverTick(context));
         } else {
-            List<CharacterSkillEffect> removed = effectState.clearAndCollectRemoved();
-            for (CharacterSkillEffect effect : removed) {
-                callEffectEnd(player, effect);
-            }
-            effectChanged |= !removed.isEmpty();
+            AstralCharacterSkillEffects.clearStatusEffects(player);
         }
+
         if (changed) {
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
-        }
-        if (effectChanged) {
-            player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
         }
     }
 
     public static void addStatusEffect(ServerPlayer player, CharacterSkillEffect effect) {
-        if (player == null || effect == null || effect.durationTicks() <= 0) return;
-        CharacterSkillEffectState effectState = player.getData(AstralAttachments.CHARACTER_SKILL_EFFECTS);
-        CharacterSkillEffect replaced = effectState.add(effect);
-        if (replaced != null) {
-            callEffectEnd(player, replaced);
-        }
-
-        player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
-        callEffectStart(player, effect);
+        AstralCharacterSkillEffects.add(player, effect);
     }
 
-    public static void addStatusEffect(LivingEntity target, CharacterSkillEffect effect) {
-        if (target instanceof ServerPlayer player) {
-            addStatusEffect(player, effect);
-            return;
-        }
-
-        AstralCharacterSkillEffects.add(target, effect);
-    }
-
-    public static boolean hasStatusEffect(Entity target, String id) {
+    public static boolean hasStatusEffect(ServerPlayer player, String id) {
         Identifier statusId = AstralStatusEffects.parseIdentifier(id, null);
-        return AstralCharacterSkillEffects.has(target, id) || (AstralCharacterSkillEffects.hasStatusType(target, statusId));
+        return hasStatusEffect(player, statusId);
     }
 
-    public static boolean hasStatusEffect(Entity target, Identifier id) {
-        return AstralCharacterSkillEffects.has(target, id) || AstralCharacterSkillEffects.hasStatusType(target, id);
-    }
-
-    public static boolean hasStatusType(Entity target, Identifier id) {
-        return AstralCharacterSkillEffects.hasStatusType(target, id);
+    public static boolean hasStatusEffect(ServerPlayer player, Identifier id) {
+        return AstralCharacterSkillEffects.hasStatusEffect(player, id);
     }
 
     public static void clearStatusEffects(ServerPlayer player) {
-        if (player == null) return;
-        CharacterSkillEffectState effectState = player.getData(AstralAttachments.CHARACTER_SKILL_EFFECTS);
-        List<CharacterSkillEffect> removed = effectState.clearAndCollectRemoved();
-        for (CharacterSkillEffect effect : removed) {
-            callEffectEnd(player, effect);
-        }
-
-        if (!removed.isEmpty()) {
-            player.setData(AstralAttachments.CHARACTER_SKILL_EFFECTS, effectState);
-        }
-    }
-
-    public static void serverTickEntity(LivingEntity entity) {
-        if (entity instanceof ServerPlayer) return;
-        AstralCharacterSkillEffects.tickNonPlayer(entity);
+        AstralCharacterSkillEffects.clearStatusEffects(player);
     }
 
     public static int durationTicks(CharacterSkillDefinition skill) {
@@ -167,7 +116,7 @@ public class AstralCharacterSkillService {
     protected static Optional<CharacterSkillDefinition> activeSkill(CharacterDefinition definition) {
         if (definition == null || definition.skills().isEmpty()) return Optional.empty();
         for (CharacterSkillDefinition skill : definition.skills()) {
-            if ("active".equalsIgnoreCase(skill.id())) {
+            if (skill.id().isActive()) {
                 return Optional.of(skill);
             }
         }
@@ -181,44 +130,8 @@ public class AstralCharacterSkillService {
         return Optional.empty();
     }
 
-    protected static boolean tickEffects(ServerPlayer player, CharacterSkillEffectState effectState) {
-        CharacterSkillEffectState.TickResult result = effectState.tickAndCollectExpired();
-        for (CharacterSkillEffect effect : result.ticked()) {
-            callEffectTick(player, effect);
-        }
-        for (CharacterSkillEffect effect : result.expired()) {
-            callEffectEnd(player, effect);
-        }
-        return result.changed();
-    }
-
-    protected static CharacterSkillContext contextForEffect(ServerPlayer player, CharacterSkillEffect effect) {
-        ActiveCharacterState state = CharacterProgressManager.activeState(player);
-        CharacterDefinition definition = CharacterManager.INSTANCE.get(effect.safeCharacterId());
-        CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition(effect.safeId(), 0, effect.safeHandlerId(), "skill"));
-        return new CharacterSkillContext(player, state, definition, skill, player.getData(AstralAttachments.CHARACTER_SKILLS));
-    }
-
-    protected static AstralCharacterSkillSet skillSetForEffect(CharacterSkillEffect effect) {
-        return AstralCharacterSkills.get(effect.safeHandlerId()).orElseGet(() -> AstralCharacterSkills.getOrDefault(effect.safeCharacterId()));
-    }
-
-    protected static void callEffectStart(ServerPlayer player, CharacterSkillEffect effect) {
-        AstralStatusEffects.applyMobEffectBridge(player, effect);
-        skillSetForEffect(effect).onEffectStart(contextForEffect(player, effect), effect);
-    }
-
-    protected static void callEffectTick(ServerPlayer player, CharacterSkillEffect effect) {
-        skillSetForEffect(effect).onEffectTick(contextForEffect(player, effect), effect);
-    }
-
-    protected static void callEffectEnd(ServerPlayer player, CharacterSkillEffect effect) {
-        AstralStatusEffects.removeMobEffectBridge(player, effect);
-        skillSetForEffect(effect).onEffectEnd(contextForEffect(player, effect), effect);
-    }
-
     protected static String cooldownKey(CharacterDefinition definition, CharacterSkillDefinition skill, Identifier handlerId) {
-        return definition.id() + ":" + handlerId + ":" + skill.id();
+        return definition.id() + ":" + handlerId + ":" + skill.serializedId();
     }
 
     protected static int cooldownTicks(CharacterSkillDefinition skill) {
@@ -250,14 +163,15 @@ public class AstralCharacterSkillService {
     protected static void sendCutin(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill, AstralCharacterSkillSet skillSet) {
         int duration = AstralGameplayConfig.skillCutinDurationTicks();
         if (duration <= 0) return;
-        String action = skill.safeAnimationAction();
-        if ("skill".equals(action) && skillSet != null) {
-            action = skillSet.fallbackAnimation();
+        Identifier animation = skill.safeAnimation();
+        if (CharacterSkillDefinition.DEFAULT_ANIMATION_ID.equals(animation) && skillSet != null) {
+            animation = skillSet.fallbackAnimation();
         }
-        CharacterSkillCutinPayload payload = new CharacterSkillCutinPayload(definition.id().toString(), state.skinId(), skill.id(), action, duration);
-        String audience = AstralGameplayConfig.skillCutinAudience();
-        if ("none".equals(audience)) return;
-        if ("nearby".equals(audience)) {
+
+        CharacterSkillCutinPayload payload = new CharacterSkillCutinPayload(definition.id(), state.skinId(), skill.serializedId(), animation, duration);
+        CharacterSkillCutinAudience audience = AstralGameplayConfig.skillCutinAudience();
+        if (audience == CharacterSkillCutinAudience.NONE) return;
+        if (audience.sendsToNearbyPlayers()) {
             double maxDistanceSqr = PUBLIC_CUTIN_RANGE * PUBLIC_CUTIN_RANGE;
             for (ServerPlayer viewer : player.level().players()) {
                 if (viewer.distanceToSqr(player) <= maxDistanceSqr) {

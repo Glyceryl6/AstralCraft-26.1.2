@@ -1,103 +1,75 @@
 package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillEffect;
-import com.astral_craft.common.gameplay.character.skill.status.AstralStatusEffectType;
-import com.astral_craft.common.gameplay.character.skill.status.AstralStatusMobEffect;
+import com.astral_craft.common.gameplay.character.skill.effect.AstralPhaseMobEffect;
+import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
+import com.astral_craft.common.gameplay.character.skill.effect.ShadowCloakMobEffect;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.BiFunction;
 
 public class AstralStatusEffects {
 
-    public static final ResourceKey<Registry<AstralStatusEffectType>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("status_effects"));
-    public static final DeferredRegister<AstralStatusEffectType> STATUS_EFFECTS = DeferredRegister.create(REGISTRY_KEY, AstralCraft.MOD_ID);
-    public static final Registry<AstralStatusEffectType> REGISTRY = STATUS_EFFECTS.makeRegistry(_ -> {});
     public static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, AstralCraft.MOD_ID);
+
+    public static final Identifier NO_STATUS_ID = AstralCraft.prefix("none");
+
+    protected static final Map<Identifier, Holder<MobEffect>> MOB_EFFECTS_BY_STATUS = new LinkedHashMap<>();
+    protected static final Map<Identifier, Identifier> DEFAULT_ICONS = new LinkedHashMap<>();
     protected static final List<MobEffectIconEntry> MOB_EFFECT_ICON_ENTRIES = new ArrayList<>();
 
-    public static final Identifier PROPERTY_STATUS = AstralCraft.prefix("status");
-    public static final Identifier PROPERTY_ICON = AstralCraft.prefix("icon");
-    public static final Identifier PROPERTY_SKIN = AstralCraft.prefix("skin");
-    public static final Identifier GENERIC_STATUS_ID = AstralCraft.prefix("generic_status");
-    public static final Identifier RECOVERY_PULSE_ID = AstralCraft.prefix("recovery_pulse");
-    public static final Identifier PASSIVE_RECOVERY_ID = AstralCraft.prefix("passive_recovery");
-    public static final Identifier SNACK_TIME_ID = AstralCraft.prefix("snack_time");
-    public static final Identifier ATTACK_PULSE_ID = AstralCraft.prefix("attack_pulse");
-    public static final Identifier ARMOR_PULSE_ID = AstralCraft.prefix("armor_pulse");
-    public static final Identifier SHADOW_CLOAK_ID = AstralCraft.prefix("shadow_cloak");
+    public static final DeferredHolder<MobEffect, MobEffect> SHADOW_CLOAK = registerMobEffect("shadow_cloak", null,
+            (id, icon) -> new ShadowCloakMobEffect(MobEffectCategory.BENEFICIAL, 0x6741B8, id, icon));
+    public static final DeferredHolder<MobEffect, MobEffect> ASTRAL_PHASE = registerMobEffect("astral_phase", null,
+            (id, icon) -> new AstralPhaseMobEffect(MobEffectCategory.BENEFICIAL, 0x8E86FF, id, icon));
 
-    public static final DeferredHolder<MobEffect, MobEffect> GENERIC_STATUS_MOB = registerMobEffect("generic_status", MobEffectCategory.NEUTRAL, 0xD1FE00);
-
-    public static final DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> GENERIC_STATUS = register("generic_status", () -> GENERIC_STATUS_MOB, null);
-
-    public static DeferredHolder<AstralStatusEffectType, AstralStatusEffectType> register(String path, Supplier<Holder<MobEffect>> mobEffect, Identifier defaultIcon) {
-        Identifier id = AstralCraft.prefix(path);
-        return STATUS_EFFECTS.register(path, () -> new AstralStatusEffectType(id, mobEffect, defaultIcon));
+    public static Optional<Holder<MobEffect>> get(Identifier id) {
+        if (id == null || NO_STATUS_ID.equals(id)) return Optional.empty();
+        return Optional.ofNullable(MOB_EFFECTS_BY_STATUS.get(id));
     }
 
-    public static Optional<AstralStatusEffectType> get(Identifier id) {
-        if (id == null) return Optional.empty();
-        return Optional.ofNullable(REGISTRY.getValue(id));
+    public static Optional<Identifier> statusId(MobEffectInstance instance) {
+        if (instance == null) return Optional.empty();
+        return statusId(instance.getEffect());
     }
 
-    public static AstralStatusEffectType getOrDefault(Identifier id) {
-        return get(id).orElseGet(GENERIC_STATUS);
+    public static Optional<Identifier> statusId(Holder<MobEffect> holder) {
+        if (holder == null) return Optional.empty();
+        MobEffect effect = holder.value();
+        if (effect instanceof AstralStatusMobEffect statusMobEffect) {
+            return Optional.ofNullable(statusMobEffect.statusId());
+        }
+
+        return Optional.empty();
+    }
+
+    public static boolean isAstralStatus(Holder<MobEffect> holder) {
+        return statusId(holder).isPresent();
     }
 
     public static List<MobEffectIconEntry> mobEffectIconEntries() {
         return List.copyOf(MOB_EFFECT_ICON_ENTRIES);
     }
 
-    public static Identifier statusId(CharacterSkillEffect effect) {
-        if (effect == null) return GENERIC_STATUS_ID;
-        Identifier explicit = parseIdentifier(effect.property(PROPERTY_STATUS), null);
-        if (explicit != null) return explicit;
-        return effect.safeIdAsIdentifier();
-    }
-
-    public static Optional<Holder<MobEffect>> mobEffect(CharacterSkillEffect effect) {
-        return getOrDefault(statusId(effect)).mobEffect();
-    }
-
-    public static void applyMobEffectBridge(LivingEntity target, CharacterSkillEffect effect) {
-        if (target == null || effect == null || effect.durationTicks() <= 0) return;
-        mobEffect(effect).ifPresent(holder -> target.addEffect(new MobEffectInstance(holder, effect.durationTicks(), effect.amplifier(), true, true, true)));
-    }
-
-    public static void removeMobEffectBridge(LivingEntity target, CharacterSkillEffect effect) {
-        if (target == null || effect == null) return;
-        mobEffect(effect).ifPresent(target::removeEffect);
-    }
-
-    public static boolean has(LivingEntity target, Identifier statusId) {
-        if (target == null || statusId == null) return false;
-        Optional<Holder<MobEffect>> holder = getOrDefault(statusId).mobEffect();
-        return holder.isPresent() && target.hasEffect(holder.get());
-    }
-
-    public static Optional<Identifier> configuredIcon(CharacterSkillEffect effect) {
-        if (effect == null) return Optional.empty();
-        Identifier explicit = parseIdentifier(effect.property(PROPERTY_ICON), null);
-        if (explicit != null) return Optional.of(explicit);
-        return defaultIcon(statusId(effect));
+    public static List<Identifier> registeredStatusIds() {
+        return List.copyOf(MOB_EFFECTS_BY_STATUS.keySet());
     }
 
     public static Optional<Identifier> defaultIcon(Identifier statusId) {
-        return getOrDefault(statusId).defaultIcon();
+        if (statusId == null) return Optional.empty();
+        return Optional.ofNullable(DEFAULT_ICONS.get(statusId));
     }
 
     public static Identifier parseIdentifier(String raw, Identifier fallback) {
@@ -109,14 +81,12 @@ public class AstralStatusEffects {
         }
     }
 
-    public static String propertyKey(Identifier id) {
-        return id == null ? "" : id.toString();
-    }
-
-    protected static DeferredHolder<MobEffect, MobEffect> registerMobEffect(String path, MobEffectCategory category, int color) {
+    protected static DeferredHolder<MobEffect, MobEffect> registerMobEffect(String path, Identifier defaultIcon, BiFunction<Identifier, Identifier, MobEffect> factory) {
         Identifier id = AstralCraft.prefix(path);
-        Identifier icon = mobEffectIcon(id);
-        DeferredHolder<MobEffect, MobEffect> holder = MOB_EFFECTS.register(path, () -> new AstralStatusMobEffect(category, color, id, icon));
+        Identifier icon = defaultIcon == null ? mobEffectIcon(id) : defaultIcon;
+        DeferredHolder<MobEffect, MobEffect> holder = MOB_EFFECTS.register(path, () -> factory.apply(id, icon));
+        MOB_EFFECTS_BY_STATUS.put(id, holder);
+        DEFAULT_ICONS.put(id, icon);
         MOB_EFFECT_ICON_ENTRIES.add(new MobEffectIconEntry(holder, id, icon));
         return holder;
     }

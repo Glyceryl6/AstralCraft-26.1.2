@@ -3,10 +3,12 @@ package com.astral_craft.common.registry.bootstrap;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.data.provider.AstralCharacterDataCatalog;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterStatsDefinition;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillType;
+import com.astral_craft.common.registry.AstralStatusEffects;
 import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
@@ -38,20 +40,20 @@ public class AstralCharacterBootstrap {
                 AstralCraft.prefix("humanoid"),
                 "idle", 6, 6,
                 new CharacterStatsDefinition(entry.attack, entry.defense, entry.health),
-                entry.skillSameIn2Mode ? List.of(skill(id, "active", entry.cooldown), skill(id, "passive", 0))
-                        : List.of(skill(id, "active", entry.pvpCooldown, entry.pveCooldown), skill(id, "passive", -1, -1)),
+                entry.skillSameIn2Mode ? List.of(skill(id, CharacterSkillType.ACTIVE, entry.cooldown), skill(id, CharacterSkillType.PASSIVE, 0))
+                        : List.of(skill(id, CharacterSkillType.ACTIVE, entry.pvpCooldown, entry.pveCooldown), skill(id, CharacterSkillType.PASSIVE, -1, -1)),
                 List.of(new CharacterProfileSection("", prefix + ".profile.basic.body")), List.of(), entry.hasPotential,
                 entry.hasPotential ? new CharacterPotentialDefinition(true, entry.potentialRequiredLevel, entry.potentialRequiredFriendship,
                         entry.potentialRequiredExperience, entry.potentialMaterials) : CharacterPotentialDefinition.NONE,
                 Boolean.TRUE, entry.implicitBondSkin, entry.unlockedByDefault, prefix + ".unlock_hint", entry.sortOrder);
     }
 
-    private static CharacterSkillDefinition skill(String id, String type, int cooldown) {
-        return new CharacterSkillDefinition(type, cooldown, AstralCraft.prefix(id), "skill");
+    private static CharacterSkillDefinition skill(String id, CharacterSkillType type, int cooldown) {
+        return new CharacterSkillDefinition(type, cooldown, 0, AstralCraft.prefix(id), CharacterSkillDefinition.DEFAULT_ANIMATION_ID, false, false, -1, -1, AstralStatusEffects.NO_STATUS_ID);
     }
 
-    private static CharacterSkillDefinition skill(String id, String type, int pvpCooldown, int pveCooldown) {
-        return new CharacterSkillDefinition(type, 0, 0, AstralCraft.prefix(id), "skill", true, true, pvpCooldown, pveCooldown);
+    private static CharacterSkillDefinition skill(String id, CharacterSkillType type, int pvpCooldown, int pveCooldown) {
+        return new CharacterSkillDefinition(type, 0, 0, AstralCraft.prefix(id), CharacterSkillDefinition.DEFAULT_ANIMATION_ID, true, true, pvpCooldown, pveCooldown, AstralStatusEffects.NO_STATUS_ID);
     }
 
 }

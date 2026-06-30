@@ -40,10 +40,10 @@ public class CharacterSkillCutinOverlay {
 
     public static void show(CharacterSkillCutinPayload payload) {
         active = new Cutin(
-                parse(payload.characterId(), CharacterManager.INSTANCE.defaultCharacter().id()),
+                payload.characterId() == null ? CharacterManager.INSTANCE.defaultCharacter().id() : payload.characterId(),
                 payload.skinId().isBlank() ? "default" : payload.skinId(),
                 payload.skillId().isBlank() ? "active" : payload.skillId(),
-                payload.animationAction().isBlank() ? "skill" : payload.animationAction(),
+                payload.animation() == null ? "skill" : payload.animation().getPath(),
                 currentClientGameTicks(null),
                 Math.max(20, payload.durationTicks()));
     }
@@ -94,13 +94,6 @@ public class CharacterSkillCutinOverlay {
         return minecraft.level.getGameTime() + partialTick;
     }
 
-    protected static Identifier parse(String raw, Identifier fallback) {
-        try {
-            return raw == null || raw.isBlank() ? fallback : Identifier.parse(raw);
-        } catch (Exception ignored) {
-            return fallback;
-        }
-    }
 
     protected static AstralCharacterEntity configuredEntity(Minecraft minecraft, CharacterDefinition definition, String skinId, String animationAction, int tickCount) {
         if (minecraft.level == null || definition == null) return null;

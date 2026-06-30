@@ -8,6 +8,7 @@ import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
@@ -17,6 +18,7 @@ import com.astral_craft.common.gameplay.event.AstralEventService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.registry.AstralAttachments;
+import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -29,22 +31,28 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -175,12 +183,61 @@ public class CommonEventSubscriber {
             AstralCharacterSkillService.serverTick(player);
             AstralEventService.trigger(player, "tick");
         });
+    }
 
-        for (ServerLevel level : event.getServer().getAllLevels()) {
-            for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof LivingEntity livingEntity && !(livingEntity instanceof ServerPlayer)) {
-                    AstralCharacterSkillService.serverTickEntity(livingEntity);
-                }
+    @SubscribeEvent
+    public static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
+        AstralCharacterSkillEffects.onMobEffectApplicable(event);
+    }
+
+    @SubscribeEvent
+    public static void onMobEffectAdded(MobEffectEvent.Added event) {
+        if (event.getEffectInstance().getEffect().value() instanceof AstralStatusMobEffect effect) {
+            effect.onEffectAdded(event.getEntity(), event.getEffectInstance());
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onMobEffectRemove(MobEffectEvent.Remove event) {
+        if (event.getEffect().value() instanceof AstralStatusMobEffect effect) {
+            effect.onEffectRemoved(event.getEntity());
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onMobEffectExpired(MobEffectEvent.Expired event) {
+        MobEffectInstance instance = event.getEffectInstance();
+        if (instance != null && instance.getEffect().value() instanceof AstralStatusMobEffect effect) {
+            effect.onEffectExpired(event.getEntity(), instance);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onAttackEntity(AttackEntityEvent event) {
+        if (event.getEntity().level().isClientSide()) return;
+        for (MobEffectInstance instance : new ArrayList<>(event.getEntity().getActiveEffects())) {
+            if (instance.getEffect().value() instanceof AstralStatusMobEffect effect) {
+                effect.onAttackEntity(event);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
+        if (event.getNewAboutToBeSetTarget() == null) return;
+        for (MobEffectInstance instance : event.getNewAboutToBeSetTarget().getActiveEffects()) {
+            if (instance.getEffect().value() instanceof AstralStatusMobEffect effect) {
+                effect.onLivingChangeTarget(event);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityInvulnerabilityCheck(EntityInvulnerabilityCheckEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity livingEntity)) return;
+        for (MobEffectInstance instance : livingEntity.getActiveEffects()) {
+            if (instance.getEffect().value() instanceof AstralStatusMobEffect effect) {
+                effect.onInvulnerabilityCheck(event);
             }
         }
     }

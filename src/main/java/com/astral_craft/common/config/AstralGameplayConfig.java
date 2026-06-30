@@ -1,5 +1,6 @@
 package com.astral_craft.common.config;
 
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillCutinAudience;
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class AstralGameplayConfig {
     public static final int DEFAULT_EVENT_REVEAL_LOCK_TICKS = 60;
     public static final String DEFAULT_CARD_MODE = "pvp";
     public static final int DEFAULT_SKILL_CUTIN_DURATION_TICKS = 64;
-    public static final String DEFAULT_SKILL_CUTIN_AUDIENCE = "self";
+    public static final CharacterSkillCutinAudience DEFAULT_SKILL_CUTIN_AUDIENCE = CharacterSkillCutinAudience.OWNER_ONLY;
     public static final int DEFAULT_SKILL_COOLDOWN_SECONDS_PER_ROUND = 45;
     public static final int DEFAULT_SKILL_MINIMUM_COOLDOWN_SECONDS = 3;
     public static final int DEFAULT_SKILL_MAXIMUM_COOLDOWN_SECONDS = 600;
@@ -32,7 +33,7 @@ public class AstralGameplayConfig {
     private static int eventRevealLockTicks = DEFAULT_EVENT_REVEAL_LOCK_TICKS;
     private static String defaultCardMode = DEFAULT_CARD_MODE;
     private static int skillCutinDurationTicks = DEFAULT_SKILL_CUTIN_DURATION_TICKS;
-    private static String skillCutinAudience = DEFAULT_SKILL_CUTIN_AUDIENCE;
+    private static CharacterSkillCutinAudience skillCutinAudience = DEFAULT_SKILL_CUTIN_AUDIENCE;
     private static int skillCooldownSecondsPerRound = DEFAULT_SKILL_COOLDOWN_SECONDS_PER_ROUND;
     private static int skillMinimumCooldownSeconds = DEFAULT_SKILL_MINIMUM_COOLDOWN_SECONDS;
     private static int skillMaximumCooldownSeconds = DEFAULT_SKILL_MAXIMUM_COOLDOWN_SECONDS;
@@ -58,7 +59,7 @@ public class AstralGameplayConfig {
         return skillCutinDurationTicks;
     }
 
-    public static String skillCutinAudience() {
+    public static CharacterSkillCutinAudience skillCutinAudience() {
         reloadIfChanged();
         return skillCutinAudience;
     }
@@ -97,7 +98,7 @@ public class AstralGameplayConfig {
             properties.setProperty("eventRevealLockTicks", Integer.toString(DEFAULT_EVENT_REVEAL_LOCK_TICKS));
             properties.setProperty("defaultCardMode", DEFAULT_CARD_MODE);
             properties.setProperty("skillCutinDurationTicks", Integer.toString(DEFAULT_SKILL_CUTIN_DURATION_TICKS));
-            properties.setProperty("skillCutinAudience", DEFAULT_SKILL_CUTIN_AUDIENCE);
+            properties.setProperty("skillCutinAudience", DEFAULT_SKILL_CUTIN_AUDIENCE.serializedName());
             properties.setProperty("skillCooldownSecondsPerRound", Integer.toString(DEFAULT_SKILL_COOLDOWN_SECONDS_PER_ROUND));
             properties.setProperty("skillMinimumCooldownSeconds", Integer.toString(DEFAULT_SKILL_MINIMUM_COOLDOWN_SECONDS));
             properties.setProperty("skillMaximumCooldownSeconds", Integer.toString(DEFAULT_SKILL_MAXIMUM_COOLDOWN_SECONDS));
@@ -116,7 +117,7 @@ public class AstralGameplayConfig {
             eventRevealLockTicks = intValue(properties, "eventRevealLockTicks", DEFAULT_EVENT_REVEAL_LOCK_TICKS, 0, 20 * 60);
             defaultCardMode = normalizeMode(properties.getProperty("defaultCardMode", DEFAULT_CARD_MODE));
             skillCutinDurationTicks = intValue(properties, "skillCutinDurationTicks", DEFAULT_SKILL_CUTIN_DURATION_TICKS, 0, 20 * 30);
-            skillCutinAudience = normalizeAudience(properties.getProperty("skillCutinAudience", DEFAULT_SKILL_CUTIN_AUDIENCE));
+            skillCutinAudience = normalizeAudience(properties.getProperty("skillCutinAudience", DEFAULT_SKILL_CUTIN_AUDIENCE.serializedName()));
             skillCooldownSecondsPerRound = intValue(properties, "skillCooldownSecondsPerRound", DEFAULT_SKILL_COOLDOWN_SECONDS_PER_ROUND, 1, 60 * 60);
             skillMinimumCooldownSeconds = intValue(properties, "skillMinimumCooldownSeconds", DEFAULT_SKILL_MINIMUM_COOLDOWN_SECONDS, 0, 60 * 60);
             skillMaximumCooldownSeconds = intValue(properties, "skillMaximumCooldownSeconds", DEFAULT_SKILL_MAXIMUM_COOLDOWN_SECONDS, 1, 60 * 60);
@@ -155,14 +156,8 @@ public class AstralGameplayConfig {
         };
     }
 
-    private static String normalizeAudience(String raw) {
-        String value = raw == null ? DEFAULT_SKILL_CUTIN_AUDIENCE : raw.trim().toLowerCase(Locale.ROOT);
-        return switch (value) {
-            case "none", "off", "disabled" -> "none";
-            case "nearby", "tracking", "around", "public" -> "nearby";
-            case "self", "local", "owner" -> "self";
-            default -> DEFAULT_SKILL_CUTIN_AUDIENCE;
-        };
+    private static CharacterSkillCutinAudience normalizeAudience(String raw) {
+        return CharacterSkillCutinAudience.byName(raw);
     }
 
     private static long lastModified() {

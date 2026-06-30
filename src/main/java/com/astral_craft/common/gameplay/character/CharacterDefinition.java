@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillType;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -171,7 +172,7 @@ public record CharacterDefinition(
                 AstralCraft.prefix("humanoid"),
                 "idle", 6, 5,
                 new CharacterStatsDefinition(1, 1, 9),
-                List.of(new CharacterSkillDefinition("active", 3)),
+                List.of(new CharacterSkillDefinition(CharacterSkillType.ACTIVE, 3)),
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
                 List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",
                         AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
@@ -215,7 +216,7 @@ public record CharacterDefinition(
     }
 
     private String skillLocalizationKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode, String suffix) {
-        String skillId = skill == null || skill.id() == null || skill.id().isBlank() ? "active" : skill.id();
+        String skillId = skill == null || skill.id() == null ? CharacterSkillType.ACTIVE.serializedName() : skill.serializedId();
         String base = "character." + this.id.getNamespace() + "." + this.id.getPath() + ".skill." + skillId;
         if (skill != null) {
             if (mode == CharacterSkillDefinition.SkillMode.PVE && skill.hasPveSpecificText()) {

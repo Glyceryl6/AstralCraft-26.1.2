@@ -6,10 +6,12 @@ import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralAttachments;
+import com.astral_craft.common.registry.AstralStatusEffects;
 import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.core.ClientAsset;
 import net.minecraft.world.entity.Avatar;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 import net.neoforged.neoforge.client.renderstate.AvatarRenderStateModifier;
@@ -24,6 +26,9 @@ public class AstralCharacterRenderStateModifier extends AvatarRenderStateModifie
             CharacterDefinition definition = CharacterManager.INSTANCE.get(characterState.characterId());
             CharacterSkinDefinition skin = definition.skinOrDefault(characterState.skinId());
             state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
+        }
+        if (avatar instanceof LivingEntity livingEntity && (livingEntity.hasEffect(AstralStatusEffects.SHADOW_CLOAK) || livingEntity.hasEffect(AstralStatusEffects.ASTRAL_PHASE))) {
+            state.isInvisibleToPlayer = false;
         }
     }
 

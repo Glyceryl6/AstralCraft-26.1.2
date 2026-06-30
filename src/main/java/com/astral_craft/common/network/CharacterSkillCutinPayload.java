@@ -5,26 +5,27 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 public record CharacterSkillCutinPayload(
-        String characterId,
+        Identifier characterId,
         String skinId,
         String skillId,
-        String animationAction,
+        Identifier animation,
         int durationTicks
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<CharacterSkillCutinPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("character_skill_cutin"));
 
     public static final StreamCodec<ByteBuf, CharacterSkillCutinPayload> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.STRING_UTF8,
+            Identifier.STREAM_CODEC,
             CharacterSkillCutinPayload::characterId,
             ByteBufCodecs.STRING_UTF8,
             CharacterSkillCutinPayload::skinId,
             ByteBufCodecs.STRING_UTF8,
             CharacterSkillCutinPayload::skillId,
-            ByteBufCodecs.STRING_UTF8,
-            CharacterSkillCutinPayload::animationAction,
+            Identifier.STREAM_CODEC,
+            CharacterSkillCutinPayload::animation,
             ByteBufCodecs.VAR_INT,
             CharacterSkillCutinPayload::durationTicks,
             CharacterSkillCutinPayload::new);

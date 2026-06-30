@@ -6,6 +6,7 @@ import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
+import com.astral_craft.common.registry.AstralStatusEffects;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -50,6 +51,9 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
         state.animationTimeSeconds = (entity.tickCount + partialTick) / 20.0F;
         state.rootPose = AstralGeoAnimationManager.INSTANCE.sample(state.animationSetKey, state.animationAction, "root", state.animationTimeSeconds);
         state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
+        if (entity.hasEffect(AstralStatusEffects.SHADOW_CLOAK) || entity.hasEffect(AstralStatusEffects.ASTRAL_PHASE)) {
+            state.isInvisibleToPlayer = false;
+        }
     }
 
     @Override
