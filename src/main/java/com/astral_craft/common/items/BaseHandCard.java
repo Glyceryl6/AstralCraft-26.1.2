@@ -7,8 +7,6 @@ import com.astral_craft.common.gameplay.handcard.CardRevealOptions;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -18,13 +16,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-/** @noinspection deprecation*/
 public class BaseHandCard extends Item {
 
     public BaseHandCard(Properties properties) {
@@ -56,10 +53,8 @@ public class BaseHandCard extends Item {
         return false;
     }
 
-    @Override
-    public void appendHoverText(ItemStack itemStack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag tooltipFlag) {
+    public void appendHoverText(ItemStack itemStack, TooltipContext context, Consumer<Component> builder, TooltipFlag tooltipFlag, @Nullable Player player) {
         CardDefinition definition = this.definition(itemStack);
-        LocalPlayer player = Minecraft.getInstance().player;
         CardType cardType = itemStack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         String key = String.format("tooltips.astral_craft.handcard.card_type.%s", cardType.getSerializedName());
         builder.accept(Component.translatable(key).withColor(cardType.color).withStyle(ChatFormatting.BOLD));

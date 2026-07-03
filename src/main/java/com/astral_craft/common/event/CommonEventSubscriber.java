@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
 import com.astral_craft.common.gameplay.event.AstralEventManager;
@@ -16,8 +17,8 @@ import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
+import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralAttachments;
-import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -40,8 +41,8 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
-import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -51,11 +52,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID)
@@ -130,6 +127,10 @@ public class CommonEventSubscriber {
     public static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack itemStack = event.getItemStack();
         Item item = itemStack.getItem();
+        if (item instanceof BaseHandCard handCard) {
+            handCard.appendHoverText(itemStack, event.getContext(), event.getToolTip()::add, event.getFlags(), event.getEntity());
+        }
+
         if (item instanceof BlockItem blockItem) {
             Block block = blockItem.getBlock();
             if (block instanceof BasePlatform) {
