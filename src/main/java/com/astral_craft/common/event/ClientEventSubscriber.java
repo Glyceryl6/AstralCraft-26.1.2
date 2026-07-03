@@ -8,6 +8,7 @@ import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
 import com.astral_craft.client.input.AstralKeyMappings;
+import com.astral_craft.client.jpgloader.JpgCacheReloadListener;
 import com.astral_craft.client.model.LargeCuboidModelLoader;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoModelManager;
@@ -75,6 +76,7 @@ public class ClientEventSubscriber {
         event.addListener(AstralCraft.prefix("character_models"), AstralGeoModelManager.INSTANCE);
         event.addListener(AstralCraft.prefix("character_animations"), AstralGeoAnimationManager.INSTANCE);
         event.addListener(AstralCraft.prefix("skin_rarities"), AstralSkinRarityManager.INSTANCE);
+        event.addListener(AstralCraft.prefix("jpg_texture_cache"), JpgCacheReloadListener.INSTANCE);
     }
 
     @SubscribeEvent

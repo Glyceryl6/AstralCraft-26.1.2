@@ -1,6 +1,8 @@
 package com.astral_craft.client.gui.reveal;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.jpgloader.LoadedJpgTexture;
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -10,6 +12,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -83,7 +86,10 @@ public class CardRevealRenderer {
         int left = centerX - artW / 2;
         int top = centerY - artSize / 2 + Math.round(modelSize * settings.frontArtYOffsetRatio);
         int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, left, top, 0.0F, 0.0F, artW, artSize, 256, 256, 256, 256, argb);
+        try {
+            LoadedJpgTexture loaded = ScopedJpgTextureCache.getOrLoad(texture);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), left, top, 0.0F, 0.0F, artW, artSize, 256, 256, loaded.width(), loaded.height(), argb);
+        } catch (IOException _) {}
     }
 
     public void renderCardText(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings, int centerX, int centerY, int textSize, float alpha, float xScale, float yScale) {

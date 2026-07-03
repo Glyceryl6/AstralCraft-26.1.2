@@ -149,7 +149,7 @@ public record CardDefinition(
     }
 
     public static String largeFrontTexture(String id) {
-        return AstralCraft.MOD_ID + ":textures/gui/cards/front/" + id + ".png";
+        return AstralCraft.MOD_ID + ":textures/gui/cards/front/" + id + ".jpg";
     }
 
     public static String defaultBackTexture() {
