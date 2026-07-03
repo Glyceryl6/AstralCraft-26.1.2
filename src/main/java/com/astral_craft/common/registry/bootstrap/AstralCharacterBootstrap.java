@@ -8,7 +8,7 @@ import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterStatsDefinition;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillType;
-import com.astral_craft.common.registry.AstralStatusEffects;
+import com.astral_craft.common.registry.AstralCharacterSkills;
 import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
@@ -49,11 +49,11 @@ public class AstralCharacterBootstrap {
     }
 
     private static CharacterSkillDefinition skill(String id, CharacterSkillType type, int cooldown) {
-        return new CharacterSkillDefinition(type, cooldown, 0, AstralCraft.prefix(id), CharacterSkillDefinition.DEFAULT_ANIMATION_ID, false, false, -1, -1, AstralStatusEffects.NO_STATUS_ID);
+        return new CharacterSkillDefinition(type, cooldown, 0, AstralCraft.prefix(id), AstralCharacterSkills.DEFAULT_CUTIN_ANIMATION, false, false, -1, -1, null);
     }
 
     private static CharacterSkillDefinition skill(String id, CharacterSkillType type, int pvpCooldown, int pveCooldown) {
-        return new CharacterSkillDefinition(type, 0, 0, AstralCraft.prefix(id), CharacterSkillDefinition.DEFAULT_ANIMATION_ID, true, true, pvpCooldown, pveCooldown, AstralStatusEffects.NO_STATUS_ID);
+        return new CharacterSkillDefinition(type, 0, 0, AstralCraft.prefix(id), AstralCharacterSkills.DEFAULT_CUTIN_ANIMATION, true, true, pvpCooldown, pveCooldown, null);
     }
 
 }

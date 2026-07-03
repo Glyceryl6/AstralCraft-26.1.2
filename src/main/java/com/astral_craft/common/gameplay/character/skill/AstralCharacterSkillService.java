@@ -6,7 +6,6 @@ import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.network.CharacterSkillCutinPayload;
-import com.astral_craft.common.registry.AstralStatusEffects;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralCharacterSkills;
 import net.minecraft.ChatFormatting;
@@ -39,9 +38,8 @@ public class AstralCharacterSkillService {
 
         CharacterSkillDefinition skill = maybeSkill.get();
         Identifier handlerId = skill.safeHandler(definition.id());
-        Optional<AstralCharacterSkillSet> skillSet = AstralCharacterSkills.get(handlerId);
-        if (skillSet.isEmpty()) return;
-        if (!skillSet.get().hasActiveSkill()) {
+        Optional<AstralCharacterSkillSet> maybeSkillSet = AstralCharacterSkills.get(handlerId);
+        if (maybeSkillSet.isEmpty() || !maybeSkillSet.get().hasActiveSkill()) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.skill.no_active"), true);
             return;
         }
@@ -54,15 +52,16 @@ public class AstralCharacterSkillService {
             return;
         }
 
+        AstralCharacterSkillSet skillSet = maybeSkillSet.get();
         CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
-        if (!skillSet.get().useActive(context)) return;
+        if (!skillSet.useActive(context)) return;
         int nextCooldown = cooldownTicks(skill);
         if (nextCooldown > 0 && !canBypassCooldown(player)) {
             skillState.setCooldown(key, nextCooldown);
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
 
-        sendCutin(player, state, definition, skill, skillSet.get());
+        sendCutin(player, state, definition, skill, skillSet);
         player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(definition, skill))).withStyle(ChatFormatting.AQUA), true);
     }
 
@@ -74,24 +73,27 @@ public class AstralCharacterSkillService {
         if (state.active()) {
             AstralCharacterSkillEffects.removeStatusEffectsNotOwnedByActiveCharacter(player);
             CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId());
-            CharacterSkillDefinition skill = activeSkill(definition).orElse(new CharacterSkillDefinition(CharacterSkillType.PASSIVE, 0));
-            CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
-            AstralCharacterSkills.get(skill.safeHandler(definition.id())).ifPresent(skillSet -> skillSet.serverTick(context));
+            Optional<CharacterSkillDefinition> maybeSkill = firstSkill(definition);
+            if (maybeSkill.isPresent()) {
+                CharacterSkillDefinition skill = maybeSkill.get();
+                Identifier handlerId = skill.safeHandler(definition.id());
+                AstralCharacterSkills.get(handlerId).ifPresent(skillSet ->
+                        skillSet.serverTick(new CharacterSkillContext(player, state, definition, skill, skillState)));
+            }
         } else {
             AstralCharacterSkillEffects.clearStatusEffects(player);
         }
-
         if (changed) {
             player.setData(AstralAttachments.CHARACTER_SKILLS, skillState);
         }
     }
 
-    public static void addStatusEffect(ServerPlayer player, CharacterSkillEffect effect) {
-        AstralCharacterSkillEffects.add(player, effect);
+    public static boolean addStatusEffect(ServerPlayer player, Identifier statusId, int durationTicks, int amplifier) {
+        return AstralCharacterSkillEffects.add(player, statusId, durationTicks, amplifier);
     }
 
     public static boolean hasStatusEffect(ServerPlayer player, String id) {
-        Identifier statusId = AstralStatusEffects.parseIdentifier(id, null);
+        Identifier statusId = CharacterSkillDefinition.parseIdentifier(id, null);
         return hasStatusEffect(player, statusId);
     }
 
@@ -130,6 +132,14 @@ public class AstralCharacterSkillService {
         return Optional.empty();
     }
 
+
+    protected static Optional<CharacterSkillDefinition> firstSkill(CharacterDefinition definition) {
+        Optional<CharacterSkillDefinition> active = activeSkill(definition);
+        if (active.isPresent()) return active;
+        if (definition == null || definition.skills().isEmpty()) return Optional.empty();
+        return Optional.of(definition.skills().getFirst());
+    }
+
     protected static String cooldownKey(CharacterDefinition definition, CharacterSkillDefinition skill, Identifier handlerId) {
         return definition.id() + ":" + handlerId + ":" + skill.serializedId();
     }
@@ -163,11 +173,8 @@ public class AstralCharacterSkillService {
     protected static void sendCutin(ServerPlayer player, ActiveCharacterState state, CharacterDefinition definition, CharacterSkillDefinition skill, AstralCharacterSkillSet skillSet) {
         int duration = AstralGameplayConfig.skillCutinDurationTicks();
         if (duration <= 0) return;
-        Identifier animation = skill.safeAnimation();
-        if (CharacterSkillDefinition.DEFAULT_ANIMATION_ID.equals(animation) && skillSet != null) {
-            animation = skillSet.fallbackAnimation();
-        }
-
+        Identifier animation = skill.safeAnimation(skillSet == null ? null : skillSet.fallbackAnimation());
+        if (animation == null) return;
         CharacterSkillCutinPayload payload = new CharacterSkillCutinPayload(definition.id(), state.skinId(), skill.serializedId(), animation, duration);
         CharacterSkillCutinAudience audience = AstralGameplayConfig.skillCutinAudience();
         if (audience == CharacterSkillCutinAudience.NONE) return;

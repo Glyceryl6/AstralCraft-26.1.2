@@ -2,7 +2,6 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
-import com.astral_craft.common.registry.AstralStatusEffects;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import net.minecraft.resources.Identifier;
 
@@ -149,10 +148,10 @@ public class CharacterCodecLines {
                     .append(skill.hasPveVariant()).append(',')
                     .append(skill.pvpCooldown()).append(',')
                     .append(skill.pveCooldown()).append(',')
-                    .append(escape(skill.handler().toString())).append(',')
-                    .append(escape(skill.safeAnimation().toString())).append(',')
+                    .append(escape(identifierString(skill.handler()))).append(',')
+                    .append(escape(identifierString(skill.animation()))).append(',')
                     .append(skill.durationSeconds()).append(',')
-                    .append(escape(skill.statusEffect().toString()));
+                    .append(escape(identifierString(skill.statusEffect())));
         }
 
         return builder.toString();
@@ -170,33 +169,33 @@ public class CharacterCodecLines {
                             unescape(parts[0]),
                             parseInt(parts[1], 0),
                             parseInt(parts[8], 0),
-                            parseIdentifier(unescape(parts[6]), AstralCraft.prefix("default")),
+                            parseIdentifier(unescape(parts[6]), null),
                             unescape(parts[7]),
                             Boolean.parseBoolean(parts[2]),
                             Boolean.parseBoolean(parts[3]),
                             parseInt(parts[4], -1),
                             parseInt(parts[5], -1),
-                            parts.length >= 10 ? parseIdentifier(unescape(parts[9]), AstralStatusEffects.NO_STATUS_ID) : AstralStatusEffects.NO_STATUS_ID));
+                            parts.length >= 10 ? parseIdentifier(unescape(parts[9]), null) : null));
                 } else if (parts.length >= 15 && isBooleanToken(parts[4]) && isBooleanToken(parts[5])) {
                     result.add(new CharacterSkillDefinition(
                             unescape(parts[0]),
                             parseInt(parts[3], 0),
                             parseInt(parts[14], 0),
-                            parseIdentifier(unescape(parts[12]), AstralCraft.prefix("default")),
+                            parseIdentifier(unescape(parts[12]), null),
                             unescape(parts[13]),
                             Boolean.parseBoolean(parts[4]),
                             Boolean.parseBoolean(parts[5]),
                             parseInt(parts[8], -1),
                             parseInt(parts[11], -1),
-                            parts.length >= 16 ? parseIdentifier(unescape(parts[15]), AstralStatusEffects.NO_STATUS_ID) : AstralStatusEffects.NO_STATUS_ID));
+                            parts.length >= 16 ? parseIdentifier(unescape(parts[15]), null) : null));
                 } else if (parts.length >= 4) {
                     boolean legacyHasCooldownSeconds = parts.length >= 16;
                     Identifier handler = legacyHasCooldownSeconds
-                            ? parseIdentifier(unescape(parts[11]), AstralCraft.prefix("default"))
-                            : parts.length >= 11 ? parseIdentifier(unescape(parts[10]), AstralCraft.prefix("default")) : AstralCraft.prefix("default");
+                            ? parseIdentifier(unescape(parts[11]), null)
+                            : parts.length >= 11 ? parseIdentifier(unescape(parts[10]), null) : null;
                     String animation = legacyHasCooldownSeconds
-                            ? parts.length >= 13 ? unescape(parts[12]) : "skill"
-                            : parts.length >= 12 ? unescape(parts[11]) : "skill";
+                            ? parts.length >= 13 ? unescape(parts[12]) : null
+                            : parts.length >= 12 ? unescape(parts[11]) : null;
                     int duration = legacyHasCooldownSeconds
                             ? parts.length >= 16 ? parseInt(parts[15], 0) : 0
                             : parts.length >= 13 ? parseInt(parts[12], 0) : 0;
@@ -212,7 +211,7 @@ public class CharacterCodecLines {
                             pveCooldown >= 0,
                             pvpCooldown,
                             pveCooldown,
-                            AstralStatusEffects.NO_STATUS_ID));
+                            null));
                 }
             } catch (Exception ignored) {}
         }
@@ -225,11 +224,16 @@ public class CharacterCodecLines {
     }
 
     protected static Identifier parseIdentifier(String raw, Identifier fallback) {
+        if (raw == null || raw.isBlank()) return fallback;
         try {
-            return raw == null || raw.isBlank() ? fallback : Identifier.parse(raw);
+            return raw.contains(":") ? Identifier.parse(raw) : AstralCraft.prefix(raw);
         } catch (Exception ignored) {
             return fallback;
         }
+    }
+
+    protected static String identifierString(Identifier id) {
+        return id == null ? "" : id.toString();
     }
 
     protected static String escapeProfiles(List<CharacterProfileSection> sections) {

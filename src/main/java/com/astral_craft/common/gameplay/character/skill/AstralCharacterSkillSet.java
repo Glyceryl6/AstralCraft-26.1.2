@@ -1,6 +1,5 @@
 package com.astral_craft.common.gameplay.character.skill;
 
-import com.astral_craft.AstralCraft;
 import net.minecraft.resources.Identifier;
 
 import java.util.List;
@@ -13,10 +12,10 @@ public class AstralCharacterSkillSet {
     protected final Identifier fallbackAnimation;
 
     public AstralCharacterSkillSet(Identifier characterId, AstralCharacterActiveSkill activeSkill, List<AstralCharacterPassiveSkill> passiveSkills, Identifier fallbackAnimation) {
-        this.characterId = characterId == null ? AstralCraft.prefix("default") : characterId;
+        this.characterId = characterId;
         this.activeSkill = activeSkill;
         this.passiveSkills = passiveSkills == null ? List.of() : List.copyOf(passiveSkills);
-        this.fallbackAnimation = fallbackAnimation == null ? CharacterSkillDefinition.DEFAULT_ANIMATION_ID : fallbackAnimation;
+        this.fallbackAnimation = fallbackAnimation;
     }
 
     public Identifier characterId() {

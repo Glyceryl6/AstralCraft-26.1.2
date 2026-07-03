@@ -3,8 +3,10 @@ package com.astral_craft.common.registry;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterActiveSkill;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterPassiveSkill;
+import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillSet;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillContext;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -19,18 +21,35 @@ public class AstralCharacterSkills {
     public static final ResourceKey<Registry<AstralCharacterSkillSet>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("character_skill_sets"));
     public static final DeferredRegister<AstralCharacterSkillSet> SKILL_SETS = DeferredRegister.create(REGISTRY_KEY, AstralCraft.MOD_ID);
     public static final Registry<AstralCharacterSkillSet> REGISTRY = SKILL_SETS.makeRegistry(_ -> {});
+    public static final Identifier DEFAULT_CUTIN_ANIMATION = AstralCraft.prefix("skill");
+
+    public static final DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> INK_SHADOW = registerStatusSkill("ink_shadow");
 
     public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill) {
-        return register(characterPath, activeSkill, List.of());
+        return register(characterPath, activeSkill, List.of(), DEFAULT_CUTIN_ANIMATION);
     }
 
     public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill, List<AstralCharacterPassiveSkill> passiveSkills) {
+        return register(characterPath, activeSkill, passiveSkills, DEFAULT_CUTIN_ANIMATION);
+    }
+
+    public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> register(String characterPath, AstralCharacterActiveSkill activeSkill, List<AstralCharacterPassiveSkill> passiveSkills, Identifier fallbackAnimation) {
         Identifier characterId = AstralCraft.prefix(characterPath);
-        return SKILL_SETS.register(characterPath, () -> new AstralCharacterSkillSet(characterId, activeSkill, passiveSkills, CharacterSkillDefinition.DEFAULT_ANIMATION_ID));
+        return SKILL_SETS.register(characterPath, () -> new AstralCharacterSkillSet(characterId, activeSkill, passiveSkills, fallbackAnimation));
+    }
+
+    public static DeferredHolder<AstralCharacterSkillSet, AstralCharacterSkillSet> registerStatusSkill(String characterPath) {
+        return register(characterPath, AstralCharacterSkills::grantConfiguredStatusEffect);
     }
 
     public static Optional<AstralCharacterSkillSet> get(Identifier id) {
         return Optional.ofNullable(REGISTRY.getValue(id));
+    }
+
+    public static boolean grantConfiguredStatusEffect(CharacterSkillContext context) {
+        if (context == null || context.skill() == null) return false;
+        return context.skill().statusEffectId().filter(statusId -> AstralCharacterSkillEffects.add(context.player(), statusId,
+                AstralCharacterSkillService.durationTicks(context.skill()), 0)).isPresent();
     }
 
 }

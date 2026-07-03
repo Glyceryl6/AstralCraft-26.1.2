@@ -8,7 +8,6 @@ import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
@@ -187,7 +186,9 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
-        AstralCharacterSkillEffects.onMobEffectApplicable(event);
+        if (event.getEffectInstance().getEffect().value() instanceof AstralStatusMobEffect effect) {
+            effect.onEffectApplicable(event);
+        }
     }
 
     @SubscribeEvent
