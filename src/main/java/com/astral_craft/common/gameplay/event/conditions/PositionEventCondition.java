@@ -1,14 +1,14 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 
-public record PositionEventCondition(int minY, int maxY, int centerX, int centerZ, int radius) implements AstralEventCondition {
+public record PositionEventCondition(int minY, int maxY, int centerX, int centerZ, int radius) implements AstralEventGeneralCondition {
 
     public static final MapCodec<PositionEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.INT.optionalFieldOf("min_y", Integer.MIN_VALUE).forGetter(PositionEventCondition::minY),
@@ -24,7 +24,7 @@ public record PositionEventCondition(int minY, int maxY, int centerX, int center
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.event.effects;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralActiveEventCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
@@ -19,14 +19,14 @@ import java.util.List;
 import java.util.Locale;
 
 public record ForNearbyEntitiesEventEffect(double radius, int maxTargets, List<String> categories,
-                                           List<AstralEventCondition> conditions,
+                                           List<AstralActiveEventCondition> conditions,
                                            List<AstralEventEffect> effects) implements AstralEventEffect {
 
     public static final MapCodec<ForNearbyEntitiesEventEffect> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.DOUBLE.optionalFieldOf("radius", 6.0D).forGetter(ForNearbyEntitiesEventEffect::radius),
             Codec.INT.optionalFieldOf("max_targets", 16).forGetter(ForNearbyEntitiesEventEffect::maxTargets),
             Codec.STRING.listOf().optionalFieldOf("categories", List.of("living")).forGetter(ForNearbyEntitiesEventEffect::categories),
-            AstralEventCondition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(ForNearbyEntitiesEventEffect::conditions),
+            AstralActiveEventCondition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(ForNearbyEntitiesEventEffect::conditions),
             AstralEventEffect.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(ForNearbyEntitiesEventEffect::effects)
     ).apply(instance, ForNearbyEntitiesEventEffect::new));
 
@@ -49,9 +49,9 @@ public record ForNearbyEntitiesEventEffect(double radius, int maxTargets, List<S
         AABB box = context.target().getBoundingBox().inflate(safeRadius);
         int applied = 0;
         for (Entity entity : context.level().getEntities(context.target(), box, entity -> !entity.isRemoved() && matchesAny(entity, this.categories))) {
-            AstralEventContext scoped = AstralEventContext.of(context.triggerPlayer(), entity, context.definition(), context.trigger());
+            AstralEventContext scoped = AstralEventContext.of(context.triggerPlayer(), entity, context.definition());
             boolean pass = true;
-            for (AstralEventCondition condition : this.conditions) {
+            for (AstralActiveEventCondition condition : this.conditions) {
                 if (condition != null && !condition.test(scoped)) {
                     pass = false;
                     break;

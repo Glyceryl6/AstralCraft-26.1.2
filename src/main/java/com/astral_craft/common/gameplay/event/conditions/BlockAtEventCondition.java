@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -12,7 +12,7 @@ import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
-public record BlockAtEventCondition(List<Identifier> blocks, int offsetX, int offsetY, int offsetZ, boolean inverted) implements AstralEventCondition {
+public record BlockAtEventCondition(List<Identifier> blocks, int offsetX, int offsetY, int offsetZ, boolean inverted) implements AstralEventGeneralCondition {
 
     public static final MapCodec<BlockAtEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Identifier.CODEC.listOf().optionalFieldOf("blocks", List.of()).forGetter(BlockAtEventCondition::blocks),
@@ -28,7 +28,7 @@ public record BlockAtEventCondition(List<Identifier> blocks, int offsetX, int of
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 
@@ -38,6 +38,7 @@ public record BlockAtEventCondition(List<Identifier> blocks, int offsetX, int of
         BlockPos pos = context.origin().offset(this.offsetX, this.offsetY, this.offsetZ);
         Identifier current = BuiltInRegistries.BLOCK.getKey(context.level().getBlockState(pos).getBlock());
         boolean matches = this.blocks.isEmpty() || this.blocks.contains(current);
-        return this.inverted ? !matches : matches;
+        return this.inverted != matches;
     }
+
 }

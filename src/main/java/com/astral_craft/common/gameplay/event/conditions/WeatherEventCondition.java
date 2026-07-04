@@ -1,13 +1,13 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-public record WeatherEventCondition(boolean raining, boolean thundering, boolean requireExact) implements AstralEventCondition {
+public record WeatherEventCondition(boolean raining, boolean thundering, boolean requireExact) implements AstralEventGeneralCondition {
 
     public static final MapCodec<WeatherEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.BOOL.optionalFieldOf("raining", false).forGetter(WeatherEventCondition::raining),
@@ -21,7 +21,7 @@ public record WeatherEventCondition(boolean raining, boolean thundering, boolean
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

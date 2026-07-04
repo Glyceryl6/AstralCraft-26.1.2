@@ -2,9 +2,6 @@
   "chance": 0.002,
   "conditions": [
     {
-      "type": "astral_craft:tick"
-    },
-    {
       "type": "astral_craft:time_of_day",
       "max": 23000,
       "min": 13000

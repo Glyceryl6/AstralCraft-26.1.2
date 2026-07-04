@@ -26,7 +26,8 @@ public class AstralCraft {
         AstralEntities.ENTITIES.register(modEventBus);
         AstralAttachments.ATTACHMENTS.register(modEventBus);
         AstralEventEffectTypes.EFFECT_TYPES.register(modEventBus);
-        AstralEventConditionTypes.CONDITION_TYPES.register(modEventBus);
+        AstralEventConditionTypes.TRIGGER_CONDITION_TYPES.register(modEventBus);
+        AstralEventConditionTypes.ACTIVE_CONDITION_TYPES.register(modEventBus);
         AstralDataComponents.DATA_COMPONENT_TYPE.register(modEventBus);
     }
 

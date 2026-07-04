@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-public record HasItemEventCondition(Identifier id, int count, boolean inverted) implements AstralEventCondition {
+public record HasItemEventCondition(Identifier id, int count, boolean inverted) implements AstralEventGeneralCondition {
 
     public static final MapCodec<HasItemEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Identifier.CODEC.fieldOf("id").forGetter(HasItemEventCondition::id),
@@ -26,7 +26,7 @@ public record HasItemEventCondition(Identifier id, int count, boolean inverted) 
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

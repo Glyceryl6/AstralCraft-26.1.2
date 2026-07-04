@@ -1,16 +1,16 @@
 package com.astral_craft.common.registry.bootstrap;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralActiveEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventTriggerCondition;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.astral_craft.common.gameplay.event.AstralEventTargetDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventTriggerSettings;
-import com.astral_craft.common.gameplay.event.conditions.AnyOfEventCondition;
+import com.astral_craft.common.gameplay.event.conditions.ActiveAnyOfEventCondition;
 import com.astral_craft.common.gameplay.event.conditions.BlockBreakEventCondition;
 import com.astral_craft.common.gameplay.event.conditions.EntityHurtPlayerEventCondition;
 import com.astral_craft.common.gameplay.event.conditions.PlayerHurtEventCondition;
-import com.astral_craft.common.gameplay.event.conditions.TickEventCondition;
 import com.astral_craft.common.gameplay.event.conditions.HealthEventCondition;
 import com.astral_craft.common.gameplay.event.conditions.PositionEventCondition;
 import com.astral_craft.common.gameplay.event.conditions.TimeOfDayEventCondition;
@@ -61,14 +61,15 @@ public class AstralEventBootstrap {
     }
 
     public static AstralEventDefinition luckyFind() {
-        return event("lucky_find", AstralEventKinds.GOOD, false, List.of(new BlockBreakEventCondition()),
+        return event("lucky_find", AstralEventKinds.GOOD, false, List.of(),
                 AstralEventTargetDefinition.DEFAULT, AstralEventTriggerSettings.DEFAULT,
-                List.of(new GiveItemEventEffect(Items.EMERALD.builtInRegistryHolder(), 1)), List.of(), List.of(), List.of(),
-                600, 0.2D, AstralEventTimings.INSTANT, 0, 20);
+                List.of(), List.of(), List.of(new BlockBreakEventCondition()),
+                List.of(new GiveItemEventEffect(Items.EMERALD.builtInRegistryHolder(), 1)),
+                600, 0.2D, AstralEventTimings.DURATION, 1200, 20);
     }
 
     public static AstralEventDefinition ambush() {
-        return event("ambush", AstralEventKinds.BAD, false, List.of(new TickEventCondition()),
+        return event("ambush", AstralEventKinds.BAD, false, List.of(),
                 List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD), AstralEventTargetDefinition.DEFAULT,
                 new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 2400, 0, true),
                 List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.ZOMBIE.builtInRegistryHolder()), 1)),
@@ -77,23 +78,24 @@ public class AstralEventBootstrap {
 
     public static AstralEventDefinition astralBlessing() {
         AstralEventEffect bonusMining = new ChanceEventEffect(0.25D, new GiveItemEventEffect(Items.LAPIS_LAZULI.builtInRegistryHolder(), 1));
-        return event("astral_blessing", AstralEventKinds.GOOD, false, List.of(new TickEventCondition()), AstralEventTargetDefinition.DEFAULT,
+        return event("astral_blessing", AstralEventKinds.GOOD, false, List.of(), AstralEventTargetDefinition.DEFAULT,
                 new AstralEventTriggerSettings(AstralEventRepeatModes.WHILE_INACTIVE, "", 2400, 0, true),
                 List.of(new MobEffectEventEffect(MobEffects.REGENERATION, 200, 0)), List.of(), List.of(new BlockBreakEventCondition()), List.of(bonusMining),
                 2400, 0.004D, AstralEventTimings.DURATION, 200, 40);
     }
 
     public static AstralEventDefinition lowHealthAid() {
-        return event("low_health_aid", AstralEventKinds.GOOD, false,
-                List.of(new AnyOfEventCondition(List.of(new PlayerHurtEventCondition(), new EntityHurtPlayerEventCondition())),
-                        new HealthEventCondition(0.0F, Float.MAX_VALUE, 0.35F)), AstralEventTargetDefinition.DEFAULT,
+        return event("low_health_aid", AstralEventKinds.GOOD, false, List.of(), AstralEventTargetDefinition.DEFAULT,
                 new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 3600, 0, true),
+                List.of(), List.of(),
+                List.of(new ActiveAnyOfEventCondition(List.of(new PlayerHurtEventCondition(), new EntityHurtPlayerEventCondition())),
+                        new HealthEventCondition(0.0F, Float.MAX_VALUE, 0.35F)),
                 List.of(new HealEventEffect(4.0F), new MobEffectEventEffect(MobEffects.ABSORPTION, 200, 0)),
-                List.of(), List.of(), List.of(), 3600, 0.35D, AstralEventTimings.INSTANT, 0, 20);
+                3600, 0.35D, AstralEventTimings.DURATION, 1200, 20);
     }
 
     public static AstralEventDefinition nightAmbush() {
-        return event("night_ambush", AstralEventKinds.BAD, false, List.of(new TickEventCondition(), new TimeOfDayEventCondition(13000L, 23000L)),
+        return event("night_ambush", AstralEventKinds.BAD, false, List.of(new TimeOfDayEventCondition(13000L, 23000L)),
                 List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD), AstralEventTargetDefinition.DEFAULT,
                 new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 3600, 0, true),
                 List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.SKELETON.builtInRegistryHolder()), 2, 4.0D)),
@@ -101,17 +103,18 @@ public class AstralEventBootstrap {
     }
 
     public static AstralEventDefinition caveCache() {
-        return event("cave_cache", AstralEventKinds.GOOD, false, List.of(new BlockBreakEventCondition(), new PositionEventCondition(Integer.MIN_VALUE, 40, 0, 0, -1)),
+        return event("cave_cache", AstralEventKinds.GOOD, false, List.of(),
                 AstralEventTargetDefinition.DEFAULT, new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 1200, 0, true),
+                List.of(), List.of(), List.of(new BlockBreakEventCondition(), new PositionEventCondition(Integer.MIN_VALUE, 40, 0, 0, -1)),
                 List.of(new AddExperienceEventEffect(5), new ChanceEventEffect(0.5D, new GiveItemEventEffect(Items.IRON_NUGGET.builtInRegistryHolder(), 3))),
-                List.of(), List.of(), List.of(), 1200, 0.08D, AstralEventTimings.INSTANT, 0, 20);
+                1200, 0.08D, AstralEventTimings.DURATION, 1200, 20);
     }
 
     public static AstralEventDefinition event(
-            String id, Identifier kind, boolean triggers, List<AstralEventCondition> conditions,
+            String id, Identifier kind, boolean triggers, List<AstralEventTriggerCondition> conditions,
             AstralEventTargetDefinition target, AstralEventTriggerSettings triggerSettings,
             List<AstralEventEffect> effects, List<AstralEventEffect> intervalEffects,
-            List<AstralEventCondition> activeConditions, List<AstralEventEffect> activeEffects,
+            List<AstralActiveEventCondition> activeConditions, List<AstralEventEffect> activeEffects,
             int cooldownTicks, double chance, Identifier timing, int durationTicks, int intervalTicks) {
         return event(id, kind, triggers, conditions, List.of(), target, triggerSettings, effects, intervalEffects,
                 activeConditions, activeEffects, cooldownTicks, chance, timing, durationTicks, intervalTicks);
@@ -119,13 +122,13 @@ public class AstralEventBootstrap {
 
     public static AstralEventDefinition event(
             String id, Identifier kind, boolean triggers,
-            List<AstralEventCondition> conditions,
+            List<AstralEventTriggerCondition> conditions,
             List<Difficulty> difficulties,
             AstralEventTargetDefinition target,
             AstralEventTriggerSettings triggerSettings,
             List<AstralEventEffect> effects,
             List<AstralEventEffect> intervalEffects,
-            List<AstralEventCondition> activeConditions,
+            List<AstralActiveEventCondition> activeConditions,
             List<AstralEventEffect> activeEffects,
             int cooldownTicks, double chance, Identifier timing,
             int durationTicks, int intervalTicks) {

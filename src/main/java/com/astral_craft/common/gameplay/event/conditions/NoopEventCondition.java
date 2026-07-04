@@ -1,11 +1,11 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.MapCodec;
 
-public record NoopEventCondition() implements AstralEventCondition {
+public record NoopEventCondition() implements AstralEventGeneralCondition {
 
     public static final MapCodec<NoopEventCondition> CODEC = MapCodec.unit(new NoopEventCondition());
 
@@ -15,7 +15,7 @@ public record NoopEventCondition() implements AstralEventCondition {
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

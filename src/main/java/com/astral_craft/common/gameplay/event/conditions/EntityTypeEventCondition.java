@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -11,7 +11,7 @@ import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
-public record EntityTypeEventCondition(List<Identifier> entityTypes, boolean inverted) implements AstralEventCondition {
+public record EntityTypeEventCondition(List<Identifier> entityTypes, boolean inverted) implements AstralEventGeneralCondition {
 
     public static final MapCodec<EntityTypeEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Identifier.CODEC.listOf().optionalFieldOf("entity_types", List.of()).forGetter(EntityTypeEventCondition::entityTypes),
@@ -24,7 +24,7 @@ public record EntityTypeEventCondition(List<Identifier> entityTypes, boolean inv
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

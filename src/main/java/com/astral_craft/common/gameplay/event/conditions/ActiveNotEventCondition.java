@@ -1,16 +1,16 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralActiveEventCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-public record NotEventCondition(AstralEventCondition condition) implements AstralEventCondition {
+public record ActiveNotEventCondition(AstralActiveEventCondition condition) implements AstralActiveEventCondition {
 
-    public static final MapCodec<NotEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            AstralEventCondition.CODEC.fieldOf("condition").forGetter(NotEventCondition::condition)
-    ).apply(instance, NotEventCondition::new));
+    public static final MapCodec<ActiveNotEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            AstralActiveEventCondition.CODEC.fieldOf("condition").forGetter(ActiveNotEventCondition::condition)
+    ).apply(instance, ActiveNotEventCondition::new));
 
     @Override
     public String typeId() {
@@ -18,7 +18,7 @@ public record NotEventCondition(AstralEventCondition condition) implements Astra
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralActiveEventCondition> activeCodec() {
         return CODEC;
     }
 

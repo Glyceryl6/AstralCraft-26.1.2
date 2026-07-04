@@ -1,14 +1,14 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.entity.LivingEntity;
 
-public record HealthEventCondition(float min, float max, float maxPercent) implements AstralEventCondition {
+public record HealthEventCondition(float min, float max, float maxPercent) implements AstralEventGeneralCondition {
 
     public static final MapCodec<HealthEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.FLOAT.optionalFieldOf("min", 0.0F).forGetter(HealthEventCondition::min),
@@ -22,7 +22,7 @@ public record HealthEventCondition(float min, float max, float maxPercent) imple
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

@@ -9,7 +9,7 @@ public class AstralEventIdentifiers {
 
     public static final Codec<Identifier> CODEC = Codec.STRING.comapFlatMap(raw -> {
         Identifier id = parse(raw, null);
-        return id == null ? DataResult.error(() -> "Invalid astral event identifier: " + raw) : DataResult.success(id);
+        return id == null ? DataResult.error(() -> "error.astral_craft.event.identifier.invalid:" + raw) : DataResult.success(id);
     }, Identifier::toString);
 
     public static Identifier parse(String raw, Identifier fallback) {

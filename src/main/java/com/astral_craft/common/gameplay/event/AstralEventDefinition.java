@@ -20,13 +20,13 @@ public record AstralEventDefinition(
         Identifier kind,
         Identifier texture,
         boolean triggers,
-        List<AstralEventCondition> conditions,
+        List<AstralEventTriggerCondition> conditions,
         List<Difficulty> difficulties,
         AstralEventTargetDefinition target,
         AstralEventTriggerSettings triggerSettings,
         List<AstralEventEffect> effects,
         List<AstralEventEffect> intervalEffects,
-        List<AstralEventCondition> activeConditions,
+        List<AstralActiveEventCondition> activeConditions,
         List<AstralEventEffect> activeEffects,
         List<AstralEventEffect> endEffects,
         int cooldownTicks,
@@ -46,7 +46,7 @@ public record AstralEventDefinition(
 
     private static final MapCodec<AstralEventTriggerPart> TRIGGER_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.BOOL.optionalFieldOf("triggers", true).forGetter(AstralEventTriggerPart::triggers),
-            AstralEventCondition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(AstralEventTriggerPart::conditions),
+            AstralEventTriggerCondition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(AstralEventTriggerPart::conditions),
             Difficulty.CODEC.listOf().optionalFieldOf("difficulties", List.of()).forGetter(AstralEventTriggerPart::difficulties),
             AstralEventTargetDefinition.CODEC.optionalFieldOf("target", AstralEventTargetDefinition.DEFAULT).forGetter(AstralEventTriggerPart::target),
             AstralEventTriggerSettings.CODEC.optionalFieldOf("trigger_settings", AstralEventTriggerSettings.DEFAULT).forGetter(AstralEventTriggerPart::triggerSettings),
@@ -58,7 +58,7 @@ public record AstralEventDefinition(
     private static final MapCodec<AstralEventEffectsPart> EFFECTS_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             AstralEventEffect.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(AstralEventEffectsPart::effects),
             AstralEventEffect.CODEC.listOf().optionalFieldOf("interval_effects", List.of()).forGetter(AstralEventEffectsPart::intervalEffects),
-            AstralEventCondition.CODEC.listOf().optionalFieldOf("active_conditions", List.of()).forGetter(AstralEventEffectsPart::activeConditions),
+            AstralActiveEventCondition.CODEC.listOf().optionalFieldOf("active_conditions", List.of()).forGetter(AstralEventEffectsPart::activeConditions),
             AstralEventEffect.CODEC.listOf().optionalFieldOf("active_effects", List.of()).forGetter(AstralEventEffectsPart::activeEffects),
             AstralEventEffect.CODEC.listOf().optionalFieldOf("end_effects", List.of()).forGetter(AstralEventEffectsPart::endEffects),
             AstralEventIdentifiers.CODEC.optionalFieldOf("timing", AstralEventTimings.INSTANT).forGetter(AstralEventEffectsPart::timing),
@@ -123,7 +123,7 @@ public record AstralEventDefinition(
     }
 
     public boolean testConditions(AstralEventContext context) {
-        for (AstralEventCondition condition : this.conditions) {
+        for (AstralEventTriggerCondition condition : this.conditions) {
             if (condition != null && !condition.test(context)) {
                 return false;
             }
@@ -133,7 +133,7 @@ public record AstralEventDefinition(
 
     public boolean testActiveConditions(AstralEventContext context) {
         if (this.activeConditions.isEmpty()) return false;
-        for (AstralEventCondition condition : this.activeConditions) {
+        for (AstralActiveEventCondition condition : this.activeConditions) {
             if (condition != null && !condition.test(context)) {
                 return false;
             }
@@ -169,7 +169,7 @@ public record AstralEventDefinition(
 
     private record AstralEventTriggerPart(
             boolean triggers,
-            List<AstralEventCondition> conditions,
+            List<AstralEventTriggerCondition> conditions,
             List<Difficulty> difficulties,
             AstralEventTargetDefinition target,
             AstralEventTriggerSettings triggerSettings,
@@ -180,7 +180,7 @@ public record AstralEventDefinition(
     private record AstralEventEffectsPart(
             List<AstralEventEffect> effects,
             List<AstralEventEffect> intervalEffects,
-            List<AstralEventCondition> activeConditions,
+            List<AstralActiveEventCondition> activeConditions,
             List<AstralEventEffect> activeEffects,
             List<AstralEventEffect> endEffects,
             Identifier timing,

@@ -1,13 +1,13 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventCondition;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-public record TimeOfDayEventCondition(long min, long max) implements AstralEventCondition {
+public record TimeOfDayEventCondition(long min, long max) implements AstralEventGeneralCondition {
 
     public static final MapCodec<TimeOfDayEventCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.LONG.optionalFieldOf("min", 0L).forGetter(TimeOfDayEventCondition::min),
@@ -20,7 +20,7 @@ public record TimeOfDayEventCondition(long min, long max) implements AstralEvent
     }
 
     @Override
-    public MapCodec<? extends AstralEventCondition> codec() {
+    public MapCodec<? extends AstralEventGeneralCondition> codec() {
         return CODEC;
     }
 

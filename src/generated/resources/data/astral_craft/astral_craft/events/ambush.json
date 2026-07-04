@@ -1,10 +1,5 @@
 {
   "chance": 0.004,
-  "conditions": [
-    {
-      "type": "astral_craft:tick"
-    }
-  ],
   "cooldown_ticks": 2400,
   "description_key": "event.astral_craft.ambush.description",
   "difficulties": [
