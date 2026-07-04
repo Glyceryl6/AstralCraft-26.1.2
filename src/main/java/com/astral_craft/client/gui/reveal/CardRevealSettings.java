@@ -34,13 +34,13 @@ public class CardRevealSettings {
     public float frontArtYOffsetRatio = -0.145F;
     public float backArtWidthRatio = 0.58F;
     public float backArtHeightRatio = 0.80F;
-    public float backArtYOffsetRatio = 0.010F;
-    public float sideEdgeWidthRatio = 0.070F;
+    public float backArtYOffsetRatio = 0.01F;
+    public float sideEdgeWidthRatio = 0.07F;
     public float sideEdgeHeightRatio = 0.865F;
 
     public float textMaxWidthRatio = 0.46F;
     public float titleTextMaxWidthRatio = 0.46F;
-    public float bodyTextMaxWidthRatio = 0.46F;
+    public float bodyTextMaxWidthRatio = 0.7F;
     public int minTitleTextWidth = 48;
     public int minBodyTextWidth = 58;
     public int maxTitleTextWidth = 260;
@@ -48,11 +48,11 @@ public class CardRevealSettings {
     public float titleYOffsetRatio = -0.32F;
     public float bodyYOffsetRatio = 0.22F;
     public float titleExtraYOffsetRatio = 0.5F;
-    public float bodyExtraYOffsetRatio = 0.0F;
+    public float bodyExtraYOffsetRatio = 0.03F;
     public int titleExtraYOffsetPixels = 0;
     public int bodyExtraYOffsetPixels = 0;
-    public int bodyMaxLines = 5;
-    public boolean textShadow = false;
+    public int bodyMaxLines = 10;
+    public boolean textShadow = true;
     public int titleTextColor = 0xFFF0B0;
     public int bodyTextColor = 0xFFFFFF;
     public float textBackdropAlpha = 0.0F;
