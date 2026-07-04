@@ -11,7 +11,6 @@ import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.core.ClientAsset;
 import net.minecraft.world.entity.Avatar;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 import net.neoforged.neoforge.client.renderstate.AvatarRenderStateModifier;
@@ -20,14 +19,15 @@ public class AstralCharacterRenderStateModifier extends AvatarRenderStateModifie
 
     @Override
     public <T extends Avatar & ClientAvatarEntity> void accept(T avatar, AvatarRenderState state) {
-        state.setRenderData(CardRevealEntityOverlay.CARD_REVEAL, CardRevealEntityOverlay.activeFor(avatar.getId()));
+        state.setRenderData(CardRevealEntityOverlay.CARD_REVEAL, CardRevealEntityOverlay.activeFor(avatar));
         ActiveCharacterState characterState = avatar.getData(AstralAttachments.ACTIVE_CHARACTER);
         if (characterState.active() && CharacterManager.INSTANCE.contains(characterState.characterId())) {
             CharacterDefinition definition = CharacterManager.INSTANCE.get(characterState.characterId());
             CharacterSkinDefinition skin = definition.skinOrDefault(characterState.skinId());
             state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
         }
-        if (avatar instanceof LivingEntity livingEntity && (livingEntity.hasEffect(AstralStatusEffects.SHADOW_CLOAK) || livingEntity.hasEffect(AstralStatusEffects.ASTRAL_PHASE))) {
+
+        if (avatar.hasEffect(AstralStatusEffects.SHADOW_CLOAK) || avatar.hasEffect(AstralStatusEffects.ASTRAL_PHASE)) {
             state.isInvisibleToPlayer = false;
         }
     }

@@ -46,6 +46,9 @@ public class CardUseService {
     public static final double WORLD_REVEAL_SYNC_RANGE = 96.0D;
 
     public static InteractionResult use(BaseHandCard card, Level level, Player player, InteractionHand hand) {
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.PASS;
         }
@@ -125,9 +128,12 @@ public class CardUseService {
         if (definition.needsTarget()) {
             int effectiveRange = CardRangeResolver.effectiveRange(serverPlayer, stack, definition);
             String candidates = CardTargeting.encodeCandidates(serverPlayer, stack, definition);
+            swingAcceptedUse(serverPlayer, hand);
             PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), targetSelectionHandIndex, definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
             return InteractionResult.SUCCESS;
         }
+
+        swingAcceptedUse(serverPlayer, hand);
 
         CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
         if (options.enabled()) {
@@ -192,6 +198,8 @@ public class CardUseService {
             return;
         }
 
+        swingAcceptedUse(player, hand);
+
         CardRevealOptions options = card.revealOptions(player, hand, stack, definition, targets);
         if (options.enabled()) {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
@@ -250,7 +258,7 @@ public class CardUseService {
     public static void sendEntityRevealAround(ServerPlayer owner, String cardId, String itemId, String cardType, String titleKey,
                                               String bodyKey, String largeFrontTexture, String largeBackTexture,
                                               String animation, int durationTicks) {
-        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), cardId, itemId, cardType,
+        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), owner.getUUID().toString(), cardId, itemId, cardType,
                 titleKey, bodyKey, largeFrontTexture, largeBackTexture, animation, durationTicks);
         double maxDistanceSqr = WORLD_REVEAL_SYNC_RANGE * WORLD_REVEAL_SYNC_RANGE;
         for (ServerPlayer viewer : owner.level().players()) {
@@ -269,6 +277,10 @@ public class CardUseService {
 
     protected static int revealLockTicks(int requestedTicks) {
         return Math.max(Math.max(0, requestedTicks), AstralGameplayConfig.cardRevealLockTicks());
+    }
+
+    protected static void swingAcceptedUse(ServerPlayer player, InteractionHand hand) {
+        player.swing(hand, true);
     }
 
     protected static Component useRestrictionMessage(ServerPlayer player, CardDefinition definition) {
