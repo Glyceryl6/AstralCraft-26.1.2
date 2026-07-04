@@ -2,6 +2,17 @@
   "chance": 0.35,
   "conditions": [
     {
+      "type": "astral_craft:any_of",
+      "conditions": [
+        {
+          "type": "astral_craft:player_hurt"
+        },
+        {
+          "type": "astral_craft:entity_hurt_player"
+        }
+      ]
+    },
+    {
       "type": "astral_craft:health",
       "max_percent": 0.35
     }
@@ -19,14 +30,11 @@
     }
   ],
   "id": "astral_craft:low_health_aid",
-  "kind": "good",
+  "kind": "astral_craft:good",
   "name_key": "event.astral_craft.low_health_aid.name",
   "texture": "astral_craft:textures/gui/cards/event_good.png",
   "trigger_settings": {
     "retrigger_delay_ticks": 3600
   },
-  "triggers": [
-    "player_hurt",
-    "entity_hurt_player"
-  ]
+  "triggers": false
 }

@@ -1,5 +1,10 @@
 {
   "chance": 0.2,
+  "conditions": [
+    {
+      "type": "astral_craft:block_break"
+    }
+  ],
   "description_key": "event.astral_craft.lucky_find.description",
   "effects": [
     {
@@ -8,10 +13,8 @@
     }
   ],
   "id": "astral_craft:lucky_find",
-  "kind": "good",
+  "kind": "astral_craft:good",
   "name_key": "event.astral_craft.lucky_find.name",
   "texture": "astral_craft:textures/gui/cards/event_good.png",
-  "triggers": [
-    "block_break"
-  ]
+  "triggers": false
 }

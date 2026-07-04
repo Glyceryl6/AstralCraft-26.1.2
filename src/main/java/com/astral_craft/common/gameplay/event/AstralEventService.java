@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.network.CardRevealPayload;
+import com.astral_craft.common.gameplay.event.type.AstralEventTriggers;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -33,8 +34,8 @@ public class AstralEventService {
         ACTIVE_EVENTS.removeIf(ActiveEvent::tick);
     }
 
-    public static boolean trigger(ServerPlayer player, String trigger) {
-        List<AstralEventDefinition> candidates = AstralEventManager.INSTANCE.matching(trigger);
+    public static boolean trigger(ServerPlayer player, Identifier trigger) {
+        List<AstralEventDefinition> candidates = AstralEventManager.INSTANCE.automaticEvents();
         if (candidates.isEmpty()) return false;
         for (AstralEventDefinition definition : candidates) {
             if (tryTrigger(player, definition, false, trigger)) {
@@ -47,14 +48,14 @@ public class AstralEventService {
 
     public static boolean triggerById(ServerPlayer player, Identifier id) {
         if (player == null || id == null || !AstralEventManager.INSTANCE.contains(id)) return false;
-        return tryTrigger(player, AstralEventManager.INSTANCE.get(id), true, "manual");
+        return tryTrigger(player, AstralEventManager.INSTANCE.get(id), true, AstralEventTriggers.MANUAL);
     }
 
     public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition) {
-        return tryTrigger(player, definition, false, "manual");
+        return tryTrigger(player, definition, false, AstralEventTriggers.MANUAL);
     }
 
-    public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition, boolean force, String trigger) {
+    public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition, boolean force, Identifier trigger) {
         if (player == null || definition == null) return false;
         if (!definition.canTriggerInDifficulty(player.level().getDifficulty())) return false;
         if (PendingCardActionManager.isExclusiveBusy(player)) return false;
@@ -113,17 +114,16 @@ public class AstralEventService {
         return settings.always() || targetState.cooldownLeft(key) <= 0;
     }
 
-    public static void applyActiveTrigger(ServerPlayer player, String trigger) {
-        if (player == null || trigger == null || trigger.isBlank()) return;
+    public static void applyActiveTrigger(ServerPlayer player, Identifier trigger) {
+        if (player == null || trigger == null) return;
         AstralEventState eventState = state(player);
         for (Map.Entry<String, AstralActiveEventInstance> entry : eventState.activeEvents().entrySet()) {
             Identifier id = Identifier.parse(entry.getValue().eventId());
             if (!AstralEventManager.INSTANCE.contains(id)) continue;
             AstralEventDefinition definition = AstralEventManager.INSTANCE.get(id);
-            if (!definition.canApplyDuring(trigger)) continue;
             if (!definition.canTriggerInDifficulty(player.level().getDifficulty())) continue;
             AstralEventContext context = AstralEventContext.of(player, player, definition, trigger);
-            if (definition.testConditions(context)) {
+            if (definition.testActiveConditions(context)) {
                 applyEffects(context, definition.activeEffects());
             }
         }

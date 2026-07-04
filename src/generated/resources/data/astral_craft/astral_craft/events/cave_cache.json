@@ -2,6 +2,9 @@
   "chance": 0.08,
   "conditions": [
     {
+      "type": "astral_craft:block_break"
+    },
+    {
       "type": "astral_craft:position",
       "max_y": 40
     }
@@ -23,13 +26,11 @@
     }
   ],
   "id": "astral_craft:cave_cache",
-  "kind": "good",
+  "kind": "astral_craft:good",
   "name_key": "event.astral_craft.cave_cache.name",
   "texture": "astral_craft:textures/gui/cards/event_good.png",
   "trigger_settings": {
     "retrigger_delay_ticks": 1200
   },
-  "triggers": [
-    "block_break"
-  ]
+  "triggers": false
 }

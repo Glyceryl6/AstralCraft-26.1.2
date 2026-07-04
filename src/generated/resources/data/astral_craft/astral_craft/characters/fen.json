@@ -19,6 +19,7 @@
   ],
   "skills": [
     {
+      "animation": "astral_craft:skill",
       "handler": "astral_craft:fen",
       "has_pve_variant": true,
       "has_pvp_variant": true,
@@ -27,6 +28,7 @@
       "pvp_cooldown": 3
     },
     {
+      "animation": "astral_craft:skill",
       "handler": "astral_craft:fen",
       "has_pve_variant": true,
       "has_pvp_variant": true,

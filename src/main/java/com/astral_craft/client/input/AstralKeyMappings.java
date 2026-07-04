@@ -14,19 +14,19 @@ public class AstralKeyMappings {
 
     public static final Lazy<KeyMapping> CARD_BACK_SELECTION = Lazy.of(() -> new KeyMapping(
             "key.astral_craft.card_back_selection", KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_ESCAPE, CATEGORY));
 
     public static final Lazy<KeyMapping> CHARACTER_SETTINGS = Lazy.of(() -> new KeyMapping(
             "key.astral_craft.character_settings", KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_C, CATEGORY));
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_ESCAPE, CATEGORY));
 
     public static final Lazy<KeyMapping> HAND_CARD_DECK = Lazy.of(() -> new KeyMapping(
             "key.astral_craft.hand_card_deck", KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_ESCAPE, CATEGORY));
 
     public static final Lazy<KeyMapping> CHARACTER_SKILL = Lazy.of(() -> new KeyMapping(
             "key.astral_craft.character_skill", KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY));
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_ESCAPE, CATEGORY));
 
     public static void register(RegisterKeyMappingsEvent event) {
         event.registerCategory(CATEGORY);

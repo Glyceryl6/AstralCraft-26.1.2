@@ -15,11 +15,13 @@
     ],
     "skills": [
         {
+            "animation": "astral_craft:skill",
             "cooldown": 4,
             "handler": "astral_craft:jasmine",
             "id": "active"
         },
         {
+            "animation": "astral_craft:skill",
             "handler": "astral_craft:jasmine",
             "id": "passive"
         }

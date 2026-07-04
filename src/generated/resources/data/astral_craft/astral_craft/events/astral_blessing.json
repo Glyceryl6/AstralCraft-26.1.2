@@ -1,4 +1,9 @@
 {
+  "active_conditions": [
+    {
+      "type": "astral_craft:block_break"
+    }
+  ],
   "active_effects": [
     {
       "type": "astral_craft:chance",
@@ -9,10 +14,12 @@
       }
     }
   ],
-  "active_triggers": [
-    "block_break"
-  ],
   "chance": 0.004,
+  "conditions": [
+    {
+      "type": "astral_craft:tick"
+    }
+  ],
   "cooldown_ticks": 2400,
   "description_key": "event.astral_craft.astral_blessing.description",
   "duration_ticks": 200,
@@ -24,15 +31,13 @@
   ],
   "id": "astral_craft:astral_blessing",
   "interval_ticks": 40,
-  "kind": "good",
+  "kind": "astral_craft:good",
   "name_key": "event.astral_craft.astral_blessing.name",
   "texture": "astral_craft:textures/gui/cards/event_good.png",
-  "timing": "duration",
+  "timing": "astral_craft:duration",
   "trigger_settings": {
-    "repeat_mode": "while_inactive",
+    "repeat_mode": "astral_craft:while_inactive",
     "retrigger_delay_ticks": 2400
   },
-  "triggers": [
-    "tick"
-  ]
+  "triggers": false
 }

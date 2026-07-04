@@ -16,11 +16,13 @@
   ],
   "skills": [
     {
+      "animation": "astral_craft:skill",
       "cooldown": 3,
       "handler": "astral_craft:padman",
       "id": "active"
     },
     {
+      "animation": "astral_craft:skill",
       "handler": "astral_craft:padman",
       "id": "passive"
     }

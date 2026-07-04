@@ -1,7 +1,9 @@
 package com.astral_craft.common.gameplay.event;
 
+import com.astral_craft.common.gameplay.event.type.AstralEventTriggers;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
@@ -9,17 +11,17 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
-public record AstralEventContext(ServerPlayer triggerPlayer, Entity target, ServerLevel level, AstralEventDefinition definition, String trigger, BlockPos origin) {
+public record AstralEventContext(ServerPlayer triggerPlayer, Entity target, ServerLevel level, AstralEventDefinition definition, Identifier trigger, BlockPos origin) {
 
     public static AstralEventContext player(ServerPlayer player, AstralEventDefinition definition) {
-        return new AstralEventContext(player, player, player.level(), definition, "manual", player.blockPosition());
+        return new AstralEventContext(player, player, player.level(), definition, AstralEventTriggers.MANUAL, player.blockPosition());
     }
 
-    public static AstralEventContext of(ServerPlayer triggerPlayer, Entity target, AstralEventDefinition definition, String trigger) {
+    public static AstralEventContext of(ServerPlayer triggerPlayer, Entity target, AstralEventDefinition definition, Identifier trigger) {
         Entity safeTarget = target == null ? triggerPlayer : target;
         ServerLevel level = safeTarget.level() instanceof ServerLevel serverLevel ? serverLevel : triggerPlayer.level();
         BlockPos origin = safeTarget.blockPosition();
-        return new AstralEventContext(triggerPlayer, safeTarget, level, definition, trigger == null ? "manual" : trigger, origin);
+        return new AstralEventContext(triggerPlayer, safeTarget, level, definition, trigger == null ? AstralEventTriggers.MANUAL : trigger, origin);
     }
 
     public ServerPlayer targetPlayer() {

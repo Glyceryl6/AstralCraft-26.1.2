@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.event;
 
+import com.astral_craft.common.gameplay.event.type.AstralEventLocalizationKeys;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -32,8 +33,8 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
             AstralEventDefinition definition = entry.getValue();
             Identifier id = entry.getKey();
             loaded.put(id, new AstralEventDefinition(id,
-                    definition.nameKey(),
-                    definition.descriptionKey(),
+                    AstralEventLocalizationKeys.name(id),
+                    AstralEventLocalizationKeys.description(id),
                     definition.kind(),
                     definition.texture(),
                     definition.triggers(),
@@ -43,7 +44,7 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
                     definition.triggerSettings(),
                     definition.effects(),
                     definition.intervalEffects(),
-                    definition.activeTriggers(),
+                    definition.activeConditions(),
                     definition.activeEffects(),
                     definition.endEffects(),
                     definition.cooldownTicks(),
@@ -71,10 +72,10 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
         return result;
     }
 
-    public List<AstralEventDefinition> matching(String trigger) {
+    public List<AstralEventDefinition> automaticEvents() {
         List<AstralEventDefinition> result = new ArrayList<>();
         for (AstralEventDefinition definition : this.definitions.values()) {
-            if (definition.canTriggerFrom(trigger)) {
+            if (definition.canAutoTrigger()) {
                 result.add(definition);
             }
         }

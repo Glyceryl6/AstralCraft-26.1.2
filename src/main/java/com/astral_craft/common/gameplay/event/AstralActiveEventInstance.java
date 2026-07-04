@@ -1,13 +1,16 @@
 package com.astral_craft.common.gameplay.event;
 
+import com.astral_craft.common.gameplay.event.type.AstralEventIdentifiers;
+import com.astral_craft.common.gameplay.event.type.AstralEventKinds;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.Identifier;
 
 public record AstralActiveEventInstance(
         String eventId,
         String nameKey,
         String descriptionKey,
-        String kind,
+        Identifier kind,
         int ticksLeft,
         int totalTicks,
         int intervalLeft,
@@ -17,7 +20,7 @@ public record AstralActiveEventInstance(
             Codec.STRING.fieldOf("event_id").forGetter(AstralActiveEventInstance::eventId),
             Codec.STRING.optionalFieldOf("name_key", "").forGetter(AstralActiveEventInstance::nameKey),
             Codec.STRING.optionalFieldOf("description_key", "").forGetter(AstralActiveEventInstance::descriptionKey),
-            Codec.STRING.optionalFieldOf("kind", "neutral").forGetter(AstralActiveEventInstance::kind),
+            AstralEventIdentifiers.CODEC.optionalFieldOf("kind", AstralEventKinds.NEUTRAL).forGetter(AstralActiveEventInstance::kind),
             Codec.INT.optionalFieldOf("ticks_left", 0).forGetter(AstralActiveEventInstance::ticksLeft),
             Codec.INT.optionalFieldOf("total_ticks", 0).forGetter(AstralActiveEventInstance::totalTicks),
             Codec.INT.optionalFieldOf("interval_left", 20).forGetter(AstralActiveEventInstance::intervalLeft),

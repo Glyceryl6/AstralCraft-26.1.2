@@ -1,5 +1,10 @@
 {
   "chance": 0.004,
+  "conditions": [
+    {
+      "type": "astral_craft:tick"
+    }
+  ],
   "cooldown_ticks": 2400,
   "description_key": "event.astral_craft.ambush.description",
   "difficulties": [
@@ -14,13 +19,11 @@
     }
   ],
   "id": "astral_craft:ambush",
-  "kind": "bad",
+  "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.ambush.name",
   "texture": "astral_craft:textures/gui/cards/event_bad.png",
   "trigger_settings": {
     "retrigger_delay_ticks": 2400
   },
-  "triggers": [
-    "tick"
-  ]
+  "triggers": false
 }

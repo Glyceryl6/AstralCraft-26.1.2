@@ -1,14 +1,17 @@
 package com.astral_craft.common.gameplay.event;
 
+import com.astral_craft.common.gameplay.event.type.AstralEventIdentifiers;
+import com.astral_craft.common.gameplay.event.type.AstralEventRepeatModes;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.Identifier;
 
-public record AstralEventTriggerSettings(String repeatMode, String uniqueKey, int retriggerDelayTicks, int maxTriggers, boolean preventWhileActive) {
+public record AstralEventTriggerSettings(Identifier repeatMode, String uniqueKey, int retriggerDelayTicks, int maxTriggers, boolean preventWhileActive) {
 
-    public static final AstralEventTriggerSettings DEFAULT = new AstralEventTriggerSettings("cooldown", "", 0, 0, true);
+    public static final AstralEventTriggerSettings DEFAULT = new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 0, 0, true);
 
     public static final Codec<AstralEventTriggerSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.optionalFieldOf("repeat_mode", "cooldown").forGetter(AstralEventTriggerSettings::repeatMode),
+            AstralEventIdentifiers.CODEC.optionalFieldOf("repeat_mode", AstralEventRepeatModes.COOLDOWN).forGetter(AstralEventTriggerSettings::repeatMode),
             Codec.STRING.optionalFieldOf("unique_key", "").forGetter(AstralEventTriggerSettings::uniqueKey),
             Codec.INT.optionalFieldOf("retrigger_delay_ticks", 0).forGetter(AstralEventTriggerSettings::retriggerDelayTicks),
             Codec.INT.optionalFieldOf("max_triggers", 0).forGetter(AstralEventTriggerSettings::maxTriggers),
@@ -31,19 +34,19 @@ public record AstralEventTriggerSettings(String repeatMode, String uniqueKey, in
     }
 
     public boolean always() {
-        return "always".equalsIgnoreCase(this.repeatMode);
+        return AstralEventRepeatModes.isAlways(this.repeatMode);
     }
 
     public boolean oncePerTarget() {
-        return "once_per_target".equalsIgnoreCase(this.repeatMode) || "once".equalsIgnoreCase(this.repeatMode);
+        return AstralEventRepeatModes.isOncePerTarget(this.repeatMode);
     }
 
     public boolean oncePerPlayer() {
-        return "once_per_player".equalsIgnoreCase(this.repeatMode);
+        return AstralEventRepeatModes.isOncePerPlayer(this.repeatMode);
     }
 
     public boolean whileInactiveOnly() {
-        return "while_inactive".equalsIgnoreCase(this.repeatMode);
+        return AstralEventRepeatModes.isWhileInactive(this.repeatMode);
     }
 
 }

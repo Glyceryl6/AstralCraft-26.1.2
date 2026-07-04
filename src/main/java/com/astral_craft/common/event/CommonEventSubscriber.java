@@ -9,16 +9,17 @@ import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
-import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.AstralActiveEventInstance;
 import com.astral_craft.common.gameplay.event.AstralEventManager;
 import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventService;
+import com.astral_craft.common.gameplay.event.type.AstralEventTriggers;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
-import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralAttachments;
+import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
+import com.astral_craft.common.items.BaseHandCard;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -41,8 +42,8 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -52,7 +53,11 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID)
@@ -146,28 +151,28 @@ public class CommonEventSubscriber {
     public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
         SoulLinkManager.onDamagePre(event);
         if (event.getEntity() instanceof ServerPlayer damagedPlayer) {
-            AstralEventService.applyActiveTrigger(damagedPlayer, "player_hurt");
-            AstralEventService.trigger(damagedPlayer, "player_hurt");
-            AstralEventService.applyActiveTrigger(damagedPlayer, "entity_hurt_player");
-            AstralEventService.trigger(damagedPlayer, "entity_hurt_player");
+            AstralEventService.applyActiveTrigger(damagedPlayer, AstralEventTriggers.PLAYER_HURT);
+            AstralEventService.trigger(damagedPlayer, AstralEventTriggers.PLAYER_HURT);
+            AstralEventService.applyActiveTrigger(damagedPlayer, AstralEventTriggers.ENTITY_HURT_PLAYER);
+            AstralEventService.trigger(damagedPlayer, AstralEventTriggers.ENTITY_HURT_PLAYER);
         }
 
         if (event.getSource().getEntity() instanceof ServerPlayer attacker) {
-            AstralEventService.applyActiveTrigger(attacker, "player_hurt_entity");
-            AstralEventService.trigger(attacker, "player_hurt_entity");
+            AstralEventService.applyActiveTrigger(attacker, AstralEventTriggers.PLAYER_HURT_ENTITY);
+            AstralEventService.trigger(attacker, AstralEventTriggers.PLAYER_HURT_ENTITY);
         }
     }
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer killedPlayer) {
-            AstralEventService.applyActiveTrigger(killedPlayer, "player_killed");
-            AstralEventService.trigger(killedPlayer, "player_killed");
+            AstralEventService.applyActiveTrigger(killedPlayer, AstralEventTriggers.PLAYER_KILLED);
+            AstralEventService.trigger(killedPlayer, AstralEventTriggers.PLAYER_KILLED);
         }
 
         if (event.getSource().getEntity() instanceof ServerPlayer killer) {
-            AstralEventService.applyActiveTrigger(killer, "player_killed_entity");
-            AstralEventService.trigger(killer, "player_killed_entity");
+            AstralEventService.applyActiveTrigger(killer, AstralEventTriggers.PLAYER_KILLED_ENTITY);
+            AstralEventService.trigger(killer, AstralEventTriggers.PLAYER_KILLED_ENTITY);
         }
     }
 
@@ -181,8 +186,9 @@ public class CommonEventSubscriber {
         AstralEventService.serverTick(event.getServer());
         event.getServer().getPlayerList().getPlayers().forEach(player -> {
             AstralCharacterSkillService.serverTick(player);
-            AstralEventService.trigger(player, "tick");
+            AstralEventService.trigger(player, AstralEventTriggers.TICK);
         });
+
     }
 
     @SubscribeEvent
@@ -191,6 +197,7 @@ public class CommonEventSubscriber {
             effect.onEffectApplicable(event);
         }
     }
+
 
     @SubscribeEvent
     public static void onMobEffectAdded(MobEffectEvent.Added event) {
@@ -201,6 +208,7 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onMobEffectRemove(MobEffectEvent.Remove event) {
+        if (event.isCanceled()) return;
         if (event.getEffect().value() instanceof AstralStatusMobEffect effect) {
             effect.onEffectRemoved(event.getEntity());
         }
@@ -253,8 +261,8 @@ public class CommonEventSubscriber {
         }
 
         if (event.getPlayer() instanceof ServerPlayer serverPlayer) {
-            AstralEventService.applyActiveTrigger(serverPlayer, "block_break");
-            AstralEventService.trigger(serverPlayer, "block_break");
+            AstralEventService.applyActiveTrigger(serverPlayer, AstralEventTriggers.BLOCK_BREAK);
+            AstralEventService.trigger(serverPlayer, AstralEventTriggers.BLOCK_BREAK);
         }
     }
 
