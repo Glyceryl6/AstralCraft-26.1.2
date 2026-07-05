@@ -15,7 +15,7 @@ import com.astral_craft.client.model.character.AstralGeoModelManager;
 import com.astral_craft.client.model.entity.FirecrackersModel;
 import com.astral_craft.client.render.AstralDiceRenderer;
 import com.astral_craft.client.render.CardRevealEntityOverlay;
-import com.astral_craft.client.render.CardRevealPlayerLayer;
+import com.astral_craft.client.render.CardRevealWorldRenderer;
 import com.astral_craft.client.render.SoulLinkRenderer;
 import com.astral_craft.client.render.character.AstralCharacterRenderStateModifier;
 import com.astral_craft.client.render.character.AstralCharacterRenderer;
@@ -27,9 +27,6 @@ import com.astral_craft.client.render.projectile.SnowballAttackProjectileRendere
 import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.entity.player.AvatarRenderer;
-import net.minecraft.world.entity.player.PlayerModelType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -97,8 +94,8 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(BoardHudOverlay.LAYER, BoardHudOverlay::render);
-        event.registerAboveAll(AstralHandCardHudOverlay.LAYER, AstralHandCardHudOverlay::render);
         event.registerAboveAll(CardRevealOverlay.LAYER, CardRevealOverlay::render);
+        event.registerAboveAll(AstralHandCardHudOverlay.LAYER, AstralHandCardHudOverlay::render);
         event.registerAboveAll(CharacterSkillCutinOverlay.LAYER, CharacterSkillCutinOverlay::render);
     }
 
@@ -108,13 +105,8 @@ public class ClientEventSubscriber {
     }
 
     @SubscribeEvent
-    public static void addPlayerLayers(EntityRenderersEvent.AddLayers event) {
-        for (PlayerModelType type : event.getSkins()) {
-            AvatarRenderer<AbstractClientPlayer> renderer = event.getPlayerRenderer(type);
-            if (renderer != null) {
-                renderer.addLayer(new CardRevealPlayerLayer(renderer));
-            }
-        }
+    public static void submitCardRevealWorldGeometry(SubmitCustomGeometryEvent event) {
+        CardRevealWorldRenderer.submit(event);
     }
 
     @SubscribeEvent

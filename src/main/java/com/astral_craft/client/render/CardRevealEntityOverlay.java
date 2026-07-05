@@ -18,7 +18,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -73,6 +76,20 @@ public class CardRevealEntityOverlay {
                 }
             }
         }
+    }
+
+    public static Collection<EntityCardReveal> activeReveals() {
+        if (ACTIVE_BY_ID.isEmpty()) {
+            return List.of();
+        }
+        List<EntityCardReveal> reveals = new ArrayList<>();
+        for (EntityCardReveal reveal : List.copyOf(ACTIVE_BY_ID.values())) {
+            EntityCardReveal active = cleanOrNull(reveal);
+            if (active != null) {
+                reveals.add(active);
+            }
+        }
+        return reveals;
     }
 
     @Nullable
