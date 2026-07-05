@@ -1,6 +1,8 @@
 package com.astral_craft.client.gui;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.jpgloader.LoadedJpgTexture;
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.common.components.CardType;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -10,6 +12,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
+import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -38,7 +41,10 @@ public class HandCardRenderHelper {
         Identifier frame = frameTexture(type);
         graphics.blit(RenderPipelines.GUI_TEXTURED, frame, x, y, 0.0F, 0.0F, FRAMED_CARD_W, FRAMED_CARD_H, 256, 360, 256, 360, 0xFFFFFFFF);
         if (artTexture != null) {
-            graphics.blit(RenderPipelines.GUI_TEXTURED, artTexture, x + 9, y + 10, 0.0F, 0.0F, FRAMED_ART_SIZE, FRAMED_ART_SIZE, 256, 360, 256, 360, 0xFFFFFFFF);
+            try {
+                LoadedJpgTexture loaded = ScopedJpgTextureCache.getOrLoad(artTexture);
+                graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), x + 9, y + 10, 0.0F, 0.0F, FRAMED_ART_SIZE, FRAMED_ART_SIZE, 256, 256, loaded.width(), loaded.height(), 0xFFFFFFFF);
+            } catch (IOException _) {}
         }
 
         Component trimmed = ellipsize(font, name, FRAMED_CARD_W - 8);
