@@ -46,14 +46,11 @@ public class CardUseService {
     public static final double WORLD_REVEAL_SYNC_RANGE = 96.0D;
 
     public static InteractionResult use(BaseHandCard card, Level level, Player player, InteractionHand hand) {
-        if (level.isClientSide()) {
-            return InteractionResult.SUCCESS;
-        }
-        if (!(player instanceof ServerPlayer serverPlayer)) {
-            return InteractionResult.PASS;
+        if (player instanceof ServerPlayer serverPlayer && !level.isClientSide()) {
+            return useStack(card, level, serverPlayer, hand, player.getItemInHand(hand), true, hand.ordinal(), false);
         }
 
-        return useStack(card, level, serverPlayer, hand, player.getItemInHand(hand), true, hand.ordinal());
+        return InteractionResult.SUCCESS_SERVER;
     }
 
     public static InteractionResult useVirtualCard(ServerPlayer player, String rawCardId) {
@@ -100,45 +97,49 @@ public class CardUseService {
     }
 
     protected static InteractionResult useStack(BaseHandCard card, Level level, ServerPlayer serverPlayer, InteractionHand hand, ItemStack stack, boolean consumeStack, int targetSelectionHandIndex) {
+        return useStack(card, level, serverPlayer, hand, stack, consumeStack, targetSelectionHandIndex, true);
+    }
+
+    protected static InteractionResult useStack(BaseHandCard card, Level level, ServerPlayer serverPlayer, InteractionHand hand, ItemStack stack, boolean consumeStack, int targetSelectionHandIndex, boolean swingManually) {
         if (level.isClientSide()) {
-            return InteractionResult.PASS;
+            return InteractionResult.SUCCESS_SERVER;
         }
 
         if (PendingCardActionManager.isExclusiveBusy(serverPlayer)) {
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
 
         if (KnockdownManager.isRecovering(serverPlayer)) {
             serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.knockdown.no_cards"), true);
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
 
         CardDefinition definition = card.definition(stack);
         Component restrictionMessage = useRestrictionMessage(serverPlayer, definition);
         if (restrictionMessage != null) {
             serverPlayer.sendSystemMessage(restrictionMessage, true);
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
 
         if (definition.combatOnly()) {
             serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.card.combat_only"), true);
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
 
         if (definition.needsTarget()) {
             int effectiveRange = CardRangeResolver.effectiveRange(serverPlayer, stack, definition);
             String candidates = CardTargeting.encodeCandidates(serverPlayer, stack, definition);
-            swingAcceptedUse(serverPlayer, hand);
+            swingAcceptedUse(serverPlayer, hand, swingManually);
             PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), targetSelectionHandIndex, definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
-            return InteractionResult.SUCCESS;
+            return InteractionResult.SUCCESS_SERVER;
         }
 
-        swingAcceptedUse(serverPlayer, hand);
+        swingAcceptedUse(serverPlayer, hand, swingManually);
 
         CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
         if (options.enabled()) {
             if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()), () -> card.applyFromSelection(serverPlayer, hand, List.of()))) {
-                return InteractionResult.SUCCESS;
+                return InteractionResult.CONSUME;
             }
             thisSendReveal(serverPlayer, stack, definition, options, List.of());
             consumeAfterAcceptedUse(serverPlayer, stack, consumeStack, targetSelectionHandIndex, definition.id());
@@ -149,7 +150,7 @@ public class CardUseService {
             }
         }
 
-        return InteractionResult.SUCCESS;
+        return InteractionResult.SUCCESS_SERVER;
     }
 
     public static void applyTargetSelection(ServerPlayer player, CardTargetSelectionPayload payload) {
@@ -258,7 +259,7 @@ public class CardUseService {
     public static void sendEntityRevealAround(ServerPlayer owner, String cardId, String itemId, String cardType, String titleKey,
                                               String bodyKey, String largeFrontTexture, String largeBackTexture,
                                               String animation, int durationTicks) {
-        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), owner.getUUID().toString(), cardId, itemId, cardType,
+        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), cardId, itemId, cardType,
                 titleKey, bodyKey, largeFrontTexture, largeBackTexture, animation, durationTicks);
         double maxDistanceSqr = WORLD_REVEAL_SYNC_RANGE * WORLD_REVEAL_SYNC_RANGE;
         for (ServerPlayer viewer : owner.level().players()) {
@@ -280,7 +281,13 @@ public class CardUseService {
     }
 
     protected static void swingAcceptedUse(ServerPlayer player, InteractionHand hand) {
-        player.swing(hand, true);
+        swingAcceptedUse(player, hand, true);
+    }
+
+    protected static void swingAcceptedUse(ServerPlayer player, InteractionHand hand, boolean swingManually) {
+        if (swingManually) {
+            player.swing(hand, true);
+        }
     }
 
     protected static Component useRestrictionMessage(ServerPlayer player, CardDefinition definition) {

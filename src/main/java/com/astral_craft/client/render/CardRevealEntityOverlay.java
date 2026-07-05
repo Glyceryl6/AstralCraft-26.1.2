@@ -50,7 +50,9 @@ public class CardRevealEntityOverlay {
         CardRevealAnimation animation = ANIMATIONS.get(animationId);
         int defaultDuration = animation.defaultDuration(SETTINGS);
         int duration = payload.durationTicks() > 0 ? Math.max(payload.durationTicks(), defaultDuration) : defaultDuration;
-        EntityCardReveal reveal = new EntityCardReveal(payload.entityId(), safeParseUuid(payload.entityUuid()), payload.cardId(), payload.cardType(),
+        Entity entity = clientEntity(payload.entityId());
+        UUID entityUuid = entity == null ? null : entity.getUUID();
+        EntityCardReveal reveal = new EntityCardReveal(payload.entityId(), entityUuid, payload.cardId(), payload.cardType(),
                 Component.translatable(payload.titleKey()).getString(),
                 Component.translatable(payload.bodyKey()).getString(),
                 safeParse(payload.largeFrontTexture(), AstralCraft.prefix("textures/item/template_handcard_effect.png")),
@@ -166,12 +168,10 @@ public class CardRevealEntityOverlay {
     }
 
     @Nullable
-    private static UUID safeParseUuid(@Nullable String uuid) {
-        try {
-            return uuid == null || uuid.isBlank() ? null : UUID.fromString(uuid);
-        } catch (Exception ignored) {
-            return null;
-        }
+    private static Entity clientEntity(int entityId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return null;
+        return minecraft.level.getEntity(entityId);
     }
 
     public record EntityCardReveal(int entityId,
