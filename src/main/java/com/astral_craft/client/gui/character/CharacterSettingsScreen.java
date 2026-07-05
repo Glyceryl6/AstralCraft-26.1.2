@@ -1,6 +1,7 @@
 package com.astral_craft.client.gui.character;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gameplay.character.ClientCharacterDefinitionCache;
 import com.astral_craft.client.gui.components.AstralDropdown;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralHorizontalScrollbar;
@@ -94,6 +95,7 @@ public class CharacterSettingsScreen extends Screen {
             Set<String> unlockedSkinIds, Map<Identifier, CharacterProgressEntry> progressEntries) {
         super(Component.translatable("gui.astral_craft.character_settings.title"));
         this.characters = characters.isEmpty() ? List.of(CharacterDefinition.builtinDefault()) : characters;
+        ClientCharacterDefinitionCache.INSTANCE.replace(this.characters);
         this.selectedCharacterId = selectedCharacterId;
         this.equippedCharacterId = activeCharacterId;
         this.selectedSkinId = selectedSkinId == null || selectedSkinId.isBlank() ? "default" : selectedSkinId;

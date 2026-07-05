@@ -1,10 +1,10 @@
 package com.astral_craft.client.render.character;
 
+import com.astral_craft.client.gameplay.character.ClientCharacterDefinitionCache;
 import com.astral_craft.client.model.character.AstralCharacterAnimationRegistry;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralStatusEffects;
 import net.minecraft.client.model.geom.ModelLayers;
@@ -42,7 +42,7 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
         super.extractRenderState(entity, state, partialTick);
         state.characterId = entity.characterId();
         state.skinId = entity.skinId();
-        CharacterDefinition definition = CharacterManager.INSTANCE.get(state.characterId);
+        CharacterDefinition definition = ClientCharacterDefinitionCache.INSTANCE.getOrFallback(state.characterId);
         CharacterSkinDefinition skin = definition.skinOrDefault(state.skinId);
         state.texture = skin.texture();
         state.modelKey = definition.modelKey();

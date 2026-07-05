@@ -1,9 +1,9 @@
 package com.astral_craft.client.render.character;
 
+import com.astral_craft.client.gameplay.character.ClientCharacterDefinitionCache;
 import com.astral_craft.client.render.CardRevealEntityOverlay;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralStatusEffects;
@@ -21,8 +21,8 @@ public class AstralCharacterRenderStateModifier extends AvatarRenderStateModifie
     public <T extends Avatar & ClientAvatarEntity> void accept(T avatar, AvatarRenderState state) {
         state.setRenderData(CardRevealEntityOverlay.CARD_REVEAL, CardRevealEntityOverlay.activeFor(avatar));
         ActiveCharacterState characterState = avatar.getData(AstralAttachments.ACTIVE_CHARACTER);
-        if (characterState.active() && CharacterManager.INSTANCE.contains(characterState.characterId())) {
-            CharacterDefinition definition = CharacterManager.INSTANCE.get(characterState.characterId());
+        if (characterState.active() && ClientCharacterDefinitionCache.INSTANCE.contains(characterState.characterId())) {
+            CharacterDefinition definition = ClientCharacterDefinitionCache.INSTANCE.getOrFallback(characterState.characterId());
             CharacterSkinDefinition skin = definition.skinOrDefault(characterState.skinId());
             state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
         }

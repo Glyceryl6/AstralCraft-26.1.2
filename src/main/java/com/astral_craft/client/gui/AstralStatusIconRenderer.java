@@ -1,9 +1,9 @@
 package com.astral_craft.client.gui;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gameplay.character.ClientCharacterDefinitionCache;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralStatusEffects;
@@ -55,8 +55,8 @@ public class AstralStatusIconRenderer {
     public static Identifier characterSkinTexture(Identifier characterId, String skinId) {
         Identifier safeCharacterId = characterId == null ? AstralCraft.prefix("mimi") : characterId;
         String safeSkinId = skinId == null || skinId.isBlank() ? "default" : skinId;
-        if (CharacterManager.INSTANCE.contains(safeCharacterId)) {
-            CharacterDefinition definition = CharacterManager.INSTANCE.get(safeCharacterId);
+        if (ClientCharacterDefinitionCache.INSTANCE.contains(safeCharacterId)) {
+            CharacterDefinition definition = ClientCharacterDefinitionCache.INSTANCE.getOrFallback(safeCharacterId);
             CharacterSkinDefinition skin = definition.skinOrDefault(safeSkinId);
             if (skin.texture() != null) {
                 return normalizeTexture(skin.texture());
