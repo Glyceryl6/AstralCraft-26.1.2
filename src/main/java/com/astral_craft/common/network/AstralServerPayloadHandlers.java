@@ -84,6 +84,14 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleCloseHandCardDeck(CloseHandCardDeckPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CardUseService.markDeckScreenClosed(player);
+            }
+        });
+    }
+
     public static void handleCharacterSkinSelection(CharacterSkinSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
