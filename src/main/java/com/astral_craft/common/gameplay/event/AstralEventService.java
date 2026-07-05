@@ -1,6 +1,5 @@
 package com.astral_craft.common.gameplay.event;
 
-import com.astral_craft.AstralCraft;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
@@ -12,6 +11,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
@@ -82,12 +82,12 @@ public class AstralEventService {
         if (revealDelay > 0) {
             CardUseService.sendEntityRevealAround(player,
                     definition.id().toString(),
-                    AstralCraft.MOD_ID + ":event_card",
+                    ItemStack.EMPTY,
                     "event",
-                    definition.nameKey(),
-                    definition.descriptionKey(),
-                    definition.texture().toString(),
-                    CardBackPreferenceManager.selectedTexture(player).toString(),
+                    Component.translatable(definition.nameKey()),
+                    Component.translatable(definition.descriptionKey()),
+                    definition.texture(),
+                    CardBackPreferenceManager.selectedTexture(player),
                     CardRevealPayload.ANIMATION_APPROACH,
                     Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks()));
         } else {
@@ -183,9 +183,7 @@ public class AstralEventService {
 
     protected static void applyEffects(AstralEventContext context, List<AstralEventEffect> effects) {
         for (AstralEventEffect effect : effects) {
-            if (effect != null) {
-                effect.apply(context);
-            }
+            if (effect != null) effect.apply(context);
         }
     }
 
@@ -194,22 +192,20 @@ public class AstralEventService {
         return Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks());
     }
 
-    protected static int sendRevealOrMessage(ServerPlayer viewer, AstralEventDefinition definition) {
+    protected static void sendRevealOrMessage(ServerPlayer viewer, AstralEventDefinition definition) {
         if (viewer.getData(AstralAttachments.EVENT_PREFERENCES).prefersChat()) {
             viewer.sendSystemMessage(Component.translatable("message.astral_craft.event.triggered_chat", Component.translatable(definition.nameKey())));
-            return 0;
+            return;
         }
 
         PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id().toString(),
-                AstralCraft.MOD_ID + ":event_card",
-                "event",
-                definition.nameKey(),
-                definition.descriptionKey(),
-                definition.texture().toString(),
-                CardBackPreferenceManager.selectedTexture(viewer).toString(),
+                ItemStack.EMPTY, "event",
+                Component.translatable(definition.nameKey()),
+                Component.translatable(definition.descriptionKey()),
+                definition.texture(),
+                CardBackPreferenceManager.selectedTexture(viewer),
                 CardRevealPayload.ANIMATION_APPROACH,
                 Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks())));
-        return Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks());
     }
 
     protected static AstralEventState state(Entity entity) {

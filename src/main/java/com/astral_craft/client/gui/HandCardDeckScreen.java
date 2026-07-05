@@ -30,7 +30,7 @@ import java.util.List;
 
 public class HandCardDeckScreen extends Screen {
 
-    protected static final int PANEL_H = 148;
+    protected static final int PANEL_H = 140;
     protected static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
     protected static final int CARD_H = HandCardRenderHelper.FRAMED_CARD_H;
     protected static final int CARD_GAP = 6;

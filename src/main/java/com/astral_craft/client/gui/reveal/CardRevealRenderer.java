@@ -19,6 +19,9 @@ import java.util.Locale;
 
 public class CardRevealRenderer {
 
+    private final Minecraft minecraft = Minecraft.getInstance();
+    private final Font font = this.minecraft.font;
+
     public void renderCard(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings, int centerX, int centerY, int baseModelSize, CardRevealFrame frame) {
         int modelSize = Math.max(8, Math.round(baseModelSize * settings.cardModelScale * frame.cardScale()));
         int textSize = Math.max(8, Math.round(baseModelSize * settings.cardTextScale * frame.textScale()));
@@ -93,7 +96,6 @@ public class CardRevealRenderer {
     }
 
     public void renderCardText(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings, int centerX, int centerY, int textSize, float alpha, float xScale, float yScale) {
-        Font font = Minecraft.getInstance().font;
         int titleMaxTextWidth = this.textWidth(textSize, settings.titleTextMaxWidthRatio, settings.minTitleTextWidth, settings.maxTitleTextWidth);
         int bodyMaxTextWidth = this.textWidth(textSize, settings.bodyTextMaxWidthRatio, settings.minBodyTextWidth, settings.maxBodyTextWidth);
         int titleY = centerY + Math.round(textSize * settings.titleYOffsetRatio) + settings.responsiveOffset(textSize, settings.titleExtraYOffsetRatio, settings.titleExtraYOffsetPixels);
@@ -104,18 +106,18 @@ public class CardRevealRenderer {
         graphics.pose().translate(centerX, centerY);
         graphics.pose().scale(xScale, yScale);
         graphics.pose().translate(-centerX, -centerY);
-        String title = reveal.title().isBlank() ? reveal.cardId() : reveal.title();
-        String shortTitle = this.ellipsize(font, title, titleMaxTextWidth);
-        int titleWidth = Math.min(font.width(shortTitle), titleMaxTextWidth);
+        String title = reveal.title().getString();
+        String shortTitle = this.ellipsize(this.font, title, titleMaxTextWidth);
+        int titleWidth = Math.min(this.font.width(shortTitle), titleMaxTextWidth);
         this.renderTextBackdrop(graphics, settings, alpha, centerX - titleWidth / 2 - 4, titleY - 3, centerX + titleWidth / 2 + 4, titleY + 10);
-        graphics.text(font, shortTitle, centerX - font.width(shortTitle) / 2, titleY, argbTitle, settings.textShadow);
-        List<FormattedCharSequence> lines = this.wrappedLines(font, reveal.body(), bodyMaxTextWidth, settings.bodyMaxLines);
+        graphics.text(this.font, shortTitle, centerX - this.font.width(shortTitle) / 2, titleY, argbTitle, settings.textShadow);
+        List<FormattedCharSequence> lines = this.wrappedLines(this.font, reveal.body().getString(), bodyMaxTextWidth, settings.bodyMaxLines);
         int lineY = bodyY + 5;
         for (FormattedCharSequence line : lines) {
-            int lineW = font.width(line);
+            int lineW = this.font.width(line);
             int x = centerX - lineW / 2;
             this.renderTextBackdrop(graphics, settings, alpha, x - 2, lineY - 1, x + lineW + 2, lineY + 9);
-            graphics.text(font, line, x, lineY, argbBody, settings.textShadow);
+            graphics.text(this.font, line, x, lineY, argbBody, settings.textShadow);
             lineY += 10;
         }
 

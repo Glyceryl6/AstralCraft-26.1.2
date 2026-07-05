@@ -55,16 +55,9 @@ public class CardUseService {
     protected static final Map<UUID, Long> OPEN_DECK_SCREENS = new ConcurrentHashMap<>();
 
     public static InteractionResult use(BaseHandCard card, Level level, Player player, InteractionHand hand) {
-        if (level.isClientSide()) {
-            return InteractionResult.CONSUME;
-        }
-        if (!(player instanceof ServerPlayer serverPlayer)) {
-            return InteractionResult.PASS;
-        }
-        if (consumeSuppressedHeldUse(serverPlayer)) {
-            return InteractionResult.CONSUME;
-        }
-
+        if (level.isClientSide()) return InteractionResult.CONSUME;
+        if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.PASS;
+        if (consumeSuppressedHeldUse(serverPlayer)) return InteractionResult.CONSUME;
         CardUseResult result = tryUseStack(card, level, serverPlayer, hand, player.getItemInHand(hand), CardUseContext.held(hand));
         return result.interactionResult();
     }
@@ -97,30 +90,23 @@ public class CardUseService {
             return;
         }
 
-        ItemStack stack = AstralHandCardManager.firstInventoryCardStack(player, itemId);
+        ItemStack requestedStack = new ItemStack(item);
+        ItemStack stack = AstralHandCardManager.firstInventoryCardStack(player, requestedStack);
         if (stack.isEmpty()) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
             return;
         }
 
         CardUseResult result = tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack, CardUseContext.deck());
-        if (!result.accept) {
-            return;
-        }
     }
 
     protected static Identifier resolveCardItemId(String rawCardId) {
         String raw = rawCardId == null ? "" : rawCardId.trim();
-        if (raw.contains(":")) {
-            return Identifier.parse(raw);
-        }
-
+        if (raw.contains(":")) return Identifier.parse(raw);
         return AstralCraft.prefix(raw);
     }
 
-    protected static CardUseResult tryUseStack(
-            BaseHandCard card, Level level, ServerPlayer serverPlayer,
-            InteractionHand hand, ItemStack stack, CardUseContext useContext) {
+    protected static CardUseResult tryUseStack(BaseHandCard card, Level level, ServerPlayer serverPlayer, InteractionHand hand, ItemStack stack, CardUseContext useContext) {
         if (level.isClientSide()) {
             return CardUseResult.pass();
         }
@@ -150,9 +136,7 @@ public class CardUseService {
             int effectiveRange = CardRangeResolver.effectiveRange(serverPlayer, stack, definition);
             String candidates = CardTargeting.encodeCandidates(serverPlayer, stack, definition);
             swingAcceptedUse(serverPlayer, hand, useContext);
-            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(
-                    definition.id(), useContext.targetSelectionHandIndex(),
-                    definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
+            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), useContext.targetSelectionHandIndex(), definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
             return CardUseResult.accepted();
         }
 
@@ -160,8 +144,7 @@ public class CardUseService {
 
         CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
         if (options.enabled()) {
-            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()),
-                    () -> card.applyFromSelection(serverPlayer, hand, List.of()))) {
+            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()), () -> card.applyFromSelection(serverPlayer, hand, List.of()))) {
                 return CardUseResult.consumed();
             }
             thisSendReveal(serverPlayer, stack, definition, options, List.of());
@@ -192,7 +175,8 @@ public class CardUseService {
             card = baseHandCard;
             if (deckCard) {
                 suppressNextHeldUse(player);
-                stack = AstralHandCardManager.firstInventoryCardStack(player, itemId);
+                ItemStack requestedStack = new ItemStack(item);
+                stack = AstralHandCardManager.firstInventoryCardStack(player, requestedStack);
                 if (stack.isEmpty()) {
                     player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", payload.cardId()), true);
                     return;
@@ -225,12 +209,8 @@ public class CardUseService {
             } catch (NumberFormatException ignored) {}
         }
 
-        if (targets.size() < definition.minTargets() || targets.size() > definition.maxTargets()) {
-            return;
-        }
-
+        if (targets.size() < definition.minTargets() || targets.size() > definition.maxTargets()) return;
         swingAcceptedUse(player, hand, CardUseContext.fromHandIndex(payload.handIndex()));
-
         CardRevealOptions options = card.revealOptions(player, hand, stack, definition, targets);
         if (options.enabled()) {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
@@ -258,39 +238,32 @@ public class CardUseService {
         sendReveal(viewer, ItemStack.EMPTY, viewer, definition, CardRevealPayload.ANIMATION_APPROACH, CARD_APPROACH_REVEAL_DURATION_TICKS);
     }
 
-    public static void sendReveal(ServerPlayer viewer, CardDefinition definition, String animation, int durationTicks) {
+    public static void sendReveal(ServerPlayer viewer, CardDefinition definition, Identifier animation, int durationTicks) {
         sendReveal(viewer, ItemStack.EMPTY, viewer, definition, animation, durationTicks);
     }
 
-    public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner, CardDefinition definition, String animation, int durationTicks) {
+    public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner, CardDefinition definition, Identifier animation, int durationTicks) {
         CardType cardType = stack.isEmpty() ? definition.type() : stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id(),
-                AstralCraft.MOD_ID + ":" + definition.registryPath(),
-                cardType.getSerializedName(), definition.nameKey(),
-                definition.effectKey(), definition.largeFrontTexture(),
-                CardBackPreferenceManager.selectedTexture(owner).toString(),
-                animation, durationTicks));
+                revealStack(stack, definition), cardType.getSerializedName(),
+                revealTitle(definition), revealBody(owner, stack, definition),
+                textureIdentifier(definition.largeFrontTexture(), AstralCraft.prefix("textures/gui/cards/front/unknown.png")),
+                CardBackPreferenceManager.selectedTexture(owner), animation, durationTicks));
     }
 
-    public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition, String animation, int durationTicks) {
+    public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition, Identifier animation, int durationTicks) {
         CardType cardType = stack.isEmpty() ? definition.type() : stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
-        sendEntityRevealAround(owner,
-                definition.id(),
-                AstralCraft.MOD_ID + ":" + definition.registryPath(),
-                cardType.getSerializedName(),
-                definition.nameKey(),
-                definition.effectKey(),
-                definition.largeFrontTexture(),
-                CardBackPreferenceManager.selectedTexture(owner).toString(),
-                animation,
-                durationTicks);
+        sendEntityRevealAround(owner, definition.id(), revealStack(stack, definition), cardType.getSerializedName(),
+                revealTitle(definition), revealBody(owner, stack, definition),
+                textureIdentifier(definition.largeFrontTexture(), AstralCraft.prefix("textures/gui/cards/front/unknown.png")),
+                CardBackPreferenceManager.selectedTexture(owner), animation, durationTicks);
     }
 
-    public static void sendEntityRevealAround(ServerPlayer owner, String cardId, String itemId, String cardType, String titleKey,
-                                              String bodyKey, String largeFrontTexture, String largeBackTexture,
-                                              String animation, int durationTicks) {
-        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), cardId, itemId, cardType,
-                titleKey, bodyKey, largeFrontTexture, largeBackTexture, animation, durationTicks);
+    public static void sendEntityRevealAround(
+            ServerPlayer owner, String cardId, ItemStack stack, String cardType, Component title, Component body,
+            Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation, int durationTicks) {
+        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), cardId, stack, cardType,
+                title, body, largeFrontTexture, largeBackTexture, animation, durationTicks);
         double maxDistanceSqr = WORLD_REVEAL_SYNC_RANGE * WORLD_REVEAL_SYNC_RANGE;
         for (ServerPlayer viewer : owner.level().players()) {
             if (viewer.distanceToSqr(owner) <= maxDistanceSqr) {
@@ -304,6 +277,32 @@ public class CardUseService {
             sendReveal(viewer, stack, owner, definition, options.animation(), options.durationTicks());
         }
         sendEntityRevealAround(owner, stack, definition, options.animation(), options.durationTicks());
+    }
+
+
+    protected static ItemStack revealStack(ItemStack stack, CardDefinition definition) {
+        if (!stack.isEmpty()) return stack.copyWithCount(1);
+        Identifier itemId = resolveCardItemId(definition.registryPath());
+        Item item = BuiltInRegistries.ITEM.getValue(itemId);
+        if (item instanceof BaseHandCard) return new ItemStack(item);
+        return ItemStack.EMPTY;
+    }
+
+    protected static Component revealTitle(CardDefinition definition) {
+        return Component.translatable(definition.nameKey());
+    }
+
+    protected static Component revealBody(ServerPlayer owner, ItemStack stack, CardDefinition definition) {
+        int effectiveRange = CardRangeResolver.effectiveRange(owner, stack, definition);
+        return Component.translatable(definition.effectKey(), effectiveRange);
+    }
+
+    protected static Identifier textureIdentifier(String texture, Identifier fallback) {
+        try {
+            return Identifier.parse(texture);
+        } catch (Exception ignored) {
+            return fallback;
+        }
     }
 
     protected static int revealLockTicks(int requestedTicks) {
@@ -326,10 +325,7 @@ public class CardUseService {
         long gameTime = player.level().getGameTime();
         Long screenOpenUntil = OPEN_DECK_SCREENS.get(player.getUUID());
         if (screenOpenUntil != null) {
-            if (gameTime <= screenOpenUntil) {
-                return true;
-            }
-
+            if (gameTime <= screenOpenUntil) return true;
             OPEN_DECK_SCREENS.remove(player.getUUID(), screenOpenUntil);
         }
 
@@ -394,7 +390,6 @@ public class CardUseService {
         return null;
     }
 
-
     protected record CardUseResult(InteractionResult interactionResult, boolean accept) {
 
         protected static CardUseResult pass() {
@@ -425,13 +420,8 @@ public class CardUseService {
         }
 
         protected static CardUseContext fromHandIndex(int handIndex) {
-            if (handIndex == DECK_CARD_HAND_INDEX) {
-                return deck();
-            }
-            if (handIndex == VIRTUAL_CARD_HAND_INDEX) {
-                return virtual();
-            }
-
+            if (handIndex == DECK_CARD_HAND_INDEX) return deck();
+            if (handIndex == VIRTUAL_CARD_HAND_INDEX) return virtual();
             return new CardUseContext(true, handIndex, true);
         }
     }
@@ -473,18 +463,13 @@ public class CardUseService {
 
     private static void consumeAfterAcceptedUse(ServerPlayer player, ItemStack stack, boolean consumeStack, int handIndex, String definitionId) {
         if (handIndex == DECK_CARD_HAND_INDEX) {
-            AstralHandCardManager.removeFromInventory(player, stack, 1);
+            ItemStack requestedStack = stack.isEmpty() ? new ItemStack(BuiltInRegistries.ITEM.getValue(resolveCardItemId(definitionId))) : stack;
+            AstralHandCardManager.removeFromInventory(player, requestedStack, 1);
             return;
         }
 
         if (consumeStack) {
-            consume(player, stack);
-        }
-    }
-
-    private static void consume(ServerPlayer player, ItemStack stack) {
-        if (!player.getAbilities().instabuild) {
-            stack.shrink(1);
+            stack.consume(1, player);
         }
     }
 

@@ -1,8 +1,9 @@
 package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.common.network.CardRevealPayload;
+import net.minecraft.resources.Identifier;
 
-public record CardRevealOptions(CardRevealAudience audience, String animation, int durationTicks) {
+public record CardRevealOptions(CardRevealAudience audience, Identifier animation, int durationTicks) {
 
     public static CardRevealOptions none() {
         return new CardRevealOptions(CardRevealAudience.NONE, CardRevealPayload.ANIMATION_FLIP, 0);

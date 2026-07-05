@@ -10,10 +10,10 @@ import com.astral_craft.client.gui.reveal.CardRevealSettings;
 import com.astral_craft.client.gui.reveal.FlipCardRevealAnimation;
 import com.astral_craft.common.network.CardRevealEntityPayload;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.Nullable;
 
@@ -55,11 +55,9 @@ public class CardRevealEntityOverlay {
         int duration = payload.durationTicks() > 0 ? Math.max(payload.durationTicks(), defaultDuration) : defaultDuration;
         Entity entity = clientEntity(payload.entityId());
         UUID entityUuid = entity == null ? null : entity.getUUID();
-        EntityCardReveal reveal = new EntityCardReveal(payload.entityId(), entityUuid, payload.cardId(), payload.cardType(),
-                Component.translatable(payload.titleKey()).getString(),
-                Component.translatable(payload.bodyKey()).getString(),
-                safeParse(payload.largeFrontTexture(), AstralCraft.prefix("textures/item/template_handcard_effect.png")),
-                safeParse(payload.largeBackTexture(), AstralCraft.prefix("textures/item/template_handcard_effect.png")),
+        EntityCardReveal reveal = new EntityCardReveal(payload.entityId(), entityUuid, payload.cardId(), payload.stack(), payload.cardType(),
+                payload.title().getString(), payload.body().getString(),
+                payload.largeFrontTexture(), payload.largeBackTexture(),
                 animationId, currentClientGameTicks(), duration);
         put(reveal);
     }
@@ -79,16 +77,13 @@ public class CardRevealEntityOverlay {
     }
 
     public static Collection<EntityCardReveal> activeReveals() {
-        if (ACTIVE_BY_ID.isEmpty()) {
-            return List.of();
-        }
+        if (ACTIVE_BY_ID.isEmpty()) return List.of();
         List<EntityCardReveal> reveals = new ArrayList<>();
         for (EntityCardReveal reveal : List.copyOf(ACTIVE_BY_ID.values())) {
             EntityCardReveal active = cleanOrNull(reveal);
-            if (active != null) {
-                reveals.add(active);
-            }
+            if (active != null) reveals.add(active);
         }
+
         return reveals;
     }
 
@@ -113,12 +108,8 @@ public class CardRevealEntityOverlay {
     public static CardRevealFrame frame(EntityCardReveal reveal) {
         float age = Math.max(0.0F, currentClientGameTicks() - reveal.startedAtTicks());
         CardRevealAnimation animation = ANIMATIONS.getOrDefault(reveal.animation(), ANIMATIONS.get(CardRevealAnimations.FLIP));
-        if (animation instanceof ApproachCardRevealAnimation approach) {
-            return approach.frame(age, SETTINGS);
-        }
-        if (animation instanceof FlipCardRevealAnimation flip) {
-            return flip.frame(age, SETTINGS);
-        }
+        if (animation instanceof ApproachCardRevealAnimation approach) return approach.frame(age, SETTINGS);
+        if (animation instanceof FlipCardRevealAnimation flip) return flip.frame(age, SETTINGS);
         return new CardRevealFrame(true, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 0, true);
     }
 
@@ -139,9 +130,7 @@ public class CardRevealEntityOverlay {
     @Nullable
     private static EntityCardReveal cleanOrNull(@Nullable EntityCardReveal reveal) {
         if (reveal == null) return null;
-        if (currentClientGameTicks() - reveal.startedAtTicks() < reveal.durationTicks()) {
-            return reveal;
-        }
+        if (currentClientGameTicks() - reveal.startedAtTicks() < reveal.durationTicks()) return reveal;
         ACTIVE_BY_ID.remove(reveal.entityId());
         if (reveal.entityUuid() != null) {
             ACTIVE_BY_UUID.remove(reveal.entityUuid());
@@ -156,32 +145,9 @@ public class CardRevealEntityOverlay {
         return minecraft.level.getGameTime();
     }
 
-    private static Identifier normalizeAnimation(String animation) {
-        Identifier id = parseAnimationId(animation);
-        if (ANIMATIONS.containsKey(id)) return id;
+    private static Identifier normalizeAnimation(@Nullable Identifier animation) {
+        if (animation != null && ANIMATIONS.containsKey(animation)) return animation;
         return CardRevealAnimations.FLIP;
-    }
-
-    private static Identifier parseAnimationId(@Nullable String animation) {
-        if (animation == null || animation.isBlank()) {
-            return CardRevealAnimations.FLIP;
-        }
-        try {
-            if (animation.indexOf(':') >= 0) {
-                return Identifier.parse(animation);
-            }
-            return AstralCraft.prefix(animation);
-        } catch (Exception ignored) {
-            return CardRevealAnimations.FLIP;
-        }
-    }
-
-    private static Identifier safeParse(String id, Identifier fallback) {
-        try {
-            return Identifier.parse(id);
-        } catch (Exception ignored) {
-            return fallback;
-        }
     }
 
     @Nullable
@@ -194,6 +160,7 @@ public class CardRevealEntityOverlay {
     public record EntityCardReveal(int entityId,
                                    @Nullable UUID entityUuid,
                                    String cardId,
+                                   ItemStack stack,
                                    String cardType,
                                    String title,
                                    String body,

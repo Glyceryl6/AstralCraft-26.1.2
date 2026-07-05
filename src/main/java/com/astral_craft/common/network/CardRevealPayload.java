@@ -1,50 +1,49 @@
 package com.astral_craft.common.network;
 
 import com.astral_craft.AstralCraft;
-import io.netty.buffer.ByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
-/**
- * Client-side card reveal payload.
- *
- * <p>{@code animation} is sent as a string for packet compatibility, but it is interpreted as
- * a namespaced Identifier on the client. Legacy unnamespaced ids such as {@code flip} still work.</p>
- */
+/** Client-side card reveal payload. */
 public record CardRevealPayload(
         String cardId,
-        String itemId,
+        ItemStack stack,
         String cardType,
-        String titleKey,
-        String bodyKey,
-        String largeFrontTexture,
-        String largeBackTexture,
-        String animation,
+        Component title,
+        Component body,
+        Identifier largeFrontTexture,
+        Identifier largeBackTexture,
+        Identifier animation,
         int durationTicks
 ) implements CustomPacketPayload {
 
-    public static final String ANIMATION_FLIP = AstralCraft.prefix("flip").toString();
-    public static final String ANIMATION_APPROACH = AstralCraft.prefix("approach").toString();
+    public static final Identifier ANIMATION_FLIP = AstralCraft.prefix("flip");
+    public static final Identifier ANIMATION_APPROACH = AstralCraft.prefix("approach");
 
     public static final CustomPacketPayload.Type<CardRevealPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("card_reveal"));
 
-    public static final StreamCodec<ByteBuf, CardRevealPayload> STREAM_CODEC = StreamCodec.composite(
+    public static final StreamCodec<RegistryFriendlyByteBuf, CardRevealPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.STRING_UTF8,
             CardRevealPayload::cardId,
-            ByteBufCodecs.STRING_UTF8,
-            CardRevealPayload::itemId,
+            ItemStack.OPTIONAL_STREAM_CODEC,
+            CardRevealPayload::stack,
             ByteBufCodecs.STRING_UTF8,
             CardRevealPayload::cardType,
-            ByteBufCodecs.STRING_UTF8,
-            CardRevealPayload::titleKey,
-            ByteBufCodecs.STRING_UTF8,
-            CardRevealPayload::bodyKey,
-            ByteBufCodecs.STRING_UTF8,
+            ComponentSerialization.TRUSTED_STREAM_CODEC,
+            CardRevealPayload::title,
+            ComponentSerialization.TRUSTED_STREAM_CODEC,
+            CardRevealPayload::body,
+            Identifier.STREAM_CODEC,
             CardRevealPayload::largeFrontTexture,
-            ByteBufCodecs.STRING_UTF8,
+            Identifier.STREAM_CODEC,
             CardRevealPayload::largeBackTexture,
-            ByteBufCodecs.STRING_UTF8,
+            Identifier.STREAM_CODEC,
             CardRevealPayload::animation,
             ByteBufCodecs.VAR_INT,
             CardRevealPayload::durationTicks,

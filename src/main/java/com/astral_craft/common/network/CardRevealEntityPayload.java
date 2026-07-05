@@ -1,10 +1,14 @@
 package com.astral_craft.common.network;
 
 import com.astral_craft.AstralCraft;
-import io.netty.buffer.ByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * World-space card reveal payload.
@@ -15,36 +19,36 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 public record CardRevealEntityPayload(
         int entityId,
         String cardId,
-        String itemId,
+        ItemStack stack,
         String cardType,
-        String titleKey,
-        String bodyKey,
-        String largeFrontTexture,
-        String largeBackTexture,
-        String animation,
+        Component title,
+        Component body,
+        Identifier largeFrontTexture,
+        Identifier largeBackTexture,
+        Identifier animation,
         int durationTicks
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<CardRevealEntityPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("card_reveal_entity"));
 
-    public static final StreamCodec<ByteBuf, CardRevealEntityPayload> STREAM_CODEC = StreamCodec.composite(
+    public static final StreamCodec<RegistryFriendlyByteBuf, CardRevealEntityPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT,
             CardRevealEntityPayload::entityId,
             ByteBufCodecs.STRING_UTF8,
             CardRevealEntityPayload::cardId,
-            ByteBufCodecs.STRING_UTF8,
-            CardRevealEntityPayload::itemId,
+            ItemStack.OPTIONAL_STREAM_CODEC,
+            CardRevealEntityPayload::stack,
             ByteBufCodecs.STRING_UTF8,
             CardRevealEntityPayload::cardType,
-            ByteBufCodecs.STRING_UTF8,
-            CardRevealEntityPayload::titleKey,
-            ByteBufCodecs.STRING_UTF8,
-            CardRevealEntityPayload::bodyKey,
-            ByteBufCodecs.STRING_UTF8,
+            ComponentSerialization.TRUSTED_STREAM_CODEC,
+            CardRevealEntityPayload::title,
+            ComponentSerialization.TRUSTED_STREAM_CODEC,
+            CardRevealEntityPayload::body,
+            Identifier.STREAM_CODEC,
             CardRevealEntityPayload::largeFrontTexture,
-            ByteBufCodecs.STRING_UTF8,
+            Identifier.STREAM_CODEC,
             CardRevealEntityPayload::largeBackTexture,
-            ByteBufCodecs.STRING_UTF8,
+            Identifier.STREAM_CODEC,
             CardRevealEntityPayload::animation,
             ByteBufCodecs.VAR_INT,
             CardRevealEntityPayload::durationTicks,

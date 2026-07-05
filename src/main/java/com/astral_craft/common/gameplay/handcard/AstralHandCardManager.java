@@ -1,6 +1,5 @@
 package com.astral_craft.common.gameplay.handcard;
 
-import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.items.BaseHandCard;
@@ -27,11 +26,10 @@ public class AstralHandCardManager {
         return player.getData(AstralAttachments.HAND_CARDS);
     }
 
-    public static void add(ServerPlayer player, Identifier cardId, int count) {
-        if (player == null || cardId == null || count <= 0) return;
-        Item item = BuiltInRegistries.ITEM.getValue(cardId);
-        if (!isUsableEffectCard(item)) return;
-        ItemStack stack = new ItemStack(item, count);
+    public static void add(ServerPlayer player, ItemStack cardStack, int count) {
+        if (player == null || cardStack == null || cardStack.isEmpty() || count <= 0) return;
+        if (!isUsableEffectCard(cardStack)) return;
+        ItemStack stack = cardStack.copyWithCount(count);
         if (!player.addItem(stack) && !stack.isEmpty()) {
             player.drop(stack, false);
         }
@@ -41,7 +39,7 @@ public class AstralHandCardManager {
         if (player == null) return 0;
         int count = 0;
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (stack.isEmpty() || !isUsableEffectCard(stack.getItem())) continue;
+            if (stack.isEmpty() || !isUsableEffectCard(stack)) continue;
             count += stack.getCount();
             stack.setCount(0);
         }
@@ -51,11 +49,11 @@ public class AstralHandCardManager {
 
     public static void addRandomEffectCards(ServerPlayer player, int count) {
         if (player == null || count <= 0) return;
-        List<Identifier> cards = effectCardIds();
+        List<ItemStack> cards = effectCardStacks();
         if (cards.isEmpty()) return;
         for (int i = 0; i < count; i++) {
-            Identifier cardId = cards.get(player.getRandom().nextInt(cards.size()));
-            add(player, cardId, 1);
+            ItemStack cardStack = cards.get(player.getRandom().nextInt(cards.size()));
+            add(player, cardStack, 1);
         }
     }
 
@@ -71,42 +69,37 @@ public class AstralHandCardManager {
         PacketDistributor.sendToPlayer(player, new OpenHandCardDeckPayload(encodeInventoryEffectCards(player), false));
     }
 
-    public static Identifier safeCardId(String rawCardId) {
-        String raw = rawCardId == null ? "" : rawCardId.trim();
-        if (raw.contains(":")) {
-            return Identifier.parse(raw);
-        }
-
-        return AstralCraft.prefix(raw);
-    }
-
     public static boolean isUsableEffectCard(Item item) {
         if (!(item instanceof BaseHandCard)) return false;
-        ItemStack stack = new ItemStack(item);
+        return isUsableEffectCard(new ItemStack(item));
+    }
+
+    public static boolean isUsableEffectCard(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof BaseHandCard)) return false;
         return stack.get(AstralDataComponents.CARD_TYPE) == CardType.EFFECT;
     }
 
-    public static boolean hasInventoryCard(ServerPlayer player, Identifier cardId) {
-        return countInventoryCard(player, cardId) > 0;
+    public static boolean hasInventoryCard(ServerPlayer player, ItemStack cardStack) {
+        return countInventoryCard(player, cardStack) > 0;
     }
 
-    public static int countInventoryCard(ServerPlayer player, Identifier cardId) {
-        if (player == null || cardId == null) return 0;
+    public static int countInventoryCard(ServerPlayer player, ItemStack cardStack) {
+        if (player == null || cardStack == null || cardStack.isEmpty()) return 0;
         int count = 0;
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (stack.isEmpty() || !cardId.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()))) continue;
-            if (!isUsableEffectCard(stack.getItem())) continue;
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, cardStack)) continue;
+            if (!isUsableEffectCard(stack)) continue;
             count += stack.getCount();
         }
 
         return count;
     }
 
-    public static ItemStack firstInventoryCardStack(ServerPlayer player, Identifier cardId) {
-        if (player == null || cardId == null) return ItemStack.EMPTY;
+    public static ItemStack firstInventoryCardStack(ServerPlayer player, ItemStack cardStack) {
+        if (player == null || cardStack == null || cardStack.isEmpty()) return ItemStack.EMPTY;
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (stack.isEmpty() || !cardId.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()))) continue;
-            if (!isUsableEffectCard(stack.getItem())) continue;
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, cardStack)) continue;
+            if (!isUsableEffectCard(stack)) continue;
             return stack;
         }
 
@@ -114,12 +107,12 @@ public class AstralHandCardManager {
     }
 
     public static void removeFromInventory(ServerPlayer player, ItemStack cardStack, int count) {
-        if (player == null || cardStack.isEmpty() || count <= 0) return;
+        if (player == null || cardStack == null || cardStack.isEmpty() || count <= 0) return;
         int remaining = count;
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
             if (remaining <= 0) break;
-            if (stack.isEmpty() || !ItemStack.isSameItem(cardStack, stack)) continue;
-            if (!isUsableEffectCard(stack.getItem())) continue;
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, cardStack)) continue;
+            if (!isUsableEffectCard(stack)) continue;
             int removed = Math.min(remaining, stack.getCount());
             if (!player.getAbilities().instabuild) {
                 stack.shrink(removed);
@@ -131,7 +124,7 @@ public class AstralHandCardManager {
     protected static String encodeInventoryEffectCards(ServerPlayer player) {
         Map<Identifier, Integer> entries = new LinkedHashMap<>();
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (stack.isEmpty() || !isUsableEffectCard(stack.getItem())) continue;
+            if (stack.isEmpty() || !isUsableEffectCard(stack)) continue;
             Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
             entries.merge(itemId, stack.getCount(), Integer::sum);
         }
@@ -146,12 +139,13 @@ public class AstralHandCardManager {
         return builder.toString();
     }
 
-    protected static List<Identifier> effectCardIds() {
-        List<Identifier> result = new ArrayList<>();
+    protected static List<ItemStack> effectCardStacks() {
+        List<ItemStack> result = new ArrayList<>();
         for (AstralItems.ModelledCardItem modelledCardItem : AstralItems.MODELLED_CARD_ITEMS) {
             Item item = modelledCardItem.item().get();
-            if (!isUsableEffectCard(item)) continue;
-            result.add(BuiltInRegistries.ITEM.getKey(item));
+            ItemStack stack = new ItemStack(item);
+            if (!isUsableEffectCard(stack)) continue;
+            result.add(stack);
         }
 
         return result;
