@@ -1,5 +1,6 @@
 package com.astral_craft.client.gui.character;
 
+import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
@@ -365,7 +366,7 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             boolean canActivate = screen.canActivatePotential(definition);
             boolean hovered = screen.isInside(screen.lastMouseX, screen.lastMouseY, button.x(), button.y(), button.w(), button.h());
             MutableComponent text = Component.translatable(activated ? "gui.astral_craft.character_settings.potential_active" : "gui.astral_craft.character_settings.potential_activate");
-            screen.renderFancyButton(graphics, text, button.x(), button.y(), button.w(), button.h(), false, hovered && canActivate && !activated, activated || !canActivate ? screen.disabledButtonStyle() : screen.pinkButtonStyle());
+            screen.renderFancyButton(graphics, text, button.x(), button.y(), button.w(), button.h(), false, hovered && canActivate && !activated, activated || !canActivate ? AstralFancyButton.disabledButtonStyle() : AstralFancyButton.pinkButtonStyle());
         }
 
         protected void renderHoveredMaterialTooltip(GuiGraphicsExtractor graphics) {

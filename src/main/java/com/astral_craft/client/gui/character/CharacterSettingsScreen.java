@@ -349,7 +349,7 @@ public class CharacterSettingsScreen extends Screen {
         graphics.fill(layout.rightX - 1, layout.topY - 1, layout.rightX + layout.rightW + 1, layout.topY, 0x66FFFFFF);
         boolean backHover = this.isInside(mouseX, mouseY, layout.backX, layout.backY, layout.backW, layout.backH);
         MutableComponent backText = Component.translatable(this.mode == ScreenMode.DETAIL ? "gui.astral_craft.character_settings.back" : "gui.astral_craft.character_settings.close");
-        this.renderFancyButton(graphics, backText, layout.backX, layout.backY, layout.backW, layout.backH, false, backHover, this.backButtonStyle());
+        this.renderFancyButton(graphics, backText, layout.backX, layout.backY, layout.backW, layout.backH, false, backHover, AstralFancyButton.backButtonStyle());
         MutableComponent title = Component.translatable(this.mode == ScreenMode.LIST ? "gui.astral_craft.character_settings.character_select" : "gui.astral_craft.character_settings.character_detail");
         graphics.text(this.font, title, layout.rightX + 14, layout.topY + 13, 0xFFFFFFFF, false);
     }
@@ -362,7 +362,7 @@ public class CharacterSettingsScreen extends Screen {
         int buttonY = layout.detailButtonY;
         boolean hovered = this.isInside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH);
         MutableComponent text = Component.translatable("gui.astral_craft.character_settings.unlock_all");
-        this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, false, hovered, this.pinkButtonStyle());
+        this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, false, hovered, AstralFancyButton.pinkButtonStyle());
     }
 
     protected boolean handleUnlockAllButtonClick(CharacterLayout layout, double mouseX, double mouseY) {
@@ -408,7 +408,7 @@ public class CharacterSettingsScreen extends Screen {
         this.renderEquipCharacterButton(graphics, layout, mouseX, mouseY);
         boolean detailHover = this.isInside(mouseX, mouseY, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH);
         MutableComponent detailText = Component.translatable("gui.astral_craft.character_settings.character_detail");
-        this.renderFancyButton(graphics, detailText, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH, false, detailHover, this.pinkButtonStyle());
+        this.renderFancyButton(graphics, detailText, layout.detailButtonX, layout.detailButtonY, layout.detailButtonW, layout.detailButtonH, false, detailHover, AstralFancyButton.pinkButtonStyle());
         this.renderCharacterListDropdownButtons(graphics, layout, mouseX, mouseY);
         graphics.fill(layout.gridX - 6, layout.gridY - 6, layout.gridX + layout.gridW + 6, layout.gridY + layout.gridH + 6, 0x66101018);
         graphics.enableScissor(layout.gridX, layout.gridY, layout.gridX + layout.gridW, layout.gridY + layout.gridH);
@@ -462,7 +462,7 @@ public class CharacterSettingsScreen extends Screen {
         for (MainTab value : MainTab.values()) {
             boolean selected = this.mainTab == value;
             boolean hovered = this.isInside(mouseX, mouseY, x, layout.mainTabY, tabW, layout.mainTabH);
-            this.renderTab(graphics, x, layout.mainTabY, tabW, layout.mainTabH, value.translationKey(), selected, hovered, selected ? this.selectedButtonStyle() : this.pinkButtonStyle());
+            this.renderTab(graphics, x, layout.mainTabY, tabW, layout.mainTabH, value.translationKey(), selected, hovered, selected ? AstralFancyButton.selectedButtonStyle() : AstralFancyButton.pinkButtonStyle());
             x += tabW + CharacterLayout.TAB_GAP;
         }
     }
@@ -479,7 +479,7 @@ public class CharacterSettingsScreen extends Screen {
             boolean selected = this.archiveTab == value;
             boolean hovered = this.isInside(mouseX, mouseY, x, layout.subTabY, tabW, layout.subTabH);
             MutableComponent text = Component.translatable(value.titleKey());
-            this.renderFancyButton(graphics, text, x, layout.subTabY, tabW, layout.subTabH, selected, hovered, selected ? this.selectedButtonStyle() : this.pinkButtonStyle());
+            this.renderFancyButton(graphics, text, x, layout.subTabY, tabW, layout.subTabH, selected, hovered, selected ? AstralFancyButton.selectedButtonStyle() : AstralFancyButton.pinkButtonStyle());
             x += tabW + CharacterLayout.TAB_GAP;
         }
     }
@@ -491,7 +491,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderCharacterListDropdownButtons(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
-        AstralFancyButton.ButtonStyle style = this.pinkButtonStyle().withTextScale(0.88F);
+        AstralFancyButton.ButtonStyle style = AstralFancyButton.pinkButtonStyle().withTextScale(0.88F);
         AstralDropdown.Layout sourceLayout = this.sourceDropdownLayout(layout);
         AstralDropdown.Layout sortLayout = this.sortDropdownLayout(layout);
         boolean sourceHovered = sourceLayout.containsButton(mouseX, mouseY) || (this.sourceDropdownOpen && sourceLayout.containsMenu(mouseX, mouseY, this.sourceDropdownEntries().size()));
@@ -508,7 +508,7 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected void renderCharacterListDropdownMenus(GuiGraphicsExtractor graphics, CharacterLayout layout) {
-        AstralFancyButton.ButtonStyle style = this.pinkButtonStyle().withTextScale(0.88F);
+        AstralFancyButton.ButtonStyle style = AstralFancyButton.pinkButtonStyle().withTextScale(0.88F);
         if (this.sourceDropdownOpen) {
             AstralDropdown.renderMenu(graphics, this.font, this.sourceDropdownEntries(), this.characterNamespaceFilter, this.sourceDropdownLayout(layout), style);
         }
@@ -686,10 +686,9 @@ public class CharacterSettingsScreen extends Screen {
                 ? "gui.astral_craft.character_settings.character_locked_short"
                 : equipped ? "gui.astral_craft.character_settings.character_unequip"
                 : "gui.astral_craft.character_settings.character_equip");
-        this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, equipped, hovered && unlocked, equipped ? this.selectedButtonStyle() : this.pinkButtonStyle());
+        this.renderFancyButton(graphics, text, buttonX, buttonY, buttonW, buttonH, equipped, hovered && unlocked, equipped ? AstralFancyButton.selectedButtonStyle() : AstralFancyButton.pinkButtonStyle());
     }
-
-
+    
     protected int actionButtonWidth(CharacterLayout layout) {
         return Math.clamp(layout.rightW / 4, 86, 120);
     }
@@ -959,13 +958,11 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected boolean hasCharacter(Identifier characterId) {
-        if (characterId == null) return false;
-        return this.characters.stream().anyMatch(definition -> definition.id().equals(characterId));
+        return characterId != null && this.characters.stream().anyMatch(definition -> definition.id().equals(characterId));
     }
 
     protected boolean hasDisplayedCharacter(Identifier characterId) {
-        if (characterId == null) return false;
-        return this.displayCharacters().stream().anyMatch(definition -> definition.id().equals(characterId));
+        return characterId != null && this.displayCharacters().stream().anyMatch(definition -> definition.id().equals(characterId));
     }
 
     protected List<String> characterNamespaceOptions() {
@@ -1065,37 +1062,6 @@ public class CharacterSettingsScreen extends Screen {
         this.friendship = entry.friendship();
     }
 
-    protected AstralFancyButton.ButtonStyle backButtonStyle() {
-        return AstralFancyButton.ButtonStyle.button(0xCC2E74FF).withTextScale(1.05F)
-                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
-                .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
-                .withBoxMetrics(2, 2, 3, 3);
-    }
-
-    protected AstralFancyButton.ButtonStyle pinkButtonStyle() {
-        return AstralFancyButton.ButtonStyle.button(0xFFE83CA8).withTextScale(1.0F)
-                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
-                .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
-                .withBoxMetrics(2, 2, 3, 3);
-    }
-
-    protected AstralFancyButton.ButtonStyle disabledButtonStyle() {
-        return AstralFancyButton.ButtonStyle.button(0xFF5B5B66).withTextScale(1.0F)
-                .withTextColors(0xFFAFAFB8, 0xFFAFAFB8, 0xFFAFAFB8)
-                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
-                .withBorderColors(0xFF777783, 0xFF777783, 0xFF777783)
-                .withBoxMetrics(2, 2, 3, 3);
-    }
-
-    protected AstralFancyButton.ButtonStyle selectedButtonStyle() {
-        return AstralFancyButton.ButtonStyle.button(0xFFE83CA8)
-                .withBackgroundGradientColors(0xFFE83CA8, 0xFFC92588, 0xFFFF77C8, 0xFFE83CA8, 0xFF92FF22, 0xFF57C800)
-                .withTextColors(0xFFFFFFFF, 0xFF101018, 0xFF101018)
-                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
-                .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
-                .withBoxMetrics(2, 2, 3, 3);
-    }
-
     protected int drawHeader(GuiGraphicsExtractor graphics, MutableComponent component, int x, int y, int color, int maxWidth) {
         graphics.fill(x - 6, y - 2, x + maxWidth, y + 12, 0xAA000000);
         graphics.text(this.font, this.ellipsize(component, maxWidth - 6), x, y, color, false);
@@ -1160,9 +1126,9 @@ public class CharacterSettingsScreen extends Screen {
         boolean playHover = this.isInside(mouseX, mouseY, playX, y, playW, 18);
         boolean dropHover = this.isInside(mouseX, mouseY, dropX, y, dropW, 18);
         MutableComponent playText = Component.translatable(this.previewAnimationPlaying ? "gui.astral_craft.character_settings.animation.pause" : "gui.astral_craft.character_settings.animation.play");
-        this.renderFancyButton(graphics, playText, playX, y, playW, 18, false, playHover, this.backButtonStyle().withTextScale(0.88F));
+        this.renderFancyButton(graphics, playText, playX, y, playW, 18, false, playHover, AstralFancyButton.backButtonStyle().withTextScale(0.88F));
         MutableComponent actionText = Component.literal(this.previewAnimationAction());
-        this.renderFancyButton(graphics, this.ellipsize(actionText, dropW - 14), dropX, y, dropW, 18, this.previewAnimationDropdownOpen, dropHover, this.pinkButtonStyle().withTextScale(0.88F));
+        this.renderFancyButton(graphics, this.ellipsize(actionText, dropW - 14), dropX, y, dropW, 18, this.previewAnimationDropdownOpen, dropHover, AstralFancyButton.pinkButtonStyle().withTextScale(0.88F));
         if (this.previewAnimationDropdownOpen) {
             List<String> actions = this.availablePreviewAnimations();
             int rowH = 17;

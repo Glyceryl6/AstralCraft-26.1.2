@@ -7,6 +7,8 @@ import com.astral_craft.client.gui.board.BoardHudOverlay;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
+import com.astral_craft.client.gui.phrase.QuickPhraseSidebar;
+import com.astral_craft.client.gui.phrase.QuickPhraseSidebarHost;
 import com.astral_craft.client.input.AstralKeyMappings;
 import com.astral_craft.client.jpgloader.JpgCacheReloadListener;
 import com.astral_craft.client.model.LargeCuboidModelLoader;
@@ -27,6 +29,8 @@ import com.astral_craft.client.render.projectile.SnowballAttackProjectileRendere
 import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -119,11 +123,11 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
         event.registerEntityRenderer(AstralEntities.LASER_STRIKE.get(), LaserStrikeRenderer::new);
+        event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
+        event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
         event.registerEntityRenderer(AstralEntities.FIRECRACKERS_PROJECTILE.get(), FirecrackersRenderer::new);
         event.registerEntityRenderer(AstralEntities.SLINGSHOT_PROJECTILE.get(), SlingshotProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), SnowballAttackProjectileRenderer::new);
-        event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
-        event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
     }
 
     @SubscribeEvent
@@ -138,6 +142,46 @@ public class ClientEventSubscriber {
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
         event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);
+    }
+
+    @SubscribeEvent
+    public static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
+        QuickPhraseSidebar sidebar = sidebar(event.getScreen());
+        if (sidebar != null && sidebar.mouseDragged(event.getMouseButtonEvent(), event.getScreen().height)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
+        QuickPhraseSidebar sidebar = sidebar(event.getScreen());
+        if (sidebar != null && sidebar.mouseReleased(event.getMouseButtonEvent())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
+        QuickPhraseSidebar sidebar = sidebar(event.getScreen());
+        if (sidebar != null && sidebar.keyPressed(event.getKeyEvent())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onCharacterTyped(ScreenEvent.CharacterTyped.Pre event) {
+        QuickPhraseSidebar sidebar = sidebar(event.getScreen());
+        if (sidebar != null && sidebar.charTyped(event.getCodePoint())) {
+            event.setCanceled(true);
+        }
+    }
+
+    private static QuickPhraseSidebar sidebar(Screen screen) {
+        if (screen instanceof ChatScreen && screen instanceof QuickPhraseSidebarHost host) {
+            return host.astralCraft$getQuickPhraseSidebar();
+        }
+
+        return null;
     }
 
 }

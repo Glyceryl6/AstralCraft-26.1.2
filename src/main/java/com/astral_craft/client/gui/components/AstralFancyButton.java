@@ -69,6 +69,7 @@ public class AstralFancyButton {
         if ((shadowColor >>> 24) != 0 && (shadowOffsetX != 0 || shadowOffsetY != 0)) {
             graphics.fill(x + shadowOffsetX, y + shadowOffsetY, x + width + shadowOffsetX, y + height + shadowOffsetY, shadowColor);
         }
+
         graphics.fill(x, y, x + width, y + height, outerColor);
         if (safeOuter > 0 && width > safeOuter * 2 && height > safeOuter * 2) {
             graphics.fill(x + safeOuter, y + safeOuter, x + width - safeOuter, y + height - safeOuter, borderColor);
@@ -210,12 +211,14 @@ public class AstralFancyButton {
         if ((shadowColor >>> 24) != 0) {
             graphics.text(font, label, scaledX + 1, scaledY + 1, shadowColor, false);
         }
+
         if ((outlineColor >>> 24) != 0) {
             graphics.text(font, label, scaledX - 1, scaledY, outlineColor, false);
             graphics.text(font, label, scaledX + 1, scaledY, outlineColor, false);
             graphics.text(font, label, scaledX, scaledY - 1, outlineColor, false);
             graphics.text(font, label, scaledX, scaledY + 1, outlineColor, false);
         }
+
         graphics.text(font, label, scaledX, scaledY, color, false);
         graphics.pose().popMatrix();
     }
@@ -263,6 +266,38 @@ public class AstralFancyButton {
 
     public static void renderButton(GuiGraphicsExtractor graphics, Font font, Button button, boolean selected, boolean hovered) {
         button.render(graphics, font, selected, hovered);
+    }
+
+    public static ButtonStyle backButtonStyle() {
+        return ButtonStyle.button(0xCC2E74FF).withTextScale(1.05F)
+                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
+                .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+                .withBoxMetrics(2, 2, 3, 3);
+    }
+
+    public static ButtonStyle pinkButtonStyle() {
+        return ButtonStyle.button(0xFFE83CA8).withTextScale(1.0F)
+                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
+                .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+                .withBoxMetrics(2, 2, 3, 3);
+    }
+
+    public static ButtonStyle disabledButtonStyle() {
+        return ButtonStyle.button(0xFF5B5B66).withTextScale(1.0F)
+                .withTextColors(0xFFAFAFB8, 0xFFAFAFB8, 0xFFAFAFB8)
+                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
+                .withBorderColors(0xFF777783, 0xFF777783, 0xFF777783)
+                .withBoxMetrics(2, 2, 3, 3);
+    }
+
+    public static ButtonStyle selectedButtonStyle() {
+        return ButtonStyle.button(0xFFE83CA8)
+                .withBackgroundGradientColors(0xFFE83CA8, 0xFFC92588, 0xFFFF77C8,
+                        0xFFE83CA8, 0xFF92FF22, 0xFF57C800)
+                .withTextColors(0xFFFFFFFF, 0xFF101018, 0xFF101018)
+                .withTextShadowColors(0x00000000, 0x00000000, 0x00000000)
+                .withBorderColors(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+                .withBoxMetrics(2, 2, 3, 3);
     }
 
     public static class Button {

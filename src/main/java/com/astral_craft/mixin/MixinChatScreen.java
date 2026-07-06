@@ -1,6 +1,7 @@
 package com.astral_craft.mixin;
 
 import com.astral_craft.client.gui.phrase.QuickPhraseSidebar;
+import com.astral_craft.client.gui.phrase.QuickPhraseSidebarHost;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -14,13 +15,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChatScreen.class)
-public abstract class MixinChatScreen extends Screen {
+public abstract class MixinChatScreen extends Screen implements QuickPhraseSidebarHost {
 
     @Unique
     private final QuickPhraseSidebar astralCraft$quickPhraseSidebar = new QuickPhraseSidebar();
 
     protected MixinChatScreen(Component title) {
         super(title);
+    }
+
+    @Override
+    public QuickPhraseSidebar astralCraft$getQuickPhraseSidebar() {
+        return this.astralCraft$quickPhraseSidebar;
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
@@ -30,7 +36,7 @@ public abstract class MixinChatScreen extends Screen {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void astralCraft$mouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (this.astralCraft$quickPhraseSidebar.mouseClicked(event, this.width, this.height)) {
+        if (this.astralCraft$quickPhraseSidebar.mouseClicked(event, doubleClick, this.width, this.height)) {
             cir.setReturnValue(true);
         }
     }

@@ -55,7 +55,9 @@ public class CardRevealEntityOverlay {
         int duration = payload.durationTicks() > 0 ? Math.max(payload.durationTicks(), defaultDuration) : defaultDuration;
         Entity entity = clientEntity(payload.entityId());
         UUID entityUuid = entity == null ? null : entity.getUUID();
-        EntityCardReveal reveal = new EntityCardReveal(payload.entityId(), entityUuid, payload.cardId(), payload.stack(), payload.cardType(),
+        EntityCardReveal reveal = new EntityCardReveal(
+                payload.entityId(), entityUuid, payload.cardId(),
+                payload.stack(), payload.cardType(),
                 payload.title().getString(), payload.body().getString(),
                 payload.largeFrontTexture(), payload.largeBackTexture(),
                 animationId, currentClientGameTicks(), duration);
