@@ -3,6 +3,7 @@ package com.astral_craft.client.gui.phrase;
 import com.astral_craft.AstralCraft;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
+import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,7 +19,7 @@ public class QuickPhraseData {
     }
 
     public static void registerModPhraseCount(String modId, int phraseCount) {
-        if (modId == null || modId.isBlank()) return;
+        if (modId == null || modId.isBlank() || !ModList.get().isLoaded(modId)) return;
         MOD_PHRASE_COUNTS.put(modId.trim(), Math.max(0, phraseCount));
     }
 
