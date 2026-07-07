@@ -145,9 +145,13 @@ public class ClientEventSubscriber {
     }
 
     @SubscribeEvent
-    public static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
-        QuickPhraseSidebar sidebar = sidebar(event.getScreen());
-        if (sidebar != null && sidebar.mouseDragged(event.getMouseButtonEvent(), event.getScreen().height)) {
+    public static void onMouseClicked(ScreenEvent.MouseButtonPressed.Pre event) {
+        Screen screen = event.getScreen();
+        QuickPhraseSidebar sidebar = sidebar(screen);
+        if (sidebar != null && sidebar.mouseClicked(
+                event.getMouseButtonEvent(),
+                event.isDoubleClick(),
+                screen.width, screen.height)) {
             event.setCanceled(true);
         }
     }
@@ -156,6 +160,28 @@ public class ClientEventSubscriber {
     public static void onMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         QuickPhraseSidebar sidebar = sidebar(event.getScreen());
         if (sidebar != null && sidebar.mouseReleased(event.getMouseButtonEvent())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
+        QuickPhraseSidebar sidebar = sidebar(event.getScreen());
+        if (sidebar != null && sidebar.mouseDragged(
+                event.getMouseButtonEvent(),
+                event.getScreen().height)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMouseScrolled(ScreenEvent.MouseScrolled.Pre event) {
+        Screen screen = event.getScreen();
+        QuickPhraseSidebar sidebar = sidebar(screen);
+        if (sidebar != null && sidebar.mouseScrolled(
+                event.getMouseX(), event.getMouseY(),
+                event.getScrollDeltaY(),
+                screen.width, screen.height)) {
             event.setCanceled(true);
         }
     }
