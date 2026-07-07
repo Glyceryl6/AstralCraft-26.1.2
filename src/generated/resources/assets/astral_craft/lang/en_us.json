@@ -849,6 +849,7 @@
   "message.astral_craft.counter.reflect": "Eye for an Eye activated. The effect was reflected.",
   "message.astral_craft.event.triggered": "%s",
   "message.astral_craft.event.triggered_chat": "Event triggered: %s",
+  "message.astral_craft.follow_the_game": "[Astral Craft] Please follow the Astral Party, Nya~",
   "message.astral_craft.hand_card_deck.need_character": "Use an unlocked character in Character Settings first.",
   "message.astral_craft.knockdown": "You were knocked down, lost %s coins, and entered recovery.",
   "message.astral_craft.knockdown.no_cards": "Recovering: you cannot use hand cards yet.",

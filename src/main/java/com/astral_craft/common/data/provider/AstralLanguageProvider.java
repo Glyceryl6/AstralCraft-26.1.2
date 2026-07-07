@@ -66,8 +66,8 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralItems.HANDCARD_DEFENSE_M, "Defense (M)", "防御（中）");
         this.addKey(AstralItems.HANDCARD_DEFENSE_L, "Defense (L)", "防御（大）");
         this.addKey(AstralItems.HANDCARD_DEFENSE_G, "Defense (G)", "防御（特大）");
-        this.addKey(AstralItems.HANDCARD_CHOCOLATE_CAKE, "Chocolate Cake", "");
-        this.addKey(AstralItems.HANDCARD_HAMBURGER, "Hamburger", "巧克力蛋糕");
+        this.addKey(AstralItems.HANDCARD_CHOCOLATE_CAKE, "Chocolate Cake", "巧克力蛋糕");
+        this.addKey(AstralItems.HANDCARD_HAMBURGER, "Hamburger", "汉堡");
         this.addKey(AstralItems.HANDCARD_SMART_DICE, "Smart Dice", "遥控骰子");
         this.addKey(AstralItems.HANDCARD_FIGHT_FIRE_WITH_FIRE, "Fight Fire with Fire", "以毒攻毒");
         this.addKey(AstralItems.HANDCARD_BERSERK, "Berserk", "狂暴");
