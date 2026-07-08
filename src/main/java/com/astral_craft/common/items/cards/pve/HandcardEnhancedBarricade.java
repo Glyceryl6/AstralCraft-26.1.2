@@ -14,7 +14,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardEnhancedBarricade extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.PANEL, 10, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.PANEL, 10);
 
     public HandcardEnhancedBarricade(Properties properties) {
         super(properties);

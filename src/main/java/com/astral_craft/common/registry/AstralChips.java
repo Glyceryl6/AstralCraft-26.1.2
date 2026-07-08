@@ -1,6 +1,8 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.chip.AstralBuiltinChips;
+import com.astral_craft.common.gameplay.chip.ChipDefinition;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -10,7 +12,7 @@ import java.util.Collection;
 import java.util.Optional;
 
 /** NeoForge-style registry for chip metadata. Built-in chips are declared in {@link AstralBuiltinChips}. */
-public class AstralPartyChips {
+public class AstralChips {
 
     public static final ResourceKey<Registry<ChipDefinition>> REGISTRY_KEY = ResourceKey.createRegistryKey(AstralCraft.prefix("astral_party_chips"));
     public static final DeferredRegister<ChipDefinition> CHIPS = DeferredRegister.create(REGISTRY_KEY, AstralCraft.MOD_ID);

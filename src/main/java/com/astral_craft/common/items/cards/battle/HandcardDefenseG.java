@@ -14,7 +14,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardDefenseG extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.DEFENSE, CardTargetMode.NONE, -1, true);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.DEFENSE, CardTargetMode.NONE, -1);
 
     public HandcardDefenseG(Properties properties) {
         super(properties);

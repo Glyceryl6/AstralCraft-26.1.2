@@ -1,7 +1,7 @@
 package com.astral_craft.common.items.cards.pvp;
 
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.AstralCardEffects;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.handcard.CardTargetMode;
 import com.astral_craft.common.items.BaseHandCard;
@@ -16,7 +16,7 @@ import java.util.List;
 
 public class HandcardSlingshot extends BaseHandCard {
 
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.ANY_PLAYER, 10, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.ANY_PLAYER, 10);
 
     public HandcardSlingshot(Properties properties) {
         super(properties);

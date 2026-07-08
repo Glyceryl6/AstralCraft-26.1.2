@@ -14,7 +14,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardReleaseAzureSoul extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.MONSTER, 32, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.MONSTER, 32);
 
     public HandcardReleaseAzureSoul(Properties properties) {
         super(properties);

@@ -14,7 +14,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardShadowAttack extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.ATTACK, CardTargetMode.NONE, -1, true);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.ATTACK, CardTargetMode.NONE, -1);
 
     public HandcardShadowAttack(Properties properties) {
         super(properties);

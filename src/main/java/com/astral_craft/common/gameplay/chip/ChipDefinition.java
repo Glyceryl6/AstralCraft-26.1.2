@@ -1,6 +1,8 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.gameplay.chip;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.BuffKind;
+import com.astral_craft.common.gameplay.StatBundle;
 import net.minecraft.network.chat.Component;
 
 import java.util.Optional;

@@ -1,7 +1,7 @@
 package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.AstralCardEffects;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.handcard.CardTargetMode;
@@ -18,7 +18,7 @@ import java.util.List;
 
 public class HandcardLivingBook extends BaseHandCard {
 
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.ANY_PLAYER, 5, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.ANY_PLAYER, 5);
 
     public HandcardLivingBook(Properties properties) {
         super(properties);

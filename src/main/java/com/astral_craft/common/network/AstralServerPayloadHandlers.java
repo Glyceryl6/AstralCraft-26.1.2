@@ -2,7 +2,7 @@ package com.astral_craft.common.network;
 
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
-import com.astral_craft.common.gameplay.ChipSelectionService;
+import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
@@ -80,14 +80,6 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 AstralHandCardManager.open(player);
-            }
-        });
-    }
-
-    public static void handleCloseHandCardDeck(CloseHandCardDeckPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
-                CardUseService.markDeckScreenClosed(player);
             }
         });
     }

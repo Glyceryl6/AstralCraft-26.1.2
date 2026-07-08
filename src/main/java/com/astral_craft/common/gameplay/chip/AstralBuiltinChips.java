@@ -1,4 +1,9 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.gameplay.chip;
+
+import com.astral_craft.common.gameplay.BuffKind;
+import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.gameplay.StatBundle;
+import com.astral_craft.common.registry.AstralChips;
 
 public class AstralBuiltinChips {
 
@@ -26,7 +31,7 @@ public class AstralBuiltinChips {
     public static final ChipDefinition STANDARD_SIGHT = chip("standard_sight", ChipRarity.PURPLE, BuffKinds.MARK, new StatBundle(2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1));
 
     private static ChipDefinition chip(String id, ChipRarity rarity, BuffKind keyword, StatBundle stats) {
-        return AstralPartyChips.register(new ChipDefinition(id, ChipDefinition.nameKey(id), ChipDefinition.effectKey(id), rarity, keyword, stats));
+        return AstralChips.register(new ChipDefinition(id, ChipDefinition.nameKey(id), ChipDefinition.effectKey(id), rarity, keyword, stats));
     }
 
 }

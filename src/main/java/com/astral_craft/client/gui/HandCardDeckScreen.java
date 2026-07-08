@@ -4,7 +4,6 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.CloseHandCardDeckPayload;
 import com.astral_craft.common.network.OpenHandCardDeckPayload;
 import com.astral_craft.common.network.UseHandCardFromDeckPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
@@ -63,14 +62,6 @@ public class HandCardDeckScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
-    }
-
-    @Override
-    public void removed() {
-        super.removed();
-        if (this.minecraft.player != null) {
-            ClientPacketDistributor.sendToServer(new CloseHandCardDeckPayload());
-        }
     }
 
     @Override

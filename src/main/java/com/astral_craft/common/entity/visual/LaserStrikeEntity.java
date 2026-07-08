@@ -1,6 +1,6 @@
 package com.astral_craft.common.entity.visual;
 
-import com.astral_craft.common.gameplay.AstralCardEffects;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;

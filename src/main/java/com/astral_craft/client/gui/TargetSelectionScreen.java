@@ -344,7 +344,7 @@ public class TargetSelectionScreen extends Screen {
     }
 
     public record Candidate(int entityId, String name, int distance) {
-        static List<Candidate> parse(String encoded) {
+        public static List<Candidate> parse(String encoded) {
             List<Candidate> result = new ArrayList<>();
             if (encoded == null || encoded.isBlank()) return result;
             for (String entry : encoded.split(";")) {

@@ -1,7 +1,10 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.gameplay.chip;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.BuffKind;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.network.OpenChipSelectionPayload;
+import com.astral_craft.common.registry.AstralChips;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,7 +35,7 @@ public final class ChipSelectionService {
         if (offered == null || !offered.contains(chipId)) return;
         PlayerChipState state = STATES.computeIfAbsent(player.getUUID(), ignored -> new PlayerChipState());
         if (state.owned.contains(chipId)) return;
-        AstralPartyChips.get(chipId).ifPresent(chip -> {
+        AstralChips.get(chipId).ifPresent(chip -> {
             AstralCardEffects.applyChip(player, chip);
             state.owned.add(chip.id());
             chip.keyword().ifPresent(keyword -> state.keywordBias.merge(keyword, 1, Integer::sum));
@@ -43,7 +46,7 @@ public final class ChipSelectionService {
 
     private static List<ChipDefinition> rollChoices(ServerPlayer player, PlayerChipState state, boolean normalDifficulty, int level) {
         List<ChipDefinition> list = new ArrayList<>();
-        AstralPartyChips.allHolders().forEach(holder -> list.add(holder.get()));
+        AstralChips.allHolders().forEach(holder -> list.add(holder.get()));
         List<ChipDefinition> pool = list.stream().filter(chip -> !state.owned.contains(chip.id())).toList();
         List<ChipDefinition> choices = new ArrayList<>();
         for (int i = 0; i < 3 && !pool.isEmpty(); i++) {
@@ -58,7 +61,7 @@ public final class ChipSelectionService {
     }
 
     private static ChipRarity rollRarity(ServerPlayer player, boolean normalDifficulty, int level) {
-        int[] weights = AstralPartyChips.rarityWeights(normalDifficulty, level);
+        int[] weights = AstralChips.rarityWeights(normalDifficulty, level);
         int total = weights[0] + weights[1] + weights[2];
         int roll = player.getRandom().nextInt(Math.max(1, total));
         if (roll < weights[0]) return ChipRarity.BLUE;

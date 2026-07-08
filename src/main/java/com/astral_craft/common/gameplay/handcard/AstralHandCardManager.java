@@ -65,7 +65,6 @@ public class AstralHandCardManager {
             return;
         }
 
-        CardUseService.markDeckScreenOpen(player);
         PacketDistributor.sendToPlayer(player, new OpenHandCardDeckPayload(encodeInventoryEffectCards(player), false));
     }
 

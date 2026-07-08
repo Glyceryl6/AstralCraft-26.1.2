@@ -1,6 +1,6 @@
 package com.astral_craft.common.entity.projectile;
 
-import com.astral_craft.common.gameplay.AstralCardEffects;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.registry.AstralEntities;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.core.particles.ParticleTypes;

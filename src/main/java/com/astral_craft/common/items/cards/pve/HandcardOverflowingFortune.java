@@ -1,7 +1,7 @@
 package com.astral_craft.common.items.cards.pve;
 
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.AstralCardEffects;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.handcard.CardTargetMode;
@@ -17,7 +17,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardOverflowingFortune extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.SELF, -1, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.SELF, -1);
 
     public HandcardOverflowingFortune(Properties properties) {
         super(properties);

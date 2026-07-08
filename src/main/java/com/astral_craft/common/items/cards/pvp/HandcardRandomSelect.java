@@ -13,7 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public class HandcardRandomSelect extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.COUNTER, CardTargetMode.SELF, -1, false);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.COUNTER, CardTargetMode.SELF, -1);
 
     public HandcardRandomSelect(Properties properties) {
         super(properties);

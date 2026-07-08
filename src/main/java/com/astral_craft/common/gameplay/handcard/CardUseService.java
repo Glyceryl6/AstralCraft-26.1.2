@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gui.TargetSelectionScreen;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardUseRestriction;
@@ -34,10 +35,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class CardUseService {
 
@@ -47,30 +45,10 @@ public class CardUseService {
     public static final int VIRTUAL_CARD_HAND_INDEX = -1;
     public static final int DECK_CARD_HAND_INDEX = -2;
     public static final double WORLD_REVEAL_SYNC_RANGE = 96.0D;
-    protected static final long DECK_USE_HELD_SUPPRESS_TICKS = 6L;
-    protected static final long DECK_USE_SWING_SUPPRESS_TICKS = 10L;
-    protected static final long DECK_SCREEN_OPEN_TIMEOUT_TICKS = 20L * 60L * 20L;
-    protected static final Map<UUID, Long> DECK_HELD_USE_SUPPRESSION = new ConcurrentHashMap<>();
-    protected static final Map<UUID, Long> DECK_SWING_SUPPRESSION = new ConcurrentHashMap<>();
-    protected static final Map<UUID, Long> OPEN_DECK_SCREENS = new ConcurrentHashMap<>();
 
     public static InteractionResult use(BaseHandCard card, Level level, Player player, InteractionHand hand) {
-        if (level.isClientSide()) return InteractionResult.CONSUME;
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.PASS;
-        if (consumeSuppressedHeldUse(serverPlayer)) return InteractionResult.CONSUME;
         CardUseResult result = tryUseStack(card, level, serverPlayer, hand, player.getItemInHand(hand), CardUseContext.held(hand));
-        return result.interactionResult();
-    }
-
-    public static InteractionResult useVirtualCard(ServerPlayer player, String rawCardId) {
-        Identifier itemId = resolveCardItemId(rawCardId);
-        Item item = BuiltInRegistries.ITEM.getValue(itemId);
-        if (!(item instanceof BaseHandCard card)) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
-            return InteractionResult.FAIL;
-        }
-
-        CardUseResult result = tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, new ItemStack(item), CardUseContext.virtual());
         return result.interactionResult();
     }
 
@@ -81,8 +59,6 @@ public class CardUseService {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
             return;
         }
-
-        suppressNextHeldUse(player);
 
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         if (!state.active()) {
@@ -106,7 +82,9 @@ public class CardUseService {
         return AstralCraft.prefix(raw);
     }
 
-    protected static CardUseResult tryUseStack(BaseHandCard card, Level level, ServerPlayer serverPlayer, InteractionHand hand, ItemStack stack, CardUseContext useContext) {
+    protected static CardUseResult tryUseStack(
+            BaseHandCard card, Level level, ServerPlayer serverPlayer,
+            InteractionHand hand, ItemStack stack, CardUseContext useContext) {
         if (level.isClientSide()) {
             return CardUseResult.pass();
         }
@@ -127,7 +105,7 @@ public class CardUseService {
             return CardUseResult.consumed();
         }
 
-        if (definition.combatOnly()) {
+        if (definition.isCombatOnly()) {
             serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.card.combat_only"), true);
             return CardUseResult.consumed();
         }
@@ -136,25 +114,34 @@ public class CardUseService {
             int effectiveRange = CardRangeResolver.effectiveRange(serverPlayer, stack, definition);
             String candidates = CardTargeting.encodeCandidates(serverPlayer, stack, definition);
             swingAcceptedUse(serverPlayer, hand, useContext);
-            PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(definition.id(), useContext.targetSelectionHandIndex(), definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
-            return CardUseResult.accepted();
+            if (!TargetSelectionScreen.Candidate.parse(candidates).isEmpty()) {
+                PacketDistributor.sendToPlayer(serverPlayer, new OpenTargetSelectionPayload(
+                        definition.id(), useContext.targetSelectionHandIndex(),
+                        definition.minTargets(), definition.maxTargets(), effectiveRange, candidates));
+                return CardUseResult.accepted();
+            }
+
+            return CardUseResult.consumed();
         }
 
         swingAcceptedUse(serverPlayer, hand, useContext);
-
         CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
         if (options.enabled()) {
-            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()), () -> card.applyFromSelection(serverPlayer, hand, List.of()))) {
+            if (!PendingCardActionManager.scheduleExclusive(
+                    serverPlayer, revealLockTicks(options.durationTicks()),
+                    () -> card.applyFromSelection(serverPlayer, hand, List.of()))) {
                 return CardUseResult.consumed();
             }
+
             thisSendReveal(serverPlayer, stack, definition, options, List.of());
-            consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex(), definition.id());
+            consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(),
+                    useContext.targetSelectionHandIndex(), definition.id());
             return CardUseResult.accepted();
         }
 
-        boolean applied = card.applyFromSelection(serverPlayer, hand, List.of());
-        if (applied) {
-            consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex(), definition.id());
+        if (card.applyFromSelection(serverPlayer, hand, List.of())) {
+            consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(),
+                    useContext.targetSelectionHandIndex(), definition.id());
             return CardUseResult.accepted();
         }
 
@@ -174,7 +161,6 @@ public class CardUseService {
             if (!(item instanceof BaseHandCard baseHandCard)) return;
             card = baseHandCard;
             if (deckCard) {
-                suppressNextHeldUse(player);
                 ItemStack requestedStack = new ItemStack(item);
                 stack = AstralHandCardManager.firstInventoryCardStack(player, requestedStack);
                 if (stack.isEmpty()) {
@@ -214,9 +200,12 @@ public class CardUseService {
         CardRevealOptions options = card.revealOptions(player, hand, stack, definition, targets);
         if (options.enabled()) {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
-            if (!PendingCardActionManager.scheduleExclusive(player, revealLockTicks(options.durationTicks()), () -> card.applyFromSelection(player, hand, capturedTargets))) {
+            if (!PendingCardActionManager.scheduleExclusive(
+                    player, revealLockTicks(options.durationTicks()),
+                    () -> card.applyFromSelection(player, hand, capturedTargets))) {
                 return;
             }
+
             thisSendReveal(player, stack, definition, options, targets);
             if (!virtualCard) {
                 consumeAfterAcceptedUse(player, stack, !deckCard, payload.handIndex(), definition.id());
@@ -244,9 +233,8 @@ public class CardUseService {
 
     public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner, CardDefinition definition, Identifier animation, int durationTicks) {
         CardType cardType = stack.isEmpty() ? definition.type() : stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
-        PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id(),
-                revealStack(stack, definition), cardType.getSerializedName(),
-                revealTitle(definition), revealBody(owner, stack, definition),
+        PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id(), revealStack(stack, definition),
+                cardType.getSerializedName(), revealTitle(definition), revealBody(owner, stack, definition),
                 textureIdentifier(definition.largeFrontTexture(), AstralCraft.prefix("textures/gui/cards/front/unknown.png")),
                 CardBackPreferenceManager.selectedTexture(owner), animation, durationTicks));
     }
@@ -279,7 +267,6 @@ public class CardUseService {
         sendEntityRevealAround(owner, stack, definition, options.animation(), options.durationTicks());
     }
 
-
     protected static ItemStack revealStack(ItemStack stack, CardDefinition definition) {
         if (!stack.isEmpty()) return stack.copyWithCount(1);
         Identifier itemId = resolveCardItemId(definition.registryPath());
@@ -307,57 +294,6 @@ public class CardUseService {
 
     protected static int revealLockTicks(int requestedTicks) {
         return Math.max(Math.max(0, requestedTicks), AstralGameplayConfig.cardRevealLockTicks());
-    }
-
-    public static void markDeckScreenOpen(ServerPlayer player) {
-        if (player == null) return;
-        OPEN_DECK_SCREENS.put(player.getUUID(), player.level().getGameTime() + DECK_SCREEN_OPEN_TIMEOUT_TICKS);
-    }
-
-    public static void markDeckScreenClosed(ServerPlayer player) {
-        if (player == null) return;
-        OPEN_DECK_SCREENS.remove(player.getUUID());
-        DECK_SWING_SUPPRESSION.put(player.getUUID(), player.level().getGameTime() + DECK_USE_SWING_SUPPRESS_TICKS);
-    }
-
-    public static boolean shouldSuppressDeckSwing(ServerPlayer player) {
-        if (player == null) return false;
-        long gameTime = player.level().getGameTime();
-        Long screenOpenUntil = OPEN_DECK_SCREENS.get(player.getUUID());
-        if (screenOpenUntil != null) {
-            if (gameTime <= screenOpenUntil) return true;
-            OPEN_DECK_SCREENS.remove(player.getUUID(), screenOpenUntil);
-        }
-
-        Long suppressUntil = DECK_SWING_SUPPRESSION.get(player.getUUID());
-        if (suppressUntil == null) return false;
-        if (gameTime > suppressUntil) {
-            DECK_SWING_SUPPRESSION.remove(player.getUUID(), suppressUntil);
-            return false;
-        }
-
-        DECK_SWING_SUPPRESSION.remove(player.getUUID(), suppressUntil);
-        return true;
-    }
-
-    protected static void suppressNextHeldUse(ServerPlayer player) {
-        if (player == null) return;
-        DECK_HELD_USE_SUPPRESSION.put(player.getUUID(), player.level().getGameTime() + DECK_USE_HELD_SUPPRESS_TICKS);
-        DECK_SWING_SUPPRESSION.put(player.getUUID(), player.level().getGameTime() + DECK_USE_SWING_SUPPRESS_TICKS);
-    }
-
-    protected static boolean consumeSuppressedHeldUse(ServerPlayer player) {
-        if (player == null) return false;
-        Long suppressUntil = DECK_HELD_USE_SUPPRESSION.get(player.getUUID());
-        if (suppressUntil == null) return false;
-        long gameTime = player.level().getGameTime();
-        if (gameTime > suppressUntil) {
-            DECK_HELD_USE_SUPPRESSION.remove(player.getUUID(), suppressUntil);
-            return false;
-        }
-
-        DECK_HELD_USE_SUPPRESSION.remove(player.getUUID(), suppressUntil);
-        return true;
     }
 
     protected static void swingAcceptedUse(ServerPlayer player, InteractionHand hand, CardUseContext useContext) {

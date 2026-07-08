@@ -21,7 +21,6 @@ public record CardDefinition(
         CardType type,
         CardTargetMode targetMode,
         int range,
-        boolean combatOnly,
         int minTargets,
         int maxTargets,
         CardUseRestriction restrictions) {
@@ -35,7 +34,6 @@ public record CardDefinition(
             CardType.CODEC.fieldOf("type").forGetter(CardDefinition::type),
             CardTargetMode.CODEC.fieldOf("target_mode").forGetter(CardDefinition::targetMode),
             Codec.INT.fieldOf("range").forGetter(CardDefinition::range),
-            Codec.BOOL.fieldOf("combat_only").forGetter(CardDefinition::combatOnly),
             Codec.INT.fieldOf("min_targets").forGetter(CardDefinition::minTargets),
             Codec.INT.fieldOf("max_targets").forGetter(CardDefinition::maxTargets),
             CardUseRestriction.CODEC.optionalFieldOf("restrictions", CardUseRestriction.NONE).forGetter(CardDefinition::restrictions)
@@ -60,7 +58,11 @@ public record CardDefinition(
     }
 
     public boolean shouldRevealOnUse() {
-        return !this.combatOnly && this.type == CardType.EFFECT;
+        return this.type == CardType.EFFECT || this.type == CardType.JINX;
+    }
+    
+    public boolean isCombatOnly() {
+        return this.type == CardType.ATTACK || this.type == CardType.DEFENSE;
     }
 
     public int effectiveRange(Player player, ItemStack stack) {
@@ -82,46 +84,45 @@ public record CardDefinition(
     public CardDefinition withId(String id) {
         return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id),
                 this.largeBackTexture, this.type, this.targetMode, this.range,
-                this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
+                 this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withType(CardType cardType) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, cardType,
-                this.targetMode, this.range, this.combatOnly,
-                this.minTargets, this.maxTargets, this.restrictions);
+                this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withBackTexture(String texture) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey, this.largeFrontTexture, texture, this.type,
-                this.targetMode, this.range, this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetMode, this.range,  this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withRestrictions(CardUseRestriction restrictions) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
-                this.range, this.combatOnly, this.minTargets, this.maxTargets, restrictions);
+                this.range, this.minTargets, this.maxTargets, restrictions);
     }
 
     public CardDefinition withRange(int range) {
         return new CardDefinition(this.id, this.nameKey, this.effectKey,
                 this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
-                range, this.combatOnly, this.minTargets, this.maxTargets, this.restrictions);
+                range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     /** Preferred factory for hand card classes. The final item is derived from the item registry item in AstralItems#registerCard. */
-    public static CardDefinition create(CardType type, CardTargetMode targetMode, int range, boolean combatOnly) {
-        return create("", type, targetMode, range, combatOnly);
+    public static CardDefinition create(CardType type, CardTargetMode targetMode, int range) {
+        return create("", type, targetMode, range);
     }
 
     /** Legacy overload. Kept so old card classes or external mods do not have to migrate immediately. */
-    public static CardDefinition create(String id, CardType type, CardTargetMode targetMode, int range, boolean combatOnly) {
+    public static CardDefinition create(String id, CardType type, CardTargetMode targetMode, int range) {
         return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id), defaultBackTexture(),
-                type, targetMode, range, combatOnly, minTargets(targetMode), maxTargets(targetMode), CardUseRestriction.NONE);
+                type, targetMode, range, minTargets(targetMode), maxTargets(targetMode), CardUseRestriction.NONE);
     }
 
     public static CardDefinition fallback() {
-        return create("unknown", CardType.EFFECT, CardTargetMode.NONE, -1, false);
+        return create("unknown", CardType.EFFECT, CardTargetMode.NONE, -1);
     }
 
     public static int minTargets(CardTargetMode targetMode) {

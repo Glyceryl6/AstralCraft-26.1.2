@@ -1,7 +1,9 @@
-package com.astral_craft.common.gameplay;
+package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
-import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
+import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.gameplay.chip.ChipDefinition;
+import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
