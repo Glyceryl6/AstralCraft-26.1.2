@@ -1,6 +1,6 @@
 package com.astral_craft;
 
-import com.astral_craft.common.gameplay.AstralPartyChips;
+import com.astral_craft.common.registry.AstralChips;
 import com.astral_craft.common.gameplay.PanelTypes;
 import com.astral_craft.common.registry.*;
 import net.minecraft.resources.Identifier;
@@ -16,7 +16,7 @@ public class AstralCraft {
 
     public AstralCraft(IEventBus modEventBus) {
         PanelTypes.PANEL_TYPES.register(modEventBus);
-        AstralPartyChips.CHIPS.register(modEventBus);
+        AstralChips.CHIPS.register(modEventBus);
         AstralCharacterSkills.SKILL_SETS.register(modEventBus);
         AstralStatusEffects.MOB_EFFECTS.register(modEventBus);
         AstralAttributes.ATTRIBUTES.register(modEventBus);
