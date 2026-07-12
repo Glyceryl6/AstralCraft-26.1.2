@@ -147,6 +147,6 @@ public class CharacterSkillCutinOverlay {
         return renderState;
     }
 
-    protected record Cutin(Identifier characterId, String skinId, String skillId, String animationAction, long startedAtTick, int durationTicks) {}
+    protected record Cutin(Identifier characterId, String skinId, String skillId, String animationAction, double startedAtTick, int durationTicks) {}
 
 }

@@ -19,9 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AstralDiceRollService {
 
     public static final Identifier WORLD_ENTITY_PRESENTATION = AstralCraft.prefix("world_entity");
-    public static final int DEFAULT_ROLL_TICKS = 30;
+    public static final int DEFAULT_ROLL_TICKS = 60;
     public static final int DEFAULT_MERGE_TICKS = 10;
-    public static final float DEFAULT_SPIN_SPEED = 34.0F;
+    public static final float DEFAULT_SPIN_SPEED = 20.0F;
 
     private static final DicePresentation WORLD_ENTITY_PRESENTER = AstralDiceRollService::presentWorldEntities;
     private static final Map<Identifier, DicePresentation> PRESENTATIONS = new ConcurrentHashMap<>();

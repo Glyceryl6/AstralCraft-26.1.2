@@ -102,7 +102,7 @@ public class CardRevealOverlay {
     }
 
 
-    private static CardReveal pollNextReveal(long startedAtTick) {
+    private static CardReveal pollNextReveal(double startedAtTick) {
         CardReveal next = PENDING.pollFirst();
         if (next == null) return null;
         return new CardReveal(next.cardId(), next.cardType(), next.title(), next.body(), next.stack(),

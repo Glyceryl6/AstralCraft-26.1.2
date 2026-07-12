@@ -163,7 +163,7 @@ public class CardRevealEntityOverlay {
                                    Identifier frontTexture,
                                    Identifier backTexture,
                                    Identifier animation,
-                                   long startedAtTick,
+                                   double startedAtTick,
                                    int durationTicks) {}
 
 }

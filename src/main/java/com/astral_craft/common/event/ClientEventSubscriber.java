@@ -50,11 +50,6 @@ import org.jspecify.annotations.NullMarked;
 public class ClientEventSubscriber {
 
     @SubscribeEvent
-    public static void onClientTickStart(ClientTickEvent.Pre event) {
-        ClientAnimationClock.tick();
-    }
-
-    @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         CardRevealEntityOverlay.tick();
         Minecraft minecraft = Minecraft.getInstance();

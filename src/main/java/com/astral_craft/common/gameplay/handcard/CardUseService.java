@@ -51,28 +51,35 @@ public class CardUseService {
         return result.interactionResult();
     }
 
-    public static void useDeckCard(ServerPlayer player, String rawCardId) {
-        Identifier itemId = resolveCardItemId(rawCardId);
+    public static boolean useDeckCard(ServerPlayer player, String rawCardId) {
+        Identifier itemId;
+        try {
+            itemId = resolveCardItemId(rawCardId);
+        } catch (RuntimeException exception) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
+            return false;
+        }
+
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
         if (!(item instanceof BaseHandCard card)) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
-            return;
+            return false;
         }
 
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         if (!state.active()) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.hand_card_deck.need_character"), true);
-            return;
+            return false;
         }
 
         ItemStack requestedStack = new ItemStack(item);
         ItemStack stack = AstralHandCardManager.firstInventoryCardStack(player, requestedStack);
         if (stack.isEmpty()) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
-            return;
+            return false;
         }
 
-        CardUseResult cardUseResult = tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack, CardUseContext.deck());
+        return tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack, CardUseContext.deck()).accept();
     }
 
     protected static Identifier resolveCardItemId(String rawCardId) {
@@ -145,8 +152,8 @@ public class CardUseService {
                 return CardUseResult.consumed();
             }
 
-            thisSendReveal(serverPlayer, stack, definition, options, List.of());
             consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex());
+            thisSendReveal(serverPlayer, source, definition, options, List.of());
             return CardUseResult.accepted();
         }
 
@@ -230,14 +237,14 @@ public class CardUseService {
     }
 
     public static void applyNumberSelection(ServerPlayer player, CardNumberSelectionPayload payload) {
-        PendingCardActionManager.PendingNumberSelection selection = PendingCardActionManager.consumeNumberSelection(player, payload.cardStack(), payload.value());
+        PendingCardActionManager.PendingNumberSelection selection =
+                PendingCardActionManager.consumeNumberSelection(player, payload.cardStack(), payload.value());
         if (selection == null) return;
         if (!(selection.cardStack().getItem() instanceof BaseHandCard card)) return;
         card.applyNumberSelection(player, selection.cardStack(), payload.value());
     }
 
-    public static void sendReveal(
-            ServerPlayer viewer, ItemStack stack, ServerPlayer owner, CardDefinition definition, Identifier animation, int durationTicks) {
+    public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner, CardDefinition definition, Identifier animation, int durationTicks) {
         PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, animation, durationTicks));
     }
 
@@ -262,7 +269,8 @@ public class CardUseService {
             ServerPlayer owner, ItemStack stack, CardDefinition definition,
             CardRevealOptions options, List<LivingEntity> targets) {
         if (options.audience() == CardRevealAudience.TRACKING_NEARBY) {
-            PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, cardRevealPayload(owner, stack, definition, options.animation(), options.durationTicks()));
+            PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner,
+                    cardRevealPayload(owner, stack, definition, options.animation(), options.durationTicks()));
         } else {
             for (ServerPlayer viewer : viewers(owner, options.audience(), targets)) {
                 sendReveal(viewer, stack, owner, definition, options.animation(), options.durationTicks());

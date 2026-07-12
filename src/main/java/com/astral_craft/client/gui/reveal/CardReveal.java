@@ -13,5 +13,5 @@ public record CardReveal(
         Identifier frontTexture,
         Identifier backTexture,
         Identifier animation,
-        long startedAtTick,
+        double startedAtTick,
         int durationTicks) { }

@@ -81,7 +81,6 @@ public class AstralDiceEntity extends Entity {
         super.tick();
         this.setDeltaMovement(0.0D, 0.0D, 0.0D);
         if (this.level().isClientSide()) return;
-
         int mergeEnd = this.rollTicks() + this.mergeTicks();
         if (this.mergeTicks() > 0 && this.tickCount == mergeEnd) {
             if (this.isPrimary()) {
@@ -129,47 +128,47 @@ public class AstralDiceEntity extends Entity {
         return this.entityData.get(DATA_MERGE_OFFSET_Z);
     }
 
-    public boolean isRolling(float partialTick) {
-        return this.tickCount + partialTick < this.rollTicks();
+    public boolean isRolling(float ageTicks) {
+        return ageTicks < this.rollTicks();
     }
 
-    public String faceText(float partialTick) {
-        if (this.isRolling(partialTick)) return "?";
+    public String faceText(float ageTicks) {
+        if (this.isRolling(ageTicks)) return "?";
         if (this.isPrimary() && this.mergeTicks() > 0
-                && this.tickCount + partialTick >= this.rollTicks() + this.mergeTicks()) {
+                && ageTicks >= this.rollTicks() + this.mergeTicks()) {
             return Integer.toString(this.combinedResult());
         }
         return Integer.toString(this.result());
     }
 
-    public float xSpin(float partialTick) {
-        return this.spin(partialTick, 1.0F);
+    public float xSpin(float ageTicks) {
+        return this.spin(ageTicks, 1.0F);
     }
 
-    public float ySpin(float partialTick) {
-        return this.spin(partialTick, 0.82F);
+    public float ySpin(float ageTicks) {
+        return this.spin(ageTicks, 0.82F);
     }
 
-    public float zSpin(float partialTick) {
-        return this.spin(partialTick, 0.63F);
+    public float zSpin(float ageTicks) {
+        return this.spin(ageTicks, 0.63F);
     }
 
-    public float mergeProgress(float partialTick) {
+    public float mergeProgress(float ageTicks) {
         if (this.mergeTicks() <= 0) return 0.0F;
-        float progress = (this.tickCount + partialTick - this.rollTicks()) / this.mergeTicks();
+        float progress = (ageTicks - this.rollTicks()) / this.mergeTicks();
         progress = Mth.clamp(progress, 0.0F, 1.0F);
         return progress * progress * (3.0F - 2.0F * progress);
     }
 
-    public float renderScale(float partialTick) {
-        float progress = this.mergeProgress(partialTick);
+    public float renderScale(float ageTicks) {
+        float progress = this.mergeProgress(ageTicks);
         if (this.mergeTicks() <= 0) return 1.0F;
         if (!this.isPrimary()) return 1.0F - progress;
         return 1.0F + Mth.sin(progress * (float) Math.PI) * 0.16F;
     }
 
-    private float spin(float partialTick, float axisFactor) {
-        float progress = Mth.clamp((this.tickCount + partialTick) / this.rollTicks(), 0.0F, 1.0F);
+    private float spin(float ageTicks, float axisFactor) {
+        float progress = Mth.clamp(ageTicks / this.rollTicks(), 0.0F, 1.0F);
         float eased = 1.0F - (float) Math.pow(1.0F - progress, 3.0D);
         int rotations = Math.max(1, Math.round(this.spinSpeed() * axisFactor * this.rollTicks() / 360.0F));
         return 360.0F * rotations * eased;

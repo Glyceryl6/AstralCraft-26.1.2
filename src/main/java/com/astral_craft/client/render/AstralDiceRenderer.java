@@ -1,5 +1,6 @@
 package com.astral_craft.client.render;
 
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -16,6 +17,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.LightCoordsUtil;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
  * 3D dice renderer that does not depend on baked dice-face textures.
  *
@@ -29,6 +33,7 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
     private static final float TEXT_OFFSET = HALF_SIZE + 0.011F;
 
     private final Font font;
+    private final Map<AstralDiceEntity, Double> animationStartTicks = new WeakHashMap<>();
 
     public AstralDiceRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -44,14 +49,17 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
     @Override
     public void extractRenderState(AstralDiceEntity entity, AstralDiceRenderState state, float partialTick) {
         super.extractRenderState(entity, state, partialTick);
-        state.text = entity.faceText(partialTick);
-        state.xSpin = entity.xSpin(partialTick);
-        state.ySpin = entity.ySpin(partialTick);
-        state.zSpin = entity.zSpin(partialTick);
-        float mergeProgress = entity.mergeProgress(partialTick);
+        double startedAtTick = this.animationStartTicks.computeIfAbsent(entity, ignored ->
+                ClientAnimationClock.nowTicks() - Math.max(0, entity.tickCount));
+        float ageTicks = ClientAnimationClock.elapsedTicks(startedAtTick);
+        state.text = entity.faceText(ageTicks);
+        state.xSpin = entity.xSpin(ageTicks);
+        state.ySpin = entity.ySpin(ageTicks);
+        state.zSpin = entity.zSpin(ageTicks);
+        float mergeProgress = entity.mergeProgress(ageTicks);
         state.mergeOffsetX = entity.mergeOffsetX() * mergeProgress;
         state.mergeOffsetZ = entity.mergeOffsetZ() * mergeProgress;
-        state.scale = entity.renderScale(partialTick);
+        state.scale = entity.renderScale(ageTicks);
     }
 
     @Override

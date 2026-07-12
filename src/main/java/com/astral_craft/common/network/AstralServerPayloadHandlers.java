@@ -110,8 +110,8 @@ public class AstralServerPayloadHandlers {
 
     public static void handleUseHandCardFromDeck(UseHandCardFromDeckPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
-                CardUseService.useDeckCard(player, payload.cardId());
+            if (context.player() instanceof ServerPlayer player && !CardUseService.useDeckCard(player, payload.cardId())) {
+                AstralHandCardManager.open(player);
             }
         });
     }
