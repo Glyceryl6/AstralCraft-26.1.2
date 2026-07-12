@@ -317,7 +317,8 @@ public class CardUseService {
         if (!state.active()) return Component.translatable("message.astral_craft.hand_card_deck.need_character");
         Identifier selectedCharacter = state.characterId();
         CharacterProgress progress = CharacterProgressManager.progress(player);
-        if (restriction.requireSelectedCharacterUnlocked() && CharacterManager.INSTANCE.contains(selectedCharacter)
+        if (restriction.requireSelectedCharacterUnlocked()
+                && CharacterManager.INSTANCE.contains(selectedCharacter)
                 && !progress.isCharacterUnlocked(selectedCharacter)
                 && !CharacterManager.INSTANCE.get(selectedCharacter).unlockedByDefault()) {
             return Component.translatable("message.astral_craft.card_restriction.character_locked");

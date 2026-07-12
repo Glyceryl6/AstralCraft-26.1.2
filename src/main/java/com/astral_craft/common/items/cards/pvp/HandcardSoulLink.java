@@ -2,9 +2,11 @@ package com.astral_craft.common.items.cards.pvp;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.*;
+import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.gameplay.SoulLinkManager;
+import com.astral_craft.common.gameplay.SoulLinkStyle;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
-import com.astral_craft.common.gameplay.handcard.CardTargetMode;
+import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.network.chat.Component;
@@ -19,7 +21,7 @@ import java.util.List;
 
 public class HandcardSoulLink extends BaseHandCard {
 
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.TWO_PLAYERS, 32);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.PLAYERS_AND_MOBS, 32, 2, 2);
 
     public HandcardSoulLink(Properties properties) {
         super(properties);

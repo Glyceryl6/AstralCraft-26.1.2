@@ -7,8 +7,6 @@ import com.astral_craft.common.network.OpenTargetSelectionPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 
@@ -45,12 +43,7 @@ public class CardTargeting {
         if (entity == user && (card == null || !card.allowsSelfTarget())) return false;
         int range = Math.max(0, CardRangeResolver.targetingRange(user, stack, definition));
         if (entity.distanceToSqr(user) > (double) range * range) return false;
-        return switch (definition.targetMode()) {
-            case ENEMY_PLAYER, ALLY -> entity instanceof Player;
-            case ANY_PLAYER, TWO_PLAYERS -> entity instanceof Player || entity instanceof Mob;
-            case MONSTER -> !(entity instanceof Player);
-            default -> true;
-        };
+        return definition.acceptsTarget(entity);
     }
 
 }

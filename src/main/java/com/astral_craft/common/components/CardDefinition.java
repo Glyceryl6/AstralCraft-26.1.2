@@ -2,7 +2,7 @@ package com.astral_craft.common.components;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
-import com.astral_craft.common.gameplay.handcard.CardTargetMode;
+import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
@@ -12,23 +12,26 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
 
 public record CardDefinition(
         Optional<Identifier> largeFrontTextureOverride,
         Optional<Identifier> largeBackTextureOverride,
         CardType type,
-        CardTargetMode targetMode,
+        List<Class<? extends LivingEntity>> targetTypes,
         int range,
         int minTargets,
         int maxTargets,
         CardUseRestriction restrictions) {
 
     public CardDefinition {
+        targetTypes = CardTargetTypes.copyOf(targetTypes);
         minTargets = Math.max(0, minTargets);
         maxTargets = Math.max(minTargets, maxTargets);
     }
@@ -37,12 +40,17 @@ public record CardDefinition(
             Identifier.CODEC.optionalFieldOf("large_front_texture").forGetter(CardDefinition::largeFrontTextureOverride),
             Identifier.CODEC.optionalFieldOf("large_back_texture").forGetter(CardDefinition::largeBackTextureOverride),
             CardType.CODEC.fieldOf("type").forGetter(CardDefinition::type),
-            CardTargetMode.CODEC.fieldOf("target_mode").forGetter(CardDefinition::targetMode),
+            CardTargetTypes.CODEC.optionalFieldOf("target_types").forGetter(definition -> Optional.of(definition.targetTypes())),
+            CardTargetTypes.LEGACY_CODEC.optionalFieldOf("target_mode").forGetter(_ -> Optional.empty()),
             Codec.INT.fieldOf("range").forGetter(CardDefinition::range),
             Codec.INT.fieldOf("min_targets").forGetter(CardDefinition::minTargets),
             Codec.INT.fieldOf("max_targets").forGetter(CardDefinition::maxTargets),
             CardUseRestriction.CODEC.optionalFieldOf("restrictions", CardUseRestriction.NONE).forGetter(CardDefinition::restrictions)
-    ).apply(instance, CardDefinition::new));
+    ).apply(instance, (largeFrontTextureOverride, largeBackTextureOverride, type, targetTypes, legacyTargetTypes,
+                       range, minTargets, maxTargets, restrictions) -> new CardDefinition(
+            largeFrontTextureOverride, largeBackTextureOverride, type,
+            targetTypes.orElseGet(() -> legacyTargetTypes.orElse(CardTargetTypes.NONE)),
+            range, minTargets, maxTargets, restrictions)));
 
     public static final StreamCodec<ByteBuf, CardDefinition> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
@@ -74,7 +82,11 @@ public record CardDefinition(
     }
 
     public boolean needsTarget() {
-        return this.maxTargets > 0;
+        return !this.targetTypes.isEmpty() && this.maxTargets > 0;
+    }
+
+    public boolean acceptsTarget(LivingEntity target) {
+        return this.targetTypes.stream().anyMatch(targetType -> targetType.isInstance(target));
     }
 
     public boolean shouldRevealOnUse() {
@@ -99,55 +111,61 @@ public record CardDefinition(
 
     public CardDefinition withType(CardType cardType) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, cardType,
-                this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withFrontTexture(@Nullable Identifier texture) {
         return new CardDefinition(Optional.ofNullable(texture), this.largeBackTextureOverride, this.type,
-                this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withBackTexture(@Nullable Identifier texture) {
         return new CardDefinition(this.largeFrontTextureOverride, Optional.ofNullable(texture), this.type,
-                this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withRestrictions(CardUseRestriction restrictions) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                this.targetMode, this.range, this.minTargets, this.maxTargets, restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, restrictions);
     }
 
     public CardDefinition withRange(int range) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                this.targetMode, range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
-    public static CardDefinition create(CardType type, CardTargetMode targetMode, int range) {
-        return new CardDefinition(Optional.empty(), Optional.empty(), type, targetMode, range,
-                minTargets(targetMode), maxTargets(targetMode), CardUseRestriction.NONE);
+    public CardDefinition withTargetTypes(List<Class<? extends LivingEntity>> targetTypes) {
+        if (targetTypes.isEmpty()) {
+            return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
+                    CardTargetTypes.NONE, this.range, 0, 0, this.restrictions);
+        }
+
+        int minTargets = this.needsTarget() ? this.minTargets : 1;
+        int maxTargets = this.needsTarget() ? this.maxTargets : 1;
+        return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
+                targetTypes, this.range, minTargets, maxTargets, this.restrictions);
+    }
+
+    public CardDefinition withTargetCount(int minTargets, int maxTargets) {
+        return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
+                this.targetTypes, this.range, minTargets, maxTargets, this.restrictions);
+    }
+
+    public static CardDefinition create(CardType type, List<Class<? extends LivingEntity>> targetTypes, int range) {
+        int targetCount = targetTypes.isEmpty() ? 0 : 1;
+        return create(type, targetTypes, range, targetCount, targetCount);
+    }
+
+    public static CardDefinition create(CardType type, List<Class<? extends LivingEntity>> targetTypes, int range, int minTargets, int maxTargets) {
+        return new CardDefinition(Optional.empty(), Optional.empty(), type, targetTypes, range, minTargets, maxTargets, CardUseRestriction.NONE);
     }
 
     public static CardDefinition fallback() {
-        return create(CardType.EFFECT, CardTargetMode.NONE, -1);
-    }
-
-    public static int minTargets(CardTargetMode targetMode) {
-        return switch (targetMode) {
-            case TWO_PLAYERS -> 2;
-            case ALLY, ENEMY_PLAYER, ANY_PLAYER, MONSTER -> 1;
-            default -> 0;
-        };
-    }
-
-    public static int maxTargets(CardTargetMode targetMode) {
-        return switch (targetMode) {
-            case TWO_PLAYERS -> 2;
-            case ALLY, ENEMY_PLAYER, ANY_PLAYER, MONSTER -> 1;
-            default -> 0;
-        };
+        return create(CardType.EFFECT, CardTargetTypes.NONE, -1);
     }
 
     public static Identifier defaultBackTexture() {
         return AstralCraft.prefix("textures/gui/cards/card_back.png");
     }
+
 }

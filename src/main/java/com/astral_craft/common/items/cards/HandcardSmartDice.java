@@ -3,7 +3,7 @@ package com.astral_craft.common.items.cards;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
-import com.astral_craft.common.gameplay.handcard.CardTargetMode;
+import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.OpenCardNumberSelectionPayload;
@@ -15,7 +15,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public class HandcardSmartDice extends BaseHandCard {
 
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetMode.CHOICE, 6);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 6);
     public static final int MIN_DICE_VALUE = 1;
     public static final int MAX_DICE_VALUE = 6;
 
@@ -37,4 +37,5 @@ public class HandcardSmartDice extends BaseHandCard {
         AstralCardEffects.update(user, AstralStats.get(user).setNextMoveFixed(value));
         return true;
     }
+
 }
