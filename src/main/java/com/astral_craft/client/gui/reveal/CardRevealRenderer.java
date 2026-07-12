@@ -3,6 +3,7 @@ package com.astral_craft.client.gui.reveal;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.jpgloader.LoadedJpgTexture;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
+import com.astral_craft.common.text.AstralTextFormatter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -111,7 +112,7 @@ public class CardRevealRenderer {
         int titleWidth = Math.min(this.font.width(shortTitle), titleMaxTextWidth);
         this.renderTextBackdrop(graphics, settings, alpha, centerX - titleWidth / 2 - 4, titleY - 3, centerX + titleWidth / 2 + 4, titleY + 10);
         graphics.text(this.font, shortTitle, centerX - this.font.width(shortTitle) / 2, titleY, argbTitle, settings.textShadow);
-        List<FormattedCharSequence> lines = this.wrappedLines(this.font, reveal.body().getString(), bodyMaxTextWidth, settings.bodyMaxLines);
+        List<FormattedCharSequence> lines = this.wrappedLines(this.font, reveal.body(), bodyMaxTextWidth, settings.bodyMaxLines);
         int lineY = bodyY + 5;
         for (FormattedCharSequence line : lines) {
             int lineW = this.font.width(line);
@@ -135,11 +136,11 @@ public class CardRevealRenderer {
         graphics.fill(left, top, right, bottom, backdropAlpha << 24);
     }
 
-    public List<FormattedCharSequence> wrappedLines(Font font, String body, int maxWidth, int maxLines) {
+    public List<FormattedCharSequence> wrappedLines(Font font, Component body, int maxWidth, int maxLines) {
         List<FormattedCharSequence> result = new ArrayList<>();
-        for (String segment : body.split("\\n")) {
+        for (Component segment : AstralTextFormatter.lines(body)) {
             if (result.size() >= maxLines) break;
-            List<FormattedCharSequence> split = font.split(Component.literal(segment), maxWidth);
+            List<FormattedCharSequence> split = font.split(segment, maxWidth);
             for (FormattedCharSequence line : split) {
                 result.add(line);
                 if (result.size() >= maxLines) break;
