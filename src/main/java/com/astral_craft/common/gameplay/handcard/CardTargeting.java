@@ -5,6 +5,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.OpenTargetSelectionPayload;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
@@ -25,18 +26,10 @@ public class CardTargeting {
     }
 
     public static List<CardTargetCandidate> candidates(ServerPlayer user, ItemStack stack, CardDefinition definition, BaseHandCard card) {
-        int range = Math.max(0, CardRangeResolver.targetingRange(user, stack, definition));
-        AABB box = user.getBoundingBox().inflate(range);
-        return user.level().getEntitiesOfClass(LivingEntity.class, box,
-                        entity -> isValidTarget(user, entity, stack, definition, card))
-                .stream()
-                .sorted(Comparator.comparingDouble(entity -> entity.distanceToSqr(user)))
-                .limit(OpenTargetSelectionPayload.MAX_CANDIDATES)
-                .map(entity -> new CardTargetCandidate(
-                        entity.getId(),
-                        entity.getDisplayName().copy(),
-                        (int) Math.ceil(Math.sqrt(entity.distanceToSqr(user)))))
-                .toList();
+        AABB box = user.getBoundingBox().inflate(Math.max(0, CardRangeResolver.targetingRange(user, stack, definition)));
+        return user.level().getEntitiesOfClass(LivingEntity.class, box, entity -> isValidTarget(user, entity, stack, definition, card)).stream()
+                .sorted(Comparator.comparingDouble(entity -> entity.distanceToSqr(user))).limit(OpenTargetSelectionPayload.MAX_CANDIDATES)
+                .map(entity -> new CardTargetCandidate(entity.getId(), entity.getDisplayName(), Mth.ceil(Math.sqrt(entity.distanceToSqr(user))))).toList();
     }
 
     public static boolean isValidTarget(ServerPlayer user, LivingEntity entity, CardDefinition definition) {

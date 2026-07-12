@@ -6,6 +6,7 @@ import com.astral_craft.common.network.CardNumberSelectionPayload;
 import com.astral_craft.common.network.OpenCardNumberSelectionPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.text.AstralTextFormatter;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -43,8 +44,7 @@ public class CardNumberSelectionScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-    }
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {}
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
@@ -72,8 +72,8 @@ public class CardNumberSelectionScreen extends Screen {
             graphics.fill(x, y + OPTION_SIZE - 1, x + OPTION_SIZE, y + OPTION_SIZE, border);
             graphics.fill(x, y, x + 1, y + OPTION_SIZE, border);
             graphics.fill(x + OPTION_SIZE - 1, y, x + OPTION_SIZE, y + OPTION_SIZE, border);
-            AstralFancyButton.drawCentered(graphics, this.font, Component.literal(Integer.toString(value)),
-                    x, y, OPTION_SIZE, OPTION_SIZE, 0xFFFFFFFF, 0xA0000000, 1.8F);
+            AstralFancyButton.drawCentered(graphics, this.font, Component.literal(Integer.toString(value)).withStyle(ChatFormatting.BOLD),
+                    x, y, OPTION_SIZE, OPTION_SIZE, 0xFFFFFFFF, 0xA0000000, 3.0F);
         }
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);

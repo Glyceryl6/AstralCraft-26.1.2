@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.lwjgl.glfw.GLFW;
 
+@SuppressWarnings("unused")
 public class AstralFancyButton {
 
     public static long handCursor;
@@ -190,7 +191,7 @@ public class AstralFancyButton {
     }
 
     public static void drawCentered(GuiGraphicsExtractor graphics, Font font, Component label, int x, int y, int width, int height, int color, int shadowColor, int outlineColor, float textScale) {
-        float safeScale = Math.clamp(textScale, 0.45F, 2.25F);
+        float safeScale = Math.max(0.0F, textScale);
         float scaledWidth = font.width(label) * safeScale;
         float scaledHeight = 8.0F * safeScale;
         float textX = x + Math.max(0.0F, (width - scaledWidth) / 2.0F);
@@ -203,7 +204,7 @@ public class AstralFancyButton {
     }
 
     public static void drawText(GuiGraphicsExtractor graphics, Font font, Component label, float x, float y, int color, int shadowColor, int outlineColor, float textScale) {
-        float safeScale = Math.clamp(textScale, 0.45F, 2.25F);
+        float safeScale = Math.max(0.0F, textScale);
         graphics.pose().pushMatrix();
         graphics.pose().scale(safeScale, safeScale);
         int scaledX = Math.round(x / safeScale);
