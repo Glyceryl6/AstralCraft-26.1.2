@@ -16,20 +16,10 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 
-/**
- * Default data-driven character renderer.
- *
- * <p>The default renderer now uses Minecraft's baked player model instead of the old flat paper-doll preview. This
- * keeps the common Astral character entity data-driven while still making character skins behave like normal 64x64
- * player skins. Characters that need special logic can still register their own entity type and renderer while keeping
- * {@link AstralCharacterEntity} as their common base class.</p>
- */
 public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, AstralCharacterRenderState, PlayerModel> {
 
     public AstralCharacterRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.25F);
-        // The default shared renderer intentionally uses the vanilla player model layer. Character cards, skin cards,
-        // and preview panes should therefore render the same humanoid model instead of the old flat paper-doll. 
     }
 
     @Override
