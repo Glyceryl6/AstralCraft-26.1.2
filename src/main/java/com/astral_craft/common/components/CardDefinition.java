@@ -1,23 +1,26 @@
 package com.astral_craft.common.components;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.handcard.CardTargetMode;
 import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
+import com.astral_craft.common.gameplay.handcard.CardTargetMode;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
 
 public record CardDefinition(
-        String id,
-        String nameKey,
-        String effectKey,
-        String largeFrontTexture,
-        String largeBackTexture,
+        Optional<Identifier> largeFrontTextureOverride,
+        Optional<Identifier> largeBackTextureOverride,
         CardType type,
         CardTargetMode targetMode,
         int range,
@@ -25,12 +28,14 @@ public record CardDefinition(
         int maxTargets,
         CardUseRestriction restrictions) {
 
+    public CardDefinition {
+        minTargets = Math.max(0, minTargets);
+        maxTargets = Math.max(minTargets, maxTargets);
+    }
+
     public static final Codec<CardDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.optionalFieldOf("id", "").forGetter(CardDefinition::id),
-            Codec.STRING.fieldOf("name_key").forGetter(CardDefinition::nameKey),
-            Codec.STRING.fieldOf("effect_key").forGetter(CardDefinition::effectKey),
-            Codec.STRING.fieldOf("large_front_texture").forGetter(CardDefinition::largeFrontTexture),
-            Codec.STRING.fieldOf("large_back_texture").forGetter(CardDefinition::largeBackTexture),
+            Identifier.CODEC.optionalFieldOf("large_front_texture").forGetter(CardDefinition::largeFrontTextureOverride),
+            Identifier.CODEC.optionalFieldOf("large_back_texture").forGetter(CardDefinition::largeBackTextureOverride),
             CardType.CODEC.fieldOf("type").forGetter(CardDefinition::type),
             CardTargetMode.CODEC.fieldOf("target_mode").forGetter(CardDefinition::targetMode),
             Codec.INT.fieldOf("range").forGetter(CardDefinition::range),
@@ -41,16 +46,31 @@ public record CardDefinition(
 
     public static final StreamCodec<ByteBuf, CardDefinition> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
-    public Component displayName() {
-        return Component.translatable(this.nameKey);
+    public Identifier itemId(ItemStack stack) {
+        return BuiltInRegistries.ITEM.getKey(stack.getItem());
     }
 
-    public Component effectText() {
-        return Component.translatable(this.effectKey);
+    public MutableComponent displayName(ItemStack stack) {
+        return stack.getHoverName().copy();
     }
 
-    public String registryPath() {
-        return this.id;
+    public MutableComponent effectText(ItemStack stack, Object... arguments) {
+        return Component.translatable(this.effectKey(stack), arguments);
+    }
+
+    public String effectKey(ItemStack stack) {
+        Identifier itemId = this.itemId(stack);
+        return "tooltips." + itemId.getNamespace() + "." + itemId.getPath();
+    }
+
+    public Identifier largeFrontTexture(ItemStack stack) {
+        Identifier itemId = this.itemId(stack);
+        return this.largeFrontTextureOverride.orElseGet(() -> Identifier.fromNamespaceAndPath(
+                itemId.getNamespace(), "textures/gui/cards/front/" + itemId.getPath() + ".jpg"));
+    }
+
+    public Identifier largeBackTexture() {
+        return this.largeBackTextureOverride.orElseGet(CardDefinition::defaultBackTexture);
     }
 
     public boolean needsTarget() {
@@ -60,7 +80,7 @@ public record CardDefinition(
     public boolean shouldRevealOnUse() {
         return this.type == CardType.EFFECT || this.type == CardType.JINX;
     }
-    
+
     public boolean isCombatOnly() {
         return this.type == CardType.ATTACK || this.type == CardType.DEFENSE;
     }
@@ -77,52 +97,38 @@ public record CardDefinition(
         return CardRangeResolver.effectiveDefinition(player, stack, this);
     }
 
-    public boolean isAstralItemPath(String path) {
-        return this.id.equals(path);
-    }
-
-    public CardDefinition withId(String id) {
-        return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id),
-                this.largeBackTexture, this.type, this.targetMode, this.range,
-                 this.minTargets, this.maxTargets, this.restrictions);
-    }
-
     public CardDefinition withType(CardType cardType) {
-        return new CardDefinition(this.id, this.nameKey, this.effectKey,
-                this.largeFrontTexture, this.largeBackTexture, cardType,
+        return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, cardType,
                 this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
-    public CardDefinition withBackTexture(String texture) {
-        return new CardDefinition(this.id, this.nameKey, this.effectKey, this.largeFrontTexture, texture, this.type,
-                this.targetMode, this.range,  this.minTargets, this.maxTargets, this.restrictions);
+    public CardDefinition withFrontTexture(@Nullable Identifier texture) {
+        return new CardDefinition(Optional.ofNullable(texture), this.largeBackTextureOverride, this.type,
+                this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
+    }
+
+    public CardDefinition withBackTexture(@Nullable Identifier texture) {
+        return new CardDefinition(this.largeFrontTextureOverride, Optional.ofNullable(texture), this.type,
+                this.targetMode, this.range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
     public CardDefinition withRestrictions(CardUseRestriction restrictions) {
-        return new CardDefinition(this.id, this.nameKey, this.effectKey,
-                this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
-                this.range, this.minTargets, this.maxTargets, restrictions);
+        return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
+                this.targetMode, this.range, this.minTargets, this.maxTargets, restrictions);
     }
 
     public CardDefinition withRange(int range) {
-        return new CardDefinition(this.id, this.nameKey, this.effectKey,
-                this.largeFrontTexture, this.largeBackTexture, this.type, this.targetMode,
-                range, this.minTargets, this.maxTargets, this.restrictions);
+        return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
+                this.targetMode, range, this.minTargets, this.maxTargets, this.restrictions);
     }
 
-    /** Preferred factory for hand card classes. The final item is derived from the item registry item in AstralItems#registerCard. */
     public static CardDefinition create(CardType type, CardTargetMode targetMode, int range) {
-        return create("", type, targetMode, range);
-    }
-
-    /** Legacy overload. Kept so old card classes or external mods do not have to migrate immediately. */
-    public static CardDefinition create(String id, CardType type, CardTargetMode targetMode, int range) {
-        return new CardDefinition(id, nameKey(id), effectKey(id), largeFrontTexture(id), defaultBackTexture(),
-                type, targetMode, range, minTargets(targetMode), maxTargets(targetMode), CardUseRestriction.NONE);
+        return new CardDefinition(Optional.empty(), Optional.empty(), type, targetMode, range,
+                minTargets(targetMode), maxTargets(targetMode), CardUseRestriction.NONE);
     }
 
     public static CardDefinition fallback() {
-        return create("unknown", CardType.EFFECT, CardTargetMode.NONE, -1);
+        return create(CardType.EFFECT, CardTargetMode.NONE, -1);
     }
 
     public static int minTargets(CardTargetMode targetMode) {
@@ -141,20 +147,7 @@ public record CardDefinition(
         };
     }
 
-    public static String nameKey(String id) {
-        return "card." + AstralCraft.MOD_ID + "." + id;
+    public static Identifier defaultBackTexture() {
+        return AstralCraft.prefix("textures/gui/cards/card_back.png");
     }
-
-    public static String effectKey(String id) {
-        return "tooltips." + AstralCraft.MOD_ID + "." + id;
-    }
-
-    public static String largeFrontTexture(String id) {
-        return AstralCraft.MOD_ID + ":textures/gui/cards/front/" + id + ".jpg";
-    }
-
-    public static String defaultBackTexture() {
-        return AstralCraft.MOD_ID + ":textures/gui/cards/card_back.png";
-    }
-
 }

@@ -1,18 +1,24 @@
 package com.astral_craft.common.network;
 
 import com.astral_craft.AstralCraft;
-import io.netty.buffer.ByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.world.item.ItemStack;
 
-public record OpenTargetSelectionPayload(String cardId, int handIndex, int minTargets, int maxTargets, int range, String candidates) implements CustomPacketPayload {
+import java.util.List;
+
+public record OpenTargetSelectionPayload(ItemStack cardStack, int handIndex, int minTargets, int maxTargets, int range,
+                                         List<CardTargetCandidate> candidates) implements CustomPacketPayload {
+
+    public static final int MAX_CANDIDATES = 128;
 
     public static final CustomPacketPayload.Type<OpenTargetSelectionPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("open_target_selection"));
 
-    public static final StreamCodec<ByteBuf, OpenTargetSelectionPayload> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.STRING_UTF8,
-            OpenTargetSelectionPayload::cardId,
+    public static final StreamCodec<RegistryFriendlyByteBuf, OpenTargetSelectionPayload> STREAM_CODEC = StreamCodec.composite(
+            ItemStack.OPTIONAL_STREAM_CODEC,
+            OpenTargetSelectionPayload::cardStack,
             ByteBufCodecs.VAR_INT,
             OpenTargetSelectionPayload::handIndex,
             ByteBufCodecs.VAR_INT,
@@ -21,9 +27,13 @@ public record OpenTargetSelectionPayload(String cardId, int handIndex, int minTa
             OpenTargetSelectionPayload::maxTargets,
             ByteBufCodecs.VAR_INT,
             OpenTargetSelectionPayload::range,
-            ByteBufCodecs.STRING_UTF8,
+            CardTargetCandidate.STREAM_CODEC.apply(ByteBufCodecs.list(MAX_CANDIDATES)),
             OpenTargetSelectionPayload::candidates,
             OpenTargetSelectionPayload::new);
+
+    public OpenTargetSelectionPayload {
+        candidates = List.copyOf(candidates);
+    }
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

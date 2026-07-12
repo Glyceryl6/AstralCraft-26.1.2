@@ -1,5 +1,6 @@
 package com.astral_craft.client.gui;
 
+import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.CardTargetSelectionPayload;
 import com.astral_craft.common.network.OpenTargetSelectionPayload;
 import net.minecraft.client.Minecraft;
@@ -16,7 +17,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +32,7 @@ public class TargetSelectionScreen extends Screen {
     private static final int SCROLLBAR_HEIGHT = 6;
 
     private final OpenTargetSelectionPayload payload;
-    private final List<Candidate> candidates;
+    private final List<CardTargetCandidate> candidates;
     private final Set<Integer> selected = new LinkedHashSet<>();
 
     private Button confirmButton;
@@ -40,11 +40,12 @@ public class TargetSelectionScreen extends Screen {
     private boolean draggingScrollbar;
     private double dragStartMouseX;
     private float dragStartScrollX;
+    private boolean submitted;
 
     public TargetSelectionScreen(OpenTargetSelectionPayload payload) {
         super(Component.translatable("gui.astral_craft.target_selection.title"));
         this.payload = payload;
-        this.candidates = Candidate.parse(payload.candidates());
+        this.candidates = List.copyOf(payload.candidates());
     }
 
     public static void open(OpenTargetSelectionPayload payload, IPayloadContext context) {
@@ -168,7 +169,7 @@ public class TargetSelectionScreen extends Screen {
         return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
     }
 
-    private void renderCandidate(GuiGraphicsExtractor graphics, Font font, Candidate candidate, int x, int y, int mouseX, int mouseY) {
+    private void renderCandidate(GuiGraphicsExtractor graphics, Font font, CardTargetCandidate candidate, int x, int y, int mouseX, int mouseY) {
         boolean active = this.selected.contains(candidate.entityId());
         boolean hovered = mouseX >= x && mouseX <= x + CARD_WIDTH && mouseY >= y && mouseY <= y + CARD_HEIGHT;
         int bg = active ? 0xCC3A6B48 : hovered ? 0xCC303038 : 0xAA202028;
@@ -193,7 +194,7 @@ public class TargetSelectionScreen extends Screen {
                     20, 0.0625F, xAngle, 0.0F, living);
         }
 
-        graphics.text(font, Component.literal(ellipsize(font, candidate.name(), 62)), x + 55, y + 17, 0xFFFFFFFF, false);
+        graphics.text(font, Component.literal(ellipsize(font, candidate.name().getString(), 62)), x + 55, y + 17, 0xFFFFFFFF, false);
         Component distance = Component.translatable("gui.astral_craft.target_selection.distance", candidate.distance());
         graphics.text(font, distance, x + 55, y + 34, 0xFFB0B0B0, false);
     }
@@ -227,14 +228,19 @@ public class TargetSelectionScreen extends Screen {
 
     private void confirm() {
         if (this.selected.size() < this.payload.minTargets()) return;
-        StringBuilder ids = new StringBuilder();
-        for (int id : this.selected) {
-            if (!ids.isEmpty()) ids.append(',');
-            ids.append(id);
-        }
-
-        ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(this.payload.cardId(), this.payload.handIndex(), ids.toString()));
+        this.submitted = true;
+        ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(
+                this.payload.cardStack(), this.payload.handIndex(), List.copyOf(this.selected)));
         this.onClose();
+    }
+
+    @Override
+    public void onClose() {
+        if (!this.submitted) {
+            ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(
+                    this.payload.cardStack(), this.payload.handIndex(), List.of()));
+        }
+        super.onClose();
     }
 
     private void updateConfirmButton() {
@@ -343,20 +349,5 @@ public class TargetSelectionScreen extends Screen {
         return builder + suffix;
     }
 
-    public record Candidate(int entityId, String name, int distance) {
-        public static List<Candidate> parse(String encoded) {
-            List<Candidate> result = new ArrayList<>();
-            if (encoded == null || encoded.isBlank()) return result;
-            for (String entry : encoded.split(";")) {
-                String[] parts = entry.split("\\|", 3);
-                if (parts.length < 3) continue;
-                try {
-                    result.add(new Candidate(Integer.parseInt(parts[0]), parts[1], Integer.parseInt(parts[2])));
-                } catch (NumberFormatException ignored) {}
-            }
-
-            return result;
-        }
-    }
 
 }

@@ -156,6 +156,17 @@ public record AstralPlayerStats(
         return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars, cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice + Math.max(0, dice), buffs, modifiers);
     }
 
+    public AstralPlayerStats setNextMoveExtraDice(int dice) {
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed,
+                Math.max(0, dice), buffs, modifiers);
+    }
+
+    public AstralPlayerStats clearNextMoveDiceEffects() {
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, 0, 0, buffs, modifiers);
+    }
+
     public AstralPlayerStats beginTurn() {
         AstralPlayerStats next = this.heal(buff(BuffKinds.HEAL));
         return new AstralPlayerStats(next.baseAttack, next.baseDefense, next.baseSpeed, next.maxHealth, next.health, next.starCoins, next.stars, next.cardPlaysPerTurn, next.cardPlaysPerTurn, next.skillCooldownReduction, next.nextMoveFixed, next.nextMoveExtraDice, next.buffs, next.tickModifiers());
@@ -175,7 +186,7 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats withHealth(int value) {
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, Math.clamp(maxHealth, 0, value), starCoins, stars, cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice, buffs, modifiers);
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, Math.clamp(value, 0, maxHealth), starCoins, stars, cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice, buffs, modifiers);
     }
 
     public AstralPlayerStats setBuff(BuffKind kind, int value) {

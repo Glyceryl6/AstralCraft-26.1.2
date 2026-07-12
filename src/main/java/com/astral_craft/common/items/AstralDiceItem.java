@@ -1,7 +1,6 @@
 package com.astral_craft.common.items;
 
-import com.astral_craft.common.entity.AstralDiceEntity;
-import net.minecraft.server.level.ServerLevel;
+import com.astral_craft.common.gameplay.dice.AstralDiceRollService;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -18,12 +17,10 @@ public class AstralDiceItem extends Item {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        if (level instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer) {
+        if (player instanceof ServerPlayer serverPlayer) {
             Vec3 look = serverPlayer.getLookAngle().normalize();
-            Vec3 pos = serverPlayer.position().add(look.scale(1.8)).add(0, 1.2, 0);
-            AstralDiceEntity dice = new AstralDiceEntity(serverLevel, pos.x, pos.y, pos.z);
-            dice.startRoll(1, 10, 20, serverLevel.getRandom());
-            serverLevel.addFreshEntity(dice);
+            Vec3 origin = serverPlayer.position().add(look.scale(1.8D)).add(0.0D, 1.2D, 0.0D);
+            AstralDiceRollService.rollNextMove(serverPlayer, origin);
         }
 
         return InteractionResult.SUCCESS;

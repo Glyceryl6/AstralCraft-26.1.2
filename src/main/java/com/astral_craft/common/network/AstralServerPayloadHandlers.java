@@ -20,6 +20,14 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleCardNumberSelection(CardNumberSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CardUseService.applyNumberSelection(player, payload);
+            }
+        });
+    }
+
     public static void handleChipSelection(ChipSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {

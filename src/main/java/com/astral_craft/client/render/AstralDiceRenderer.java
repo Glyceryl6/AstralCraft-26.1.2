@@ -44,26 +44,29 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
     @Override
     public void extractRenderState(AstralDiceEntity entity, AstralDiceRenderState state, float partialTick) {
         super.extractRenderState(entity, state, partialTick);
-        state.text = entity.faceText();
+        state.text = entity.faceText(partialTick);
         state.xSpin = entity.xSpin(partialTick);
         state.ySpin = entity.ySpin(partialTick);
         state.zSpin = entity.zSpin(partialTick);
+        float mergeProgress = entity.mergeProgress(partialTick);
+        state.mergeOffsetX = entity.mergeOffsetX() * mergeProgress;
+        state.mergeOffsetZ = entity.mergeOffsetZ() * mergeProgress;
+        state.scale = entity.renderScale(partialTick);
     }
 
     @Override
     public void submit(AstralDiceRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState cameraState) {
         poseStack.pushPose();
-        applyDiceTransform(state, poseStack, cameraState);
+        applyDiceTransform(state, poseStack);
         collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(DICE_BODY_TEXTURE), AstralDiceRenderer::renderCube);
         submitFaceTexts(state, poseStack, collector);
         poseStack.popPose();
         super.submit(state, poseStack, collector, cameraState);
     }
 
-    private static void applyDiceTransform(AstralDiceRenderState state, PoseStack poseStack, CameraRenderState cameraState) {
-        poseStack.translate(0.0F, 0.45F, 0.0F);
-        // Make the settled die face the current viewer. The random three-axis spin is applied after this,
-        // and the entity eases all spin values back to zero once the roll finishes.
+    private static void applyDiceTransform(AstralDiceRenderState state, PoseStack poseStack) {
+        poseStack.translate(state.mergeOffsetX, 0.45F, state.mergeOffsetZ);
+        poseStack.scale(state.scale, state.scale, state.scale);
         poseStack.mulPose(Axis.XP.rotationDegrees(state.xSpin));
         poseStack.mulPose(Axis.YP.rotationDegrees(state.ySpin));
         poseStack.mulPose(Axis.ZP.rotationDegrees(state.zSpin));

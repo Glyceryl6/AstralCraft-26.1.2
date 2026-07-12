@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
 import com.astral_craft.common.gameplay.handcard.CardRevealOptions;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.registry.AstralDataComponents;
+import com.astral_craft.common.text.AstralTextFormatter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -41,6 +42,23 @@ public class BaseHandCard extends Item {
         return this.apply(user, hand, targets);
     }
 
+    public boolean onRevealFinished(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition) {
+        return this.applyFromSelection(user, hand, List.of());
+    }
+
+    public boolean revealBeforeTargetSelection() {
+        return false;
+    }
+
+    public boolean allowsSelfTarget() {
+        return false;
+    }
+
+    public boolean applyNumberSelection(ServerPlayer user, ItemStack itemStack, int value) {
+        return false;
+    }
+
+    @SuppressWarnings("unused")
     public CardRevealOptions revealOptions(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition, List<LivingEntity> targets) {
         if (!definition.shouldRevealOnUse()) {
             return CardRevealOptions.none();
@@ -59,9 +77,9 @@ public class BaseHandCard extends Item {
         String key = String.format("tooltips.astral_craft.handcard.card_type.%s", cardType.getSerializedName());
         builder.accept(Component.translatable(key).withColor(cardType.color).withStyle(ChatFormatting.BOLD));
         int effectiveRange = CardRangeResolver.effectiveRange(player, itemStack, definition);
-        Component component = Component.translatable(definition.effectKey(), effectiveRange);
-        for (String line : component.getString().split("[\\n|]")) {
-            builder.accept(Component.literal(line.trim()));
+        Component component = definition.effectText(itemStack, effectiveRange);
+        for (Component line : AstralTextFormatter.lines(component)) {
+            builder.accept(line);
         }
 
         if (!definition.restrictions().unrestricted()) {

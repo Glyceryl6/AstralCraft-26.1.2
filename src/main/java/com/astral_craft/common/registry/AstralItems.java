@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+@SuppressWarnings("unused")
 public class AstralItems {
 
     public static final List<ModelledCardItem> MODELLED_CARD_ITEMS = new ArrayList<>();
@@ -127,7 +128,7 @@ public class AstralItems {
 
     public static DeferredHolder<Item, ? extends Item> registerCard(
             String name, Function<Item.Properties, Item> itemFactory, CardType cardType, CardDefinition definition) {
-        CardDefinition resolvedDefinition = definition.withId(name).withType(cardType);
+        CardDefinition resolvedDefinition = definition.withType(cardType);
         DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
                 new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)
                         .component(AstralDataComponents.CARD_DEFINITION, resolvedDefinition));

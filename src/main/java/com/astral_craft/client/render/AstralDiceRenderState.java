@@ -8,5 +8,8 @@ public class AstralDiceRenderState extends EntityRenderState {
     public float xSpin;
     public float ySpin;
     public float zSpin;
+    public float mergeOffsetX;
+    public float mergeOffsetZ;
+    public float scale = 1.0F;
 
 }
