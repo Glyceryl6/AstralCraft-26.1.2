@@ -8,6 +8,7 @@ import com.astral_craft.client.gui.reveal.CardRevealDebugSettings;
 import com.astral_craft.client.gui.reveal.CardRevealFrame;
 import com.astral_craft.client.gui.reveal.CardRevealSettings;
 import com.astral_craft.client.gui.reveal.FlipCardRevealAnimation;
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.CardRevealEntityPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -60,16 +61,15 @@ public class CardRevealEntityOverlay {
                 payload.stack(), payload.cardType(),
                 payload.title().getString(), payload.body().getString(),
                 payload.largeFrontTexture(), payload.largeBackTexture(),
-                animationId, currentClientGameTicks(), duration);
+                animationId, ClientAnimationClock.nowTicks(), duration);
         put(reveal);
     }
 
     public static void tick() {
-        float now = currentClientGameTicks();
         Iterator<EntityCardReveal> iterator = ACTIVE_BY_ID.values().iterator();
         while (iterator.hasNext()) {
             EntityCardReveal reveal = iterator.next();
-            if (now - reveal.startedAtTicks() >= reveal.durationTicks()) {
+            if (ClientAnimationClock.elapsedWholeTicks(reveal.startedAtTick()) >= reveal.durationTicks()) {
                 iterator.remove();
                 if (reveal.entityUuid() != null) {
                     ACTIVE_BY_UUID.remove(reveal.entityUuid());
@@ -108,7 +108,7 @@ public class CardRevealEntityOverlay {
     }
 
     public static CardRevealFrame frame(EntityCardReveal reveal) {
-        float age = Math.max(0.0F, currentClientGameTicks() - reveal.startedAtTicks());
+        float age = Math.max(0.0F, ClientAnimationClock.elapsedTicks(reveal.startedAtTick()));
         CardRevealAnimation animation = ANIMATIONS.getOrDefault(reveal.animation(), ANIMATIONS.get(CardRevealAnimations.FLIP));
         if (animation instanceof ApproachCardRevealAnimation approach) return approach.frame(age, SETTINGS);
         if (animation instanceof FlipCardRevealAnimation flip) return flip.frame(age, SETTINGS);
@@ -132,19 +132,13 @@ public class CardRevealEntityOverlay {
     @Nullable
     private static EntityCardReveal cleanOrNull(@Nullable EntityCardReveal reveal) {
         if (reveal == null) return null;
-        if (currentClientGameTicks() - reveal.startedAtTicks() < reveal.durationTicks()) return reveal;
+        if (ClientAnimationClock.elapsedTicks(reveal.startedAtTick()) < reveal.durationTicks()) return reveal;
         ACTIVE_BY_ID.remove(reveal.entityId());
         if (reveal.entityUuid() != null) {
             ACTIVE_BY_UUID.remove(reveal.entityUuid());
         }
 
         return null;
-    }
-
-    private static float currentClientGameTicks() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) return 0.0F;
-        return minecraft.level.getGameTime();
     }
 
     private static Identifier normalizeAnimation(@Nullable Identifier animation) {
@@ -169,7 +163,7 @@ public class CardRevealEntityOverlay {
                                    Identifier frontTexture,
                                    Identifier backTexture,
                                    Identifier animation,
-                                   float startedAtTicks,
+                                   long startedAtTick,
                                    int durationTicks) {}
 
 }

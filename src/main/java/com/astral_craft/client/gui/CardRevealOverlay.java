@@ -10,6 +10,7 @@ import com.astral_craft.client.gui.reveal.CardRevealRenderContext;
 import com.astral_craft.client.gui.reveal.CardRevealRenderer;
 import com.astral_craft.client.gui.reveal.CardRevealSettings;
 import com.astral_craft.client.gui.reveal.FlipCardRevealAnimation;
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.CardRevealPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -55,23 +56,31 @@ public class CardRevealOverlay {
         CardReveal reveal = new CardReveal(payload.cardId(), payload.cardType(),
                 payload.title(), payload.body(), payload.stack(),
                 payload.largeFrontTexture(), payload.largeBackTexture(),
-                animationId, currentClientGameTicks(null), duration);
-        if (isActive()) {
+                animationId, ClientAnimationClock.nowTicks(), duration);
+        if (active == null) {
+            active = reveal;
+        } else if (isActive()) {
             PENDING.addLast(reveal);
         } else {
-            active = reveal;
+            CardReveal queued = pollNextReveal(ClientAnimationClock.nowTicks());
+            if (queued == null) {
+                active = reveal;
+            } else {
+                active = queued;
+                PENDING.addLast(reveal);
+            }
         }
     }
 
     public static boolean isActive() {
-        return active != null && currentClientGameTicks(null) - active.startedAtTicks() < active.durationTicks();
+        return active != null && ClientAnimationClock.elapsedTicks(active.startedAtTick()) < active.durationTicks();
     }
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (active == null) return;
-        float ageTicks = currentClientGameTicks(deltaTracker) - active.startedAtTicks();
+        float ageTicks = ClientAnimationClock.elapsedTicks(active.startedAtTick());
         if (ageTicks >= active.durationTicks()) {
-            active = pollNextReveal(currentClientGameTicks(deltaTracker));
+            active = pollNextReveal(ClientAnimationClock.nowTicks());
             return;
         }
 
@@ -80,6 +89,7 @@ public class CardRevealOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
             active = null;
+            PENDING.clear();
             return;
         }
 
@@ -91,18 +101,12 @@ public class CardRevealOverlay {
         animation.render(context, RENDERER);
     }
 
-    private static float currentClientGameTicks(DeltaTracker deltaTracker) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) return 0.0F;
-        float partialTick = deltaTracker == null ? 0.0F : deltaTracker.getGameTimeDeltaPartialTick(false);
-        return minecraft.level.getGameTime() + partialTick;
-    }
 
-    private static CardReveal pollNextReveal(float startedAtTicks) {
+    private static CardReveal pollNextReveal(long startedAtTick) {
         CardReveal next = PENDING.pollFirst();
         if (next == null) return null;
         return new CardReveal(next.cardId(), next.cardType(), next.title(), next.body(), next.stack(),
-                next.frontTexture(), next.backTexture(), next.animation(), startedAtTicks, next.durationTicks());
+                next.frontTexture(), next.backTexture(), next.animation(), startedAtTick, next.durationTicks());
     }
 
     private static Identifier normalizeAnimation(Identifier animation) {

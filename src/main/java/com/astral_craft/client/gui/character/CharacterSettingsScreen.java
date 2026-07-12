@@ -9,6 +9,7 @@ import com.astral_craft.client.gui.components.AstralVerticalScrollbar;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoPose;
 import com.astral_craft.client.render.character.AstralCharacterRenderState;
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.client.text.AstralInlineTextFormatter;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
@@ -1258,9 +1259,8 @@ public class CharacterSettingsScreen extends Screen {
     }
 
     protected LivingEntity listEntityFor(CharacterDefinition definition, String skinId) {
-        Minecraft minecraft = Minecraft.getInstance();
         int tickOffset = Math.floorMod((definition == null ? "" : definition.id().toString()).hashCode(), 80);
-        int tick = minecraft.level == null ? tickOffset : (int) ((minecraft.level.getGameTime() + tickOffset) % Integer.MAX_VALUE);
+        int tick = Math.round(ClientAnimationClock.phaseTicks(20 * 60 * 60)) + tickOffset;
         return this.configuredEntity("list", definition, skinId, this.safeAnimationAction(definition, definition == null ? "idle" : definition.previewAction()), tick);
     }
 

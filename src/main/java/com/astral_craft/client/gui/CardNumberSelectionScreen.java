@@ -54,7 +54,6 @@ public class CardNumberSelectionScreen extends Screen {
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + PANEL_HEIGHT, 0xC0101018);
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + 1, 0xA0FFFFFF);
         graphics.fill(panelX, panelY + PANEL_HEIGHT - 1, panelX + panelWidth, panelY + PANEL_HEIGHT, 0xA0000000);
-
         graphics.text(this.font, this.title, this.width / 2 - this.font.width(this.title) / 2,
                 panelY + 10, 0xFFFFFFFF, true);
         CardDefinition definition = this.payload.cardStack().getOrDefault(
@@ -62,7 +61,6 @@ public class CardNumberSelectionScreen extends Screen {
         Component hint = AstralTextFormatter.format(definition.effectText(this.payload.cardStack()));
         graphics.text(this.font, hint, this.width / 2 - this.font.width(hint) / 2,
                 panelY + 27, 0xFFD0D0D0, false);
-
         for (int value = this.payload.minValue(); value <= this.payload.maxValue(); value++) {
             int x = this.optionX(value);
             int y = panelY + 50;
@@ -118,4 +116,5 @@ public class CardNumberSelectionScreen extends Screen {
     private int optionX(int value) {
         return this.panelX() + PANEL_PADDING + (value - this.payload.minValue()) * (OPTION_SIZE + OPTION_GAP);
     }
+
 }

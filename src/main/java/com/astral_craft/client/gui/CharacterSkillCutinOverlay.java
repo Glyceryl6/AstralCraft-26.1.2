@@ -4,6 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoPose;
 import com.astral_craft.client.render.character.AstralCharacterRenderState;
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
@@ -40,11 +41,11 @@ public class CharacterSkillCutinOverlay {
 
     public static void show(CharacterSkillCutinPayload payload) {
         active = new Cutin(
-                payload.characterId() == null ? CharacterManager.INSTANCE.defaultCharacter().id() : payload.characterId(),
+                payload.characterId(),
                 payload.skinId().isBlank() ? "default" : payload.skinId(),
                 payload.skillId().isBlank() ? "active" : payload.skillId(),
-                payload.animation() == null ? "skill" : payload.animation().getPath(),
-                currentClientGameTicks(null),
+                payload.animation().getPath(),
+                ClientAnimationClock.nowTicks(),
                 Math.max(20, payload.durationTicks()));
     }
 
@@ -56,7 +57,7 @@ public class CharacterSkillCutinOverlay {
             return;
         }
 
-        float age = currentClientGameTicks(deltaTracker) - active.startedAtTicks();
+        float age = ClientAnimationClock.elapsedTicks(active.startedAtTick());
         if (age >= active.durationTicks()) {
             active = null;
             return;
@@ -85,16 +86,6 @@ public class CharacterSkillCutinOverlay {
         return value * value * (3.0F - 2.0F * value);
     }
 
-    protected static float currentClientGameTicks(DeltaTracker deltaTracker) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) {
-            return 0.0F;
-        }
-        float partialTick = deltaTracker == null ? 0.0F : deltaTracker.getGameTimeDeltaPartialTick(false);
-        return minecraft.level.getGameTime() + partialTick;
-    }
-
-
     protected static AstralCharacterEntity configuredEntity(Minecraft minecraft, CharacterDefinition definition, String skinId, String animationAction, int tickCount) {
         if (minecraft.level == null || definition == null) return null;
         if (previewEntity == null || !definition.id().equals(previewEntityKey) || !skinId.equals(previewSkinId)) {
@@ -122,7 +113,7 @@ public class CharacterSkillCutinOverlay {
         return actions.getFirst();
     }
 
-    protected static void renderEntityModel(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1, float yaw, float pitch, float roll, float scaleMultiplier) {
+    public static void renderEntityModel(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1, float yaw, float pitch, float roll, float scaleMultiplier) {
         EntityRenderState renderState = extractEntityRenderState(entity);
         if (renderState instanceof LivingEntityRenderState livingState) {
             livingState.bodyRot = 0.0F;
@@ -156,6 +147,6 @@ public class CharacterSkillCutinOverlay {
         return renderState;
     }
 
-    protected record Cutin(Identifier characterId, String skinId, String skillId, String animationAction, float startedAtTicks, int durationTicks) {}
+    protected record Cutin(Identifier characterId, String skinId, String skillId, String animationAction, long startedAtTick, int durationTicks) {}
 
 }

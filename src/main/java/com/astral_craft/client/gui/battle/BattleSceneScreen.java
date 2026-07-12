@@ -1,5 +1,6 @@
 package com.astral_craft.client.gui.battle;
 
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.OpenBattleScenePayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -146,7 +147,7 @@ public class BattleSceneScreen extends Screen {
             livingState.yRot = yaw;
             livingState.xRot = MODEL_PITCH;
             livingState.walkAnimationSpeed = 0.25F;
-            livingState.walkAnimationPos += (Minecraft.getInstance().level == null ? 0.0F : Minecraft.getInstance().level.getGameTime() % 20) * 0.05F;
+            livingState.walkAnimationPos += ClientAnimationClock.phaseTicks(20) * 0.05F;
             livingState.boundingBoxWidth /= livingState.scale;
             livingState.boundingBoxHeight /= livingState.scale;
             livingState.scale = 1.0F;
