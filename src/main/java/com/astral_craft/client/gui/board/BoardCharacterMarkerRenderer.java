@@ -18,6 +18,8 @@ public class BoardCharacterMarkerRenderer {
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
     private static final int SHADOW_COLOR = 0x6A131326;
     private static final int ARROW_COLOR = 0xDD74E9FF;
+    private static final int KNOCKOUT_COLOR = 0xEEFF4257;
+    private static final int KNOCKOUT_BACK_COLOR = 0xDD2A0710;
 
     public static void submit(SubmitCustomGeometryEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
@@ -39,6 +41,14 @@ public class BoardCharacterMarkerRenderer {
                 center.add(0.0D, 0.0D, -shadow), center.add(shadow, 0.0D, 0.0D),
                 center.add(0.0D, 0.0D, shadow), center.add(-shadow, 0.0D, 0.0D), SHADOW_COLOR);
 
+        if ("knockdown".equals(entity.animationAction())) {
+            submitCross(event, poseStack, center.add(0.0D, 0.012D, 0.0D), 0.40D * pulse, 0.10D,
+                    KNOCKOUT_BACK_COLOR);
+            submitCross(event, poseStack, center.add(0.0D, 0.018D, 0.0D), 0.34D * pulse, 0.055D,
+                    KNOCKOUT_COLOR);
+            return;
+        }
+
         Direction direction = entity.boardDirection();
         Vec3 forward = new Vec3(direction.getStepX(), 0.0D, direction.getStepZ());
         if (forward.lengthSqr() < 0.5D) forward = new Vec3(0.0D, 0.0D, -1.0D);
@@ -52,6 +62,22 @@ public class BoardCharacterMarkerRenderer {
         Vec3 right = base.add(side.scale(halfWidth));
         Vec3 notch = base.add(forward.scale(length * 0.36D));
         submitQuad(event, poseStack, left, tip, right, notch, ARROW_COLOR);
+    }
+
+    private static void submitCross(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 center,
+                                    double halfLength, double halfWidth, int color) {
+        submitStrip(event, poseStack, center, new Vec3(1.0D, 0.0D, 1.0D).normalize(),
+                halfLength, halfWidth, color);
+        submitStrip(event, poseStack, center, new Vec3(1.0D, 0.0D, -1.0D).normalize(),
+                halfLength, halfWidth, color);
+    }
+
+    private static void submitStrip(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 center,
+                                    Vec3 direction, double halfLength, double halfWidth, int color) {
+        Vec3 side = new Vec3(-direction.z, 0.0D, direction.x).scale(halfWidth);
+        Vec3 along = direction.scale(halfLength);
+        submitQuad(event, poseStack, center.subtract(along).subtract(side), center.add(along).subtract(side),
+                center.add(along).add(side), center.subtract(along).add(side), color);
     }
 
     private static void submitQuad(SubmitCustomGeometryEvent event, PoseStack poseStack,

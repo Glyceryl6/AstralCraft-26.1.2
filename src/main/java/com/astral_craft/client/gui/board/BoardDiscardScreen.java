@@ -1,6 +1,8 @@
 package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.gui.HandCardRenderHelper;
+import com.astral_craft.client.gui.components.AstralFancyButton;
+import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardDiscardPayload;
@@ -83,10 +85,10 @@ public class BoardDiscardScreen extends Screen {
         int buttonX = this.width - buttonW - 18;
         int buttonY = this.height - buttonH - 16;
         boolean enabled = this.selected.size() == this.required;
-        graphics.fill(buttonX, buttonY, buttonX + buttonW, buttonY + buttonH, enabled ? 0xFFD64B91 : 0xFF555560);
         Component confirm = Component.translatable("gui.astral_craft.board.confirm");
-        graphics.text(this.font, confirm, buttonX + (buttonW - this.font.width(confirm)) / 2, buttonY + 8,
-                enabled ? 0xFFFFFFFF : 0xFFAAAAAA, false);
+        AstralFancyButton.renderButton(graphics, this.font, confirm, buttonX, buttonY, buttonW, buttonH,
+                false, enabled && inside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH),
+                ButtonStyle.button(enabled ? 0xFFD64B91 : 0xFF555560));
         Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
         graphics.text(this.font, timer, 18, this.height - 24, 0xFFBFC8FF, false);
     }

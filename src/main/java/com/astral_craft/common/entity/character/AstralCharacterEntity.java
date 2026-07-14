@@ -41,6 +41,7 @@ public class AstralCharacterEntity extends PathfinderMob {
     protected static final EntityDataAccessor<String> DATA_BOARD_SESSION_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<String> DATA_BOARD_PARTICIPANT_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<Integer> DATA_BOARD_DIRECTION = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
+    private int boardReactionTicks;
 
     public AstralCharacterEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
@@ -88,6 +89,12 @@ public class AstralCharacterEntity extends PathfinderMob {
         if (!this.level().isClientSide() && !BoardSessionManager.isValidPawn(this)) {
             this.discard();
             return;
+        }
+        if (!this.level().isClientSide() && this.boardReactionTicks > 0) {
+            this.boardReactionTicks--;
+            if (this.boardReactionTicks == 0 && "hurt".equals(this.animationAction())) {
+                this.setAnimationAction("idle");
+            }
         }
         this.getNavigation().stop();
         this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
@@ -157,6 +164,12 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.entityData.set(DATA_ANIMATION_ACTION, action == null || action.isBlank() ? "idle" : action);
     }
 
+    public void playBoardHurtAnimation(int ticks) {
+        if (!this.isBoardPawn()) return;
+        this.boardReactionTicks = Math.max(this.boardReactionTicks, Math.max(1, ticks));
+        this.setAnimationAction("hurt");
+    }
+
     public boolean isBoardPawn() { return !this.entityData.get(DATA_BOARD_SESSION_ID).isBlank(); }
     public Optional<UUID> boardSessionUuid() { return parseUuid(this.entityData.get(DATA_BOARD_SESSION_ID)); }
     public Optional<UUID> boardParticipantUuid() { return parseUuid(this.entityData.get(DATA_BOARD_PARTICIPANT_ID)); }
@@ -199,7 +212,8 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.setCharacterLevel(input.getIntOr("character_level", 1));
         this.setFriendship(input.getIntOr("friendship", 1));
         this.setStarCoins(input.getIntOr("star_coins", 0));
-        this.setAnimationAction(input.getStringOr("animation_action", "idle"));
+        String savedAction = input.getStringOr("animation_action", "idle");
+        this.setAnimationAction("hurt".equals(savedAction) ? "idle" : savedAction);
         this.entityData.set(DATA_BOARD_SESSION_ID, input.getStringOr("board_session_id", ""));
         this.entityData.set(DATA_BOARD_PARTICIPANT_ID, input.getStringOr("board_participant_id", ""));
         this.setBoardDirection(input.getIntOr("board_direction", 0));

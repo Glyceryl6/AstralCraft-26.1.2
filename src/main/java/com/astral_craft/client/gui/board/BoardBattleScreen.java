@@ -1,6 +1,8 @@
 package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.gui.HandCardRenderHelper;
+import com.astral_craft.client.gui.components.AstralFancyButton;
+import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardBattleActionPayload;
@@ -25,12 +27,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Transparent battle panel: the world remains visible while combat cards are selected. */
+/** In-world battle presentation with irrevocable combat-card spending and server-side resolution. */
 public class BoardBattleScreen extends Screen {
 
     private static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
     private static final int CARD_H = HandCardRenderHelper.FRAMED_CARD_H;
     private static final int CARD_GAP = 7;
+    private static final int ATTACK_ACCENT = 0xFFD84B61;
+    private static final int DEFENSE_ACCENT = 0xFF3F9DCE;
     private final String boardId;
     private final int attackerEntityId;
     private final int defenderEntityId;
@@ -43,9 +47,9 @@ public class BoardBattleScreen extends Screen {
     private float cardScroll;
     private int dragOffsetX;
     private int dragOffsetY;
-    private String defenseMode = "defend";
     private int timeoutTicks;
     private int maximumCost;
+    private boolean cardsLocked;
     private boolean resolved;
     private boolean submitted;
     private String resultText;
@@ -59,7 +63,7 @@ public class BoardBattleScreen extends Screen {
         this.defenderName = payload.defenderName();
         this.role = payload.role();
         this.cards = decode(payload.encodedCards());
-        this.timeoutTicks = payload.decisionTicks();
+        this.timeoutTicks = Math.max(0, payload.decisionTicks());
         this.maximumCost = Math.max(0, payload.maximumCost());
         this.resolved = payload.resolved();
         this.resultText = payload.resultText();
@@ -69,7 +73,7 @@ public class BoardBattleScreen extends Screen {
         context.enqueueWork(() -> {
             Screen current = Minecraft.getInstance().screen;
             if (current instanceof BoardBattleScreen battle && battle.boardId.equals(payload.boardId())) {
-                battle.timeoutTicks = payload.decisionTicks();
+                battle.timeoutTicks = Math.max(0, payload.decisionTicks());
                 battle.maximumCost = Math.max(0, payload.maximumCost());
                 battle.resolved = payload.resolved();
                 battle.resultText = payload.resultText();
@@ -85,14 +89,15 @@ public class BoardBattleScreen extends Screen {
     }
 
     @Override
-    public boolean isPauseScreen() {
-        return false;
-    }
+    public boolean isPauseScreen() { return false; }
 
     @Override
     public void tick() {
         super.tick();
         if (this.timeoutTicks > 0) this.timeoutTicks--;
+        if (!this.resolved && this.timeoutTicks <= 1 && !this.submitted && !"spectator".equals(this.role)) {
+            this.submit("defend");
+        }
         if (this.resolved && this.timeoutTicks <= 0) this.onClose();
     }
 
@@ -102,76 +107,129 @@ public class BoardBattleScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         Layout layout = this.layout();
-        graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + layout.height(), 0xE813131D);
-        graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + 3, 0xC0FFFFFF);
-        graphics.text(this.font, this.attackerName, layout.x() + 30, layout.y() + 18, 0xFFFF7B82, false);
+        this.renderArena(graphics, layout);
+
+        Component attackLabel = Component.translatable("gui.astral_craft.board.attack");
+        Component defenseLabel = Component.translatable("gui.astral_craft.board.defense");
+        graphics.text(this.font, attackLabel, layout.x() + 18, layout.y() + 14, 0xFFFF6B74, true);
+        graphics.text(this.font, defenseLabel,
+                layout.x() + layout.width() - 18 - this.font.width(defenseLabel), layout.y() + 14,
+                0xFF67D9FF, true);
+        graphics.text(this.font, this.attackerName, layout.x() + 18, layout.y() + 29, 0xFFFFFFFF, false);
         graphics.text(this.font, this.defenderName,
-                layout.x() + layout.width() - 30 - this.font.width(this.defenderName), layout.y() + 18,
-                0xFF7BBEFF, false);
+                layout.x() + layout.width() - 18 - this.font.width(this.defenderName), layout.y() + 29,
+                0xFFFFFFFF, false);
+
         LivingEntity attacker = this.entity(this.attackerEntityId);
         LivingEntity defender = this.entity(this.defenderEntityId);
-        int i = layout.x() + layout.width() / 2;
-        BoardScreenEntityRenderer.render(graphics, attacker, layout.x() + 16, layout.y() + 36,
-                i - 8, layout.cardY() - 8, -90.0F);
-        BoardScreenEntityRenderer.render(graphics, defender, layout.x() + layout.width() / 2 + 8,
-                layout.y() + 36, layout.x() + layout.width() - 16, layout.cardY() - 8, 90.0F);
-        graphics.enableScissor(layout.cardX(), layout.cardY(), layout.cardRight(), layout.cardBottom());
-        for (int index = 0; index < this.cards.size(); index++) {
-            CombatCard card = this.cards.get(index);
-            CardPosition position = layout.cardPosition(index, this.cardScroll);
-            if (index != this.draggingIndex && position.y() + CARD_H >= layout.cardY()
-                    && position.y() <= layout.cardBottom()) {
-                this.renderCard(graphics, card, position.x(), position.y(), mouseX, mouseY, false,
-                        this.selectedIndexes.contains(index));
-            }
-        }
+        BoardScreenEntityRenderer.render(graphics, attacker, layout.x() + 22, layout.modelTop(),
+                layout.x() + layout.width() / 2 - 24, layout.modelBottom(), -90.0F);
+        BoardScreenEntityRenderer.render(graphics, defender, layout.x() + layout.width() / 2 + 24,
+                layout.modelTop(), layout.x() + layout.width() - 22, layout.modelBottom(), 90.0F);
+        if (attacker != null) this.renderHealth(graphics, attacker, layout.x() + layout.width() / 4, layout.modelBottom() - 11);
+        if (defender != null) this.renderHealth(graphics, defender, layout.x() + layout.width() * 3 / 4, layout.modelBottom() - 11);
 
-        graphics.disableScissor();
-        if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
-            CombatCard card = this.cards.get(this.draggingIndex);
-            this.renderCard(graphics, card, mouseX - this.dragOffsetX, mouseY - this.dragOffsetY,
-                    mouseX, mouseY, true, this.selectedIndexes.contains(this.draggingIndex));
-        }
-
-        int spent = this.selectedCost();
-        Component cost = Component.translatable("gui.astral_craft.board.battle_cost", spent, this.maximumCost);
-        graphics.text(this.font, cost, layout.actionX(), layout.actionY() - 15,
-                spent <= this.maximumCost ? 0xFFFFD36B : 0xFFFF6666, false);
-        if ("defender".equals(this.role) && !this.resolved) {
-            this.drawButton(graphics, layout.actionX(), layout.actionY() + 8, 80, 26,
-                    "gui.astral_craft.board.defend", "defend".equals(this.defenseMode));
-            this.drawButton(graphics, layout.actionX() + 86, layout.actionY() + 8, 80, 26,
-                    "gui.astral_craft.board.evade", "evade".equals(this.defenseMode));
-        }
-
-        if (!"spectator".equals(this.role) && !this.resolved) {
-            this.drawButton(graphics, layout.actionX() + 86, layout.actionY() + 44, 80, 28,
-                    this.submitted ? "gui.astral_craft.board.waiting" : "gui.astral_craft.board.ready",
-                    !this.submitted && spent <= this.maximumCost);
-        }
+        this.renderHand(graphics, layout, mouseX, mouseY);
+        this.renderCost(graphics, layout);
+        this.renderActions(graphics, layout, mouseX, mouseY);
 
         Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-        graphics.text(this.font, timer, i - this.font.width(timer) / 2,
-                layout.y() + 17, 0xFFFFFFFF, false);
+        graphics.fill(layout.x() + layout.width() / 2 - 72, layout.y() + 10,
+                layout.x() + layout.width() / 2 + 72, layout.y() + 28, 0xCC050509);
+        graphics.text(this.font, timer, layout.x() + layout.width() / 2 - this.font.width(timer) / 2,
+                layout.y() + 15, 0xFFFFFFFF, false);
         if (this.resolved && this.resultText != null) {
-            int i1 = layout.y() + layout.height() / 2;
-            graphics.fill(layout.x() + 80, i1 - 18,
-                    layout.x() + layout.width() - 80, layout.y() + layout.height() / 2 + 18, 0xDD000000);
+            graphics.fill(layout.x() + 70, layout.y() + layout.height() / 2 - 18,
+                    layout.x() + layout.width() - 70, layout.y() + layout.height() / 2 + 18, 0xE8000000);
             graphics.text(this.font, this.resultText,
-                    i - this.font.width(this.resultText) / 2,
-                    i1 - 4, 0xFFFFFF80, true);
+                    layout.x() + layout.width() / 2 - this.font.width(this.resultText) / 2,
+                    layout.y() + layout.height() / 2 - 4, 0xFFFFFF80, true);
+        }
+    }
+
+    private void renderArena(GuiGraphicsExtractor graphics, Layout layout) {
+        graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + layout.height(), 0xF014141C);
+        graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + 3, 0xD0FFFFFF);
+        int arenaTop = layout.modelTop() + 18;
+        int arenaBottom = layout.modelBottom();
+        graphics.fill(layout.x() + 8, arenaTop, layout.x() + layout.width() - 8, arenaBottom, 0xFFB84E18);
+        graphics.fill(layout.x() + 18, arenaTop + 8, layout.x() + layout.width() - 18, arenaBottom - 7, 0xFFFF8B18);
+        graphics.fill(layout.x() + 66, arenaTop + 18, layout.x() + layout.width() - 66, arenaBottom - 17, 0xFFFFC431);
+        graphics.fill(layout.x() + 8, arenaBottom, layout.x() + layout.width() - 8, arenaBottom + 4, 0xFF301A20);
+    }
+
+    private void renderHealth(GuiGraphicsExtractor graphics, LivingEntity entity, int centerX, int y) {
+        Component health = Component.literal("♥ " + Math.max(0, Math.round(entity.getHealth())));
+        int width = this.font.width(health) + 12;
+        graphics.fill(centerX - width / 2, y, centerX + width / 2, y + 15, 0xE8FFFFFF);
+        graphics.text(this.font, health, centerX - this.font.width(health) / 2, y + 3, 0xFFC72E4E, true);
+    }
+
+    private void renderHand(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
+        List<Integer> visible = this.visibleCardIndexes();
+        graphics.enableScissor(layout.cardX(), layout.cardY(), layout.cardRight(), layout.cardBottom());
+        for (int visibleIndex = 0; visibleIndex < visible.size(); visibleIndex++) {
+            int index = visible.get(visibleIndex);
+            CardPosition position = layout.cardPosition(visibleIndex, this.cardScroll);
+            if (index != this.draggingIndex && position.x() + CARD_W >= layout.cardX()
+                    && position.x() <= layout.cardRight()) {
+                this.renderCard(graphics, this.cards.get(index), position.x(), position.y(), mouseX, mouseY, false);
+            }
+        }
+        graphics.disableScissor();
+        if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
+            this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX,
+                    mouseY - this.dragOffsetY, mouseX, mouseY, true);
         }
     }
 
     private void renderCard(GuiGraphicsExtractor graphics, CombatCard card, int x, int y,
-                            int mouseX, int mouseY, boolean dragging, boolean selected) {
+                            int mouseX, int mouseY, boolean dragging) {
         HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(),
                 card.definition().largeFrontTexture(card.stack()), card.definition().displayName(card.stack()),
                 x, y, mouseX, mouseY, dragging);
-        if (selected) graphics.fill(x, y, x + CARD_W, y + CARD_H, 0x4472FF72);
         Component cost = Component.translatable("gui.astral_craft.board.card_cost", card.cost());
-        graphics.fill(x + 3, y + 3, x + 25, y + 15, 0xD9000000);
-        graphics.text(this.font, cost, x + 5, y + 5, 0xFFFFD36B, true);
+        graphics.fill(x + 3, y + 3, x + 27, y + 16, 0xE0000000);
+        graphics.text(this.font, cost, x + 5, y + 6, 0xFFFFD36B, true);
+    }
+
+    private void renderCost(GuiGraphicsExtractor graphics, Layout layout) {
+        int remaining = Math.max(0, this.maximumCost - this.selectedCost());
+        Component label = Component.translatable("gui.astral_craft.board.battle_cost_remaining", remaining);
+        graphics.text(this.font, label, layout.actionX(), layout.actionY() - 30, 0xFFFFD36B, false);
+        int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
+        for (int index = 0; index < this.maximumCost; index++) {
+            boolean available = index < remaining;
+            Component diamond = Component.literal("◆");
+            graphics.text(this.font, diamond, layout.actionX() + index * 16, layout.actionY() - 16,
+                    available ? accent : 0xFF555560, true);
+        }
+    }
+
+    private void renderActions(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
+        if ("spectator".equals(this.role) || this.resolved) return;
+        int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
+        if (this.submitted) {
+            Component waiting = Component.translatable("gui.astral_craft.board.waiting");
+            AstralFancyButton.renderButton(graphics, this.font, waiting, layout.actionX(), layout.actionY(),
+                    layout.actionW(), 30, false, false, ButtonStyle.button(0xFF555560));
+            return;
+        }
+        if ("defender".equals(this.role) && this.cardsLocked) {
+            Component defend = Component.translatable("gui.astral_craft.board.defend");
+            Component evade = Component.translatable("gui.astral_craft.board.evade");
+            boolean defendHover = inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 30);
+            boolean evadeHover = inside(mouseX, mouseY, layout.actionX(), layout.actionY() + 38, layout.actionW(), 30);
+            AstralFancyButton.renderButton(graphics, this.font, defend, layout.actionX(), layout.actionY(),
+                    layout.actionW(), 30, false, defendHover, ButtonStyle.button(DEFENSE_ACCENT));
+            AstralFancyButton.renderButton(graphics, this.font, evade, layout.actionX(), layout.actionY() + 38,
+                    layout.actionW(), 30, false, evadeHover, ButtonStyle.button(0xFF69A94B));
+            return;
+        }
+        Component ready = Component.translatable("gui.astral_craft.board.ready");
+        boolean readyHover = inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 34);
+        AstralFancyButton.renderButton(graphics, this.font, ready, layout.actionX(), layout.actionY(),
+                layout.actionW(), 34, false, readyHover, ButtonStyle.button(accent));
     }
 
     @Override
@@ -179,43 +237,56 @@ public class BoardBattleScreen extends Screen {
         if (event.button() != 0 || this.resolved || this.submitted || "spectator".equals(this.role)) {
             return super.mouseClicked(event, doubleClick);
         }
-
         Layout layout = this.layout();
-        if ("defender".equals(this.role)) {
-            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 8, 80, 26)) {
-                this.defenseMode = "defend";
+        if ("defender".equals(this.role) && this.cardsLocked) {
+            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 30)) {
+                this.submit("defend");
                 return true;
             }
-            if (inside(event.x(), event.y(), layout.actionX() + 86, layout.actionY() + 8, 80, 26)) {
-                this.defenseMode = "evade";
+            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38, layout.actionW(), 30)) {
+                this.submit("evade");
                 return true;
             }
+            return super.mouseClicked(event, doubleClick);
         }
-
-        if (inside(event.x(), event.y(), layout.actionX() + 86, layout.actionY() + 44, 80, 28)) {
-            if (this.selectedCost() <= this.maximumCost) {
-                List<Integer> serverIndexes = this.selectedIndexes.stream()
-                        .map(index -> this.cards.get(index).handIndex()).toList();
-                this.submitted = true;
-                ClientPacketDistributor.sendToServer(new BoardBattleActionPayload(
-                        this.boardId, serverIndexes, this.defenseMode));
-            }
+        if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 34)) {
+            if ("defender".equals(this.role)) this.cardsLocked = true;
+            else this.submit("defend");
             return true;
         }
-
-        for (int index = 0; index < this.cards.size(); index++) {
-            CardPosition position = layout.cardPosition(index, this.cardScroll);
+        if (this.cardsLocked) return super.mouseClicked(event, doubleClick);
+        List<Integer> visible = this.visibleCardIndexes();
+        for (int visibleIndex = 0; visibleIndex < visible.size(); visibleIndex++) {
+            int index = visible.get(visibleIndex);
+            CardPosition position = layout.cardPosition(visibleIndex, this.cardScroll);
             if (event.x() >= layout.cardX() && event.x() <= layout.cardRight()
                     && event.y() >= layout.cardY() && event.y() <= layout.cardBottom()
                     && inside(event.x(), event.y(), position.x(), position.y(), CARD_W, CARD_H)) {
-                this.draggingIndex = index;
-                this.dragOffsetX = Math.clamp((int) event.x() - position.x(), 0, CARD_W);
-                this.dragOffsetY = Math.clamp((int) event.y() - position.y(), 0, CARD_H);
+                if (this.selectedCost() + this.cards.get(index).cost() <= this.maximumCost) {
+                    this.draggingIndex = index;
+                    this.dragOffsetX = Math.clamp((int) event.x() - position.x(), 0, CARD_W);
+                    this.dragOffsetY = Math.clamp((int) event.y() - position.y(), 0, CARD_H);
+                }
                 return true;
             }
         }
-
         return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (event.button() == 0 && this.draggingIndex >= 0) {
+            int index = this.draggingIndex;
+            this.draggingIndex = -1;
+            Layout layout = this.layout();
+            if (event.y() < layout.cardY() - 8
+                    && this.selectedCost() + this.cards.get(index).cost() <= this.maximumCost) {
+                this.selectedIndexes.add(index);
+                this.cardScroll = Math.clamp(this.cardScroll, 0.0F, this.maximumCardScroll(layout));
+            }
+            return true;
+        }
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -230,29 +301,23 @@ public class BoardBattleScreen extends Screen {
         return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
     }
 
-    @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() == 0 && this.draggingIndex >= 0) {
-            int index = this.draggingIndex;
-            this.draggingIndex = -1;
-            if (this.selectedIndexes.contains(index)) {
-                this.selectedIndexes.remove(index);
-            } else if (this.selectedCost() + this.cards.get(index).cost() <= this.maximumCost) {
-                this.selectedIndexes.add(index);
-            }
-            return true;
-        }
-        return super.mouseReleased(event);
+    private void submit(String defenseMode) {
+        List<Integer> serverIndexes = this.selectedIndexes.stream()
+                .map(index -> this.cards.get(index).handIndex()).toList();
+        this.submitted = true;
+        ClientPacketDistributor.sendToServer(new BoardBattleActionPayload(this.boardId, serverIndexes, defenseMode));
     }
 
     private int selectedCost() {
         return this.selectedIndexes.stream().mapToInt(index -> this.cards.get(index).cost()).sum();
     }
 
-    private void drawButton(GuiGraphicsExtractor graphics, int x, int y, int width, int height, String key, boolean active) {
-        graphics.fill(x, y, x + width, y + height, active ? 0xFFD64B91 : 0xFF555560);
-        Component text = Component.translatable(key);
-        graphics.text(this.font, text, x + (width - this.font.width(text)) / 2, y + 8, 0xFFFFFFFF, false);
+    private List<Integer> visibleCardIndexes() {
+        List<Integer> indexes = new ArrayList<>();
+        for (int index = 0; index < this.cards.size(); index++) {
+            if (!this.selectedIndexes.contains(index)) indexes.add(index);
+        }
+        return indexes;
     }
 
     private LivingEntity entity(int id) {
@@ -262,27 +327,27 @@ public class BoardBattleScreen extends Screen {
     }
 
     private Layout layout() {
-        int width = Math.clamp(this.width - 24, 1, 760);
-        int height = Math.clamp(this.height - 24, 1, 420);
+        int width = Math.min(790, Math.max(300, this.width - 20));
+        int height = Math.min(430, Math.max(230, this.height - 20));
         int x = (this.width - width) / 2;
         int y = (this.height - height) / 2;
-        int actionWidth = Math.clamp(width / 3, 176, 184);
-        int actionX = x + width - actionWidth + 4;
-        int cardX = x + 18;
-        int cardRight = Math.max(cardX + 1, actionX - 8);
-        int cardsWidth = Math.max(1, cardRight - cardX);
-        int columns = Math.max(1, (cardsWidth + CARD_GAP) / (CARD_W + CARD_GAP));
-        int cardY = y + Math.max(48, height / 2);
-        int cardBottom = Math.max(cardY + 1, y + height - 10);
-        int actionY = Math.min(cardY, Math.max(y + 42, y + height - 82));
-        return new Layout(x, y, width, height, cardX, cardY, cardRight, cardBottom,
-                columns, actionX, actionY);
+        int modelTop = y + 38;
+        int cardY = y + Math.max(160, height - CARD_H - 18);
+        int modelBottom = Math.max(modelTop + 70, cardY - 10);
+        int actionW = Math.min(148, Math.max(94, width / 5));
+        int actionX = x + width - actionW - 16;
+        int cardX = x + 16;
+        int cardRight = Math.max(cardX + 1, actionX - 10);
+        int cardBottom = y + height - 10;
+        int actionY = Math.min(cardY + 18, y + height - 76);
+        return new Layout(x, y, width, height, modelTop, modelBottom, cardX, cardY,
+                cardRight, cardBottom, actionX, actionY, actionW);
     }
 
     private float maximumCardScroll(Layout layout) {
-        int rows = Math.max(1, (this.cards.size() + layout.columns() - 1) / layout.columns());
-        int contentHeight = rows * (CARD_H + CARD_GAP) - CARD_GAP;
-        return Math.max(0, contentHeight - (layout.cardBottom() - layout.cardY()));
+        int count = this.visibleCardIndexes().size();
+        int contentWidth = Math.max(0, count * (CARD_W + CARD_GAP) - CARD_GAP);
+        return Math.max(0, contentWidth - (layout.cardRight() - layout.cardX()));
     }
 
     private static List<CombatCard> decode(String encoded) {
@@ -312,11 +377,11 @@ public class BoardBattleScreen extends Screen {
 
     private record CardPosition(int x, int y) {}
 
-    private record Layout(int x, int y, int width, int height, int cardX, int cardY,
-                          int cardRight, int cardBottom, int columns, int actionX, int actionY) {
+    private record Layout(int x, int y, int width, int height, int modelTop, int modelBottom,
+                          int cardX, int cardY, int cardRight, int cardBottom,
+                          int actionX, int actionY, int actionW) {
         CardPosition cardPosition(int index, float scroll) {
-            return new CardPosition(this.cardX + index % this.columns * (CARD_W + CARD_GAP),
-                    this.cardY + index / this.columns * (CARD_H + CARD_GAP) - Math.round(scroll));
+            return new CardPosition(this.cardX + index * (CARD_W + CARD_GAP) - Math.round(scroll), this.cardY);
         }
     }
 }

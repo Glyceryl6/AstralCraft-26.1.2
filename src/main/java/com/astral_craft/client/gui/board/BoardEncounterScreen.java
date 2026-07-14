@@ -1,5 +1,7 @@
 package com.astral_craft.client.gui.board;
 
+import com.astral_craft.client.gui.components.AstralFancyButton;
+import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.network.BoardEncounterChoicePayload;
 import com.astral_craft.common.network.OpenBoardEncounterPayload;
 import net.minecraft.client.Minecraft;
@@ -68,12 +70,14 @@ public class BoardEncounterScreen extends Screen {
         int buttonX = x + panelW - buttonW - 22;
         int challengeY = y + 88;
         int passY = challengeY + 48;
-        graphics.fill(buttonX, challengeY, buttonX + buttonW, challengeY + buttonH, 0xFFD64B61);
-        graphics.fill(buttonX, passY, buttonX + buttonW, passY + buttonH, 0xFF486A9C);
         Component challenge = Component.translatable("gui.astral_craft.board.challenge");
         Component pass = Component.translatable("gui.astral_craft.board.pass");
-        graphics.text(this.font, challenge, buttonX + (buttonW - this.font.width(challenge)) / 2, challengeY + 12, 0xFFFFFFFF, false);
-        graphics.text(this.font, pass, buttonX + (buttonW - this.font.width(pass)) / 2, passY + 12, 0xFFFFFFFF, false);
+        AstralFancyButton.renderButton(graphics, this.font, challenge, buttonX, challengeY, buttonW, buttonH,
+                false, inside(mouseX, mouseY, buttonX, challengeY, buttonW, buttonH),
+                ButtonStyle.button(0xFFD64B61));
+        AstralFancyButton.renderButton(graphics, this.font, pass, buttonX, passY, buttonW, buttonH,
+                false, inside(mouseX, mouseY, buttonX, passY, buttonW, buttonH),
+                ButtonStyle.button(0xFF486A9C));
         Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
         graphics.text(this.font, timer, buttonX, passY + buttonH + 12, 0xFFBFC8FF, false);
     }

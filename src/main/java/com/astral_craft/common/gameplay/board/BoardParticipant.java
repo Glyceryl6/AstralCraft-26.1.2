@@ -71,12 +71,10 @@ public record BoardParticipant(
 
     public BoardParticipant {
         slotId = slotId == null ? UUID.randomUUID() : slotId;
-        controllerId = controllerId == null ? Optional.empty() : controllerId;
         characterId = characterId == null ? AstralCraft.prefix("mimi") : characterId;
         skinId = skinId == null ? skinIdentifier(characterId, "default") : skinId;
         currentNodeId = currentNodeId == null ? EMPTY_NODE_ID : currentNodeId;
         previousNodeId = previousNodeId == null ? EMPTY_NODE_ID : previousNodeId;
-        entityId = entityId == null ? Optional.empty() : entityId;
         stats = stats == null ? AstralPlayerStats.DEFAULT : stats;
         hand = List.copyOf(hand == null ? List.of() : hand);
         roundStatusEffects = copyRoundStatusEffects(roundStatusEffects);

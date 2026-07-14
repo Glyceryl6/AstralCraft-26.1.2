@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.Comparator;
 import java.util.Map;
 
 /** Sends compact board snapshots used by the HUD and client-side protection rendering. */
@@ -50,14 +51,22 @@ public class BoardHudSyncManager {
                     BlockPos pos = entry.getValue();
                     if (node != null) {
                         out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
-                                .append(node.panelTypeId()).append(';');
+                                .append(session.startNodes().contains(entry.getKey()) ? '1' : '0').append(';');
                     }
                 });
         out.append('|')
                 .append(area.min().getX()).append(',').append(area.min().getY()).append(',').append(area.min().getZ()).append(',')
                 .append(area.max().getX()).append(',').append(area.max().getY()).append(',').append(area.max().getZ()).append('|')
                 .append(session.protectionEnabled()).append('|')
-                .append(session.phase().name());
+                .append(session.phase().name()).append('|');
+        session.participants().stream()
+                .sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder))
+                .forEach(participant -> {
+                    BlockPos pos = session.positions().get(participant.currentNodeKey());
+                    if (pos == null) return;
+                    out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
+                            .append(participant.characterId()).append(',').append(participant.skinName()).append(';');
+                });
         return out.toString();
     }
 

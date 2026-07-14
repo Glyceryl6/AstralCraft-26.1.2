@@ -1,6 +1,8 @@
 package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.gui.AstralStatusIconRenderer;
+import com.astral_craft.client.gui.components.AstralFancyButton;
+import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterCodecLines;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
@@ -147,8 +149,11 @@ public class BoardCharacterSelectionScreen extends Screen {
             if (position.y() + CHARACTER_H < layout.gridTop() || position.y() > layout.gridBottom()) continue;
             boolean selectedCard = definition.id().equals(this.selectedCharacter);
             boolean unavailable = this.occupied.contains(definition.id()) && !selectedCard;
-            int background = unavailable ? 0xAA2A2026 : selectedCard ? 0xEE5A2D77 : 0xCC25253A;
-            graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W, position.y() + CHARACTER_H, background);
+            boolean hovered = inside(mouseX, mouseY, position.x(), position.y(), CHARACTER_W, CHARACTER_H);
+            AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H,
+                    selectedCard, hovered && !unavailable);
+            if (unavailable) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W,
+                    position.y() + CHARACTER_H, 0x882A2026);
             String skinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
             AstralStatusIconRenderer.renderCharacterSkinHead(graphics, definition.id(), skinId,
                     position.x() + 8, position.y() + 5, 50, unavailable ? 90 : 255);
@@ -169,8 +174,8 @@ public class BoardCharacterSelectionScreen extends Screen {
             CharacterSkinDefinition skin = skins.get(index);
             int x = layout.gridX() + index * (SKIN_W + GAP) - Math.round(this.skinScroll);
             boolean active = skin.id().equals(this.selectedSkin);
-            graphics.fill(x, layout.skinY(), x + SKIN_W, layout.skinY() + SKIN_H,
-                    active ? 0xEE77519A : 0xBB29293A);
+            boolean hovered = inside(mouseX, mouseY, x, layout.skinY(), SKIN_W, SKIN_H);
+            AstralFancyButton.renderIconFrame(graphics, x, layout.skinY(), SKIN_W, SKIN_H, active, hovered);
             AstralStatusIconRenderer.renderCharacterSkinHead(graphics, selected.id(), skin.id(),
                     x + 8, layout.skinY() + 4, 38, 255);
             graphics.text(this.font,
@@ -180,11 +185,9 @@ public class BoardCharacterSelectionScreen extends Screen {
         graphics.disableScissor();
 
         boolean hover = inside(mouseX, mouseY, layout.buttonX(), layout.buttonY(), layout.buttonW(), layout.buttonH());
-        graphics.fill(layout.buttonX(), layout.buttonY(), layout.buttonX() + layout.buttonW(),
-                layout.buttonY() + layout.buttonH(), hover ? 0xFFF06AA8 : 0xFFD64B91);
         Component confirm = Component.translatable("gui.astral_craft.board.confirm");
-        graphics.text(this.font, confirm, layout.buttonX() + (layout.buttonW() - this.font.width(confirm)) / 2,
-                layout.buttonY() + 9, 0xFFFFFFFF, false);
+        AstralFancyButton.renderButton(graphics, this.font, confirm, layout.buttonX(), layout.buttonY(),
+                layout.buttonW(), layout.buttonH(), false, hover, ButtonStyle.button(0xFFD64B91));
         Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
         graphics.text(this.font, timer, layout.buttonX() - this.font.width(timer) - 8,
                 layout.buttonY() + 9, 0xFFBFC8FF, false);
@@ -293,12 +296,12 @@ public class BoardCharacterSelectionScreen extends Screen {
         int leftWidth = Math.clamp(this.width / 3, 110, 250);
         int leftX = MARGIN;
         int right = Math.max(leftX + 2, this.width - MARGIN);
-        int leftRight = Math.min(Math.max(leftX + 1, right - 126), leftX + leftWidth);
+        int leftRight = Math.clamp(right - 126, leftX + 1, leftX + leftWidth);
         int rightX = Math.min(right - 1, leftRight + GAP);
         int gridX = rightX + 10;
         int gridRight = right - 10;
         int columns = Math.max(1, (gridRight - gridX + GAP) / (CHARACTER_W + GAP));
-        int buttonW = Math.min(110, Math.max(1, right - rightX - 14));
+        int buttonW = Math.clamp(right - rightX - 14, 1, 110);
         int buttonH = 27;
         int buttonX = right - buttonW - 8;
         int buttonY = bottom - buttonH - 7;
@@ -346,4 +349,5 @@ public class BoardCharacterSelectionScreen extends Screen {
                     this.gridTop + index / this.columns * (CHARACTER_H + GAP) - Math.round(scroll));
         }
     }
+
 }
