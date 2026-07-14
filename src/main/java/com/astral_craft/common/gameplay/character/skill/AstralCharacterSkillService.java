@@ -12,8 +12,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.List;
 import java.util.Optional;
 
 public class AstralCharacterSkillService {
@@ -53,7 +55,7 @@ public class AstralCharacterSkillService {
         }
 
         AstralCharacterSkillSet skillSet = maybeSkillSet.get();
-        CharacterSkillContext context = new CharacterSkillContext(player, state, definition, skill, skillState);
+        CharacterSkillContext context = new CharacterSkillContext(player, player, state, definition, skill, skillState);
         if (!skillSet.useActive(context)) return;
         int nextCooldown = cooldownTicks(skill);
         if (nextCooldown > 0 && !canBypassCooldown(player)) {
@@ -63,6 +65,49 @@ public class AstralCharacterSkillService {
 
         sendCutin(player, state, definition, skill, skillSet);
         player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used", Component.translatable(displayNameKey(definition, skill))).withStyle(ChatFormatting.AQUA), true);
+    }
+
+
+    /**
+     * Executes an active skill for a board-controlled pawn. The board owns the round cooldown, so
+     * this path intentionally does not write a tick cooldown into CharacterSkillState.
+     *
+     * @return cooldown in board turns, or -1 when the skill was rejected
+     */
+    public static int useActiveSkillForBoard(ServerPlayer player, LivingEntity actor, Identifier characterId, String skinId,
+                                             List<ServerPlayer> viewers) {
+        if (player == null || actor == null || characterId == null
+                || !CharacterManager.INSTANCE.contains(characterId)) return -1;
+        CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
+        Optional<CharacterSkillDefinition> maybeSkill = activeSkill(definition);
+        if (maybeSkill.isEmpty()) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.skill.no_active"), true);
+            return -1;
+        }
+        CharacterSkillDefinition skill = maybeSkill.get();
+        Identifier handlerId = skill.safeHandler(definition.id());
+        Optional<AstralCharacterSkillSet> maybeSkillSet = AstralCharacterSkills.get(handlerId);
+        if (maybeSkillSet.isEmpty() || !maybeSkillSet.get().hasActiveSkill()) return -1;
+
+        var stats = com.astral_craft.common.stats.AstralStats.getOrDefault(actor);
+        ActiveCharacterState state = new ActiveCharacterState(true, characterId, skinId, 1, 1,
+                stats.attack(), stats.defense(), stats.maxHealth());
+        CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);
+        AstralCharacterSkillSet skillSet = maybeSkillSet.get();
+        if (!skillSet.useActive(new CharacterSkillContext(player, actor, state, definition, skill, skillState))) return -1;
+        int duration = AstralGameplayConfig.skillCutinDurationTicks();
+        Identifier animation = skill.safeAnimation(skillSet.fallbackAnimation());
+        if (duration > 0 && animation != null) {
+            CharacterSkillCutinPayload payload = new CharacterSkillCutinPayload(definition.id(), state.skinId(),
+                    skill.serializedId(), animation, duration);
+            for (ServerPlayer viewer : viewers == null ? List.<ServerPlayer>of() : viewers) {
+                PacketDistributor.sendToPlayer(viewer, payload);
+            }
+        }
+
+        player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used",
+                Component.translatable(displayNameKey(definition, skill))).withStyle(ChatFormatting.AQUA), true);
+        return Math.max(0, skill.cooldown(CharacterSkillDefinition.SkillMode.PVP) - stats.skillCooldownReduction());
     }
 
     public static void serverTick(ServerPlayer player) {
@@ -78,7 +123,7 @@ public class AstralCharacterSkillService {
                 CharacterSkillDefinition skill = maybeSkill.get();
                 Identifier handlerId = skill.safeHandler(definition.id());
                 AstralCharacterSkills.get(handlerId).ifPresent(skillSet ->
-                        skillSet.serverTick(new CharacterSkillContext(player, state, definition, skill, skillState)));
+                        skillSet.serverTick(new CharacterSkillContext(player, player, state, definition, skill, skillState)));
             }
         } else {
             AstralCharacterSkillEffects.clearStatusEffects(player);
@@ -113,6 +158,13 @@ public class AstralCharacterSkillService {
 
         seconds = Math.clamp(seconds, 1, AstralGameplayConfig.skillMaximumCooldownSeconds());
         return Math.max(1, seconds * 20);
+    }
+
+    public static int durationRounds(CharacterSkillDefinition skill) {
+        int seconds = skill.durationSeconds();
+        if (seconds <= 0) seconds = DEFAULT_STATUS_DURATION_SECONDS;
+        int secondsPerRound = Math.max(1, AstralGameplayConfig.skillCooldownSecondsPerRound());
+        return Math.max(1, (seconds + secondsPerRound - 1) / secondsPerRound);
     }
 
     protected static Optional<CharacterSkillDefinition> activeSkill(CharacterDefinition definition) {

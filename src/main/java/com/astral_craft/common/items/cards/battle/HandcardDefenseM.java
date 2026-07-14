@@ -10,7 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 public class HandcardDefenseM extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.DEFENSE, CardTargetTypes.NONE, -1);
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.DEFENSE, CardTargetTypes.NONE, -1).withCombatCost(1);
 
     public HandcardDefenseM(Properties properties) {
         super(properties);

@@ -28,12 +28,14 @@ public record CardDefinition(
         int range,
         int minTargets,
         int maxTargets,
+        int combatCost,
         CardUseRestriction restrictions) {
 
     public CardDefinition {
         targetTypes = CardTargetTypes.copyOf(targetTypes);
         minTargets = Math.max(0, minTargets);
         maxTargets = Math.max(minTargets, maxTargets);
+        combatCost = Math.clamp(combatCost, 0, 9);
     }
 
     public static final Codec<CardDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -45,12 +47,13 @@ public record CardDefinition(
             Codec.INT.fieldOf("range").forGetter(CardDefinition::range),
             Codec.INT.fieldOf("min_targets").forGetter(CardDefinition::minTargets),
             Codec.INT.fieldOf("max_targets").forGetter(CardDefinition::maxTargets),
+            Codec.INT.optionalFieldOf("combat_cost", 0).forGetter(CardDefinition::combatCost),
             CardUseRestriction.CODEC.optionalFieldOf("restrictions", CardUseRestriction.NONE).forGetter(CardDefinition::restrictions)
     ).apply(instance, (largeFrontTextureOverride, largeBackTextureOverride, type, targetTypes, legacyTargetTypes,
-                       range, minTargets, maxTargets, restrictions) -> new CardDefinition(
+                       range, minTargets, maxTargets, combatCost, restrictions) -> new CardDefinition(
             largeFrontTextureOverride, largeBackTextureOverride, type,
             targetTypes.orElseGet(() -> legacyTargetTypes.orElse(CardTargetTypes.NONE)),
-            range, minTargets, maxTargets, restrictions)));
+            range, minTargets, maxTargets, combatCost, restrictions)));
 
     public static final StreamCodec<ByteBuf, CardDefinition> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
@@ -111,44 +114,49 @@ public record CardDefinition(
 
     public CardDefinition withType(CardType cardType) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, cardType,
-                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.combatCost, this.restrictions);
     }
 
     public CardDefinition withFrontTexture(@Nullable Identifier texture) {
         return new CardDefinition(Optional.ofNullable(texture), this.largeBackTextureOverride, this.type,
-                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.combatCost, this.restrictions);
     }
 
     public CardDefinition withBackTexture(@Nullable Identifier texture) {
         return new CardDefinition(this.largeFrontTextureOverride, Optional.ofNullable(texture), this.type,
-                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.combatCost, this.restrictions);
     }
 
     public CardDefinition withRestrictions(CardUseRestriction restrictions) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                this.targetTypes, this.range, this.minTargets, this.maxTargets, restrictions);
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, this.combatCost, restrictions);
     }
 
     public CardDefinition withRange(int range) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                this.targetTypes, range, this.minTargets, this.maxTargets, this.restrictions);
+                this.targetTypes, range, this.minTargets, this.maxTargets, this.combatCost, this.restrictions);
     }
 
     public CardDefinition withTargetTypes(List<Class<? extends LivingEntity>> targetTypes) {
         if (targetTypes.isEmpty()) {
             return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                    CardTargetTypes.NONE, this.range, 0, 0, this.restrictions);
+                    CardTargetTypes.NONE, this.range, 0, 0, this.combatCost, this.restrictions);
         }
 
         int minTargets = this.needsTarget() ? this.minTargets : 1;
         int maxTargets = this.needsTarget() ? this.maxTargets : 1;
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                targetTypes, this.range, minTargets, maxTargets, this.restrictions);
+                targetTypes, this.range, minTargets, maxTargets, this.combatCost, this.restrictions);
     }
 
     public CardDefinition withTargetCount(int minTargets, int maxTargets) {
         return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
-                this.targetTypes, this.range, minTargets, maxTargets, this.restrictions);
+                this.targetTypes, this.range, minTargets, maxTargets, this.combatCost, this.restrictions);
+    }
+
+    public CardDefinition withCombatCost(int combatCost) {
+        return new CardDefinition(this.largeFrontTextureOverride, this.largeBackTextureOverride, this.type,
+                this.targetTypes, this.range, this.minTargets, this.maxTargets, combatCost, this.restrictions);
     }
 
     public static CardDefinition create(CardType type, List<Class<? extends LivingEntity>> targetTypes, int range) {
@@ -157,7 +165,7 @@ public record CardDefinition(
     }
 
     public static CardDefinition create(CardType type, List<Class<? extends LivingEntity>> targetTypes, int range, int minTargets, int maxTargets) {
-        return new CardDefinition(Optional.empty(), Optional.empty(), type, targetTypes, range, minTargets, maxTargets, CardUseRestriction.NONE);
+        return new CardDefinition(Optional.empty(), Optional.empty(), type, targetTypes, range, minTargets, maxTargets, 0, CardUseRestriction.NONE);
     }
 
     public static CardDefinition fallback() {

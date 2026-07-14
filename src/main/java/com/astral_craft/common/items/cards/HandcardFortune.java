@@ -1,8 +1,8 @@
 package com.astral_craft.common.items.cards;
 
-import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.stats.AstralStats;
@@ -29,7 +29,8 @@ public class HandcardFortune extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.targetPlayerOrSelf(user, targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).heal(2)));
+        LivingEntity target = targets.isEmpty() ? user : targets.getFirst();
+        AstralCardEffects.update(target, AstralStats.getOrDefault(target).heal(2));
         AstralCardEffects.update(user, AstralStats.get(user).addCardPlaysThisTurn(1));
         return true;
     }

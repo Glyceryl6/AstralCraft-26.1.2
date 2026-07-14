@@ -10,6 +10,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Optional;
 
 public class AstralCharacterSkillEffects {
@@ -21,6 +22,23 @@ public class AstralCharacterSkillEffects {
         MobEffect effect = mobEffect.get().value();
         if (effect instanceof AstralStatusMobEffect statusEffect && !statusEffect.canApplyTo(target)) return false;
         return target.addEffect(new MobEffectInstance(mobEffect.get(), durationTicks, amplifier, true, true, true));
+    }
+
+
+    public static void synchronizeRoundEffects(LivingEntity target, Map<Identifier, Integer> activeEffects) {
+        if (target == null) return;
+        Map<Identifier, Integer> safeEffects = activeEffects == null ? Map.of() : activeEffects;
+        for (Holder<MobEffect> holder : AstralStatusEffects.registeredEffects()) {
+            Identifier statusId = AstralStatusEffects.statusId(holder).orElse(null);
+            if (statusId == null) continue;
+            if (!safeEffects.containsKey(statusId)) {
+                target.removeEffect(holder);
+                continue;
+            }
+            if (!target.hasEffect(holder)) {
+                add(target, statusId, Integer.MAX_VALUE, 0);
+            }
+        }
     }
 
     public static boolean hasStatusEffect(ServerPlayer player, Identifier statusId) {

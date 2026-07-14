@@ -3,7 +3,7 @@ package com.astral_craft.common.event;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.*;
 import com.astral_craft.client.gui.battle.BattleSceneScreen;
-import com.astral_craft.client.gui.board.BoardHudOverlay;
+import com.astral_craft.client.gui.board.*;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
@@ -32,10 +32,8 @@ import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.world.entity.Avatar;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -45,7 +43,6 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
-import org.jspecify.annotations.NullMarked;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
 public class ClientEventSubscriber {
@@ -129,17 +126,18 @@ public class ClientEventSubscriber {
     public static void submitWorldGeometry(SubmitCustomGeometryEvent event) {
         CardRevealWorldRenderer.submit(event);
         PlatformTooltipWorldRenderer.submit(event);
+        BoardRouteWorldRenderer.submit(event);
+        BoardProtectionWorldRenderer.submit(event);
+        BoardCharacterMarkerRenderer.submit(event);
     }
 
-    @NullMarked
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static<T extends Avatar & ClientAvatarEntity> void beforePlayerRender(RenderPlayerEvent.Pre<T> event) {
+    public static void beforePlayerRender(RenderPlayerEvent.Pre event) {
         AstralPlayerCharacterRenderBridge.beforeRender(event);
     }
 
-    @NullMarked
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static<T extends Avatar & ClientAvatarEntity> void afterPlayerRender(RenderPlayerEvent.Post<T> event) {
+    public static void afterPlayerRender(RenderPlayerEvent.Post event) {
         AstralPlayerCharacterRenderBridge.afterRender(event);
     }
 
@@ -170,6 +168,12 @@ public class ClientEventSubscriber {
         event.register(OpenBattleScenePayload.TYPE, BattleSceneScreen::open);
         event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
+        event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
+        event.register(OpenBoardTurnPayload.TYPE, BoardTurnScreen::open);
+        event.register(OpenBoardDiscardPayload.TYPE, BoardDiscardScreen::open);
+        event.register(OpenBoardEncounterPayload.TYPE, BoardEncounterScreen::open);
+        event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);
+        event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
         event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);

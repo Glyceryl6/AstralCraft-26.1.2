@@ -6,6 +6,8 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.cards.*;
 import com.astral_craft.common.items.AstralDiceItem;
 import com.astral_craft.common.items.BoardProjectorItem;
+import com.astral_craft.common.items.BoardLobbyItem;
+import com.astral_craft.common.items.BoardDismantlerItem;
 import com.astral_craft.common.items.cards.battle.*;
 import com.astral_craft.common.items.cards.pve.*;
 import com.astral_craft.common.items.cards.pvp.*;
@@ -53,6 +55,8 @@ public class AstralItems {
     // Utility
     public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
 
     // Handcard
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION);

@@ -72,6 +72,11 @@ public class BaseHandCard extends Item {
             builder.accept(line);
         }
 
+        if (definition.combatCost() > 0) {
+            builder.accept(Component.translatable("tooltips.astral_craft.handcard.combat_cost",
+                    definition.combatCost()).withStyle(ChatFormatting.GOLD));
+        }
+
         if (!definition.restrictions().unrestricted()) {
             builder.accept(Component.translatable("tooltips.astral_craft.handcard.restricted").withStyle(ChatFormatting.GRAY));
         }

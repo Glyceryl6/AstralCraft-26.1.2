@@ -2,9 +2,7 @@ package com.astral_craft.common.items.cards.pvp;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.BuffKinds;
-import com.astral_craft.common.gameplay.SoulLinkManager;
-import com.astral_craft.common.gameplay.SoulLinkStyle;
+import com.astral_craft.common.gameplay.*;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
@@ -41,12 +39,10 @@ public class HandcardSoulLink extends BaseHandCard {
             user.sendSystemMessage(Component.translatable("message.astral_craft.soul_link.already_linked"), true);
             return false;
         }
-        if (targets.get(0) instanceof ServerPlayer first) {
-            AstralCardEffects.update(first, AstralStats.get(first).addBuff(BuffKinds.CUSTOM, 1));
-        }
-        if (targets.get(1) instanceof ServerPlayer second) {
-            AstralCardEffects.update(second, AstralStats.get(second).addBuff(BuffKinds.CUSTOM, 1));
-        }
+        LivingEntity first = targets.get(0);
+        LivingEntity second = targets.get(1);
+        AstralCardEffects.update(first, AstralStats.getOrDefault(first).addBuff(BuffKinds.CUSTOM, 1));
+        AstralCardEffects.update(second, AstralStats.getOrDefault(second).addBuff(BuffKinds.CUSTOM, 1));
         return true;
     }
 

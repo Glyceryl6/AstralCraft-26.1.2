@@ -16,6 +16,8 @@ import net.minecraft.world.level.storage.ValueOutput;
 
 public class AstralDiceEntity extends Entity {
 
+    public static final int RESULT_HOLD_TICKS = 12;
+
     private static final EntityDataAccessor<Integer> DATA_MIN = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_MAX = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_RESULT = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
@@ -93,7 +95,7 @@ public class AstralDiceEntity extends Entity {
             }
         }
 
-        if (this.tickCount > mergeEnd + 80) this.discard();
+        if (this.tickCount > mergeEnd + RESULT_HOLD_TICKS) this.discard();
     }
 
     public int rollTicks() {

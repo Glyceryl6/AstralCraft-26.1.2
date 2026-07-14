@@ -1,8 +1,8 @@
 package com.astral_craft.common.items.cards.battle;
 
-import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.stats.AstralStats;
@@ -16,6 +16,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class HandcardDragonRoar extends BaseHandCard {
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.ATTACK, CardTargetTypes.PLAYERS_AND_MOBS, 32);
 
     public HandcardDragonRoar(Properties properties) {
@@ -30,7 +31,8 @@ public class HandcardDragonRoar extends BaseHandCard {
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         AstralCardEffects.update(user, AstralStats.get(user).addTemporary("attack", 3, 1));
-        AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addTemporary("defense", -3, 1).addTemporary("speed", -9, 1)));
+        AstralCardEffects.target(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.getOrDefault(target).addTemporary("defense", -3, 1).addTemporary("speed", -9, 1)));
         return true;
     }
+
 }

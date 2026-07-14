@@ -44,7 +44,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("2");
+        PayloadRegistrar registrar = event.registrar("4");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
         registrar.playToClient(OpenTargetSelectionPayload.TYPE, OpenTargetSelectionPayload.STREAM_CODEC);
@@ -52,6 +52,12 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenBattleScenePayload.TYPE, OpenBattleScenePayload.STREAM_CODEC);
         registrar.playToClient(OpenChipSelectionPayload.TYPE, OpenChipSelectionPayload.STREAM_CODEC);
         registrar.playToClient(BoardHudSnapshotPayload.TYPE, BoardHudSnapshotPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardCharacterSelectionPayload.TYPE, OpenBoardCharacterSelectionPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardTurnPayload.TYPE, OpenBoardTurnPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardDiscardPayload.TYPE, OpenBoardDiscardPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardEncounterPayload.TYPE, OpenBoardEncounterPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardBattlePayload.TYPE, OpenBoardBattlePayload.STREAM_CODEC);
+        registrar.playToClient(BoardRouteStatePayload.TYPE, BoardRouteStatePayload.STREAM_CODEC);
         registrar.playToClient(OpenCardBackSelectionPayload.TYPE, OpenCardBackSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenCharacterSettingsPayload.TYPE, OpenCharacterSettingsPayload.STREAM_CODEC);
         registrar.playToClient(OpenHandCardDeckPayload.TYPE, OpenHandCardDeckPayload.STREAM_CODEC);
@@ -69,6 +75,13 @@ public class ModBusEventSubscriber {
         registrar.playToServer(ActivateCharacterPotentialPayload.TYPE, ActivateCharacterPotentialPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleActivateCharacterPotential);
         registrar.playToServer(CharacterSkinSelectionPayload.TYPE, CharacterSkinSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCharacterSkinSelection);
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
+        registrar.playToServer(BoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCharacterSelection);
+        registrar.playToServer(UseBoardCardPayload.TYPE, UseBoardCardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseBoardCard);
+        registrar.playToServer(BoardMoveRequestPayload.TYPE, BoardMoveRequestPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardMove);
+        registrar.playToServer(BoardSkillRequestPayload.TYPE, BoardSkillRequestPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardSkill);
+        registrar.playToServer(BoardDiscardPayload.TYPE, BoardDiscardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardDiscard);
+        registrar.playToServer(BoardEncounterChoicePayload.TYPE, BoardEncounterChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardEncounter);
+        registrar.playToServer(BoardBattleActionPayload.TYPE, BoardBattleActionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardBattle);
     }
 
 }

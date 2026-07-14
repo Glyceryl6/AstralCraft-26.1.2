@@ -27,8 +27,8 @@ public class HandcardHurry extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        return AstralCardEffects.targetPlayer(targets).map(target -> {
-            AstralCardEffects.update(target, AstralStats.get(target).setNextMoveExtraDice(1));
+        return AstralCardEffects.target(targets).map(target -> {
+            AstralCardEffects.update(target, AstralStats.getOrDefault(target).setNextMoveExtraDice(1));
             return true;
         }).orElse(false);
     }

@@ -1,6 +1,8 @@
 package com.astral_craft.common.network;
 
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
@@ -9,9 +11,13 @@ import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unused")
 public class AstralServerPayloadHandlers {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AstralServerPayloadHandlers.class);
 
     public static void handleCardTargets(CardTargetSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
@@ -113,6 +119,58 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player && !CardUseService.useDeckCard(player, payload.cardId())) {
                 AstralHandCardManager.open(player);
+            }
+        });
+    }
+
+    public static void handleBoardCharacterSelection(BoardCharacterSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardSessionManager.selectCharacter(player, payload.boardId(), payload.characterId(), payload.skinId());
+            }
+        });
+    }
+
+    public static void handleUseBoardCard(UseBoardCardPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                CardUseService.useBoardCard(player, payload.boardId(), payload.cardIndex());
+            }
+        });
+    }
+
+    public static void handleBoardMove(BoardMoveRequestPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) BoardSessionManager.requestMove(player, payload.boardId());
+        });
+    }
+
+    public static void handleBoardSkill(BoardSkillRequestPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) BoardSessionManager.requestSkill(player, payload.boardId());
+        });
+    }
+
+    public static void handleBoardDiscard(BoardDiscardPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) BoardSessionManager.discard(player, payload.boardId(), payload.cardIndexes());
+        });
+    }
+
+    public static void handleBoardEncounter(BoardEncounterChoicePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) BoardSessionManager.chooseEncounter(player, payload.boardId(), payload.challenge());
+        });
+    }
+
+    public static void handleBoardBattle(BoardBattleActionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                try {
+                    BoardBattleService.submit(player, payload.boardId(), payload.selectedCardIndexes(), payload.defenseMode());
+                } catch (RuntimeException exception) {
+                    LOGGER.error("Failed to process board battle action from {}", player.getGameProfile().name(), exception);
+                }
             }
         });
     }

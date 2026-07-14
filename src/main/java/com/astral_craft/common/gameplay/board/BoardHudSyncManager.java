@@ -3,57 +3,61 @@ package com.astral_craft.common.gameplay.board;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.network.BoardHudSnapshotPayload;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.Map;
 
-/** Sends small board-session snapshots to nearby players for the HUD board projection. */
+/** Sends compact board snapshots used by the HUD and client-side protection rendering. */
 public class BoardHudSyncManager {
 
     private static final int SYNC_INTERVAL_TICKS = 10;
-    private static final double HUD_RANGE_SQR = 96.0D * 96.0D;
+    private static final double HUD_RANGE_SQR = 128.0D * 128.0D;
     private static int ticker;
 
-    public static void serverTick() {
+    public static void serverTick(MinecraftServer server) {
         if (++ticker % SYNC_INTERVAL_TICKS != 0) return;
-        for (BoardSession session : BoardSessionManager.sessions()) {
-            ServerLevel level = levelFor(session);
-            if (level == null) continue;
-            String encoded = encode(session);
-            BlockPos center = session.protectedArea().center();
-            for (ServerPlayer player : level.players()) {
-                if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) <= HUD_RANGE_SQR) {
-                    PacketDistributor.sendToPlayer(player, new BoardHudSnapshotPayload(encoded));
-                }
+        for (ServerLevel level : server.getAllLevels()) {
+            for (BoardSession session : BoardSessionManager.sessions(level)) {
+                send(level, session);
             }
         }
     }
 
-    private static ServerLevel levelFor(BoardSession session) {
-        var server = ServerLifecycleHooks.getCurrentServer();
-        return server == null ? null : server.getLevel(session.dimension());
+    public static void send(ServerLevel level, BoardSession session) {
+        String encoded = encode(session);
+        BlockPos center = session.protectedArea().center();
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) <= HUD_RANGE_SQR) {
+                PacketDistributor.sendToPlayer(player, new BoardHudSnapshotPayload(encoded));
+            }
+        }
     }
 
-    private static String encode(BoardSession session) {
+    public static String encode(BoardSession session) {
         StringBuilder out = new StringBuilder();
         BlockPos center = session.protectedArea().center();
+        BoardArea area = session.protectedArea();
         out.append(session.id()).append('|')
                 .append(center.getX()).append(',').append(center.getY()).append(',').append(center.getZ()).append('|');
         session.positions().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .limit(256)
+                .limit(512)
                 .forEach(entry -> {
                     BoardNode node = session.nodes().get(entry.getKey());
                     BlockPos pos = entry.getValue();
                     if (node != null) {
-                        out.append(entry.getKey()).append(',')
-                                .append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
+                        out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
                                 .append(node.panelTypeId()).append(';');
                     }
                 });
+        out.append('|')
+                .append(area.min().getX()).append(',').append(area.min().getY()).append(',').append(area.min().getZ()).append(',')
+                .append(area.max().getX()).append(',').append(area.max().getY()).append(',').append(area.max().getZ()).append('|')
+                .append(session.protectionEnabled()).append('|')
+                .append(session.phase().name());
         return out.toString();
     }
 

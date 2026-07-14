@@ -6,6 +6,8 @@ import com.astral_craft.common.gameplay.character.skill.AstralCharacterPassiveSk
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillSet;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillContext;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
@@ -48,8 +50,14 @@ public class AstralCharacterSkills {
 
     public static boolean grantConfiguredStatusEffect(CharacterSkillContext context) {
         if (context == null || context.skill() == null) return false;
-        return context.skill().statusEffectId().filter(statusId -> AstralCharacterSkillEffects.add(context.player(), statusId,
-                AstralCharacterSkillService.durationTicks(context.skill()), 0)).isPresent();
+        return context.skill().statusEffectId().filter(statusId -> {
+            if (context.actor() instanceof AstralCharacterEntity character && character.isBoardPawn()) {
+                return BoardSessionManager.addRoundStatusEffect(character, statusId,
+                        AstralCharacterSkillService.durationRounds(context.skill()));
+            }
+            return AstralCharacterSkillEffects.add(context.actor(), statusId,
+                    AstralCharacterSkillService.durationTicks(context.skill()), 0);
+        }).isPresent();
     }
 
 }

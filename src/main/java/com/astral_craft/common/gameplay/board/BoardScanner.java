@@ -6,26 +6,29 @@ import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.PanelTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
 
-/** Scans a connected physical platform layout and turns it into logical board nodes. */
+/** Scans a connected physical platform layout and turns it into a protected logical board. */
 public class BoardScanner {
 
-    public static final int MAX_SCAN_NODES = 384;
+    public static final int MAX_SCAN_NODES = 512;
+    public static final int MIN_SCAN_NODES = 8;
 
     public static ScannedBoard scan(ServerLevel level, BlockPos origin) {
         List<String> errors = new ArrayList<>();
         BlockState originState = level.getBlockState(origin);
         if (!PlatformPanelMapper.isPlatform(originState.getBlock())) {
             errors.add("origin_not_panel");
-            return new ScannedBoard(Map.of(), Map.of(), new BoardArea(origin, origin), List.of(), errors);
+            return empty(origin, errors);
         }
 
-        Set<BlockPos> visited = new HashSet<>();
+        int boardY = origin.getY();
+        Set<BlockPos> visited = new LinkedHashSet<>();
         Queue<BlockPos> queue = new ArrayDeque<>();
         queue.add(origin.immutable());
         visited.add(origin.immutable());
@@ -33,7 +36,8 @@ public class BoardScanner {
             BlockPos pos = queue.poll();
             for (Direction direction : Direction.Plane.HORIZONTAL) {
                 BlockPos next = pos.relative(direction);
-                if (!visited.contains(next) && PlatformPanelMapper.isPlatform(level.getBlockState(next).getBlock())) {
+                if (next.getY() != boardY || visited.contains(next)) continue;
+                if (PlatformPanelMapper.isPlatform(level.getBlockState(next).getBlock())) {
                     visited.add(next.immutable());
                     queue.add(next.immutable());
                 }
@@ -42,24 +46,44 @@ public class BoardScanner {
 
         if (visited.size() > MAX_SCAN_NODES) {
             errors.add("too_many_panels");
+            return empty(origin, errors);
         }
 
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        if (visited.size() < MIN_SCAN_NODES) {
+            errors.add("too_few_panels");
+        }
+
+        Map<BlockPos, List<BlockPos>> adjacency = adjacency(visited);
+        if (adjacency.values().stream().anyMatch(neighbors -> neighbors.size() < 2)) {
+            errors.add("dead_end_or_gap");
+        }
+
+        if (hasBridge(adjacency)) {
+            errors.add("not_closed");
+        }
+
+        int minX = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
         for (BlockPos pos : visited) {
-            minX = Math.min(minX, pos.getX()); minY = Math.min(minY, pos.getY()); minZ = Math.min(minZ, pos.getZ());
-            maxX = Math.max(maxX, pos.getX()); maxY = Math.max(maxY, pos.getY()); maxZ = Math.max(maxZ, pos.getZ());
+            minX = Math.min(minX, pos.getX());
+            minZ = Math.min(minZ, pos.getZ());
+            maxX = Math.max(maxX, pos.getX());
+            maxZ = Math.max(maxZ, pos.getZ());
         }
 
         Map<String, BoardNode> nodes = new LinkedHashMap<>();
         Map<String, BlockPos> positions = new LinkedHashMap<>();
         List<String> starts = new ArrayList<>();
-        for (BlockPos pos : visited) {
+        Comparator<BlockPos> comparingInt = Comparator.comparingInt(Vec3i::getX);
+        List<BlockPos> orderedPositions = visited.stream().sorted(comparingInt.thenComparingInt(Vec3i::getZ)).toList();
+        for (BlockPos pos : orderedPositions) {
             BlockState state = level.getBlockState(pos);
             Identifier panelId = PlatformPanelMapper.panelId(state.getBlock())
                     .orElse(AstralCraft.prefix("recover"));
             String id = id(pos);
-            List<String> next = nextIds(level, visited, pos, state);
+            List<String> next = nextIds(adjacency.getOrDefault(pos, List.of()), pos, state);
             nodes.put(id, new BoardNode(id, panelId, next));
             positions.put(id, pos.immutable());
             if (panelId.equals(PanelTypes.START.getId())) {
@@ -71,14 +95,32 @@ public class BoardScanner {
             errors.add("need_4_start_panels");
         }
 
-        if (nodes.size() < 8) {
-            errors.add("too_few_panels");
-        }
-
-        return new ScannedBoard(nodes, positions, new BoardArea(new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ)).inflate(4, 8), starts, errors);
+        BoardArea area = visited.isEmpty()
+                ? new BoardArea(origin, origin)
+                : new BoardArea(new BlockPos(minX, boardY - 3, minZ), new BlockPos(maxX, boardY + 8, maxZ));
+        return new ScannedBoard(nodes, positions, area, starts, List.copyOf(errors));
     }
 
-    private static List<String> nextIds(ServerLevel level, Set<BlockPos> all, BlockPos pos, BlockState state) {
+    private static ScannedBoard empty(BlockPos origin, List<String> errors) {
+        return new ScannedBoard(Map.of(), Map.of(), new BoardArea(origin, origin), List.of(), List.copyOf(errors));
+    }
+
+    private static Map<BlockPos, List<BlockPos>> adjacency(Set<BlockPos> all) {
+        Map<BlockPos, List<BlockPos>> result = new LinkedHashMap<>();
+        for (BlockPos pos : all) {
+            List<BlockPos> neighbors = new ArrayList<>();
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                BlockPos next = pos.relative(direction);
+                if (all.contains(next)) neighbors.add(next.immutable());
+            }
+
+            result.put(pos, List.copyOf(neighbors));
+        }
+
+        return result;
+    }
+
+    private static List<String> nextIds(List<BlockPos> neighbors, BlockPos pos, BlockState state) {
         List<Direction> directions = new ArrayList<>();
         if (state.hasProperty(BasePlatform.FACING)) {
             directions.add(state.getValue(BasePlatform.FACING));
@@ -91,16 +133,54 @@ public class BoardScanner {
         List<String> ids = new ArrayList<>();
         for (Direction direction : directions) {
             BlockPos next = pos.relative(direction);
-            if (all.contains(next)) {
-                ids.add(id(next));
+            if (neighbors.contains(next)) ids.add(id(next));
+        }
+
+        return List.copyOf(ids);
+    }
+
+    /** A bridge is a physical gap/dead connector: removing it splits the board into separate parts. */
+    private static boolean hasBridge(Map<BlockPos, List<BlockPos>> graph) {
+        if (graph.isEmpty()) return true;
+        Map<BlockPos, Integer> discovery = new HashMap<>();
+        Map<BlockPos, Integer> low = new HashMap<>();
+        int[] time = {0};
+        BlockPos start = graph.keySet().iterator().next();
+        boolean bridge = dfsBridge(start, null, graph, discovery, low, time);
+        return bridge || discovery.size() != graph.size();
+    }
+
+    private static boolean dfsBridge(
+            BlockPos node, BlockPos parent,
+            Map<BlockPos, List<BlockPos>> graph,
+            Map<BlockPos, Integer> discovery,
+            Map<BlockPos, Integer> low, int[] time) {
+        int currentTime = ++time[0];
+        discovery.put(node, currentTime);
+        low.put(node, currentTime);
+        for (BlockPos next : graph.getOrDefault(node, List.of())) {
+            if (next.equals(parent)) continue;
+            Integer nextDiscovery = discovery.get(next);
+            if (nextDiscovery == null) {
+                if (dfsBridge(next, node, graph, discovery, low, time)) return true;
+                low.put(node, Math.min(low.get(node), low.get(next)));
+                if (low.get(next) > discovery.get(node)) return true;
+            } else {
+                low.put(node, Math.min(low.get(node), nextDiscovery));
             }
         }
 
-        return ids;
+        return false;
     }
 
     public static String id(BlockPos pos) {
-        return pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        return AstralCraft.prefix("board_node/x" + coordinate(pos.getX()) + "_y"
+                + coordinate(pos.getY()) + "_z" + coordinate(pos.getZ())).toString();
+    }
+
+    private static String coordinate(int value) {
+        long magnitude = Math.abs((long) value);
+        return (value < 0 ? "n" : "p") + Long.toString(magnitude, 36);
     }
 
 }

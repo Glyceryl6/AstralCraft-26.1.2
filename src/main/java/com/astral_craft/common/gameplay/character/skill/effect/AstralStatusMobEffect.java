@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.character.skill.effect;
 
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
@@ -45,6 +46,9 @@ public class AstralStatusMobEffect extends MobEffect {
 
     public boolean canApplyTo(LivingEntity entity) {
         if (this.characterId == null) return true;
+        if (entity instanceof AstralCharacterEntity character) {
+            return this.characterId.equals(character.characterId()) && this.activeCharacterDefinesStatus();
+        }
         if (!(entity instanceof ServerPlayer player)) return false;
         ActiveCharacterState state = CharacterProgressManager.activeState(player);
         return state.active() && this.characterId.equals(state.characterId()) && this.activeCharacterDefinesStatus();

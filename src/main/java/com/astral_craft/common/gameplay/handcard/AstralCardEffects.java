@@ -39,6 +39,10 @@ public class AstralCardEffects {
         AstralStats.set(player, stats);
     }
 
+    public static void update(LivingEntity entity, AstralPlayerStats stats) {
+        AstralStats.set(entity, stats);
+    }
+
     public static void heal(ServerPlayer player, int amount) {
         update(player, AstralStats.get(player).heal(amount));
     }
@@ -133,8 +137,8 @@ public class AstralCardEffects {
         return true;
     }
 
-    public static void snatchCoins(ServerPlayer user, ServerPlayer target, int amount) {
-        AstralPlayerStats victim = AstralStats.get(target);
+    public static void snatchCoins(ServerPlayer user, LivingEntity target, int amount) {
+        AstralPlayerStats victim = AstralStats.getOrDefault(target);
         int taken = Math.min(amount, victim.starCoins());
         update(target, victim.spendCoins(taken));
         update(user, AstralStats.get(user).addCoins(taken));

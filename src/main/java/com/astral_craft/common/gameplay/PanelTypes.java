@@ -38,6 +38,7 @@ public class PanelTypes {
     public static final DeferredHolder<PanelType, PanelType> GIFT = registerBuiltin("gift", PanelTrigger.BOTH);
     public static final DeferredHolder<PanelType, PanelType> CHIP_SHOP = registerBuiltin("chip_shop", PanelTrigger.BOTH);
     public static final DeferredHolder<PanelType, PanelType> GIMMICK = registerBuiltin("gimmick", PanelTrigger.LANDING);
+    public static final DeferredHolder<PanelType, PanelType> CANDY_MACHINE = registerBuiltin("candy_machine", PanelTrigger.BOTH);
     public static final DeferredHolder<PanelType, PanelType> EMPTY = registerBuiltin("empty", PanelTrigger.LANDING);
 
     public static DeferredHolder<PanelType, PanelType> register(String path, PanelTrigger trigger, String nameKey, String descriptionKey) {

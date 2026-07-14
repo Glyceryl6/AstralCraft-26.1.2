@@ -1,6 +1,7 @@
 package com.astral_craft.client.gui.board;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.BoardHudSnapshotPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -11,15 +12,13 @@ import net.minecraft.util.Mth;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-/**
- * HUD minimap-style projection for scanned board sessions.
- *
- * <p>It is intentionally a compact corner widget rather than a full-screen hologram, so it can
- * coexist with scoreboards and other HUD mods. Tweak anchor/margins below or expose them via a
- * client config later.</p>
- */
+/** Compact nearest-board HUD that coexists with scoreboards and other overlays. */
 public class BoardHudOverlay {
 
     public static final Identifier LAYER = AstralCraft.prefix("board_hud_overlay");
@@ -28,27 +27,39 @@ public class BoardHudOverlay {
     private static final int HUD_MARGIN_X = 8;
     private static final int HUD_MARGIN_Y = 34;
     private static final HudAnchor HUD_ANCHOR = HudAnchor.TOP_RIGHT;
-    private static final long STALE_AFTER_MILLIS = 1500L;
-
-    private static Snapshot snapshot = Snapshot.EMPTY;
-    private static long lastUpdateMillis;
+    private static final double STALE_AFTER_TICKS = 40.0D;
+    private static final Map<String, TrackedSnapshot> SNAPSHOTS = new LinkedHashMap<>();
 
     public static void acceptSnapshot(BoardHudSnapshotPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            snapshot = Snapshot.parse(payload.encoded());
-            lastUpdateMillis = System.currentTimeMillis();
+            BoardProtectionWorldRenderer.acceptSnapshot(payload.encoded());
+            Snapshot.parse(payload.encoded()).ifPresent(snapshot -> {
+                if (snapshot.enabled()) {
+                    SNAPSHOTS.put(snapshot.boardId(), new TrackedSnapshot(snapshot, ClientAnimationClock.nowTicks()));
+                } else {
+                    SNAPSHOTS.remove(snapshot.boardId());
+                }
+            });
         });
     }
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || snapshot.nodes().isEmpty()) return;
-        if (System.currentTimeMillis() - lastUpdateMillis > STALE_AFTER_MILLIS) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || SNAPSHOTS.isEmpty()) return;
+        SNAPSHOTS.values().removeIf(snapshot ->
+                ClientAnimationClock.elapsedTicks(snapshot.receivedAtTick()) > STALE_AFTER_TICKS);
+        Snapshot snapshot = SNAPSHOTS.values().stream()
+                .map(TrackedSnapshot::snapshot)
+                .filter(value -> !value.nodes().isEmpty())
+                .min(Comparator.comparingDouble(value -> value.distanceToSqr(
+                        minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ())))
+                .orElse(null);
+        if (snapshot == null) return;
+
         int x = switch (HUD_ANCHOR) {
             case TOP_LEFT, BOTTOM_LEFT -> HUD_MARGIN_X;
             case TOP_RIGHT, BOTTOM_RIGHT -> graphics.guiWidth() - HUD_MARGIN_X - HUD_SIZE;
         };
-
         int y = switch (HUD_ANCHOR) {
             case TOP_LEFT, TOP_RIGHT -> HUD_MARGIN_Y;
             case BOTTOM_LEFT, BOTTOM_RIGHT -> graphics.guiHeight() - HUD_MARGIN_Y - HUD_SIZE;
@@ -61,7 +72,7 @@ public class BoardHudOverlay {
         graphics.fill(x, bottom - 1, right, bottom, 0x90000000);
         graphics.fill(x, y, x + 1, bottom, 0x60FFFFFF);
         graphics.fill(right - 1, y, right, bottom, 0x70000000);
-        graphics.text(mc.font, Component.translatable("hud.astral_craft.board"),
+        graphics.text(minecraft.font, Component.translatable("hud.astral_craft.board"),
                 x + 6, y + 5, 0xFFFFFFFF, true);
         int plotX = x + 8;
         int plotY = y + 20;
@@ -69,10 +80,11 @@ public class BoardHudOverlay {
         Bounds bounds = Bounds.of(snapshot.nodes());
         if (bounds == null) return;
         for (Node node : snapshot.nodes()) {
-            int px = plotX + Mth.clamp(Math.round((node.x() - bounds.minX()) / Math.max(1.0F, bounds.width()) * plotSize), 0, plotSize);
-            int pz = plotY + Mth.clamp(Math.round((node.z() - bounds.minZ()) / Math.max(1.0F, bounds.depth()) * plotSize), 0, plotSize);
-            int color = colorFor(node.panelType());
-            graphics.fill(px - 2, pz - 2, px + 3, pz + 3, color);
+            int px = plotX + Mth.clamp(Math.round((node.x() - bounds.minX())
+                    / Math.max(1.0F, bounds.width()) * plotSize), 0, plotSize);
+            int pz = plotY + Mth.clamp(Math.round((node.z() - bounds.minZ())
+                    / Math.max(1.0F, bounds.depth()) * plotSize), 0, plotSize);
+            graphics.fill(px - 2, pz - 2, px + 3, pz + 3, colorFor(node.panelType()));
         }
     }
 
@@ -81,53 +93,74 @@ public class BoardHudOverlay {
         if (type.contains("shop")) return 0xFFFFD15C;
         if (type.contains("teleport")) return 0xFF58C8FF;
         if (type.contains("damage") || type.contains("monster")) return 0xFFFF6464;
-        if (type.contains("heal")) return 0xFF80FFA8;
+        if (type.contains("heal") || type.contains("recover")) return 0xFF80FFA8;
         return 0xFFC6B7FF;
     }
 
     private enum HudAnchor { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
-    private record Snapshot(List<Node> nodes) {
+    private record TrackedSnapshot(Snapshot snapshot, double receivedAtTick) {}
 
-        private static final Snapshot EMPTY = new Snapshot(List.of());
+    private record Snapshot(String boardId, int centerX, int centerY, int centerZ,
+                            List<Node> nodes, boolean enabled) {
 
-        static Snapshot parse(String encoded) {
-            if (encoded == null || encoded.isBlank()) return EMPTY;
-            String[] parts = encoded.split("\\|", 3);
-            if (parts.length < 3) return EMPTY;
+        private double distanceToSqr(double x, double y, double z) {
+            double dx = this.centerX + 0.5D - x;
+            double dy = this.centerY + 0.5D - y;
+            double dz = this.centerZ + 0.5D - z;
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        private static Optional<Snapshot> parse(String encoded) {
+            if (encoded == null || encoded.isBlank()) return Optional.empty();
+            String[] parts = encoded.split("\\|", -1);
+            if (parts.length < 6 || parts[0].isBlank()) return Optional.empty();
+            String[] center = parts[1].split(",", 3);
+            if (center.length != 3) return Optional.empty();
             List<Node> nodes = new ArrayList<>();
             for (String raw : parts[2].split(";")) {
                 if (raw.isBlank()) continue;
-                String[] f = raw.split(",", 5);
-                if (f.length < 5) continue;
+                String[] fields = raw.split(",", 4);
+                if (fields.length < 4) continue;
                 try {
-                    nodes.add(new Node(f[0], Integer.parseInt(f[1]), Integer.parseInt(f[2]), Integer.parseInt(f[3]), f[4]));
-                } catch (NumberFormatException ignored) {
-                }
+                    nodes.add(new Node(Integer.parseInt(fields[0]), Integer.parseInt(fields[1]),
+                            Integer.parseInt(fields[2]), fields[3]));
+                } catch (NumberFormatException ignored) {}
             }
-            return new Snapshot(List.copyOf(nodes));
+
+            try {
+                return Optional.of(new Snapshot(parts[0], Integer.parseInt(center[0]), Integer.parseInt(center[1]),
+                        Integer.parseInt(center[2]), List.copyOf(nodes), Boolean.parseBoolean(parts[4])));
+            } catch (NumberFormatException exception) {
+                return Optional.empty();
+            }
         }
 
     }
 
-    private record Node(String id, int x, int y, int z, String panelType) {}
+    private record Node(int x, int y, int z, String panelType) {}
 
     private record Bounds(int minX, int maxX, int minZ, int maxZ) {
 
-        float width() { return Math.max(1, maxX - minX); }
-        float depth() { return Math.max(1, maxZ - minZ); }
+        private float width() {
+            return Math.max(1, this.maxX - this.minX);
+        }
 
-        static Bounds of(List<Node> nodes) {
+        private float depth() {
+            return Math.max(1, this.maxZ - this.minZ);
+        }
+
+        private static Bounds of(List<Node> nodes) {
             if (nodes.isEmpty()) return null;
             int minX = Integer.MAX_VALUE;
             int maxX = Integer.MIN_VALUE;
             int minZ = Integer.MAX_VALUE;
             int maxZ = Integer.MIN_VALUE;
-            for (Node n : nodes) {
-                minX = Math.min(minX, n.x());
-                maxX = Math.max(maxX, n.x());
-                minZ = Math.min(minZ, n.z());
-                maxZ = Math.max(maxZ, n.z());
+            for (Node node : nodes) {
+                minX = Math.min(minX, node.x());
+                maxX = Math.max(maxX, node.x());
+                minZ = Math.min(minZ, node.z());
+                maxZ = Math.max(maxZ, node.z());
             }
 
             return new Bounds(minX, maxX, minZ, maxZ);
