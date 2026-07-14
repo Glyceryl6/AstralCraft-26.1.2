@@ -18,6 +18,7 @@ import com.astral_craft.client.model.entity.FirecrackersModel;
 import com.astral_craft.client.render.AstralDiceRenderer;
 import com.astral_craft.client.render.CardRevealEntityOverlay;
 import com.astral_craft.client.render.CardRevealWorldRenderer;
+import com.astral_craft.client.render.PlatformTooltipWorldRenderer;
 import com.astral_craft.client.render.SoulLinkRenderer;
 import com.astral_craft.client.render.character.AstralCharacterRenderStateModifier;
 import com.astral_craft.client.render.character.AstralCharacterRenderer;
@@ -125,8 +126,9 @@ public class ClientEventSubscriber {
     }
 
     @SubscribeEvent
-    public static void submitCardRevealWorldGeometry(SubmitCustomGeometryEvent event) {
+    public static void submitWorldGeometry(SubmitCustomGeometryEvent event) {
         CardRevealWorldRenderer.submit(event);
+        PlatformTooltipWorldRenderer.submit(event);
     }
 
     @NullMarked

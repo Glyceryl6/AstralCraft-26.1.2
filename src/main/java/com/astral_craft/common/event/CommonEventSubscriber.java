@@ -138,11 +138,8 @@ public class CommonEventSubscriber {
 
         if (item instanceof BlockItem blockItem) {
             Block block = blockItem.getBlock();
-            if (block instanceof BasePlatform) {
-                List<Component> tooltip = event.getToolTip();
-                String descriptionId = item.getDescriptionId();
-                descriptionId = descriptionId.replaceFirst("block", "tooltips");
-                tooltip.add(Component.translatable(descriptionId).withStyle(ChatFormatting.YELLOW));
+            if (block instanceof BasePlatform platform) {
+                event.getToolTip().add(platform.tooltip());
             }
         }
     }

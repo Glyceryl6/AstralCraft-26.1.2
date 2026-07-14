@@ -1,7 +1,11 @@
 package com.astral_craft.common.blocks;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
@@ -41,6 +45,12 @@ public class BasePlatform extends Block {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
+    }
+
+    public Component tooltip() {
+        Identifier id = BuiltInRegistries.BLOCK.getKey(this);
+        return Component.translatable("tooltips." + id.getNamespace() + "." + id.getPath())
+                .withStyle(ChatFormatting.YELLOW);
     }
 
 }
