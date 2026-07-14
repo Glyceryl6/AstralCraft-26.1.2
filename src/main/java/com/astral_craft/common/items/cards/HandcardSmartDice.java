@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.CardNumberSelectionPayload;
 import com.astral_craft.common.network.OpenCardNumberSelectionPayload;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,11 +32,11 @@ public class HandcardSmartDice extends BaseHandCard {
         return true;
     }
 
-    @Override
-    public boolean applyNumberSelection(ServerPlayer user, ItemStack itemStack, int value) {
-        if (value < MIN_DICE_VALUE || value > MAX_DICE_VALUE) return false;
-        AstralCardEffects.update(user, AstralStats.get(user).setNextMoveFixed(value));
-        return true;
+    public static void applyNumberSelection(ServerPlayer user, CardNumberSelectionPayload payload) {
+        PendingCardActionManager.PendingNumberSelection selection = PendingCardActionManager.consumeNumberSelection(
+                user, payload.cardStack(), payload.value());
+        if (selection == null || !(selection.cardStack().getItem() instanceof HandcardSmartDice)) return;
+        AstralCardEffects.update(user, AstralStats.get(user).setNextMoveFixed(payload.value()));
     }
 
 }

@@ -1,9 +1,10 @@
 package com.astral_craft.common.network;
 
-import com.astral_craft.common.gameplay.handcard.CardUseService;
-import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
-import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
+import com.astral_craft.common.gameplay.chip.ChipSelectionService;
+import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
+import com.astral_craft.common.gameplay.handcard.CardUseService;
+import com.astral_craft.common.items.cards.HandcardSmartDice;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,7 +24,7 @@ public class AstralServerPayloadHandlers {
     public static void handleCardNumberSelection(CardNumberSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                CardUseService.applyNumberSelection(player, payload);
+                HandcardSmartDice.applyNumberSelection(player, payload);
             }
         });
     }

@@ -3,7 +3,6 @@ package com.astral_craft.common.items;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
-import com.astral_craft.common.gameplay.handcard.CardRevealOptions;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.text.AstralTextFormatter;
@@ -54,17 +53,8 @@ public class BaseHandCard extends Item {
         return false;
     }
 
-    public boolean applyNumberSelection(ServerPlayer user, ItemStack itemStack, int value) {
-        return false;
-    }
-
-    @SuppressWarnings("unused")
-    public CardRevealOptions revealOptions(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition, List<LivingEntity> targets) {
-        if (!definition.shouldRevealOnUse()) {
-            return CardRevealOptions.none();
-        }
-
-        return CardRevealOptions.selfFlip(CardUseService.CARD_REVEAL_DURATION_TICKS);
+    public List<ServerPlayer> revealViewers(ServerPlayer user, CardDefinition definition, List<LivingEntity> targets) {
+        return definition.shouldRevealOnUse() ? List.of(user) : List.of();
     }
 
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {

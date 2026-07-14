@@ -149,17 +149,24 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats setNextMoveFixed(int value) {
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars, cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, Math.max(0, value), nextMoveExtraDice, buffs, modifiers);
+        int safeValue = Math.max(0, value);
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, safeValue,
+                safeValue > 0 ? 0 : nextMoveExtraDice, buffs, modifiers);
     }
 
     public AstralPlayerStats addNextMoveDice(int dice) {
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars, cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice + Math.max(0, dice), buffs, modifiers);
+        int safeDice = Math.max(0, dice);
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction,
+                safeDice > 0 ? 0 : nextMoveFixed, nextMoveExtraDice + safeDice, buffs, modifiers);
     }
 
     public AstralPlayerStats setNextMoveExtraDice(int dice) {
+        int safeDice = Math.max(0, dice);
         return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
-                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed,
-                Math.max(0, dice), buffs, modifiers);
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction,
+                safeDice > 0 ? 0 : nextMoveFixed, safeDice, buffs, modifiers);
     }
 
     public AstralPlayerStats clearNextMoveDiceEffects() {
