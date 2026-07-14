@@ -12,7 +12,6 @@ import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.CardNumberSelectionPayload;
 import com.astral_craft.common.network.CardRevealEntityPayload;
 import com.astral_craft.common.network.CardRevealPayload;
 import com.astral_craft.common.network.CardTargetCandidate;
@@ -124,16 +123,17 @@ public class CardUseService {
                     stack.copyWithCount(1), useContext.targetSelectionHandIndex(),
                     definition.minTargets(), definition.maxTargets(), effectiveRange, candidates);
             if (card.revealBeforeTargetSelection()) {
-                CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
-                if (options.enabled()) {
-                    if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()), () -> {
+                List<ServerPlayer> revealViewers = card.revealViewers(serverPlayer, definition, List.of());
+                if (!revealViewers.isEmpty()) {
+                    if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(CARD_REVEAL_DURATION_TICKS), () -> {
                         PendingCardActionManager.beginTargetSelection(serverPlayer, openPayload.cardStack(), openPayload.handIndex());
                         PacketDistributor.sendToPlayer(serverPlayer, openPayload);
                     })) {
                         return CardUseResult.consumed();
                     }
 
-                    thisSendReveal(serverPlayer, stack, definition, options, List.of());
+                    sendReveal(serverPlayer, stack, definition, revealViewers,
+                            CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
                     return CardUseResult.accepted();
                 }
             }
@@ -144,16 +144,17 @@ public class CardUseService {
         }
 
         swingAcceptedUse(serverPlayer, hand, useContext);
-        CardRevealOptions options = card.revealOptions(serverPlayer, hand, stack, definition, List.of());
-        if (options.enabled()) {
+        List<ServerPlayer> revealViewers = card.revealViewers(serverPlayer, definition, List.of());
+        if (!revealViewers.isEmpty()) {
             ItemStack source = stack.copyWithCount(1);
-            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(options.durationTicks()),
+            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(CARD_REVEAL_DURATION_TICKS),
                     () -> card.onRevealFinished(serverPlayer, hand, source, definition))) {
                 return CardUseResult.consumed();
             }
 
             consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex());
-            thisSendReveal(serverPlayer, source, definition, options, List.of());
+            sendReveal(serverPlayer, source, definition, revealViewers,
+                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             return CardUseResult.accepted();
         }
 
@@ -221,35 +222,29 @@ public class CardUseService {
             return;
         }
 
-        CardRevealOptions options = card.revealOptions(player, hand, stack, definition, targets);
-        if (options.enabled()) {
+        List<ServerPlayer> revealViewers = card.revealViewers(player, definition, targets);
+        if (!revealViewers.isEmpty()) {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
-            if (!PendingCardActionManager.scheduleExclusive(player, revealLockTicks(options.durationTicks()),
+            if (!PendingCardActionManager.scheduleExclusive(player, revealLockTicks(CARD_REVEAL_DURATION_TICKS),
                     () -> card.applyFromSelection(player, hand, capturedTargets))) {
                 return;
             }
 
-            thisSendReveal(player, stack, definition, options, targets);
+            sendReveal(player, stack, definition, revealViewers,
+                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             consumeAfterAcceptedUse(player, stack, !deckCard, payload.handIndex());
         } else if (card.applyFromSelection(player, hand, targets)) {
             consumeAfterAcceptedUse(player, stack, !deckCard, payload.handIndex());
         }
     }
 
-    public static void applyNumberSelection(ServerPlayer player, CardNumberSelectionPayload payload) {
-        PendingCardActionManager.PendingNumberSelection selection =
-                PendingCardActionManager.consumeNumberSelection(player, payload.cardStack(), payload.value());
-        if (selection == null) return;
-        if (!(selection.cardStack().getItem() instanceof BaseHandCard card)) return;
-        card.applyNumberSelection(player, selection.cardStack(), payload.value());
-    }
-
-    public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner, CardDefinition definition, Identifier animation, int durationTicks) {
+    public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner,
+                                  CardDefinition definition, Identifier animation, int durationTicks) {
         PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, animation, durationTicks));
     }
 
-    public static void sendEntityRevealAround(
-            ServerPlayer owner, ItemStack stack, CardDefinition definition, Identifier animation, int durationTicks) {
+    public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition,
+                                              Identifier animation, int durationTicks) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         sendEntityRevealAround(owner, definition.itemId(stack).toString(), revealStack(stack), cardType.getSerializedName(),
                 revealTitle(stack, definition), revealBody(owner, stack, definition), definition.largeFrontTexture(stack),
@@ -265,27 +260,24 @@ public class CardUseService {
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, payload);
     }
 
-    protected static void thisSendReveal(
-            ServerPlayer owner, ItemStack stack, CardDefinition definition,
-            CardRevealOptions options, List<LivingEntity> targets) {
-        if (options.audience() == CardRevealAudience.TRACKING_NEARBY) {
-            PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner,
-                    cardRevealPayload(owner, stack, definition, options.animation(), options.durationTicks()));
-        } else {
-            for (ServerPlayer viewer : viewers(owner, options.audience(), targets)) {
-                sendReveal(viewer, stack, owner, definition, options.animation(), options.durationTicks());
-            }
+    protected static void sendReveal(ServerPlayer owner, ItemStack stack, CardDefinition definition,
+                                     List<ServerPlayer> viewers, Identifier animation, int durationTicks) {
+        CardRevealPayload payload = cardRevealPayload(owner, stack, definition, animation, durationTicks);
+        for (ServerPlayer viewer : viewers) {
+            PacketDistributor.sendToPlayer(viewer, payload);
         }
 
-        sendEntityRevealAround(owner, stack, definition, options.animation(), options.durationTicks());
+        sendEntityRevealAround(owner, stack, definition, animation, durationTicks);
     }
 
-    protected static CardRevealPayload cardRevealPayload(
-            ServerPlayer owner, ItemStack stack, CardDefinition definition, Identifier animation, int durationTicks) {
+    protected static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack,
+                                                          CardDefinition definition, Identifier animation, int durationTicks) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
-                cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition), definition.largeFrontTexture(stack),
-                definition.largeBackTextureOverride().orElseGet(() -> CardBackPreferenceManager.selectedTexture(owner)), animation, durationTicks);
+                cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
+                definition.largeFrontTexture(stack),
+                definition.largeBackTextureOverride().orElseGet(() -> CardBackPreferenceManager.selectedTexture(owner)),
+                animation, durationTicks);
     }
 
     protected static ItemStack revealStack(ItemStack stack) {
@@ -317,8 +309,7 @@ public class CardUseService {
         if (!state.active()) return Component.translatable("message.astral_craft.hand_card_deck.need_character");
         Identifier selectedCharacter = state.characterId();
         CharacterProgress progress = CharacterProgressManager.progress(player);
-        if (restriction.requireSelectedCharacterUnlocked()
-                && CharacterManager.INSTANCE.contains(selectedCharacter)
+        if (restriction.requireSelectedCharacterUnlocked() && CharacterManager.INSTANCE.contains(selectedCharacter)
                 && !progress.isCharacterUnlocked(selectedCharacter)
                 && !CharacterManager.INSTANCE.get(selectedCharacter).unlockedByDefault()) {
             return Component.translatable("message.astral_craft.card_restriction.character_locked");
@@ -362,27 +353,6 @@ public class CardUseService {
             return new CardUseContext(true, handIndex, true);
         }
 
-    }
-
-    protected static List<ServerPlayer> viewers(ServerPlayer owner, CardRevealAudience audience, List<LivingEntity> targets) {
-        Set<ServerPlayer> viewers = new LinkedHashSet<>();
-        switch (audience) {
-            case NONE, TRACKING_NEARBY -> {}
-            case SELF -> viewers.add(owner);
-            case TARGET_PLAYERS -> addTargetPlayers(viewers, targets);
-            case SELF_AND_TARGET_PLAYERS -> {
-                viewers.add(owner);
-                addTargetPlayers(viewers, targets);
-            }
-        }
-
-        return new ArrayList<>(viewers);
-    }
-
-    private static void addTargetPlayers(Set<ServerPlayer> viewers, List<LivingEntity> targets) {
-        for (LivingEntity target : targets) {
-            if (target instanceof ServerPlayer player) viewers.add(player);
-        }
     }
 
     private static void consumeAfterAcceptedUse(ServerPlayer player, ItemStack stack, boolean consumeStack, int handIndex) {
