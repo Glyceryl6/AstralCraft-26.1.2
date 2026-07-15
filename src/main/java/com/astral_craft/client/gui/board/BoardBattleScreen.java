@@ -106,12 +106,10 @@ public class BoardBattleScreen extends Screen {
         super.tick();
         this.phaseAgeTicks++;
         if (this.timeoutTicks > 0) this.timeoutTicks--;
-        if (this.view.selecting() && this.timeoutTicks <= 1 && !this.submitted
-                && !"spectator".equals(this.role)) {
+        if (this.view.selecting() && this.timeoutTicks <= 1 && !this.submitted && !"spectator".equals(this.role)) {
             this.submit("defend");
         }
-        if (this.view.defenseChoice() && this.timeoutTicks <= 1 && !this.submitted
-                && "defender".equals(this.role)) {
+        if (this.view.defenseChoice() && this.timeoutTicks <= 1 && !this.submitted && "defender".equals(this.role)) {
             this.submit("defend");
         }
         if (this.view.result() && this.timeoutTicks <= 0) this.onClose();
@@ -137,14 +135,16 @@ public class BoardBattleScreen extends Screen {
         this.renderHealth(graphics, this.view.defenderHealth(), layout.x() + layout.width() * 3 / 4,
                 layout.modelBottom() - 11);
         this.renderBattleNumbers(graphics, layout);
-
+        this.renderDamagePopup(graphics, layout);
         if (this.view.selecting()) {
             this.renderHand(graphics, layout, mouseX, mouseY);
             this.renderCost(graphics, layout);
         }
+
         if (this.view.selecting() || this.view.defenseChoice()) {
             this.renderActions(graphics, layout, mouseX, mouseY);
         }
+
         this.renderStatus(graphics, layout);
     }
 
@@ -235,7 +235,7 @@ public class BoardBattleScreen extends Screen {
             pulseAge = Math.floorMod(this.phaseAgeTicks, 4);
         } else if (this.view.defenderRolling() && !attack && this.phaseAgeTicks < 24) {
             pulseAge = Math.floorMod(this.phaseAgeTicks, 4);
-        } else if (this.view.defenderRolling()) {
+        } else if (this.view.defenderRolling() && !"evade".equals(this.view.defenseMode())) {
             int fromBase = Math.abs(this.phaseAgeTicks - 36);
             int fromBonus = Math.abs(this.phaseAgeTicks - 53);
             pulseAge = Math.min(fromBase, fromBonus);
@@ -289,11 +289,13 @@ public class BoardBattleScreen extends Screen {
     private int animatedValueColor(boolean attack) {
         boolean flash = false;
         if (this.view.attackerRolling() && attack) {
-            flash = this.phaseAgeTicks < 22 || this.phaseAgeTicks >= 22 && this.phaseAgeTicks < 30;
+            flash = this.phaseAgeTicks < 30;
         } else if (this.view.defenderRolling()) {
-            flash = (!attack && this.phaseAgeTicks < 22)
-                    || (this.phaseAgeTicks >= 34 && this.phaseAgeTicks < 42)
-                    || (this.phaseAgeTicks >= 51 && this.phaseAgeTicks < 60);
+            flash = !attack && this.phaseAgeTicks < 22;
+            if (!"evade".equals(this.view.defenseMode())) {
+                flash |= this.phaseAgeTicks >= 34 && this.phaseAgeTicks < 42;
+                flash |= this.phaseAgeTicks >= 51 && this.phaseAgeTicks < 60;
+            }
         }
         if (flash && Math.floorMod(this.phaseAgeTicks, 4) < 2) return 0xFFFFFFFF;
         return 0xFFFFF0A0;
@@ -303,7 +305,7 @@ public class BoardBattleScreen extends Screen {
         int die = attack ? this.view.attackerDie() : this.view.defenderDie();
         int base = attack ? this.view.attackBase() : this.view.defenseBase();
         int bonus = attack ? this.view.attackBonus() : this.view.defenseBonus();
-        if (this.view.result()) return die + base + bonus;
+        if (this.view.result()) return attack ? this.view.attackTotal() : this.view.defenseTotal();
         if (this.view.attackerRolling()) {
             if (!attack) return 0;
             return this.phaseAgeTicks < 22 ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : die;
@@ -311,12 +313,25 @@ public class BoardBattleScreen extends Screen {
         if (this.view.defenseChoice()) return attack ? die : 0;
         if (this.view.defenderRolling()) {
             int age = this.phaseAgeTicks;
-            if (!attack && age < 22) return 1 + Math.floorMod(age * 7 + 3, 6);
+            if (attack) return this.view.attackTotal();
+            if (age < 22) return 1 + Math.floorMod(age * 7 + 3, 6);
+            if ("evade".equals(this.view.defenseMode())) return die;
             if (age < 36) return die;
             if (age < 53) return die + base;
-            return die + base + bonus;
+            return this.view.defenseTotal();
         }
         return 0;
+    }
+
+    private void renderDamagePopup(GuiGraphicsExtractor graphics, Layout layout) {
+        if (!this.view.result() || this.view.damage() <= 0) return;
+        int age = Math.min(this.phaseAgeTicks, 28);
+        int centerX = layout.x() + layout.width() * 3 / 4 + Math.clamp(layout.width() / 10, 42, 76);
+        int baseY = layout.modelTop() + (layout.modelBottom() - layout.modelTop()) / 2;
+        int y = baseY - Math.round(Mth.clamp(age / 28.0F, 0.0F, 1.0F) * 18.0F);
+        float pulse = age < 6 ? 1.85F - age * 0.10F : 1.25F;
+        Component damage = Component.literal("-" + this.view.damage()).withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+        this.renderScaledCenteredText(graphics, damage, centerX, y, 0xFFFF4545, pulse, true);
     }
 
     private void renderStatus(GuiGraphicsExtractor graphics, Layout layout) {
@@ -334,6 +349,7 @@ public class BoardBattleScreen extends Screen {
         } else {
             status = coloredStatus(this.defenderName, false, "gui.astral_craft.board.battle_not_knockout");
         }
+
         int statusWidth = Math.max(156, this.font.width(status) + 20);
         int i = layout.x() + layout.width() / 2;
         graphics.fill(i - statusWidth / 2, layout.y() + 9,

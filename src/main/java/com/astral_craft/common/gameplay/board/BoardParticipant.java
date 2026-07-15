@@ -172,12 +172,14 @@ public record BoardParticipant(
     }
 
     public BoardParticipant beginTurn() {
-        boolean recovering = this.knockedDownTurns > 0 || this.stats.health() <= 0;
         AstralPlayerStats nextStats = this.stats.beginTurn();
-        int nextKnockdown = recovering ? 0 : Math.max(0, this.knockedDownTurns - 1);
-        if (recovering) {
+        int nextKnockdown = Math.max(0, this.knockedDownTurns - 1);
+        boolean recoveryTurn = this.knockedDownTurns == 1;
+        if (recoveryTurn) {
             nextStats = nextStats.withHealth(Math.max(1, nextStats.maxHealth()))
                     .clearNextMoveDiceEffects();
+        } else if (this.knockedDownTurns > 1 || this.stats.health() <= 0) {
+            nextStats = nextStats.withHealth(0).clearNextMoveDiceEffects();
         }
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, nextStats, this.hand,
@@ -193,7 +195,7 @@ public record BoardParticipant(
         if (this.stats.health() > 0 || this.knockedDownTurns > 0) return this;
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats.withHealth(0), this.hand,
-                this.roundStatusEffects, this.skillCooldownTurns, 1, this.cardPlaysUsed,
+                this.roundStatusEffects, this.skillCooldownTurns, 2, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
     }
 
@@ -227,7 +229,7 @@ public record BoardParticipant(
         AstralPlayerStats next = this.stats.spendCoins(lost).withHealth(0);
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, next, this.hand,
-                this.roundStatusEffects, this.skillCooldownTurns, 1, this.cardPlaysUsed,
+                this.roundStatusEffects, this.skillCooldownTurns, 2, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
     }
 

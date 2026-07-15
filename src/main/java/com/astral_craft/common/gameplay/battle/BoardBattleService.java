@@ -214,20 +214,21 @@ public class BoardBattleService {
         int defenderDie = Mth.nextInt(level.getRandom(), 1, 6);
         int defenseBonus = randomCardBonus(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
         int attackTotal = preliminary.attackBase() + preliminary.attackerDie() + preliminary.attackBonus();
-        int defenseTotal = preliminary.defenseBase() + defenderDie + defenseBonus;
+        int incomingDamageModifier = defender.stats().incomingDamageBonus();
+        int rawDefenseTotal = preliminary.defenseBase() + defenderDie + defenseBonus;
+        int defenseTotal = Math.max(0, rawDefenseTotal - incomingDamageModifier);
         boolean evaded = "evade".equals(state.defenseMode())
                 && (defenderDie > preliminary.attackerDie() || defenderDie == 6);
         int damage = "evade".equals(state.defenseMode())
-                ? (evaded ? 0 : Math.max(0, attackTotal))
+                ? (evaded ? 0 : Math.max(0, attackTotal + incomingDamageModifier))
                 : Math.max(1, attackTotal - defenseTotal);
-        if (damage > 0) damage = Math.max(0, damage + defender.stats().incomingDamageBonus());
         int remainingHealth = Math.max(0, defender.stats().health() - damage);
         BattleRoll roll = new BattleRoll(preliminary.attackerCards(), preliminary.defenderCards(),
                 preliminary.attackBase(), preliminary.defenseBase(),
                 preliminary.attackCardMinimum(), preliminary.attackCardMaximum(),
                 preliminary.defenseCardMinimum(), preliminary.defenseCardMaximum(),
                 preliminary.attackerDie(), defenderDie, preliminary.attackBonus(), defenseBonus,
-                attackTotal, defenseTotal, damage, evaded, remainingHealth == 0);
+                attackTotal, defenseTotal, damage, evaded, remainingHealth <= 0);
         BattleState rolling = state.withRoll(PHASE_DEFENDER_ROLL,
                 level.getGameTime() + DEFENDER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
@@ -417,10 +418,9 @@ public class BoardBattleService {
         BattleRoll roll = state.roll();
         int attackBase = attacker.stats().attack();
         int defenseBase = defender.stats().defense();
-        String s = Integer.toString(attacker.stats().health());
-        String s1 = Integer.toString(defender.stats().health());
         if (roll == null) {
-            return String.join("|", state.phase(), s, s1,
+            return String.join("|", state.phase(),
+                    Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
                     Integer.toString(attackBase), Integer.toString(defenseBase),
                     Integer.toString(attackBase), Integer.toString(attackBase),
                     Integer.toString(defenseBase), Integer.toString(defenseBase),
@@ -428,7 +428,8 @@ public class BoardBattleService {
                     Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()),
                     state.defenseMode());
         }
-        return String.join("|", state.phase(), s, s1,
+        return String.join("|", state.phase(),
+                Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
                 Integer.toString(roll.attackBase()), Integer.toString(roll.defenseBase()),
                 Integer.toString(roll.attackBase() + roll.attackCardMinimum()),
                 Integer.toString(roll.attackBase() + roll.attackCardMaximum()),
