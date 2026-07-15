@@ -1,5 +1,7 @@
 package com.astral_craft.common.items.cards.pvp;
 
+import com.astral_craft.common.gameplay.board.BoardBotEffect;
+import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
@@ -14,8 +16,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
+import java.util.UUID;
 
-public class HandcardSelfExplosion extends BaseHandCard {
+public class HandcardSelfExplosion extends BaseHandCard implements BoardBotEffect {
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 5);
 
     public HandcardSelfExplosion(Properties properties) {
@@ -33,4 +36,19 @@ public class HandcardSelfExplosion extends BaseHandCard {
         AstralCardEffects.areaDamage(user, 5, 5, true);
         return true;
     }
+
+    @Override
+    public List<UUID> selectBoardBotTargets(BoardBotEffectContext context) {
+        return context.opponentSlotsInRange(DEFINITION.range());
+    }
+
+    @Override
+    public int applyByBoardBot(BoardBotEffectContext context) {
+        context.damageUser(3);
+        for (UUID targetSlotId : context.targetSlotIds()) {
+            context.damageTarget(targetSlotId, 5, false);
+        }
+        return 0;
+    }
+
 }

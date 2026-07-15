@@ -1,5 +1,7 @@
 package com.astral_craft.common.items.cards;
 
+import com.astral_craft.common.gameplay.board.BoardBotEffect;
+import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
@@ -14,7 +16,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public class HandcardSmartDice extends BaseHandCard {
+public class HandcardSmartDice extends BaseHandCard implements BoardBotEffect {
 
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 6);
     public static final int MIN_DICE_VALUE = 1;
@@ -37,6 +39,13 @@ public class HandcardSmartDice extends BaseHandCard {
                 user, payload.cardStack(), payload.value());
         if (selection == null || !(selection.cardStack().getItem() instanceof HandcardSmartDice)) return;
         AstralCardEffects.update(user, AstralStats.get(user).setNextMoveFixed(payload.value()));
+    }
+
+    @Override
+    public int applyByBoardBot(BoardBotEffectContext context) {
+        context.updateUser(stats -> stats.setNextMoveFixed(
+                context.level().getRandom().nextInt(MAX_DICE_VALUE - MIN_DICE_VALUE + 1) + MIN_DICE_VALUE));
+        return 0;
     }
 
 }

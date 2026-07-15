@@ -1,5 +1,7 @@
 package com.astral_craft.common.items.cards;
 
+import com.astral_craft.common.gameplay.board.BoardBotEffect;
+import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
@@ -14,7 +16,7 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public class HandcardBrick extends BaseHandCard {
+public class HandcardBrick extends BaseHandCard implements BoardBotEffect {
 
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.PLAYERS_AND_MOBS, 3);
 
@@ -30,6 +32,11 @@ public class HandcardBrick extends BaseHandCard {
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         return AstralCardEffects.target(targets).map(target -> AstralCardEffects.fallingBrick(user, target, 5)).orElse(false);
+    }
+
+    @Override
+    public int applyByBoardBot(BoardBotEffectContext context) {
+        return context.targetSlotIds().isEmpty() ? 0 : context.brick(context.targetSlotIds().getFirst(), 5);
     }
 
 }
