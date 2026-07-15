@@ -4,10 +4,7 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.BoardNode;
-import com.astral_craft.common.gameplay.PanelTrigger;
-import com.astral_craft.common.gameplay.PanelTypes;
-import com.astral_craft.common.gameplay.SoulLinkManager;
+import com.astral_craft.common.gameplay.*;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
@@ -22,7 +19,6 @@ import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
-import com.astral_craft.common.gameplay.BuffKinds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,9 +34,9 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -48,6 +44,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
@@ -77,8 +74,7 @@ public class BoardSessionManager {
     private static final Map<UUID, Long> NO_HUMAN_SINCE_TICKS = new HashMap<>();
     private static final Map<UUID, StartChoiceState> START_CHOICES = new HashMap<>();
     private static final Map<ResourceKey<Level>, List<BoardArea>> ACTIVE_PROTECTED_AREAS = new HashMap<>();
-    private static final Map<ResourceKey<Level>, Map<BlockPos, PendingGravityRestore>>
-            PENDING_GRAVITY_RESTORES = new HashMap<>();
+    private static final Map<ResourceKey<Level>, Map<BlockPos, PendingGravityRestore>> PENDING_GRAVITY_RESTORES = new HashMap<>();
 
     public static boolean startFromPanel(ServerPlayer player, BlockPos origin) {
         ServerLevel level = player.level();
@@ -195,7 +191,7 @@ public class BoardSessionManager {
             BoardSavedData savedData = data(player.level());
             savedData.remove(session.id());
             refreshProtectedAreas(player.level(), savedData);
-            broadcastRouteState(session, false, "", "");
+            broadcastRouteState(session, false, "", "", "");
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.deleted")
                     .withStyle(ChatFormatting.YELLOW), true);
         } else {
@@ -351,8 +347,7 @@ public class BoardSessionManager {
         return true;
     }
 
-    private static void sendTurnScreen(ServerPlayer player, BoardSession session, BoardParticipant participant,
-                                       AstralCharacterEntity entity) {
+    private static void sendTurnScreen(ServerPlayer player, BoardSession session, BoardParticipant participant, AstralCharacterEntity entity) {
         sendTurnScreen(player, session, participant, entity, true);
     }
 
@@ -406,7 +401,8 @@ public class BoardSessionManager {
     public static void requestMove(ServerPlayer player, String rawBoardId) {
         BoardSession session = session(player.level(), rawBoardId);
         if (session == null || session.phase() != BoardPhase.PLAYING || session.movement() != null
-                || session.encounter() != null || session.discard() != null || BoardBattleService.active(session.id())
+                || session.encounter() != null || session.discard() != null
+                || BoardBattleService.active(session.id())
                 || PendingCardActionManager.isExclusiveBusy(player)
                 || PendingCardActionManager.hasPendingSelection(player)) return;
         BoardParticipant participant = currentControlledParticipant(session, player);
@@ -615,7 +611,7 @@ public class BoardSessionManager {
         session.setKeepAfterGame(keepBoard);
         markChanged(level);
         syncBoardSnapshot(level, session);
-        broadcastRouteState(session, false, "", "");
+        broadcastRouteState(session, false, "", "", "");
         BoardSavedData savedData = data(level);
         if (!keepBoard) savedData.remove(session.id());
         refreshProtectedAreas(level, savedData);
@@ -635,6 +631,7 @@ public class BoardSessionManager {
                 tickSession(level, session);
             }
         }
+
         ACTIVE_PROTECTED_AREAS.keySet().retainAll(activeDimensions);
         PENDING_GRAVITY_RESTORES.keySet().retainAll(activeDimensions);
     }
@@ -653,8 +650,7 @@ public class BoardSessionManager {
     private static void refreshProtectedAreas(ServerLevel level, BoardSavedData savedData) {
         List<BoardArea> areas = savedData.sessions().stream()
                 .filter(BoardSession::protectionEnabled)
-                .map(BoardSession::protectedArea)
-                .toList();
+                .map(BoardSession::protectedArea).toList();
         if (areas.isEmpty()) ACTIVE_PROTECTED_AREAS.remove(level.dimension());
         else ACTIVE_PROTECTED_AREAS.put(level.dimension(), areas);
     }
@@ -717,6 +713,7 @@ public class BoardSessionManager {
             }
             return;
         }
+
         NO_HUMAN_SINCE_TICKS.remove(session.id());
         ensureEntities(level, session);
         BoardParticipant current = session.currentParticipant().orElse(null);
@@ -729,6 +726,7 @@ public class BoardSessionManager {
                 return;
             }
         }
+
         if (!session.turnStarted()) beginCurrentTurn(level, session);
         BoardSession.DiscardState discard = session.discard();
         if (discard != null) {
@@ -758,7 +756,6 @@ public class BoardSessionManager {
         }
 
         if (BoardBattleService.active(session.id())) return;
-
         if (session.movement() != null) {
             tickMovement(level, session);
             return;
@@ -1106,7 +1103,7 @@ public class BoardSessionManager {
         if (movement == null) return;
         BoardParticipant participant = session.participant(movement.slotId()).orElse(null);
         session.setMovement(null);
-        broadcastRouteState(session, false, "", "");
+        broadcastRouteState(session, false, "", "", "");
         if (participant == null) {
             finishTurn(level, session);
             return;
@@ -1220,8 +1217,7 @@ public class BoardSessionManager {
                 START_CHOICE_TIMEOUT_TICKS));
     }
 
-    private static void resolveStartChoice(ServerLevel level, BoardSession session,
-                                           BoardParticipant participant, boolean stop) {
+    private static void resolveStartChoice(ServerLevel level, BoardSession session, BoardParticipant participant, boolean stop) {
         START_CHOICES.remove(session.id());
         if (!stop) {
             broadcastRoutePreview(level, session);
@@ -1237,8 +1233,7 @@ public class BoardSessionManager {
         finishMovement(level, session);
     }
 
-    private static BoardParticipant applyStartBenefits(ServerLevel level, BoardSession session,
-                                                        BoardParticipant participant) {
+    private static BoardParticipant applyStartBenefits(ServerLevel level, BoardSession session, BoardParticipant participant) {
         BoardParticipant current = session.participant(participant.slotUuid()).orElse(participant);
         AstralPlayerStats stats = current.stats().heal(2);
         int cost = nextStarCost(stats.stars());
@@ -1253,11 +1248,11 @@ public class BoardSessionManager {
                 player.sendSystemMessage(message.withStyle(ChatFormatting.YELLOW), true);
             }
         }
+
         return updated;
     }
 
-    private static boolean checkStarVictory(ServerLevel level, BoardSession session,
-                                            BoardParticipant participant) {
+    private static boolean checkStarVictory(ServerLevel level, BoardSession session, BoardParticipant participant) {
         if (participant.stats().stars() < 3) return false;
         MutableComponent winner = Component.translatable("message.astral_craft.board.winner",
                 displayName(level, participant));
@@ -1303,11 +1298,11 @@ public class BoardSessionManager {
             stats = stats.heal(2);
         } else if (node.panelTypeId().equals(PanelTypes.CARD_REWARD.getId())) {
             hand = new ArrayList<>(hand);
-            randomCardId(level, _ -> true).ifPresent(hand::add);
-            randomCardId(level, _ -> true).ifPresent(hand::add);
+            randomCardId(level, BoardSessionManager::validPvpCard).ifPresent(hand::add);
+            randomCardId(level, BoardSessionManager::validPvpCard).ifPresent(hand::add);
         } else if (node.panelTypeId().equals(PanelTypes.SHOP.getId()) && landing) {
             hand = new ArrayList<>(hand);
-            randomCardId(level, _ -> true).ifPresent(hand::add);
+            randomCardId(level, BoardSessionManager::validPvpCard).ifPresent(hand::add);
         } else if (node.panelTypeId().equals(PanelTypes.WINDFALL.getId())) {
             int[] values = {2, 3, 4, 5, 10};
             stats = stats.addCoins(values[level.getRandom().nextInt(values.length)]);
@@ -1486,22 +1481,38 @@ public class BoardSessionManager {
     private static void broadcastRoutePreview(ServerLevel level, BoardSession session) {
         BoardSession.MovementState movement = session.movement();
         if (movement == null) {
-            broadcastRouteState(session, false, "", "");
+            broadcastRouteState(session, false, "", "", "");
             return;
         }
 
         BoardParticipant participant = session.participant(movement.slotId()).orElse(null);
         if (participant == null) return;
-        List<List<String>> paths = possiblePaths(session, participant.currentNodeKey(), participant.previousNodeKey(), movement.remainingSteps());
+        List<List<String>> paths = possiblePaths(session, participant.currentNodeKey(),
+                participant.previousNodeKey(), movement.remainingSteps());
+        List<List<String>> highlightedPaths = starOpportunityPaths(session, participant, paths);
         String route = encodePaths(session, paths);
+        String highlightedRoute = encodePaths(session, highlightedPaths);
         String branches = encodeNodePositions(session, movement.branchChoices());
-        broadcastRouteState(session, true, route, branches);
+        broadcastRouteState(session, true, route, highlightedRoute, branches);
     }
 
     private static List<List<String>> possiblePaths(BoardSession session, String start, String previous, int steps) {
         List<List<String>> result = new ArrayList<>();
         collectPaths(session, start, previous, steps, new ArrayList<>(List.of(start)), result);
         return result;
+    }
+
+    private static List<List<String>> starOpportunityPaths(BoardSession session, BoardParticipant participant, List<List<String>> paths) {
+        int cost = nextStarCost(participant.stats().stars());
+        if (cost <= 0 || participant.stats().starCoins() < cost) return List.of();
+        String homeNode = session.homeNode(participant.slotUuid()).orElse("");
+        Set<String> startNodes = Set.copyOf(session.startNodes());
+        return paths.stream().filter(path -> {
+            if (path.size() < 2) return false;
+            if (startNodes.contains(path.getLast())) return true;
+            if (homeNode.isBlank()) return false;
+            return path.subList(1, path.size()).contains(homeNode);
+        }).toList();
     }
 
     private static void collectPaths(BoardSession session, String current, String previous, int remaining, List<String> path, List<List<String>> result) {
@@ -1548,12 +1559,12 @@ public class BoardSessionManager {
         return joiner.toString();
     }
 
-    private static void broadcastRouteState(BoardSession session, boolean active, String route, String branches) {
-        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+    private static void broadcastRouteState(BoardSession session, boolean active, String route, String highlightedRoute, String branches) {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
         ServerLevel level = server.getLevel(session.dimension());
         if (level == null) return;
-        BoardRouteStatePayload payload = new BoardRouteStatePayload(session.id().toString(), route, branches, active);
+        BoardRouteStatePayload payload = new BoardRouteStatePayload(session.id().toString(), route, highlightedRoute, branches, active);
         for (ServerPlayer player : humanPlayers(level, session)) PacketDistributor.sendToPlayer(player, payload);
     }
 
@@ -1575,11 +1586,11 @@ public class BoardSessionManager {
                 occupiedCharacters.add(value.characterId().toString());
             }
         }
+
         String occupied = occupiedCharacters.toString();
         CharacterDefinition fallback = CharacterManager.INSTANCE.defaultCharacter();
         String fallbackSkin = fallback.skins().isEmpty() ? "default" : fallback.skins().getFirst().id();
-        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - player.level().getGameTime(),
-                0L, LOBBY_TIMEOUT_TICKS);
+        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - player.level().getGameTime(), 0L, LOBBY_TIMEOUT_TICKS);
         PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id().toString(),
                 CharacterManager.INSTANCE.encodeList(), occupied,
                 selected == null ? fallback.id().toString() : selected.characterId().toString(),
@@ -1651,9 +1662,9 @@ public class BoardSessionManager {
                 entity.playBoardHurtAnimation(10);
             }
         }
+
         markChanged(level);
     }
-
 
     private static boolean hasOnlineHumanParticipant(ServerLevel level, BoardSession session) {
         return session.participants().stream().anyMatch(participant -> participant.controllerUuid()
@@ -1756,16 +1767,21 @@ public class BoardSessionManager {
     private static List<Identifier> randomInitialHand(ServerLevel level, int count) {
         List<Identifier> cards = new ArrayList<>();
         for (int index = 0; index < count; index++) {
-            randomCardId(level, BoardSessionManager::validInitialPvpCard).ifPresent(cards::add);
+            randomCardId(level, BoardSessionManager::validPvpCard).ifPresent(cards::add);
         }
         return List.copyOf(cards);
     }
 
-    private static boolean validInitialPvpCard(BaseHandCard card) {
+    private static boolean validPvpCard(BaseHandCard card) {
         ItemStack stack = new ItemStack(card);
         CardDefinition definition = card.definition(stack);
         if (definition.type() != CardType.ATTACK && definition.type() != CardType.DEFENSE) return true;
-        return definition.combatCost() > 0 && definition.combatCost() <= BoardBattleService.MAXIMUM_PVP_COST;
+        return card == AstralItems.HANDCARD_ATTACK_M.get()
+                || card == AstralItems.HANDCARD_ATTACK_L.get()
+                || card == AstralItems.HANDCARD_ATTACK_G.get()
+                || card == AstralItems.HANDCARD_DEFENSE_M.get()
+                || card == AstralItems.HANDCARD_DEFENSE_L.get()
+                || card == AstralItems.HANDCARD_DEFENSE_G.get();
     }
 
     private static Optional<Identifier> randomCardId(ServerLevel level, Predicate<BaseHandCard> filter) {

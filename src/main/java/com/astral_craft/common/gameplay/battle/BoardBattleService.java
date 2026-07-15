@@ -48,8 +48,7 @@ public class BoardBattleService {
     private static final String PHASE_RESULT = "result";
     private static final Map<UUID, BattleState> ACTIVE = new HashMap<>();
 
-    public static void start(ServerLevel level, BoardSession session,
-                             BoardParticipant attacker, BoardParticipant defender) {
+    public static void start(ServerLevel level, BoardSession session, BoardParticipant attacker, BoardParticipant defender) {
         if (ACTIVE.containsKey(session.id())) return;
         List<Integer> attackerCards = attacker.bot() ? chooseBotCards(attacker, CardType.ATTACK) : List.of();
         List<Integer> defenderCards = defender.bot() ? chooseBotCards(defender, CardType.DEFENSE) : List.of();
@@ -65,21 +64,20 @@ public class BoardBattleService {
         return ACTIVE.containsKey(boardId);
     }
 
-    public static void submit(ServerPlayer player, String rawBoardId,
-                              List<Integer> selectedCardIndexes, String defenseMode) {
+    public static void submit(ServerPlayer player, String rawBoardId, List<Integer> selectedCardIndexes, String defenseMode) {
         UUID boardId;
         try {
             boardId = UUID.fromString(rawBoardId);
         } catch (IllegalArgumentException exception) {
             return;
         }
+
         BattleState state = ACTIVE.get(boardId);
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (state == null || session == null) return;
         BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
         BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
         if (attacker == null || defender == null) return;
-
         if (PHASE_SELECT.equals(state.phase())) {
             if (attacker.controlledBy(player.getUUID())) {
                 if (state.attackerReady()) return;
@@ -94,6 +92,7 @@ public class BoardBattleService {
             } else {
                 return;
             }
+
             ACTIVE.put(boardId, state);
             if (state.cardsReady()) beginAttackerRoll(player.level(), session, state);
             else send(player.level(), session, state);
@@ -101,8 +100,7 @@ public class BoardBattleService {
         }
 
         if (PHASE_DEFENSE_CHOICE.equals(state.phase()) && defender.controlledBy(player.getUUID())) {
-            beginDefenderRoll(player.level(), session,
-                    state.withDefenseMode("evade".equals(defenseMode) ? "evade" : "defend"));
+            beginDefenderRoll(player.level(), session, state.withDefenseMode("evade".equals(defenseMode) ? "evade" : "defend"));
         }
     }
 
@@ -114,13 +112,14 @@ public class BoardBattleService {
                 ACTIVE.remove(state.boardId());
                 continue;
             }
+
             BoardSession session = BoardSessionManager.session(level, state.boardId()).orElse(null);
             if (session == null) {
                 ACTIVE.remove(state.boardId());
                 continue;
             }
-            if (level.getGameTime() < state.deadlineTick()) continue;
 
+            if (level.getGameTime() < state.deadlineTick()) continue;
             switch (state.phase()) {
                 case PHASE_SELECT -> beginAttackerRoll(level, session, state.withTimedOutSelections());
                 case PHASE_ATTACKER_ROLL -> beginDefenseChoice(level, session, state);
@@ -133,7 +132,6 @@ public class BoardBattleService {
             }
         }
     }
-
 
     public static void participantBecameBot(ServerLevel level, BoardSession session, UUID slotId) {
         BattleState state = ACTIVE.get(session.id());
@@ -168,17 +166,19 @@ public class BoardBattleService {
             cancelAndResume(level, session);
             return;
         }
+
         List<Integer> attackerCards = validatedOrEmpty(attacker, state.attackerCards(), CardType.ATTACK);
         List<Integer> defenderCards = validatedOrEmpty(defender, state.defenderCards(), CardType.DEFENSE);
         CardRange attackRange = cardRange(attacker, attackerCards, CardType.ATTACK);
         CardRange defenseRange = cardRange(defender, defenderCards, CardType.DEFENSE);
+        int attackBase = Math.max(0, attacker.stats().attack());
+        int defenseBase = Math.max(0, defender.stats().defense() - defender.stats().incomingDamageBonus());
         int attackerDie = Mth.nextInt(level.getRandom(), 1, 6);
         int attackBonus = randomCardBonus(level, attacker, attackerCards, CardType.ATTACK);
-        BattleRoll roll = new BattleRoll(attackerCards, defenderCards,
-                attacker.stats().attack(), defender.stats().defense(),
+        BattleRoll roll = new BattleRoll(attackerCards, defenderCards, attackBase, defenseBase,
                 attackRange.minimum(), attackRange.maximum(), defenseRange.minimum(), defenseRange.maximum(),
                 attackerDie, 0, attackBonus, 0,
-                attacker.stats().attack() + attackerDie + attackBonus, 0,
+                attackBase + attackerDie + attackBonus, 0,
                 0, false, false);
         BattleState rolling = state.withRoll(PHASE_ATTACKER_ROLL,
                 level.getGameTime() + ATTACKER_ROLL_TICKS, roll);
@@ -214,13 +214,11 @@ public class BoardBattleService {
         int defenderDie = Mth.nextInt(level.getRandom(), 1, 6);
         int defenseBonus = randomCardBonus(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
         int attackTotal = preliminary.attackBase() + preliminary.attackerDie() + preliminary.attackBonus();
-        int incomingDamageModifier = defender.stats().incomingDamageBonus();
-        int rawDefenseTotal = preliminary.defenseBase() + defenderDie + defenseBonus;
-        int defenseTotal = Math.max(0, rawDefenseTotal - incomingDamageModifier);
+        int defenseTotal = preliminary.defenseBase() + defenderDie + defenseBonus;
         boolean evaded = "evade".equals(state.defenseMode())
                 && (defenderDie > preliminary.attackerDie() || defenderDie == 6);
         int damage = "evade".equals(state.defenseMode())
-                ? (evaded ? 0 : Math.max(0, attackTotal + incomingDamageModifier))
+                ? (evaded ? 0 : Math.max(0, attackTotal + defender.stats().incomingDamageBonus()))
                 : Math.max(1, attackTotal - defenseTotal);
         int remainingHealth = Math.max(0, defender.stats().health() - damage);
         BattleRoll roll = new BattleRoll(preliminary.attackerCards(), preliminary.defenderCards(),
@@ -228,7 +226,7 @@ public class BoardBattleService {
                 preliminary.attackCardMinimum(), preliminary.attackCardMaximum(),
                 preliminary.defenseCardMinimum(), preliminary.defenseCardMaximum(),
                 preliminary.attackerDie(), defenderDie, preliminary.attackBonus(), defenseBonus,
-                attackTotal, defenseTotal, damage, evaded, remainingHealth <= 0);
+                attackTotal, defenseTotal, damage, evaded, remainingHealth == 0);
         BattleState rolling = state.withRoll(PHASE_DEFENDER_ROLL,
                 level.getGameTime() + DEFENDER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
@@ -289,8 +287,7 @@ public class BoardBattleService {
         return new CardRange(minimum, maximum);
     }
 
-    private static int randomCardBonus(ServerLevel level, BoardParticipant participant,
-                                       List<Integer> indexes, CardType expected) {
+    private static int randomCardBonus(ServerLevel level, BoardParticipant participant, List<Integer> indexes, CardType expected) {
         int bonus = 0;
         for (int index : validatedOrEmpty(participant, indexes, expected)) {
             CardDefinition definition = combatDefinition(participant, index, expected);
@@ -308,8 +305,7 @@ public class BoardBattleService {
         };
     }
 
-    private static List<Integer> validateSelection(BoardParticipant participant, List<Integer> indexes,
-                                                   CardType expected) {
+    private static List<Integer> validateSelection(BoardParticipant participant, List<Integer> indexes, CardType expected) {
         if (indexes == null || indexes.size() > MAXIMUM_SELECTED_CARDS) return null;
         Set<Integer> unique = new HashSet<>(indexes);
         if (unique.size() != indexes.size()) return null;
@@ -326,8 +322,7 @@ public class BoardBattleService {
         return List.copyOf(result);
     }
 
-    private static List<Integer> validatedOrEmpty(BoardParticipant participant, List<Integer> indexes,
-                                                  CardType expected) {
+    private static List<Integer> validatedOrEmpty(BoardParticipant participant, List<Integer> indexes, CardType expected) {
         List<Integer> valid = validateSelection(participant, indexes, expected);
         return valid == null ? List.of() : valid;
     }
@@ -439,8 +434,7 @@ public class BoardBattleService {
                 Integer.toString(roll.attackBonus()), Integer.toString(roll.defenseBonus()),
                 Integer.toString(roll.attackTotal()), Integer.toString(roll.defenseTotal()),
                 Integer.toString(roll.damage()), Boolean.toString(roll.evaded()), Boolean.toString(roll.knockout()),
-                Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()),
-                state.defenseMode());
+                Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()), state.defenseMode());
     }
 
     private static String encodeCombatCards(BoardParticipant participant, CardType expected) {
@@ -451,6 +445,7 @@ public class BoardBattleService {
                 output.add(index + "," + participant.hand().get(index) + "," + definition.combatCost());
             }
         }
+
         return output.toString();
     }
 
@@ -469,11 +464,9 @@ public class BoardBattleService {
         }
     }
 
-    private record BattleState(UUID boardId, UUID attackerSlot, UUID defenderSlot,
-                               String phase, long deadlineTick,
-                               List<Integer> attackerCards, List<Integer> defenderCards,
-                               String defenseMode, boolean attackerReady, boolean defenderReady,
-                               BattleRoll roll) {
+    private record BattleState(UUID boardId, UUID attackerSlot, UUID defenderSlot, String phase,
+                               long deadlineTick, List<Integer> attackerCards, List<Integer> defenderCards,
+                               String defenseMode, boolean attackerReady, boolean defenderReady, BattleRoll roll) {
         private BattleState {
             attackerCards = List.copyOf(attackerCards);
             defenderCards = List.copyOf(defenderCards);

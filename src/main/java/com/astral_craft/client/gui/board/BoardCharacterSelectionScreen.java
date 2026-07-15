@@ -50,8 +50,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         super(Component.translatable("gui.astral_craft.board.character_select"));
         this.boardId = payload.boardId();
         List<CharacterDefinition> decoded = CharacterCodecLines.decode(payload.encodedCharacters());
-        this.characters = decoded.isEmpty()
-                ? List.of(CharacterManager.INSTANCE.defaultCharacter()) : decoded;
+        this.characters = decoded.isEmpty() ? List.of(CharacterManager.INSTANCE.defaultCharacter()) : decoded;
         this.occupied = parseIds(payload.occupiedCharacterIds());
         this.selectedCharacter = parse(payload.selectedCharacterId(), this.characters.getFirst().id());
         if (this.occupied.contains(this.selectedCharacter)) {
@@ -73,6 +72,7 @@ public class BoardCharacterSelectionScreen extends Screen {
                 }
                 return;
             }
+
             if (payload.refresh()) {
                 if (minecraft.screen instanceof BoardCharacterSelectionScreen screen
                         && screen.boardId.equals(payload.boardId())) {
@@ -80,6 +80,7 @@ public class BoardCharacterSelectionScreen extends Screen {
                 }
                 return;
             }
+
             minecraft.setScreen(new BoardCharacterSelectionScreen(payload));
         });
     }
@@ -131,15 +132,13 @@ public class BoardCharacterSelectionScreen extends Screen {
         graphics.fill(layout.leftX(), layout.top(), layout.leftRight(), layout.bottom(), 0xCC171725);
         graphics.fill(layout.rightX(), layout.top(), layout.right(), layout.bottom(), 0xCC11111C);
         graphics.text(this.font, this.title, layout.leftX() + 10, layout.top() + 8, 0xFFFFFFFF, false);
-
         CharacterDefinition selected = this.selected();
         Component title = Component.translatable(selected.titleKey());
         Component name = Component.translatable(selected.nameKey());
         graphics.text(this.font, title, layout.leftX() + 10, layout.top() + 28, 0xFFFFC75C, false);
         graphics.text(this.font, name, layout.leftX() + 10, layout.top() + 42, 0xFFFFFFFF, false);
         BoardScreenEntityRenderer.render(graphics, this.preview(selected), layout.leftX() + 6, layout.top() + 56,
-                layout.leftRight() - 6, layout.bottom() - 10, -38.0F);
-
+                layout.leftRight() - 6, layout.bottom() - 10, -225.0F);
         graphics.text(this.font, Component.translatable("gui.astral_craft.board.characters"),
                 layout.gridX(), layout.top() + 8, 0xFFBFC8FF, false);
         graphics.enableScissor(layout.gridX(), layout.gridTop(), layout.gridRight(), layout.gridBottom());
@@ -150,13 +149,11 @@ public class BoardCharacterSelectionScreen extends Screen {
             boolean selectedCard = definition.id().equals(this.selectedCharacter);
             boolean unavailable = this.occupied.contains(definition.id()) && !selectedCard;
             boolean hovered = inside(mouseX, mouseY, position.x(), position.y(), CHARACTER_W, CHARACTER_H);
-            AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H,
-                    selectedCard, hovered && !unavailable);
-            if (unavailable) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W,
-                    position.y() + CHARACTER_H, 0x882A2026);
+            AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H, selectedCard, hovered && !unavailable);
+            if (unavailable) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W, position.y() + CHARACTER_H, 0x882A2026);
             String skinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
             AstralStatusIconRenderer.renderCharacterSkinHead(graphics, definition.id(), skinId,
-                    position.x() + 8, position.y() + 5, 50, unavailable ? 90 : 255);
+                    position.x() + 8, position.y() + 5, 40, unavailable ? 90 : 255);
             Component characterName = Component.translatable(definition.nameKey());
             Component characterTitle = Component.translatable(definition.titleKey());
             graphics.text(this.font, this.font.plainSubstrByWidth(characterName.getString(), CHARACTER_W - 6),
@@ -164,8 +161,8 @@ public class BoardCharacterSelectionScreen extends Screen {
             graphics.text(this.font, this.font.plainSubstrByWidth(characterTitle.getString(), CHARACTER_W - 6),
                     position.x() + 3, position.y() + 68, unavailable ? 0xFF6A6267 : 0xFFFFC75C, false);
         }
-        graphics.disableScissor();
 
+        graphics.disableScissor();
         graphics.text(this.font, Component.translatable("gui.astral_craft.board.skins"),
                 layout.gridX(), layout.skinTitleY(), 0xFFBFC8FF, false);
         graphics.enableScissor(layout.gridX(), layout.skinY(), layout.gridRight(), layout.skinBottom());
@@ -182,8 +179,8 @@ public class BoardCharacterSelectionScreen extends Screen {
                     this.font.plainSubstrByWidth(Component.translatable(skin.nameKey()).getString(), SKIN_W - 4),
                     x + 2, layout.skinY() + 46, 0xFFFFFFFF, false);
         }
-        graphics.disableScissor();
 
+        graphics.disableScissor();
         boolean hover = inside(mouseX, mouseY, layout.buttonX(), layout.buttonY(), layout.buttonW(), layout.buttonH());
         Component confirm = Component.translatable("gui.astral_craft.board.confirm");
         AstralFancyButton.renderButton(graphics, this.font, confirm, layout.buttonX(), layout.buttonY(),
@@ -210,6 +207,7 @@ public class BoardCharacterSelectionScreen extends Screen {
             }
             return true;
         }
+
         List<CharacterSkinDefinition> skins = this.selected().skins();
         if (event.x() >= layout.gridX() && event.x() <= layout.gridRight()
                 && event.y() >= layout.skinY() && event.y() <= layout.skinBottom()) {
@@ -222,10 +220,12 @@ public class BoardCharacterSelectionScreen extends Screen {
                 }
             }
         }
+
         if (inside(event.x(), event.y(), layout.buttonX(), layout.buttonY(), layout.buttonW(), layout.buttonH())) {
             this.submit();
             return true;
         }
+
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -243,6 +243,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         } else {
             return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
         }
+
         return true;
     }
 
@@ -264,12 +265,14 @@ public class BoardCharacterSelectionScreen extends Screen {
         if (this.preview == null && minecraft.level != null) {
             this.preview = new AstralCharacterEntity(AstralEntities.ASTRAL_CHARACTER.get(), minecraft.level);
         }
+
         if (this.preview != null) {
             this.preview.setCharacterId(definition.id());
             this.preview.setSkinId(this.selectedSkin);
             this.preview.setAnimationAction(definition.previewAction());
             this.preview.tickCount++;
         }
+
         return this.preview;
     }
 
@@ -335,6 +338,7 @@ public class BoardCharacterSelectionScreen extends Screen {
                 result.add(Identifier.parse(raw));
             } catch (IllegalArgumentException ignored) {}
         }
+
         return result;
     }
 
