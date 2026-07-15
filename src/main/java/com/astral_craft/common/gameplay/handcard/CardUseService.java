@@ -152,22 +152,6 @@ public class CardUseService {
             OpenTargetSelectionPayload openPayload = new OpenTargetSelectionPayload(
                     stack.copyWithCount(1), useContext.targetSelectionHandIndex(),
                     definition.minTargets(), definition.maxTargets(), effectiveRange, candidates);
-            if (card.revealBeforeTargetSelection()) {
-                List<ServerPlayer> revealViewers = revealViewers(card, serverPlayer, definition, List.of(), useContext);
-                if (!revealViewers.isEmpty()) {
-                    if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(CARD_REVEAL_DURATION_TICKS), () -> {
-                        PendingCardActionManager.beginTargetSelection(serverPlayer, openPayload.cardStack(), openPayload.handIndex());
-                        PacketDistributor.sendToPlayer(serverPlayer, openPayload);
-                    })) {
-                        return CardUseResult.consumed();
-                    }
-
-                    sendReveal(serverPlayer, stack, definition, revealViewers,
-                            CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
-                    return CardUseResult.accepted();
-                }
-            }
-
             PendingCardActionManager.beginTargetSelection(serverPlayer, openPayload.cardStack(), openPayload.handIndex());
             PacketDistributor.sendToPlayer(serverPlayer, openPayload);
             return CardUseResult.accepted();
@@ -183,7 +167,7 @@ public class CardUseService {
             }
 
             consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex());
-            sendReveal(serverPlayer, source, definition, revealViewers,
+            sendReveal(serverPlayer, source, definition, revealViewers, List.of(serverPlayer),
                     CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             return CardUseResult.accepted();
         }
@@ -257,13 +241,6 @@ public class CardUseService {
         }
 
         swingAcceptedUse(player, hand, CardUseContext.fromHandIndex(payload.handIndex()));
-        if (card.revealBeforeTargetSelection()) {
-            if (card.applyFromSelection(player, hand, targets)) {
-                consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
-            }
-            return;
-        }
-
         List<ServerPlayer> revealViewers = revealViewers(card, player, definition, targets,
                 CardUseContext.fromHandIndex(payload.handIndex()));
         if (!revealViewers.isEmpty()) {
@@ -273,7 +250,7 @@ public class CardUseService {
                 return;
             }
 
-            sendReveal(player, stack, definition, revealViewers,
+            sendReveal(player, stack, definition, revealViewers, targets,
                     CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
         } else if (card.applyFromSelection(player, hand, targets)) {
@@ -290,7 +267,7 @@ public class CardUseService {
 
     public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner,
                                   CardDefinition definition, Identifier animation, int durationTicks) {
-        PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, animation, durationTicks));
+        PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, List.of(owner), animation, durationTicks));
     }
 
     public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition,
@@ -310,8 +287,10 @@ public class CardUseService {
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, payload);
     }
 
-    protected static void sendReveal(ServerPlayer owner, ItemStack stack, CardDefinition definition, List<ServerPlayer> viewers, Identifier animation, int durationTicks) {
-        CardRevealPayload payload = cardRevealPayload(owner, stack, definition, animation, durationTicks);
+    protected static void sendReveal(ServerPlayer owner, ItemStack stack, CardDefinition definition,
+                                     List<ServerPlayer> viewers, List<? extends LivingEntity> targets,
+                                     Identifier animation, int durationTicks) {
+        CardRevealPayload payload = cardRevealPayload(owner, stack, definition, targets, animation, durationTicks);
         for (ServerPlayer viewer : viewers) {
             PacketDistributor.sendToPlayer(viewer, payload);
         }
@@ -319,13 +298,19 @@ public class CardUseService {
         sendEntityRevealAround(owner, stack, definition, animation, durationTicks);
     }
 
-    protected static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition, Identifier animation, int durationTicks) {
+    protected static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,
+                                                         List<? extends LivingEntity> targets, Identifier animation,
+                                                         int durationTicks) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
+        int sourceEntityId = BoardSessionManager.revealSourceEntityId(owner);
+        List<Integer> targetEntityIds = targets == null || targets.isEmpty()
+                ? List.of(sourceEntityId)
+                : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
                 definition.largeFrontTexture(stack),
                 definition.largeBackTextureOverride().orElseGet(() -> CardBackPreferenceManager.selectedTexture(owner)),
-                animation, durationTicks);
+                animation, durationTicks, sourceEntityId, targetEntityIds);
     }
 
     protected static ItemStack revealStack(ItemStack stack) {

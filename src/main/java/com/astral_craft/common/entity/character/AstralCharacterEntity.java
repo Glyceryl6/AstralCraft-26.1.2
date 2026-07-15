@@ -92,7 +92,8 @@ public class AstralCharacterEntity extends PathfinderMob {
         }
         if (!this.level().isClientSide() && this.boardReactionTicks > 0) {
             this.boardReactionTicks--;
-            if (this.boardReactionTicks == 0 && "hurt".equals(this.animationAction())) {
+            if (this.boardReactionTicks == 0
+                    && ("hurt".equals(this.animationAction()) || "attack".equals(this.animationAction()))) {
                 this.setAnimationAction("idle");
             }
         }
@@ -170,6 +171,12 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.setAnimationAction("hurt");
     }
 
+    public void playBoardAttackAnimation(int ticks) {
+        if (!this.isBoardPawn()) return;
+        this.boardReactionTicks = Math.max(this.boardReactionTicks, Math.max(1, ticks));
+        this.setAnimationAction("attack");
+    }
+
     public boolean isBoardPawn() { return !this.entityData.get(DATA_BOARD_SESSION_ID).isBlank(); }
     public Optional<UUID> boardSessionUuid() { return parseUuid(this.entityData.get(DATA_BOARD_SESSION_ID)); }
     public Optional<UUID> boardParticipantUuid() { return parseUuid(this.entityData.get(DATA_BOARD_PARTICIPANT_ID)); }
@@ -213,7 +220,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.setFriendship(input.getIntOr("friendship", 1));
         this.setStarCoins(input.getIntOr("star_coins", 0));
         String savedAction = input.getStringOr("animation_action", "idle");
-        this.setAnimationAction("hurt".equals(savedAction) ? "idle" : savedAction);
+        this.setAnimationAction(("hurt".equals(savedAction) || "attack".equals(savedAction)) ? "idle" : savedAction);
         this.entityData.set(DATA_BOARD_SESSION_ID, input.getStringOr("board_session_id", ""));
         this.entityData.set(DATA_BOARD_PARTICIPANT_ID, input.getStringOr("board_participant_id", ""));
         this.setBoardDirection(input.getIntOr("board_direction", 0));

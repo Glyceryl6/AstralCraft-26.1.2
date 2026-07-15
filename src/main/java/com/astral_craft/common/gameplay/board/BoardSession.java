@@ -21,6 +21,7 @@ public class BoardSession {
     private final BoardArea protectedArea;
     private final List<String> startNodes;
     private final LinkedHashMap<UUID, BoardParticipant> participants = new LinkedHashMap<>();
+    private final LinkedHashMap<UUID, String> homeNodes = new LinkedHashMap<>();
     private final List<UUID> turnOrder = new ArrayList<>();
     private BoardPhase phase;
     private int turnIndex;
@@ -37,13 +38,13 @@ public class BoardSession {
 
     public BoardSession(UUID id, ResourceKey<Level> dimension, ScannedBoard board) {
         this(id, dimension, board.nodes(), board.positions(), board.area(), board.startNodes(),
-                BoardPhase.READY, List.of(), List.of(), 0, 0, false, true, true, 0);
+                BoardPhase.READY, List.of(), Map.of(), List.of(), 0, 0, false, true, true, 0);
     }
 
     private BoardSession(UUID id, ResourceKey<Level> dimension,
                          Map<String, BoardNode> nodes, Map<String, BlockPos> positions,
                          BoardArea protectedArea, List<String> startNodes,
-                         BoardPhase phase, List<BoardParticipant> participants,
+                         BoardPhase phase, List<BoardParticipant> participants, Map<UUID, String> homeNodes,
                          List<UUID> turnOrder, int turnIndex, int round, boolean turnStarted,
                          boolean protectionEnabled, boolean keepAfterGame, int arrivalSequence) {
         this.id = id;
@@ -57,6 +58,11 @@ public class BoardSession {
         for (BoardParticipant participant : participants) {
             this.participants.put(participant.slotUuid(), canonicalNodes.remapParticipant(participant));
         }
+        homeNodes.forEach((slotId, nodeId) -> {
+            if (slotId != null && nodeId != null && !nodeId.isBlank()) {
+                this.homeNodes.put(slotId, canonicalNodes.remapNodeId(nodeId));
+            }
+        });
         this.turnOrder.addAll(turnOrder);
         this.turnIndex = Math.clamp(turnIndex, 0, Math.max(0, this.turnOrder.size() - 1));
         this.round = Math.max(0, round);
@@ -145,6 +151,7 @@ public class BoardSession {
 
     public void removeParticipant(UUID slotId) {
         this.participants.remove(slotId);
+        this.homeNodes.remove(slotId);
         this.turnOrder.remove(slotId);
         this.normalizeTurnIndex();
     }
@@ -161,8 +168,26 @@ public class BoardSession {
         return this.participants.size();
     }
 
+    public void setHomeNode(UUID slotId, String nodeId) {
+        if (slotId == null || nodeId == null || nodeId.isBlank()) return;
+        String canonical = canonicalNodeId(nodeId);
+        if (this.nodes.containsKey(canonical)) {
+            this.homeNodes.put(slotId, canonical);
+        }
+    }
+
+    public Optional<String> homeNode(UUID slotId) {
+        return Optional.ofNullable(this.homeNodes.get(slotId));
+    }
+
+    public boolean isHomeNode(BoardParticipant participant) {
+        if (participant == null) return false;
+        return this.homeNode(participant.slotUuid()).filter(participant.currentNodeKey()::equals).isPresent();
+    }
+
     public void clearParticipants() {
         this.participants.clear();
+        this.homeNodes.clear();
         this.turnOrder.clear();
         this.turnIndex = 0;
         this.round = 0;
@@ -270,7 +295,7 @@ public class BoardSession {
         return new Snapshot(this.id.toString(), this.dimension.identifier(), this.nodes, this.positions,
                 this.protectedArea, this.startNodes, this.phase, this.participants(),
                 this.turnOrder.stream().map(UUID::toString).toList(), this.turnIndex, this.round, this.turnStarted,
-                this.protectionEnabled, this.keepAfterGame, this.arrivalSequence);
+                this.protectionEnabled, this.keepAfterGame, this.arrivalSequence, this.snapshotHomeNodes());
     }
 
     public static BoardSession fromSnapshot(Snapshot snapshot) {
@@ -289,8 +314,15 @@ public class BoardSession {
             }
         }
 
+        Map<UUID, String> homeNodes = new LinkedHashMap<>();
+        snapshot.homeNodes().forEach((rawSlotId, nodeId) -> {
+            try {
+                homeNodes.put(UUID.fromString(rawSlotId), nodeId);
+            } catch (IllegalArgumentException ignored) {}
+        });
+
         BoardSession session = new BoardSession(id, dimension, snapshot.nodes(), snapshot.positions(),
-                snapshot.protectedArea(), snapshot.startNodes(), snapshot.phase(), snapshot.participants(),
+                snapshot.protectedArea(), snapshot.startNodes(), snapshot.phase(), snapshot.participants(), homeNodes,
                 turnOrder, snapshot.turnIndex(), snapshot.round(), snapshot.turnStarted(), snapshot.protectionEnabled(),
                 snapshot.keepAfterGame(), snapshot.arrivalSequence());
         if (session.phase == BoardPhase.PLAYING) {
@@ -300,6 +332,12 @@ public class BoardSession {
             session.lobbyDeadlineTick = 0L;
         }
         return session;
+    }
+
+    private Map<String, String> snapshotHomeNodes() {
+        Map<String, String> result = new LinkedHashMap<>();
+        this.homeNodes.forEach((slotId, nodeId) -> result.put(slotId.toString(), nodeId));
+        return Map.copyOf(result);
     }
 
     private static CanonicalNodes canonicalizeNodes(
@@ -328,6 +366,10 @@ public class BoardSession {
 
     private record CanonicalNodes(Map<String, BoardNode> nodes, Map<String, BlockPos> positions,
                                   List<String> startNodes, Map<String, String> remap) {
+        String remapNodeId(String nodeId) {
+            return this.remap.getOrDefault(nodeId, canonicalNodeId(nodeId));
+        }
+
         BoardParticipant remapParticipant(BoardParticipant participant) {
             Identifier current = BoardParticipant.nodeIdentifier(
                     this.remap.getOrDefault(participant.currentNodeKey(), participant.currentNodeKey()));
@@ -362,7 +404,8 @@ public class BoardSession {
             boolean turnStarted,
             boolean protectionEnabled,
             boolean keepAfterGame,
-            int arrivalSequence) {
+            int arrivalSequence,
+            Map<String, String> homeNodes) {
 
         private static final Codec<Map<String, BoardNode>> NODE_MAP_CODEC = Codec.unboundedMap(Codec.STRING, BoardNode.CODEC);
         private static final Codec<Map<String, BlockPos>> POSITION_MAP_CODEC = Codec.unboundedMap(Codec.STRING, BlockPos.CODEC);
@@ -382,7 +425,9 @@ public class BoardSession {
                 Codec.BOOL.optionalFieldOf("turn_started", false).forGetter(Snapshot::turnStarted),
                 Codec.BOOL.optionalFieldOf("protection_enabled", true).forGetter(Snapshot::protectionEnabled),
                 Codec.BOOL.optionalFieldOf("keep_after_game", true).forGetter(Snapshot::keepAfterGame),
-                Codec.INT.optionalFieldOf("arrival_sequence", 0).forGetter(Snapshot::arrivalSequence)
+                Codec.INT.optionalFieldOf("arrival_sequence", 0).forGetter(Snapshot::arrivalSequence),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("home_nodes", Map.of())
+                        .forGetter(Snapshot::homeNodes)
         ).apply(instance, Snapshot::new));
 
         public Snapshot {
@@ -391,6 +436,7 @@ public class BoardSession {
             startNodes = List.copyOf(startNodes);
             participants = List.copyOf(participants);
             turnOrder = List.copyOf(turnOrder);
+            homeNodes = Map.copyOf(homeNodes);
         }
     }
 
@@ -424,6 +470,11 @@ public class BoardSession {
         public MovementState waitingForBranch(List<String> choices) {
             return new MovementState(this.slotId, this.remainingSteps, this.nextStepTick,
                     this.route, choices, "", 0L, this.stepDurationTicks);
+        }
+
+        public MovementState stop() {
+            return new MovementState(this.slotId, 0, this.nextStepTick,
+                    this.route, List.of(), "", 0L, this.stepDurationTicks);
         }
 
         public boolean stepping() {
