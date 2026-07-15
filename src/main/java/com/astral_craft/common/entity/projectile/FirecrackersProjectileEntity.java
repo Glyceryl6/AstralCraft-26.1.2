@@ -3,7 +3,6 @@ package com.astral_craft.common.entity.projectile;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityType;
@@ -17,11 +16,11 @@ public class FirecrackersProjectileEntity extends AbstractCardProjectileEntity {
         super(type, level);
     }
 
-    public FirecrackersProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, CardProjectileSettings settings) {
+    public FirecrackersProjectileEntity(Level level, LivingEntity owner, LivingEntity target, int damage, CardProjectileSettings settings) {
         super(AstralEntities.FIRECRACKERS_PROJECTILE.get(), level, owner, target, damage, settings);
     }
 
-    public FirecrackersProjectileEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int durationTicks) {
+    public FirecrackersProjectileEntity(Level level, LivingEntity owner, LivingEntity target, int damage, int durationTicks) {
         this(level, owner, target, damage, CardProjectileSettings.of(0.92F, 0.025F, 0.15F, 0.42F, durationTicks));
     }
 
@@ -34,7 +33,7 @@ public class FirecrackersProjectileEntity extends AbstractCardProjectileEntity {
     }
 
     @Override
-    protected void onImpact(ServerLevel level, ServerPlayer owner, LivingEntity target) {
+    protected void onImpact(ServerLevel level, LivingEntity owner, LivingEntity target) {
         this.damageTarget(owner, target);
         level.sendParticles(ParticleTypes.FIREWORK, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(), 42, 0.40D, 0.40D, 0.40D, 0.12D);
         level.playSound(null, target.blockPosition(), SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 0.90F, 1.35F);

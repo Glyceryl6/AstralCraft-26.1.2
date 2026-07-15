@@ -47,6 +47,15 @@ public class PendingCardActionManager {
         return TARGET_SELECTIONS.containsKey(owner) || NUMBER_SELECTIONS.containsKey(owner);
     }
 
+    public static void cancel(ServerPlayer player) {
+        if (player == null) return;
+        UUID owner = player.getUUID();
+        TARGET_SELECTIONS.remove(owner);
+        NUMBER_SELECTIONS.remove(owner);
+        EXCLUSIVE_OWNERS.remove(owner);
+        ACTIONS.removeIf(action -> action.owner.equals(owner));
+    }
+
     public static void beginTargetSelection(ServerPlayer player, ItemStack cardStack, int handIndex) {
         TARGET_SELECTIONS.put(player.getUUID(), new PendingTargetSelection(
                 cardStack.copyWithCount(1), handIndex, SELECTION_TIMEOUT_TICKS));

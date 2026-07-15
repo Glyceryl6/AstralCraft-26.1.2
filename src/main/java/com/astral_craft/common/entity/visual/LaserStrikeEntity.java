@@ -6,7 +6,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -38,7 +37,7 @@ public class LaserStrikeEntity extends Entity {
         this.noPhysics = true;
     }
 
-    public LaserStrikeEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int color, float radius) {
+    public LaserStrikeEntity(Level level, LivingEntity owner, LivingEntity target, int damage, int color, float radius) {
         this(AstralEntities.LASER_STRIKE.get(), level);
         this.setPos(target.getX(), target.getY(), target.getZ());
         this.entityData.set(DATA_OWNER, owner.getId());
@@ -82,8 +81,8 @@ public class LaserStrikeEntity extends Entity {
             if (!this.damaged() && this.age() >= this.growTicks() + this.holdTicks()) {
                 this.entityData.set(DATA_DAMAGED, true);
                 Entity owner = this.level().getEntity(this.ownerId());
-                if (owner instanceof ServerPlayer player) {
-                    AstralCardEffects.damageNow(player, living, this.damage());
+                if (owner instanceof LivingEntity livingOwner) {
+                    AstralCardEffects.damageNow(livingOwner, living, this.damage());
                     if (this.level() instanceof ServerLevel serverLevel) {
                         serverLevel.sendParticles(ParticleTypes.END_ROD, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 38, 0.30D, 0.45D, 0.30D, 0.08D);
                         serverLevel.playSound(null, living.blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.0F, 1.65F);

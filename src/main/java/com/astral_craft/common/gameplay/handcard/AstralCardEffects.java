@@ -10,6 +10,7 @@ import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -58,7 +59,16 @@ public class AstralCardEffects {
 
     /** Final damage after counter resolution / visual impact. Do not call this at card selection time. */
     public static void damageNow(ServerPlayer user, LivingEntity target, int amount) {
-        int finalDamage = amount + AstralStats.getOrDefault(target).incomingDamageBonus() + Math.min(1, AstralStats.getOrDefault(target).buff(BuffKinds.MARK));
+        damageNow((LivingEntity) user, target, amount);
+    }
+
+    /** Board pawns may be the actual visual and logical source even when a player controls them. */
+    public static void damageNow(LivingEntity source, LivingEntity target, int amount) {
+        if (source == null || target == null || !(source.level() instanceof ServerLevel level)) return;
+        AstralPlayerStats targetStats = AstralStats.getOrDefault(target);
+        int finalDamage = Math.max(0, amount + targetStats.incomingDamageBonus()
+                + Math.min(1, targetStats.buff(BuffKinds.MARK)));
+        if (finalDamage <= 0) return;
         if (target instanceof ServerPlayer player) {
             AstralPlayerStats next = AstralStats.get(player).damage(finalDamage);
             update(player, next);
@@ -66,7 +76,10 @@ public class AstralCardEffects {
         }
 
         if (target.isAlive()) {
-            target.hurtServer(user.level(), user.damageSources().playerAttack(user), finalDamage);
+            DamageSource damageSource = source instanceof ServerPlayer player
+                    ? level.damageSources().playerAttack(player)
+                    : level.damageSources().mobAttack(source);
+            target.hurtServer(level, damageSource, finalDamage);
         }
     }
 

@@ -6,7 +6,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -34,7 +33,7 @@ public class FallingBrickEntity extends Entity {
         this.noPhysics = true;
     }
 
-    public FallingBrickEntity(Level level, ServerPlayer owner, LivingEntity target, int damage, int fallTicks) {
+    public FallingBrickEntity(Level level, LivingEntity owner, LivingEntity target, int damage, int fallTicks) {
         this(AstralEntities.FALLING_BRICK.get(), level);
         this.entityData.set(DATA_OWNER, owner.getId());
         this.entityData.set(DATA_TARGET, target.getId());
@@ -71,8 +70,8 @@ public class FallingBrickEntity extends Entity {
         if (!this.level().isClientSide() && this.age() >= this.fallTicks() && !this.hit()) {
             this.entityData.set(DATA_HIT, true);
             Entity owner = this.level().getEntity(this.ownerId());
-            if (owner instanceof ServerPlayer player) {
-                AstralCardEffects.damageNow(player, living, this.damage());
+            if (owner instanceof LivingEntity livingOwner) {
+                AstralCardEffects.damageNow(livingOwner, living, this.damage());
                 if (this.level() instanceof ServerLevel serverLevel) {
                     serverLevel.sendParticles(ParticleTypes.POOF, living.getX(), living.getY() + living.getBbHeight(), living.getZ(), 28, 0.35D, 0.20D, 0.35D, 0.05D);
                     serverLevel.playSound(null, living.blockPosition(), SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 0.95F, 0.75F);

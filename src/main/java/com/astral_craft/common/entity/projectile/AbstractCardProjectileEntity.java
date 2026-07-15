@@ -6,7 +6,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -37,7 +36,7 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         this.noPhysics = true;
     }
 
-    protected AbstractCardProjectileEntity(EntityType<? extends AbstractCardProjectileEntity> type, Level level, ServerPlayer owner, LivingEntity target, int damage, CardProjectileSettings settings) {
+    protected AbstractCardProjectileEntity(EntityType<? extends AbstractCardProjectileEntity> type, Level level, LivingEntity owner, LivingEntity target, int damage, CardProjectileSettings settings) {
         this(type, level);
         Vec3 start = this.defaultStart(owner);
         this.setOwner(owner);
@@ -49,7 +48,7 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
         this.shootAt(target, this.speed(), 0.0F);
     }
 
-    protected Vec3 defaultStart(ServerPlayer owner) {
+    protected Vec3 defaultStart(LivingEntity owner) {
         return owner.position().add(0.0D, owner.getBbHeight() * 0.65D, 0.0D);
     }
 
@@ -112,8 +111,8 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
             if (!this.level().isClientSide() && (this.intersectsTarget(target) || nextAge >= this.maxAge())) {
                 this.entityData.set(DATA_HIT, true);
                 Entity owner = this.getOwner();
-                if (owner instanceof ServerPlayer player) {
-                    this.onImpact(player.level(), player, target);
+                if (owner instanceof LivingEntity livingOwner && livingOwner.level() instanceof ServerLevel serverLevel) {
+                    this.onImpact(serverLevel, livingOwner, target);
                 }
 
                 this.setDeltaMovement(Vec3.ZERO);
@@ -140,7 +139,7 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
 
     protected int afterHitLifetime() { return 8; }
 
-    protected void damageTarget(ServerPlayer owner, LivingEntity target) {
+    protected void damageTarget(LivingEntity owner, LivingEntity target) {
         AstralCardEffects.damageNow(owner, target, this.damage());
         this.discard();
     }
@@ -151,7 +150,7 @@ public abstract class AbstractCardProjectileEntity extends Projectile {
 
     protected abstract void spawnFlightParticles(ServerLevel level, Vec3 pos);
 
-    protected abstract void onImpact(ServerLevel level, ServerPlayer owner, LivingEntity target);
+    protected abstract void onImpact(ServerLevel level, LivingEntity owner, LivingEntity target);
 
     public Vec3 tangent() {
         Vec3 velocity = this.getDeltaMovement();

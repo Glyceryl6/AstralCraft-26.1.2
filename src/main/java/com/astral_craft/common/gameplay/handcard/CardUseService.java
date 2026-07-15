@@ -167,7 +167,7 @@ public class CardUseService {
             }
 
             consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex());
-            sendReveal(serverPlayer, source, definition, revealViewers, List.of(serverPlayer),
+            sendReveal(serverPlayer, source, definition, revealViewers, List.of(),
                     CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             return CardUseResult.accepted();
         }
@@ -267,7 +267,7 @@ public class CardUseService {
 
     public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner,
                                   CardDefinition definition, Identifier animation, int durationTicks) {
-        PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, List.of(owner), animation, durationTicks));
+        PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, List.of(), animation, durationTicks));
     }
 
     public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition,
@@ -304,7 +304,7 @@ public class CardUseService {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         int sourceEntityId = BoardSessionManager.revealSourceEntityId(owner);
         List<Integer> targetEntityIds = targets == null || targets.isEmpty()
-                ? List.of(sourceEntityId)
+                ? List.of()
                 : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),

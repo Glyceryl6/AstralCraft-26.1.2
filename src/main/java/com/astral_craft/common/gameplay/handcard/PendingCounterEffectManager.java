@@ -1,11 +1,13 @@
 package com.astral_craft.common.gameplay.handcard;
 
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -36,15 +38,15 @@ public class PendingCounterEffectManager {
     private static final Map<UUID, PendingEffect> BY_TARGET = new ConcurrentHashMap<>();
 
     public static void offerDirectDamage(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.direct(source, target, damage));
+        offer(PendingEffect.direct(source, BoardSessionManager.effectSourceEntity(source), target, damage));
     }
 
     public static void offerLaser(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-        offer(PendingEffect.laser(source, target, damage, argb, radius));
+        offer(PendingEffect.laser(source, BoardSessionManager.effectSourceEntity(source), target, damage, argb, radius));
     }
 
     public static void offerRailgun(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-        offer(PendingEffect.laser(source, target, damage, argb, radius));
+        offer(PendingEffect.laser(source, BoardSessionManager.effectSourceEntity(source), target, damage, argb, radius));
     }
 
     public static void offerFirecracker(ServerPlayer source, LivingEntity target, int damage) {
@@ -52,7 +54,7 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerFirecracker(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, target, damage, VisualKind.FIRECRACKERS, settings));
+        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.FIRECRACKERS, settings));
     }
 
     public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage) {
@@ -60,7 +62,7 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, target, damage, VisualKind.SLINGSHOT, settings));
+        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.SLINGSHOT, settings));
     }
 
     public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage) {
@@ -68,11 +70,11 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, target, damage, VisualKind.SNOWBALL_ATTACK, settings));
+        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.SNOWBALL_ATTACK, settings));
     }
 
     public static void offerFallingBrick(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.projectile(source, target, damage, VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
+        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
     }
 
     private static void offer(PendingEffect effect) {
@@ -169,44 +171,56 @@ public class PendingCounterEffectManager {
 
     private static void resolve(PendingEffect effect, LivingEntity target, boolean countered) {
         if (!target.isAlive() || !effect.source().isAlive()) return;
+        LivingEntity visualSource = effect.visualSource().isAlive() ? effect.visualSource() : effect.source();
         switch (effect.kind()) {
-            case DIRECT -> AstralCardEffects.damageNow(effect.source(), target, effect.damage());
-            case LASER -> spawnLaser(effect.source(), target, effect.damage(), effect.argb(), effect.radius());
-            case FIRECRACKERS -> spawnFirecrackers(effect.source(), target, effect.damage(), effect.projectileSettings());
-            case SLINGSHOT -> spawnSlingshot(effect.source(), target, effect.damage(), effect.projectileSettings());
-            case SNOWBALL_ATTACK -> spawnSnowball(effect.source(), target, effect.damage(), effect.projectileSettings());
-            case FALLING_BRICK -> spawnBrick(effect.source(), target, effect.damage());
+            case DIRECT -> AstralCardEffects.damageNow(visualSource, target, effect.damage());
+            case LASER -> spawnLaser(visualSource, target, effect.damage(), effect.argb(), effect.radius());
+            case FIRECRACKERS -> spawnFirecrackers(visualSource, target, effect.damage(), effect.projectileSettings());
+            case SLINGSHOT -> spawnSlingshot(visualSource, target, effect.damage(), effect.projectileSettings());
+            case SNOWBALL_ATTACK -> spawnSnowball(visualSource, target, effect.damage(), effect.projectileSettings());
+            case FALLING_BRICK -> spawnBrick(visualSource, target, effect.damage());
         }
     }
 
-    private static void spawnLaser(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
+    private static void spawnLaser(LivingEntity source, LivingEntity target, int damage, int argb, float radius) {
+        playSourceAttack(source);
         LaserStrikeEntity entity = new LaserStrikeEntity(source.level(), source, target, damage, argb, radius);
         source.level().playSound(null, target.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.9F, 1.35F);
         source.level().addFreshEntity(entity);
     }
 
-    private static void spawnFirecrackers(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
+    private static void spawnFirecrackers(LivingEntity source, LivingEntity target, int damage, CardProjectileSettings settings) {
+        playSourceAttack(source);
         FirecrackersProjectileEntity entity = new FirecrackersProjectileEntity(source.level(), source, target, damage, settings);
         source.level().playSound(null, source.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 0.9F, 1.15F);
         source.level().addFreshEntity(entity);
     }
 
-    private static void spawnSlingshot(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
+    private static void spawnSlingshot(LivingEntity source, LivingEntity target, int damage, CardProjectileSettings settings) {
+        playSourceAttack(source);
         SlingshotProjectileEntity entity = new SlingshotProjectileEntity(source.level(), source, target, damage, settings);
         source.level().playSound(null, source.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 0.9F, 1.8F);
         source.level().addFreshEntity(entity);
     }
 
-    private static void spawnSnowball(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
+    private static void spawnSnowball(LivingEntity source, LivingEntity target, int damage, CardProjectileSettings settings) {
+        playSourceAttack(source);
         SnowballAttackProjectileEntity entity = new SnowballAttackProjectileEntity(source.level(), source, target, damage, settings);
         source.level().playSound(null, source.blockPosition(), SoundEvents.SNOWBALL_THROW, SoundSource.PLAYERS, 0.8F, 1.2F);
         source.level().addFreshEntity(entity);
     }
 
-    private static void spawnBrick(ServerPlayer source, LivingEntity target, int damage) {
+    private static void spawnBrick(LivingEntity source, LivingEntity target, int damage) {
+        playSourceAttack(source);
         FallingBrickEntity entity = new FallingBrickEntity(source.level(), source, target, damage, 10);
         source.level().playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.55F, 1.55F);
         source.level().addFreshEntity(entity);
+    }
+
+    private static void playSourceAttack(LivingEntity source) {
+        if (source instanceof AstralCharacterEntity character) {
+            character.playBoardAttackAnimation(12);
+        }
     }
 
     public enum CounterAction {
@@ -224,22 +238,30 @@ public class PendingCounterEffectManager {
         FALLING_BRICK
     }
 
-    private record PendingEffect(ServerPlayer source, LivingEntity target, int damage, VisualKind kind, int argb, float radius, CardProjectileSettings projectileSettings, int ticksLeft) {
+    private record PendingEffect(ServerPlayer source, LivingEntity visualSource, LivingEntity target,
+                                 int damage, VisualKind kind, int argb, float radius,
+                                 CardProjectileSettings projectileSettings, int ticksLeft) {
 
-        static PendingEffect direct(ServerPlayer source, LivingEntity target, int damage) {
-            return new PendingEffect(source, target, damage, VisualKind.DIRECT, 0xFFFFFFFF, 0.08F, CardProjectileSettings.slingshot(), DEFAULT_RESPONSE_TICKS);
+        static PendingEffect direct(ServerPlayer source, LivingEntity visualSource, LivingEntity target, int damage) {
+            return new PendingEffect(source, visualSource, target, damage, VisualKind.DIRECT,
+                    0xFFFFFFFF, 0.08F, CardProjectileSettings.slingshot(), DEFAULT_RESPONSE_TICKS);
         }
 
-        static PendingEffect laser(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-            return new PendingEffect(source, target, damage, VisualKind.LASER, argb, radius, CardProjectileSettings.slingshot(), DEFAULT_RESPONSE_TICKS);
+        static PendingEffect laser(ServerPlayer source, LivingEntity visualSource, LivingEntity target,
+                                   int damage, int argb, float radius) {
+            return new PendingEffect(source, visualSource, target, damage, VisualKind.LASER,
+                    argb, radius, CardProjectileSettings.slingshot(), DEFAULT_RESPONSE_TICKS);
         }
 
-        static PendingEffect projectile(ServerPlayer source, LivingEntity target, int damage, VisualKind kind, CardProjectileSettings settings) {
-            return new PendingEffect(source, target, damage, kind, 0xFFFFFFFF, 0.08F, settings, DEFAULT_RESPONSE_TICKS);
+        static PendingEffect projectile(ServerPlayer source, LivingEntity visualSource, LivingEntity target,
+                                        int damage, VisualKind kind, CardProjectileSettings settings) {
+            return new PendingEffect(source, visualSource, target, damage, kind,
+                    0xFFFFFFFF, 0.08F, settings, DEFAULT_RESPONSE_TICKS);
         }
 
         PendingEffect withTicksLeft(int ticks) {
-            return new PendingEffect(this.source, this.target, this.damage, this.kind, this.argb, this.radius, this.projectileSettings, ticks);
+            return new PendingEffect(this.source, this.visualSource, this.target, this.damage, this.kind,
+                    this.argb, this.radius, this.projectileSettings, ticks);
         }
 
         PendingEffect tickDown() {
