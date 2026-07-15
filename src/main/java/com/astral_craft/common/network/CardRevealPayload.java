@@ -10,6 +10,8 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.List;
+
 /** Client-side card reveal payload. */
 public record CardRevealPayload(
         String cardId,
@@ -20,7 +22,9 @@ public record CardRevealPayload(
         Identifier largeFrontTexture,
         Identifier largeBackTexture,
         Identifier animation,
-        int durationTicks
+        int durationTicks,
+        int sourceEntityId,
+        List<Integer> targetEntityIds
 ) implements CustomPacketPayload {
 
     public static final Identifier ANIMATION_FLIP = AstralCraft.prefix("flip");
@@ -47,7 +51,15 @@ public record CardRevealPayload(
             CardRevealPayload::animation,
             ByteBufCodecs.VAR_INT,
             CardRevealPayload::durationTicks,
+            ByteBufCodecs.VAR_INT,
+            CardRevealPayload::sourceEntityId,
+            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(8)),
+            CardRevealPayload::targetEntityIds,
             CardRevealPayload::new);
+
+    public CardRevealPayload {
+        targetEntityIds = List.copyOf(targetEntityIds == null ? List.of() : targetEntityIds);
+    }
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

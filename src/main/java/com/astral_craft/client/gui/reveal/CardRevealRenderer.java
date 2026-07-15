@@ -1,8 +1,13 @@
 package com.astral_craft.client.gui.reveal;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gui.AstralStatusIconRenderer;
+import com.astral_craft.client.gui.board.BoardScreenEntityRenderer;
 import com.astral_craft.client.jpgloader.LoadedJpgTexture;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.character.ActiveCharacterState;
+import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.text.AstralTextFormatter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -12,6 +17,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,6 +38,9 @@ public class CardRevealRenderer {
         this.renderCardModel(graphics, reveal, settings, centerX, shiftedY, modelSize, frame.alpha(), frame.front(), frame.widthScale());
         if (frame.front() && frame.renderText()) {
             this.renderCardText(graphics, reveal, settings, centerX, shiftedY, textSize, frame.alpha(), frame.widthScale(), frame.heightScale());
+        }
+        if (frame.front() && frame.widthScale() > 0.72F) {
+            this.renderRelationship(graphics, reveal, settings, centerX, shiftedY, modelSize, frame.alpha(), frame.widthScale());
         }
     }
 
@@ -50,6 +61,66 @@ public class CardRevealRenderer {
         }
 
         this.renderSideEdge(graphics, settings, centerX, frameCenterY, modelSize, alpha, widthScale);
+    }
+
+
+    protected void renderRelationship(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings,
+                                      int centerX, int centerY, int modelSize, float alpha, float widthScale) {
+        if (reveal.sourceEntityId() < 0 || this.minecraft.level == null) return;
+        Entity source = this.minecraft.level.getEntity(reveal.sourceEntityId());
+        if (!(source instanceof LivingEntity sourceLiving)) return;
+        List<LivingEntity> targets = new ArrayList<>();
+        for (int targetId : reveal.targetEntityIds()) {
+            Entity target = this.minecraft.level.getEntity(targetId);
+            if (target instanceof LivingEntity living && targets.stream().noneMatch(value -> value.getId() == living.getId())) {
+                targets.add(living);
+            }
+            if (targets.size() >= 2) break;
+        }
+
+        if (targets.isEmpty()) targets.add(sourceLiving);
+        int cardWidth = Math.max(2, Math.round(modelSize * settings.cardFrameWidthRatio * widthScale));
+        int boxSize = Mth.clamp(Math.round(modelSize * 0.17F), 24, 42);
+        int gap = Math.max(5, boxSize / 5);
+        int arrowWidth = Math.max(18, this.font.width("→") + 8);
+        int targetColumns = targets.size();
+        int totalWidth = boxSize + gap + arrowWidth + gap + boxSize * targetColumns + gap * Math.max(0, targetColumns - 1);
+        int left = centerX + cardWidth / 2 + Math.max(10, modelSize / 18);
+        if (left + totalWidth > this.minecraft.getWindow().getGuiScaledWidth() - 5) {
+            left = centerX - cardWidth / 2 - Math.max(10, modelSize / 18) - totalWidth;
+        }
+
+        int top = centerY - boxSize / 2;
+        this.renderRelationshipEntity(graphics, sourceLiving, left, top, boxSize, alpha);
+        int arrowX = left + boxSize + gap;
+        int color = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xE5E5E5;
+        graphics.text(this.font, Component.literal("→"), arrowX + (arrowWidth - this.font.width("→")) / 2,
+                top + boxSize / 2 - 4, color, true);
+        int targetX = arrowX + arrowWidth + gap;
+        for (LivingEntity target : targets) {
+            this.renderRelationshipEntity(graphics, target, targetX, top, boxSize, alpha);
+            targetX += boxSize + gap;
+        }
+    }
+
+    protected void renderRelationshipEntity(GuiGraphicsExtractor graphics, LivingEntity entity, int x, int y, int size, float alpha) {
+        int a = Mth.clamp(Math.round(alpha * 255.0F), 0, 255);
+        graphics.fill(x - 2, y - 2, x + size + 2, y + size + 2, (a << 24) | 0x77777F);
+        graphics.fill(x, y, x + size, y + size, (a << 24) | 0x090A0E);
+        boolean rendered = false;
+        if (entity instanceof AstralCharacterEntity character) {
+            rendered = AstralStatusIconRenderer.renderCharacterSkinHead(graphics, character.characterId(),
+                    character.skinId(), x + 2, y + 2, size - 4, a);
+        } else if (entity instanceof Player player) {
+            ActiveCharacterState state = player.getData(AstralAttachments.ACTIVE_CHARACTER);
+            if (state.active()) {
+                rendered = AstralStatusIconRenderer.renderCharacterSkinHead(graphics, state.characterId(),
+                        state.skinId(), x + 2, y + 2, size - 4, a);
+            }
+        }
+        if (!rendered) {
+            BoardScreenEntityRenderer.render(graphics, entity, x + 1, y + 1, x + size - 1, y + size - 1, 180.0F);
+        }
     }
 
     public Identifier frameTextureFor(String cardType) {

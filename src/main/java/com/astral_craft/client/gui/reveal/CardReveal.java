@@ -4,6 +4,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.List;
+
 public record CardReveal(
         String cardId,
         String cardType,
@@ -14,4 +16,6 @@ public record CardReveal(
         Identifier backTexture,
         Identifier animation,
         double startedAtTick,
-        int durationTicks) { }
+        int durationTicks,
+        int sourceEntityId,
+        List<Integer> targetEntityIds) { }

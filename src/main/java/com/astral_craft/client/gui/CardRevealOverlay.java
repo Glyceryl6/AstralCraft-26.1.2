@@ -56,7 +56,8 @@ public class CardRevealOverlay {
         CardReveal reveal = new CardReveal(payload.cardId(), payload.cardType(),
                 payload.title(), payload.body(), payload.stack(),
                 payload.largeFrontTexture(), payload.largeBackTexture(),
-                animationId, ClientAnimationClock.nowTicks(), duration);
+                animationId, ClientAnimationClock.nowTicks(), duration,
+                payload.sourceEntityId(), payload.targetEntityIds());
         if (active == null) {
             active = reveal;
         } else if (isActive()) {
@@ -106,7 +107,8 @@ public class CardRevealOverlay {
         CardReveal next = PENDING.pollFirst();
         if (next == null) return null;
         return new CardReveal(next.cardId(), next.cardType(), next.title(), next.body(), next.stack(),
-                next.frontTexture(), next.backTexture(), next.animation(), startedAtTick, next.durationTicks());
+                next.frontTexture(), next.backTexture(), next.animation(), startedAtTick, next.durationTicks(),
+                next.sourceEntityId(), next.targetEntityIds());
     }
 
     private static Identifier normalizeAnimation(Identifier animation) {
