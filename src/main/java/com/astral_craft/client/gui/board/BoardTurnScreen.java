@@ -7,6 +7,7 @@ import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.BoardLeavePayload;
 import com.astral_craft.common.network.BoardMoveRequestPayload;
 import com.astral_craft.common.network.BoardSkillRequestPayload;
 import com.astral_craft.common.network.OpenBoardTurnPayload;
@@ -102,6 +103,11 @@ public class BoardTurnScreen extends Screen {
         graphics.fill(0, layout.top(), this.width, this.height, 0xED090911);
         graphics.fill(0, layout.top(), this.width, layout.top() + 2, 0xB0FFFFFF);
         graphics.text(this.font, this.title, 12, layout.top() + 9, 0xFFFFFFFF, false);
+        boolean leaveHover = inside(mouseX, mouseY, layout.leaveX(), layout.leaveY(), layout.leaveW(), 22);
+        AstralFancyButton.renderButton(graphics, this.font,
+                Component.translatable("gui.astral_craft.board.leave"),
+                layout.leaveX(), layout.leaveY(), layout.leaveW(), 22, false, leaveHover,
+                ButtonStyle.button(0xFF8E3542));
 
         graphics.enableScissor(layout.cardLeft(), layout.cardTop(), layout.cardRight(), layout.cardBottom());
         int x = 12 - Math.round(this.scroll);
@@ -166,6 +172,11 @@ public class BoardTurnScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
         Layout layout = this.layout();
+        if (inside(event.x(), event.y(), layout.leaveX(), layout.leaveY(), layout.leaveW(), 22)) {
+            ClientPacketDistributor.sendToServer(new BoardLeavePayload(this.boardId));
+            this.onClose();
+            return true;
+        }
         boolean busy = this.requestLockTicks > 0 || CardRevealOverlay.isActive();
         if (inside(event.x(), event.y(), layout.moveX(), layout.moveY(),
                 layout.moveSize(), layout.moveSize()) && this.currentTurn && !busy) {
@@ -249,8 +260,12 @@ public class BoardTurnScreen extends Screen {
         int skillY = top + 28;
         int infoX = skillX;
         int infoY = skillY + 36;
+        int leaveW = Math.min(88, Math.max(58, controlsWidth - 20));
+        int leaveX = this.width - leaveW - 10;
+        int leaveY = top + 5;
         return new Layout(top, cardLeft, cardTop, cardRight, cardBottom, cardY,
-                moveX, moveY, moveSize, skillX, skillY, skillW, infoX, infoY);
+                moveX, moveY, moveSize, skillX, skillY, skillW, infoX, infoY,
+                leaveX, leaveY, leaveW);
     }
 
     private static List<BoardCard> decode(String encoded) {
@@ -277,5 +292,6 @@ public class BoardTurnScreen extends Screen {
 
     private record Layout(int top, int cardLeft, int cardTop, int cardRight, int cardBottom, int cardY,
                           int moveX, int moveY, int moveSize, int skillX, int skillY, int skillW,
-                          int infoX, int infoY) {}
+                          int infoX, int infoY, int leaveX, int leaveY, int leaveW) {}
+
 }

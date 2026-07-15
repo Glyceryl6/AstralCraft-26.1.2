@@ -183,4 +183,12 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleBoardLeave(BoardLeavePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardSessionManager.leaveGame(player, payload.boardId());
+            }
+        });
+    }
+
 }
