@@ -3,7 +3,7 @@ package com.astral_craft.common.gameplay.handcard;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.CardTargetCandidate;
-import com.astral_craft.common.network.OpenTargetSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;

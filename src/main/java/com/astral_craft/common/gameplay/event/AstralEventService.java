@@ -4,7 +4,7 @@ import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
-import com.astral_craft.common.network.CardRevealPayload;
+import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;

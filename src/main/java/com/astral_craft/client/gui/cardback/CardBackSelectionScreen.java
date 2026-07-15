@@ -2,8 +2,8 @@ package com.astral_craft.client.gui.cardback;
 
 import com.astral_craft.common.gameplay.cardback.CardBackDefinition;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
-import com.astral_craft.common.network.CardBackSelectionPayload;
-import com.astral_craft.common.network.OpenCardBackSelectionPayload;
+import com.astral_craft.common.network.c2s.CardBackSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenCardBackSelectionPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -42,7 +42,7 @@ public class CardBackSelectionScreen extends Screen {
 
     public static void open(OpenCardBackSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            Identifier selected = Identifier.parse(payload.selectedId());
+            Identifier selected = payload.selectedId();
             Minecraft.getInstance().setScreen(new CardBackSelectionScreen(CardBackManager.decodeList(payload.encodedOptions()), selected));
         });
     }
@@ -110,7 +110,7 @@ public class CardBackSelectionScreen extends Screen {
             int cardY = listY + 6;
             if (mx >= cardX && mx <= cardX + CARD_W && my >= cardY && my <= cardY + CARD_H + 22) {
                 this.selected = this.definitions.get(i).id();
-                ClientPacketDistributor.sendToServer(new CardBackSelectionPayload(this.selected.toString()));
+                ClientPacketDistributor.sendToServer(new CardBackSelectionPayload(this.selected));
                 this.onClose();
                 return true;
             }

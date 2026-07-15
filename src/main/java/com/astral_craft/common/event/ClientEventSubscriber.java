@@ -29,7 +29,8 @@ import com.astral_craft.client.render.projectile.FirecrackersRenderer;
 import com.astral_craft.client.render.projectile.SlingshotProjectileRenderer;
 import com.astral_craft.client.render.projectile.SnowballAttackProjectileRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
-import com.astral_craft.common.network.*;
+import com.astral_craft.common.network.c2s.*;
+import com.astral_craft.common.network.s2c.*;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.ClientAvatarEntity;
@@ -179,6 +180,7 @@ public class ClientEventSubscriber {
         event.register(OpenBoardEncounterPayload.TYPE, BoardEncounterScreen::open);
         event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);
         event.register(OpenBoardStartChoicePayload.TYPE, BoardStartChoiceScreen::open);
+        event.register(OpenBoardShopPayload.TYPE, BoardShopScreen::open);
         event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);

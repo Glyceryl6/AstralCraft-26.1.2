@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.cardback;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.network.OpenCardBackSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenCardBackSelectionPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -29,7 +29,7 @@ public class CardBackPreferenceManager {
     }
 
     public static void openSelection(ServerPlayer player) {
-        PacketDistributor.sendToPlayer(player, new OpenCardBackSelectionPayload(CardBackManager.INSTANCE.encodeList(), selectedId(player).toString()));
+        PacketDistributor.sendToPlayer(player, new OpenCardBackSelectionPayload(CardBackManager.INSTANCE.encodeList(), selectedId(player)));
     }
 
     public static Identifier safeParse(String raw) {

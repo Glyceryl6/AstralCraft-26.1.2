@@ -2,8 +2,8 @@ package com.astral_craft.client.gui;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.common.components.CardDefinition;
-import com.astral_craft.common.network.CardNumberSelectionPayload;
-import com.astral_craft.common.network.OpenCardNumberSelectionPayload;
+import com.astral_craft.common.network.c2s.CardNumberSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenCardNumberSelectionPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.text.AstralTextFormatter;
 import net.minecraft.ChatFormatting;
@@ -86,8 +86,7 @@ public class CardNumberSelectionScreen extends Screen {
             for (int value = this.payload.minValue(); value <= this.payload.maxValue(); value++) {
                 int x = this.optionX(value);
                 if (event.x() >= x && event.x() < x + OPTION_SIZE && event.y() >= y && event.y() < y + OPTION_SIZE) {
-                    ClientPacketDistributor.sendToServer(new CardNumberSelectionPayload(
-                            this.payload.cardStack(), value));
+                    ClientPacketDistributor.sendToServer(new CardNumberSelectionPayload(this.payload.cardStack(), value));
                     this.onClose();
                     return true;
                 }

@@ -1,8 +1,8 @@
 package com.astral_craft.client.gui;
 
 import com.astral_craft.common.network.CardTargetCandidate;
-import com.astral_craft.common.network.CardTargetSelectionPayload;
-import com.astral_craft.common.network.OpenTargetSelectionPayload;
+import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

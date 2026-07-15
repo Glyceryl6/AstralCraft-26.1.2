@@ -4,8 +4,8 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.CardRangeResolver;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.OpenHandCardDeckPayload;
-import com.astral_craft.common.network.UseHandCardFromDeckPayload;
+import com.astral_craft.common.network.s2c.OpenHandCardDeckPayload;
+import com.astral_craft.common.network.c2s.UseHandCardFromDeckPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.text.AstralTextFormatter;
 import net.minecraft.ChatFormatting;
@@ -208,7 +208,7 @@ public class HandCardDeckScreen extends Screen {
             this.draggingCard = false;
             this.draggedCard = null;
             if (card != null && event.y() < this.panelY() - 6 && !CardRevealOverlay.isActive()) {
-                ClientPacketDistributor.sendToServer(new UseHandCardFromDeckPayload(card.itemId().toString()));
+                ClientPacketDistributor.sendToServer(new UseHandCardFromDeckPayload(card.itemId()));
                 if (!card.creative()) {
                     this.removeOneLocal(card);
                     this.clampScroll();

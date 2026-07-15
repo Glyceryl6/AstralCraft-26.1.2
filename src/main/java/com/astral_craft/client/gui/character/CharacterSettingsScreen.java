@@ -15,10 +15,10 @@ import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
-import com.astral_craft.common.network.ActivateCharacterPotentialPayload;
-import com.astral_craft.common.network.CharacterSelectionPayload;
-import com.astral_craft.common.network.OpenCharacterSettingsPayload;
-import com.astral_craft.common.network.UnlockAllCharactersPayload;
+import com.astral_craft.common.network.c2s.ActivateCharacterPotentialPayload;
+import com.astral_craft.common.network.c2s.CharacterSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenCharacterSettingsPayload;
+import com.astral_craft.common.network.c2s.UnlockAllCharactersPayload;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -671,7 +671,7 @@ public class CharacterSettingsScreen extends Screen {
         if (definition == null || !this.canActivatePotential(definition)) return;
         CharacterProgressEntry entry = this.progressEntry(definition.id()).activatePotential();
         this.progressEntries.put(definition.id(), entry);
-        ClientPacketDistributor.sendToServer(new ActivateCharacterPotentialPayload(definition.id().toString()));
+        ClientPacketDistributor.sendToServer(new ActivateCharacterPotentialPayload(definition.id()));
     }
 
     protected void renderEquipCharacterButton(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -719,14 +719,14 @@ public class CharacterSettingsScreen extends Screen {
         if (definition.id().equals(this.equippedCharacterId)) {
             this.equippedCharacterId = null;
             this.equippedSkinId = "default";
-            ClientPacketDistributor.sendToServer(new CharacterSelectionPayload("none"));
+            ClientPacketDistributor.sendToServer(new CharacterSelectionPayload(CharacterProgressManager.NONE_CHARACTER_ID));
             return true;
         }
 
         this.equippedCharacterId = definition.id();
         this.equippedSkinId = this.skinIdFor(definition);
         this.selectedSkinId = this.equippedSkinId;
-        ClientPacketDistributor.sendToServer(new CharacterSelectionPayload(definition.id().toString()));
+        ClientPacketDistributor.sendToServer(new CharacterSelectionPayload(definition.id()));
         return true;
     }
 

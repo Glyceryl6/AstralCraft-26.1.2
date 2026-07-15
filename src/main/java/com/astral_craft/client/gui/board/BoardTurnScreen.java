@@ -7,11 +7,11 @@ import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.BoardLeavePayload;
-import com.astral_craft.common.network.BoardMoveRequestPayload;
-import com.astral_craft.common.network.BoardSkillRequestPayload;
-import com.astral_craft.common.network.OpenBoardTurnPayload;
-import com.astral_craft.common.network.UseBoardCardPayload;
+import com.astral_craft.common.network.c2s.BoardLeavePayload;
+import com.astral_craft.common.network.c2s.BoardMoveRequestPayload;
+import com.astral_craft.common.network.c2s.BoardSkillRequestPayload;
+import com.astral_craft.common.network.s2c.OpenBoardTurnPayload;
+import com.astral_craft.common.network.c2s.UseBoardCardPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -260,7 +260,7 @@ public class BoardTurnScreen extends Screen {
         int skillY = top + 28;
         int infoX = skillX;
         int infoY = skillY + 36;
-        int leaveW = Math.min(88, Math.max(58, controlsWidth - 20));
+        int leaveW = Math.clamp(controlsWidth - 20, 58, 88);
         int leaveX = this.width - leaveW - 10;
         int leaveY = top + 5;
         return new Layout(top, cardLeft, cardTop, cardRight, cardBottom, cardY,

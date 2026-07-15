@@ -1,5 +1,6 @@
 package com.astral_craft.common.network;
 
+import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
@@ -54,7 +55,7 @@ public class AstralServerPayloadHandlers {
     public static void handleCardBackSelection(CardBackSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                CardBackPreferenceManager.select(player, CardBackPreferenceManager.safeParse(payload.selectedId()));
+                CardBackPreferenceManager.select(player, payload.selectedId());
             }
         });
     }
@@ -102,7 +103,7 @@ public class AstralServerPayloadHandlers {
     public static void handleCharacterSkinSelection(CharacterSkinSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                CharacterProgressManager.selectSkin(player, payload.characterId(), payload.skinId());
+                CharacterProgressManager.selectSkin(player, payload.characterId(), payload.skinId().getPath());
             }
         });
     }
@@ -179,6 +180,14 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 BoardSessionManager.chooseStartPoint(player, payload.boardId(), payload.stop());
+            }
+        });
+    }
+
+    public static void handleBoardShop(BoardShopActionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardSessionManager.shopAction(player, payload.boardId(), payload.offerIndexes(), payload.leave());
             }
         });
     }

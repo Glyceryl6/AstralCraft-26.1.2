@@ -3,7 +3,7 @@ package com.astral_craft.common.gameplay.chip;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.BuffKind;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
-import com.astral_craft.common.network.OpenChipSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenChipSelectionPayload;
 import com.astral_craft.common.registry.AstralChips;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;

@@ -2,7 +2,7 @@ package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.render.effect.EffectRenderGeometry;
 import com.astral_craft.client.util.ClientAnimationClock;
-import com.astral_craft.common.network.BoardRouteStatePayload;
+import com.astral_craft.common.network.s2c.BoardRouteStatePayload;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.rendertype.RenderTypes;

@@ -2,9 +2,10 @@ package com.astral_craft.client.gui.character;
 
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
-import com.astral_craft.common.network.CharacterSkinSelectionPayload;
+import com.astral_craft.common.network.c2s.CharacterSkinSelectionPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 public class SkinsDetailPage implements CharacterDetailPage {
@@ -67,7 +68,10 @@ public class SkinsDetailPage implements CharacterDetailPage {
                 if (this.screen.isCharacterUnlocked(definition) && this.screen.isSkinUnlocked(definition, skin)) {
                     this.screen.equippedCharacterId = definition.id();
                     this.screen.equippedSkinId = this.screen.selectedSkinId;
-                    ClientPacketDistributor.sendToServer(new CharacterSkinSelectionPayload(definition.id().toString(), this.screen.selectedSkinId));
+                    Identifier skinId = Identifier.fromNamespaceAndPath(
+                            definition.id().getNamespace(), this.screen.selectedSkinId);
+                    ClientPacketDistributor.sendToServer(
+                            new CharacterSkinSelectionPayload(definition.id(), skinId));
                 }
                 return true;
             }

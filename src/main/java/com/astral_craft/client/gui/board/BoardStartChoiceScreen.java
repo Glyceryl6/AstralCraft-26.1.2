@@ -2,8 +2,8 @@ package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
-import com.astral_craft.common.network.BoardStartChoicePayload;
-import com.astral_craft.common.network.OpenBoardStartChoicePayload;
+import com.astral_craft.common.network.c2s.BoardStartChoicePayload;
+import com.astral_craft.common.network.s2c.OpenBoardStartChoicePayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;

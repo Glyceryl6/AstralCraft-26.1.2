@@ -5,9 +5,10 @@ import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
-import com.astral_craft.common.network.CharacterSkillCutinPayload;
+import com.astral_craft.common.network.s2c.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralCharacterSkills;
+import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -89,7 +90,7 @@ public class AstralCharacterSkillService {
         Optional<AstralCharacterSkillSet> maybeSkillSet = AstralCharacterSkills.get(handlerId);
         if (maybeSkillSet.isEmpty() || !maybeSkillSet.get().hasActiveSkill()) return -1;
 
-        var stats = com.astral_craft.common.stats.AstralStats.getOrDefault(actor);
+        var stats = AstralStats.getOrDefault(actor);
         ActiveCharacterState state = new ActiveCharacterState(true, characterId, skinId, 1, 1,
                 stats.attack(), stats.defense(), stats.maxHealth());
         CharacterSkillState skillState = player.getData(AstralAttachments.CHARACTER_SKILLS);

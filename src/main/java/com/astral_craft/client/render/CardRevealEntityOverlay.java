@@ -9,7 +9,7 @@ import com.astral_craft.client.gui.reveal.CardRevealFrame;
 import com.astral_craft.client.gui.reveal.CardRevealSettings;
 import com.astral_craft.client.gui.reveal.FlipCardRevealAnimation;
 import com.astral_craft.client.util.ClientAnimationClock;
-import com.astral_craft.common.network.CardRevealEntityPayload;
+import com.astral_craft.common.network.s2c.CardRevealEntityPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.context.ContextKey;

@@ -1,7 +1,7 @@
 package com.astral_craft.client.gui;
 
-import com.astral_craft.common.network.ChipSelectionPayload;
-import com.astral_craft.common.network.OpenChipSelectionPayload;
+import com.astral_craft.common.network.c2s.ChipSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenChipSelectionPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

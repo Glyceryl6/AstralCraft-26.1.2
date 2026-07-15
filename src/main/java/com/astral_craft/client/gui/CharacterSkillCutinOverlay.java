@@ -8,7 +8,7 @@ import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.network.CharacterSkillCutinPayload;
+import com.astral_craft.common.network.s2c.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;

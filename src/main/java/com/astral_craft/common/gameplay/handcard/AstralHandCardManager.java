@@ -3,7 +3,7 @@ package com.astral_craft.common.gameplay.handcard;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.OpenHandCardDeckPayload;
+import com.astral_craft.common.network.s2c.OpenHandCardDeckPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;

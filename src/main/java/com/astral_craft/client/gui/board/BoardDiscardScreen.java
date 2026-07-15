@@ -5,8 +5,8 @@ import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.BoardDiscardPayload;
-import com.astral_craft.common.network.OpenBoardDiscardPayload;
+import com.astral_craft.common.network.c2s.BoardDiscardPayload;
+import com.astral_craft.common.network.s2c.OpenBoardDiscardPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -40,7 +40,7 @@ public class BoardDiscardScreen extends Screen {
         super(Component.translatable("gui.astral_craft.board.discard"));
         this.boardId = payload.boardId();
         this.cards = decode(payload.encodedCards());
-        this.required = Math.min(Math.max(0, payload.requiredCount()), this.cards.size());
+        this.required = Math.clamp(payload.requiredCount(), 0, this.cards.size());
         this.timeoutTicks = Math.max(0, payload.timeoutTicks());
     }
 
