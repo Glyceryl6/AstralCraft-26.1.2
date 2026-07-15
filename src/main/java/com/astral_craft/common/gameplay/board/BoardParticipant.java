@@ -172,15 +172,36 @@ public record BoardParticipant(
     }
 
     public BoardParticipant beginTurn() {
+        boolean recovering = this.knockedDownTurns > 0 || this.stats.health() <= 0;
         AstralPlayerStats nextStats = this.stats.beginTurn();
-        int nextKnockdown = Math.max(0, this.knockedDownTurns - 1);
-        if (this.knockedDownTurns > 0 && nextKnockdown == 0) {
-            nextStats = nextStats.withHealth(nextStats.maxHealth());
+        int nextKnockdown = recovering ? 0 : Math.max(0, this.knockedDownTurns - 1);
+        if (recovering) {
+            nextStats = nextStats.withHealth(Math.max(1, nextStats.maxHealth()))
+                    .clearNextMoveDiceEffects();
         }
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, nextStats, this.hand,
                 tickRoundStatusEffects(this.roundStatusEffects), Math.max(0, this.skillCooldownTurns - 1),
                 nextKnockdown, 0, this.maxHandSize, this.arrivalOrder);
+    }
+
+    public boolean knockedDown() {
+        return this.knockedDownTurns > 0 || this.stats.health() <= 0;
+    }
+
+    public BoardParticipant repairKnockdownState() {
+        if (this.stats.health() > 0 || this.knockedDownTurns > 0) return this;
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+                this.currentNodeId, this.previousNodeId, this.entityId, this.stats.withHealth(0), this.hand,
+                this.roundStatusEffects, this.skillCooldownTurns, 1, this.cardPlaysUsed,
+                this.maxHandSize, this.arrivalOrder);
+    }
+
+    public BoardParticipant asBot() {
+        return new BoardParticipant(this.slotId, Optional.empty(), true, this.characterId, this.skinId,
+                this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
+                this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
+                this.maxHandSize, this.arrivalOrder);
     }
 
     public BoardParticipant endTurn() {
@@ -277,4 +298,5 @@ public record BoardParticipant(
             return Optional.empty();
         }
     }
+
 }

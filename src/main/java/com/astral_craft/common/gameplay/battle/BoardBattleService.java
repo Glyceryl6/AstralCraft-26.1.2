@@ -126,15 +126,34 @@ public class BoardBattleService {
                 case PHASE_ATTACKER_ROLL -> beginDefenseChoice(level, session, state);
                 case PHASE_DEFENSE_CHOICE -> beginDefenderRoll(level, session, state.withDefenseMode("defend"));
                 case PHASE_DEFENDER_ROLL -> applyRoll(level, session, state);
-                case PHASE_RESULT -> {
-                    ACTIVE.remove(state.boardId());
-                    BoardSessionManager.resumeAfterBattle(level, session);
-                }
                 default -> {
                     ACTIVE.remove(state.boardId());
                     BoardSessionManager.resumeAfterBattle(level, session);
                 }
             }
+        }
+    }
+
+
+    public static void participantBecameBot(ServerLevel level, BoardSession session, UUID slotId) {
+        BattleState state = ACTIVE.get(session.id());
+        if (state == null) return;
+        BoardParticipant participant = session.participant(slotId).orElse(null);
+        if (participant == null) return;
+        if (PHASE_SELECT.equals(state.phase())) {
+            if (state.attackerSlot().equals(slotId) && !state.attackerReady()) {
+                state = state.withAttacker(chooseBotCards(participant, CardType.ATTACK), true);
+            }
+            if (state.defenderSlot().equals(slotId) && !state.defenderReady()) {
+                state = state.withDefenderCards(chooseBotCards(participant, CardType.DEFENSE), true);
+            }
+            ACTIVE.put(session.id(), state);
+            if (state.cardsReady()) beginAttackerRoll(level, session, state);
+            else send(level, session, state);
+            return;
+        }
+        if (PHASE_DEFENSE_CHOICE.equals(state.phase()) && state.defenderSlot().equals(slotId)) {
+            beginDefenderRoll(level, session, state.withDefenseMode("defend"));
         }
     }
 
@@ -208,7 +227,7 @@ public class BoardBattleService {
                 preliminary.attackCardMinimum(), preliminary.attackCardMaximum(),
                 preliminary.defenseCardMinimum(), preliminary.defenseCardMaximum(),
                 preliminary.attackerDie(), defenderDie, preliminary.attackBonus(), defenseBonus,
-                attackTotal, defenseTotal, damage, evaded, remainingHealth <= 0);
+                attackTotal, defenseTotal, damage, evaded, remainingHealth == 0);
         BattleState rolling = state.withRoll(PHASE_DEFENDER_ROLL,
                 level.getGameTime() + DEFENDER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
@@ -398,16 +417,18 @@ public class BoardBattleService {
         BattleRoll roll = state.roll();
         int attackBase = attacker.stats().attack();
         int defenseBase = defender.stats().defense();
+        String s = Integer.toString(attacker.stats().health());
+        String s1 = Integer.toString(defender.stats().health());
         if (roll == null) {
-            return String.join("|", state.phase(),
-                    Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
+            return String.join("|", state.phase(), s, s1,
                     Integer.toString(attackBase), Integer.toString(defenseBase),
                     Integer.toString(attackBase), Integer.toString(attackBase),
                     Integer.toString(defenseBase), Integer.toString(defenseBase),
-                    "0", "0", "0", "0", "0", "0", "0", "false", "false", state.defenseMode());
+                    "0", "0", "0", "0", "0", "0", "0", "false", "false",
+                    Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()),
+                    state.defenseMode());
         }
-        return String.join("|", state.phase(),
-                Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
+        return String.join("|", state.phase(), s, s1,
                 Integer.toString(roll.attackBase()), Integer.toString(roll.defenseBase()),
                 Integer.toString(roll.attackBase() + roll.attackCardMinimum()),
                 Integer.toString(roll.attackBase() + roll.attackCardMaximum()),
@@ -417,6 +438,7 @@ public class BoardBattleService {
                 Integer.toString(roll.attackBonus()), Integer.toString(roll.defenseBonus()),
                 Integer.toString(roll.attackTotal()), Integer.toString(roll.defenseTotal()),
                 Integer.toString(roll.damage()), Boolean.toString(roll.evaded()), Boolean.toString(roll.knockout()),
+                Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()),
                 state.defenseMode());
     }
 

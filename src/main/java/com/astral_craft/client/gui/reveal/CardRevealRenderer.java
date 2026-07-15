@@ -78,7 +78,7 @@ public class CardRevealRenderer {
             if (targets.size() >= 2) break;
         }
 
-        if (targets.isEmpty()) targets.add(sourceLiving);
+        if (targets.isEmpty()) return;
         int cardWidth = Math.max(2, Math.round(modelSize * settings.cardFrameWidthRatio * widthScale));
         int boxSize = Mth.clamp(Math.round(modelSize * 0.17F), 24, 42);
         int gap = Math.max(5, boxSize / 5);
