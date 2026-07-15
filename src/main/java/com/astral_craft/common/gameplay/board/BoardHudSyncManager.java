@@ -8,6 +8,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.Map;
 
@@ -21,23 +23,22 @@ public class BoardHudSyncManager {
     public static void serverTick(MinecraftServer server) {
         if (++ticker % SYNC_INTERVAL_TICKS != 0) return;
         for (ServerLevel level : server.getAllLevels()) {
-            for (BoardSession session : BoardSessionManager.sessions(level)) {
-                send(level, session);
-            }
+            for (BoardSession session : BoardSessionManager.sessions(level)) send(level, session);
         }
     }
 
     public static void send(ServerLevel level, BoardSession session) {
-        String encoded = encode(session);
+        String encoded = encode(level, session);
         BlockPos center = session.protectedArea().center();
         for (ServerPlayer player : level.players()) {
-            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) <= HUD_RANGE_SQR) {
+            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D,
+                    center.getZ() + 0.5D) <= HUD_RANGE_SQR) {
                 PacketDistributor.sendToPlayer(player, new BoardHudSnapshotPayload(encoded));
             }
         }
     }
 
-    public static String encode(BoardSession session) {
+    public static String encode(ServerLevel level, BoardSession session) {
         StringBuilder out = new StringBuilder();
         BlockPos center = session.protectedArea().center();
         BoardArea area = session.protectedArea();
@@ -65,9 +66,22 @@ public class BoardHudSyncManager {
                     BlockPos pos = session.positions().get(participant.currentNodeKey());
                     if (pos == null) return;
                     out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
-                            .append(participant.characterId()).append(',').append(participant.skinName()).append(';');
+                            .append(participant.characterId()).append(',').append(participant.skinName()).append(',')
+                            .append(participant.slotUuid()).append(',')
+                            .append(encodeName(BoardSessionManager.displayName(level, participant))).append(',')
+                            .append(participant.stats().starCoins()).append(',')
+                            .append(participant.stats().health()).append(',')
+                            .append(participant.stats().maxHealth()).append(',')
+                            .append(participant.stats().stars()).append(',')
+                            .append(participant.knockedDownTurns() > 0 ? '1' : '0').append(';');
                 });
+        out.append('|').append(session.round() + 1).append('|')
+                .append(session.currentParticipant().map(value -> value.slotUuid().toString()).orElse(""));
         return out.toString();
+    }
+
+    private static String encodeName(String value) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
 }
