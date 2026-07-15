@@ -32,8 +32,10 @@ import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.*;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.entity.Avatar;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -43,6 +45,7 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
+import org.jspecify.annotations.NullMarked;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
 public class ClientEventSubscriber {
@@ -131,13 +134,15 @@ public class ClientEventSubscriber {
         BoardCharacterMarkerRenderer.submit(event);
     }
 
+    @NullMarked
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void beforePlayerRender(RenderPlayerEvent.Pre event) {
+    public static<T extends Avatar & ClientAvatarEntity> void beforePlayerRender(RenderPlayerEvent.Pre<T> event) {
         AstralPlayerCharacterRenderBridge.beforeRender(event);
     }
 
+    @NullMarked
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void afterPlayerRender(RenderPlayerEvent.Post event) {
+    public static<T extends Avatar & ClientAvatarEntity> void afterPlayerRender(RenderPlayerEvent.Post<T> event) {
         AstralPlayerCharacterRenderBridge.afterRender(event);
     }
 
@@ -173,6 +178,7 @@ public class ClientEventSubscriber {
         event.register(OpenBoardDiscardPayload.TYPE, BoardDiscardScreen::open);
         event.register(OpenBoardEncounterPayload.TYPE, BoardEncounterScreen::open);
         event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);
+        event.register(OpenBoardStartChoicePayload.TYPE, BoardStartChoiceScreen::open);
         event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);

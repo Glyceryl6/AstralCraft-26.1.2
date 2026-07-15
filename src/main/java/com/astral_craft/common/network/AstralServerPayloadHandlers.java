@@ -175,4 +175,12 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleBoardStartChoice(BoardStartChoicePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardSessionManager.chooseStartPoint(player, payload.boardId(), payload.stop());
+            }
+        });
+    }
+
 }
