@@ -131,6 +131,7 @@ public class ClientEventSubscriber {
         PlatformTooltipWorldRenderer.submit(event);
         BoardRouteWorldRenderer.submit(event);
         BoardProtectionWorldRenderer.submit(event);
+        BoardWorldStatusRenderer.submit(event);
         BoardCharacterMarkerRenderer.submit(event);
     }
 

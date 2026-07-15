@@ -10,14 +10,13 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Comparator;
 import java.util.Map;
 
 /** Sends compact board snapshots used by the HUD and client-side protection rendering. */
 public class BoardHudSyncManager {
 
     private static final int SYNC_INTERVAL_TICKS = 10;
-    private static final double HUD_RANGE_SQR = 128.0D * 128.0D;
+    private static final double HUD_RANGE_SQR = 512.0D * 512.0D;
     private static int ticker;
 
     public static void serverTick(MinecraftServer server) {
@@ -60,9 +59,7 @@ public class BoardHudSyncManager {
                 .append(area.max().getX()).append(',').append(area.max().getY()).append(',').append(area.max().getZ()).append('|')
                 .append(session.protectionEnabled()).append('|')
                 .append(session.phase().name()).append('|');
-        session.participants().stream()
-                .sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder))
-                .forEach(participant -> {
+        session.participants().forEach(participant -> {
                     BlockPos pos = session.positions().get(participant.currentNodeKey());
                     if (pos == null) return;
                     out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
@@ -73,7 +70,7 @@ public class BoardHudSyncManager {
                             .append(participant.stats().health()).append(',')
                             .append(participant.stats().maxHealth()).append(',')
                             .append(participant.stats().stars()).append(',')
-                            .append(participant.knockedDownTurns() > 0 ? '1' : '0').append(';');
+                            .append(participant.knockedDown() ? '1' : '0').append(';');
                 });
         out.append('|').append(session.round() + 1).append('|')
                 .append(session.currentParticipant().map(value -> value.slotUuid().toString()).orElse(""));
