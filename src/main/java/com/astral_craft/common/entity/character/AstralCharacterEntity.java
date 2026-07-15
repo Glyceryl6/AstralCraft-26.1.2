@@ -32,12 +32,15 @@ import java.util.UUID;
  */
 public class AstralCharacterEntity extends PathfinderMob {
 
+    private static final byte BOARD_DAMAGE_FLASH_EVENT = 61;
+
     protected static final EntityDataAccessor<String> DATA_CHARACTER_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<String> DATA_SKIN_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<Integer> DATA_LEVEL = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<Integer> DATA_FRIENDSHIP = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<Integer> DATA_STAR_COINS = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<String> DATA_ANIMATION_ACTION = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
+    protected static final EntityDataAccessor<Integer> DATA_ANIMATION_STARTED_TICK = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<String> DATA_BOARD_SESSION_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<String> DATA_BOARD_PARTICIPANT_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<Integer> DATA_BOARD_DIRECTION = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
@@ -65,6 +68,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         builder.define(DATA_FRIENDSHIP, 1);
         builder.define(DATA_STAR_COINS, 0);
         builder.define(DATA_ANIMATION_ACTION, "idle");
+        builder.define(DATA_ANIMATION_STARTED_TICK, 0);
         builder.define(DATA_BOARD_SESSION_ID, "");
         builder.define(DATA_BOARD_PARTICIPANT_ID, "");
         builder.define(DATA_BOARD_DIRECTION, 0);
@@ -162,19 +166,63 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     public void setAnimationAction(String action) {
-        this.entityData.set(DATA_ANIMATION_ACTION, action == null || action.isBlank() ? "idle" : action);
+        String safeAction = action == null || action.isBlank() ? "idle" : action;
+        if (!safeAction.equals(this.animationAction())) {
+            this.entityData.set(DATA_ANIMATION_STARTED_TICK, this.tickCount);
+        }
+        this.entityData.set(DATA_ANIMATION_ACTION, safeAction);
+    }
+
+    private void restartAnimationAction(String action) {
+        String safeAction = action == null || action.isBlank() ? "idle" : action;
+        this.entityData.set(DATA_ANIMATION_STARTED_TICK, this.tickCount);
+        this.entityData.set(DATA_ANIMATION_ACTION, safeAction);
+    }
+
+    public int animationStartedTick() {
+        return this.entityData.get(DATA_ANIMATION_STARTED_TICK);
+    }
+
+    public float animationAgeTicks(float partialTick) {
+        return Math.max(0.0F, this.tickCount + partialTick - this.animationStartedTick());
     }
 
     public void playBoardHurtAnimation(int ticks) {
         if (!this.isBoardPawn()) return;
-        this.boardReactionTicks = Math.max(this.boardReactionTicks, Math.max(1, ticks));
-        this.setAnimationAction("hurt");
+        int duration = Math.max(1, ticks);
+        this.boardReactionTicks = Math.max(this.boardReactionTicks, duration);
+        this.hurtDuration = duration;
+        this.hurtTime = duration;
+        this.restartAnimationAction("hurt");
+        if (!this.level().isClientSide()) this.level().broadcastEntityEvent(this, (byte) 2);
+    }
+
+    public void flashBoardDamage(int ticks) {
+        if (!this.isBoardPawn()) return;
+        int duration = Math.max(1, ticks);
+        this.hurtDuration = duration;
+        this.hurtTime = duration;
+        if (!this.level().isClientSide()) this.level().broadcastEntityEvent(this, BOARD_DAMAGE_FLASH_EVENT);
     }
 
     public void playBoardAttackAnimation(int ticks) {
         if (!this.isBoardPawn()) return;
         this.boardReactionTicks = Math.max(this.boardReactionTicks, Math.max(1, ticks));
-        this.setAnimationAction("attack");
+        this.restartAnimationAction("attack");
+    }
+
+    @Override
+    public void handleEntityEvent(byte id) {
+        super.handleEntityEvent(id);
+        if (id == 2 && this.isBoardPawn()) {
+            this.hurtDuration = Math.max(this.hurtDuration, 10);
+            this.hurtTime = Math.max(this.hurtTime, 10);
+            this.boardReactionTicks = Math.max(this.boardReactionTicks, 10);
+            this.restartAnimationAction("hurt");
+        } else if (id == BOARD_DAMAGE_FLASH_EVENT && this.isBoardPawn()) {
+            this.hurtDuration = Math.max(this.hurtDuration, 10);
+            this.hurtTime = Math.max(this.hurtTime, 10);
+        }
     }
 
     public boolean isBoardPawn() { return !this.entityData.get(DATA_BOARD_SESSION_ID).isBlank(); }
@@ -221,6 +269,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.setStarCoins(input.getIntOr("star_coins", 0));
         String savedAction = input.getStringOr("animation_action", "idle");
         this.setAnimationAction(("hurt".equals(savedAction) || "attack".equals(savedAction)) ? "idle" : savedAction);
+        this.entityData.set(DATA_ANIMATION_STARTED_TICK, this.tickCount);
         this.entityData.set(DATA_BOARD_SESSION_ID, input.getStringOr("board_session_id", ""));
         this.entityData.set(DATA_BOARD_PARTICIPANT_ID, input.getStringOr("board_participant_id", ""));
         this.setBoardDirection(input.getIntOr("board_direction", 0));
