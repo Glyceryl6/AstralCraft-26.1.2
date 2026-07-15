@@ -97,6 +97,7 @@ public class BoardTurnScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        if (CardRevealOverlay.isActive()) return;
         Layout layout = this.layout();
         graphics.fill(0, layout.top(), this.width, this.height, 0xED090911);
         graphics.fill(0, layout.top(), this.width, layout.top() + 2, 0xB0FFFFFF);
@@ -234,13 +235,13 @@ public class BoardTurnScreen extends Screen {
     private Layout layout() {
         int panelHeight = Math.clamp(this.height, 1, PANEL_H);
         int top = Math.max(0, this.height - panelHeight);
-        int controlsWidth = Math.min(Math.max(1, this.width - 22), Math.clamp(this.width / 3, 118, 154));
+        int controlsWidth = Math.clamp(this.width - 22, 1, Math.clamp(this.width / 3, 118, 154));
         int cardLeft = 10;
         int cardRight = Math.max(cardLeft + 1, this.width - controlsWidth - 8);
         int cardTop = Math.min(this.height, top + 32);
         int cardBottom = Math.max(cardTop + 1, this.height - 10);
         int cardY = top + 40;
-        int moveSize = Math.clamp(controlsWidth - 28, 36, 94);
+        int moveSize = Math.clamp(controlsWidth - 28, 36, 72);
         int moveX = Math.max(cardRight + 6, this.width - moveSize - 14);
         int moveY = Math.max(top + 48, this.height - moveSize - 16);
         int skillX = cardRight + 7;
