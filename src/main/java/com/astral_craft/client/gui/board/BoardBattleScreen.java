@@ -27,7 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** In-world battle presentation with irrevocable combat-card spending and server-side resolution. */
+/** In-world battle UI with irrevocable card selection and staged dice/result presentation. */
 public class BoardBattleScreen extends Screen {
 
     private static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
@@ -49,10 +49,9 @@ public class BoardBattleScreen extends Screen {
     private int dragOffsetY;
     private int timeoutTicks;
     private int maximumCost;
-    private boolean cardsLocked;
-    private boolean resolved;
     private boolean submitted;
-    private String resultText;
+    private BattleView view;
+    private int phaseAgeTicks;
 
     public BoardBattleScreen(OpenBoardBattlePayload payload) {
         super(Component.translatable("gui.astral_craft.board.battle"));
@@ -63,24 +62,30 @@ public class BoardBattleScreen extends Screen {
         this.defenderName = payload.defenderName();
         this.role = payload.role();
         this.cards = decode(payload.encodedCards());
-        this.timeoutTicks = Math.max(0, payload.decisionTicks());
-        this.maximumCost = Math.max(0, payload.maximumCost());
-        this.resolved = payload.resolved();
-        this.resultText = payload.resultText();
+        this.apply(payload);
     }
 
     public static void open(OpenBoardBattlePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Screen current = Minecraft.getInstance().screen;
             if (current instanceof BoardBattleScreen battle && battle.boardId.equals(payload.boardId())) {
-                battle.timeoutTicks = Math.max(0, payload.decisionTicks());
-                battle.maximumCost = Math.max(0, payload.maximumCost());
-                battle.resolved = payload.resolved();
-                battle.resultText = payload.resultText();
+                battle.apply(payload);
             } else {
                 Minecraft.getInstance().setScreen(new BoardBattleScreen(payload));
             }
         });
+    }
+
+    private void apply(OpenBoardBattlePayload payload) {
+        BattleView next = BattleView.parse(payload.resultText());
+        boolean phaseChanged = this.view == null || !this.view.phase().equals(next.phase());
+        if (phaseChanged) {
+            this.phaseAgeTicks = 0;
+            if (next.defenseChoice() && "defender".equals(this.role)) this.submitted = false;
+        }
+        this.view = next;
+        this.timeoutTicks = Math.max(0, payload.decisionTicks());
+        this.maximumCost = Math.max(0, payload.maximumCost());
     }
 
     @Override
@@ -89,16 +94,24 @@ public class BoardBattleScreen extends Screen {
     }
 
     @Override
-    public boolean isPauseScreen() { return false; }
+    public boolean isPauseScreen() {
+        return false;
+    }
 
     @Override
     public void tick() {
         super.tick();
+        this.phaseAgeTicks++;
         if (this.timeoutTicks > 0) this.timeoutTicks--;
-        if (!this.resolved && this.timeoutTicks <= 1 && !this.submitted && !"spectator".equals(this.role)) {
+        if (this.view.selecting() && this.timeoutTicks <= 1 && !this.submitted
+                && !"spectator".equals(this.role)) {
             this.submit("defend");
         }
-        if (this.resolved && this.timeoutTicks <= 0) this.onClose();
+        if (this.view.defenseChoice() && this.timeoutTicks <= 1 && !this.submitted
+                && "defender".equals(this.role)) {
+            this.submit("defend");
+        }
+        if (this.view.result() && this.timeoutTicks <= 0) this.onClose();
     }
 
     @Override
@@ -108,7 +121,31 @@ public class BoardBattleScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         Layout layout = this.layout();
         this.renderArena(graphics, layout);
+        this.renderNames(graphics, layout);
 
+        LivingEntity attacker = this.entity(this.attackerEntityId);
+        LivingEntity defender = this.entity(this.defenderEntityId);
+        BoardScreenEntityRenderer.render(graphics, attacker, layout.x() + 22, layout.modelTop(),
+                layout.x() + layout.width() / 2 - 24, layout.modelBottom(), -90.0F);
+        BoardScreenEntityRenderer.render(graphics, defender, layout.x() + layout.width() / 2 + 24,
+                layout.modelTop(), layout.x() + layout.width() - 22, layout.modelBottom(), 90.0F);
+        this.renderHealth(graphics, this.view.attackerHealth(), layout.x() + layout.width() / 4,
+                layout.modelBottom() - 11);
+        this.renderHealth(graphics, this.view.defenderHealth(), layout.x() + layout.width() * 3 / 4,
+                layout.modelBottom() - 11);
+        this.renderBattleNumbers(graphics, layout);
+
+        if (this.view.selecting()) {
+            this.renderHand(graphics, layout, mouseX, mouseY);
+            this.renderCost(graphics, layout);
+        }
+        if (this.view.selecting() || this.view.defenseChoice()) {
+            this.renderActions(graphics, layout, mouseX, mouseY);
+        }
+        this.renderStatus(graphics, layout);
+    }
+
+    private void renderNames(GuiGraphicsExtractor graphics, Layout layout) {
         Component attackLabel = Component.translatable("gui.astral_craft.board.attack");
         Component defenseLabel = Component.translatable("gui.astral_craft.board.defense");
         graphics.text(this.font, attackLabel, layout.x() + 18, layout.y() + 14, 0xFFFF6B74, true);
@@ -119,32 +156,6 @@ public class BoardBattleScreen extends Screen {
         graphics.text(this.font, this.defenderName,
                 layout.x() + layout.width() - 18 - this.font.width(this.defenderName), layout.y() + 29,
                 0xFFFFFFFF, false);
-
-        LivingEntity attacker = this.entity(this.attackerEntityId);
-        LivingEntity defender = this.entity(this.defenderEntityId);
-        BoardScreenEntityRenderer.render(graphics, attacker, layout.x() + 22, layout.modelTop(),
-                layout.x() + layout.width() / 2 - 24, layout.modelBottom(), -90.0F);
-        BoardScreenEntityRenderer.render(graphics, defender, layout.x() + layout.width() / 2 + 24,
-                layout.modelTop(), layout.x() + layout.width() - 22, layout.modelBottom(), 90.0F);
-        if (attacker != null) this.renderHealth(graphics, attacker, layout.x() + layout.width() / 4, layout.modelBottom() - 11);
-        if (defender != null) this.renderHealth(graphics, defender, layout.x() + layout.width() * 3 / 4, layout.modelBottom() - 11);
-
-        this.renderHand(graphics, layout, mouseX, mouseY);
-        this.renderCost(graphics, layout);
-        this.renderActions(graphics, layout, mouseX, mouseY);
-
-        Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-        graphics.fill(layout.x() + layout.width() / 2 - 72, layout.y() + 10,
-                layout.x() + layout.width() / 2 + 72, layout.y() + 28, 0xCC050509);
-        graphics.text(this.font, timer, layout.x() + layout.width() / 2 - this.font.width(timer) / 2,
-                layout.y() + 15, 0xFFFFFFFF, false);
-        if (this.resolved && this.resultText != null) {
-            graphics.fill(layout.x() + 70, layout.y() + layout.height() / 2 - 18,
-                    layout.x() + layout.width() - 70, layout.y() + layout.height() / 2 + 18, 0xE8000000);
-            graphics.text(this.font, this.resultText,
-                    layout.x() + layout.width() / 2 - this.font.width(this.resultText) / 2,
-                    layout.y() + layout.height() / 2 - 4, 0xFFFFFF80, true);
-        }
     }
 
     private void renderArena(GuiGraphicsExtractor graphics, Layout layout) {
@@ -158,11 +169,134 @@ public class BoardBattleScreen extends Screen {
         graphics.fill(layout.x() + 8, arenaBottom, layout.x() + layout.width() - 8, arenaBottom + 4, 0xFF301A20);
     }
 
-    private void renderHealth(GuiGraphicsExtractor graphics, LivingEntity entity, int centerX, int y) {
-        Component health = Component.literal("♥ " + Math.max(0, Math.round(entity.getHealth())));
+    private void renderHealth(GuiGraphicsExtractor graphics, int value, int centerX, int y) {
+        Component health = Component.literal("♥ " + Math.max(0, value));
         int width = this.font.width(health) + 12;
         graphics.fill(centerX - width / 2, y, centerX + width / 2, y + 15, 0xE8FFFFFF);
         graphics.text(this.font, health, centerX - this.font.width(health) / 2, y + 3, 0xFFC72E4E, true);
+    }
+
+    private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
+        Range attackRange = this.displayRange(true);
+        Range defenseRange = this.displayRange(false);
+        int attackX = layout.x() + layout.width() / 4;
+        int defenseX = layout.x() + layout.width() * 3 / 4;
+        int y = layout.modelTop() + 2;
+        this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, y, ATTACK_ACCENT);
+        this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, y, DEFENSE_ACCENT);
+
+        if (!this.view.selecting()) {
+            if (this.shouldRenderAnimatedValue(true)) {
+                int attackShown = this.animatedValue(true);
+                Component attack = Component.literal(Integer.toString(attackShown));
+                graphics.text(this.font, attack, attackX - this.font.width(attack) / 2, y + 30,
+                        this.animatedValueColor(true), true);
+            }
+            if (this.shouldRenderAnimatedValue(false)) {
+                int defenseShown = this.animatedValue(false);
+                Component defense = Component.literal(Integer.toString(defenseShown));
+                graphics.text(this.font, defense, defenseX - this.font.width(defense) / 2, y + 30,
+                        this.animatedValueColor(false), true);
+            }
+            if ((this.view.defenderRolling() && this.phaseAgeTicks >= 54 || this.view.result())
+                    && "evade".equals(this.view.defenseMode())) {
+                Component evade = Component.translatable(this.view.evaded()
+                        ? "gui.astral_craft.board.evade_success" : "gui.astral_craft.board.evade_failed");
+                graphics.text(this.font, evade, defenseX - this.font.width(evade) / 2, y + 46,
+                        this.view.evaded() ? 0xFF79FF8A : 0xFFFF7373, true);
+            }
+        }
+    }
+
+    private Range displayRange(boolean attack) {
+        int minimum = attack ? this.view.attackMinimum() : this.view.defenseMinimum();
+        int maximum = attack ? this.view.attackMaximum() : this.view.defenseMaximum();
+        if (this.view.selecting() && ((attack && "attacker".equals(this.role))
+                || (!attack && "defender".equals(this.role)))) {
+            int base = attack ? this.view.attackBase() : this.view.defenseBase();
+            int minBonus = this.selectedIndexes.size();
+            int maxBonus = this.selectedIndexes.stream().mapToInt(index -> maximumBonus(this.cards.get(index).cost())).sum();
+            minimum = base + minBonus;
+            maximum = base + maxBonus;
+        }
+        return new Range(minimum, maximum);
+    }
+
+    private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator,
+                                int centerX, int y, int color) {
+        Component top = Component.literal(Integer.toString(numerator));
+        Component bottom = Component.literal(Integer.toString(denominator));
+        int width = Math.max(this.font.width(top), this.font.width(bottom)) + 8;
+        graphics.fill(centerX - width / 2, y, centerX + width / 2, y + 25, 0xC8000000);
+        graphics.text(this.font, top, centerX - this.font.width(top) / 2, y + 1, color, true);
+        graphics.fill(centerX - width / 2 + 2, y + 12, centerX + width / 2 - 2, y + 13, 0xFFE8E8E8);
+        graphics.text(this.font, bottom, centerX - this.font.width(bottom) / 2, y + 15, color, true);
+    }
+
+    private boolean shouldRenderAnimatedValue(boolean attack) {
+        if (this.view.result() || this.view.defenderRolling()) return true;
+        if (this.view.attackerRolling() || this.view.defenseChoice()) return attack;
+        return false;
+    }
+
+    private int animatedValueColor(boolean attack) {
+        boolean flash = false;
+        if (this.view.attackerRolling() && attack) {
+            flash = this.phaseAgeTicks < 22 || this.phaseAgeTicks >= 22 && this.phaseAgeTicks < 30;
+        } else if (this.view.defenderRolling()) {
+            flash = (!attack && this.phaseAgeTicks < 22)
+                    || (this.phaseAgeTicks >= 34 && this.phaseAgeTicks < 42)
+                    || (this.phaseAgeTicks >= 51 && this.phaseAgeTicks < 60);
+        }
+        if (flash && Math.floorMod(this.phaseAgeTicks, 4) < 2) return 0xFFFFFFFF;
+        return 0xFFFFF0A0;
+    }
+
+    private int animatedValue(boolean attack) {
+        int die = attack ? this.view.attackerDie() : this.view.defenderDie();
+        int base = attack ? this.view.attackBase() : this.view.defenseBase();
+        int bonus = attack ? this.view.attackBonus() : this.view.defenseBonus();
+        if (this.view.result()) return die + base + bonus;
+        if (this.view.attackerRolling()) {
+            if (!attack) return 0;
+            return this.phaseAgeTicks < 22 ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : die;
+        }
+        if (this.view.defenseChoice()) return attack ? die : 0;
+        if (this.view.defenderRolling()) {
+            int age = this.phaseAgeTicks;
+            if (!attack && age < 22) return 1 + Math.floorMod(age * 7 + 3, 6);
+            if (age < 36) return die;
+            if (age < 53) return die + base;
+            return die + base + bonus;
+        }
+        return 0;
+    }
+
+    private void renderStatus(GuiGraphicsExtractor graphics, Layout layout) {
+        Component status;
+        if (this.view.selecting()) {
+            status = Component.translatable("gui.astral_craft.board.battle_selecting");
+        } else if (this.view.attackerRolling()) {
+            status = Component.translatable("gui.astral_craft.board.battle_attacker_rolling", this.attackerName);
+        } else if (this.view.defenseChoice()) {
+            status = Component.translatable("gui.astral_craft.board.battle_choose_defense", this.defenderName);
+        } else if (this.view.defenderRolling()) {
+            status = Component.translatable("gui.astral_craft.board.battle_defender_rolling", this.defenderName);
+        } else if (this.view.knockout()) {
+            status = Component.translatable("gui.astral_craft.board.battle_knockout", this.defenderName);
+        } else {
+            status = Component.translatable("gui.astral_craft.board.battle_not_knockout", this.defenderName);
+        }
+        int statusWidth = Math.max(156, this.font.width(status) + 20);
+        graphics.fill(layout.x() + layout.width() / 2 - statusWidth / 2, layout.y() + 9,
+                layout.x() + layout.width() / 2 + statusWidth / 2, layout.y() + 29, 0xD0050509);
+        graphics.text(this.font, status, layout.x() + layout.width() / 2 - this.font.width(status) / 2,
+                layout.y() + 15, this.view.result() ? 0xFFFFFF80 : 0xFFFFFFFF, true);
+        if (this.view.selecting() || this.view.defenseChoice()) {
+            Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
+            graphics.text(this.font, timer, layout.x() + layout.width() / 2 - this.font.width(timer) / 2,
+                    layout.y() + 32, 0xFFBFC8FF, false);
+        }
     }
 
     private void renderHand(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
@@ -176,6 +310,7 @@ public class BoardBattleScreen extends Screen {
                 this.renderCard(graphics, this.cards.get(index), position.x(), position.y(), mouseX, mouseY, false);
             }
         }
+
         graphics.disableScissor();
         if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
             this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX,
@@ -199,62 +334,77 @@ public class BoardBattleScreen extends Screen {
         graphics.text(this.font, label, layout.actionX(), layout.actionY() - 30, 0xFFFFD36B, false);
         int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
         for (int index = 0; index < this.maximumCost; index++) {
-            boolean available = index < remaining;
             Component diamond = Component.literal("◆");
             graphics.text(this.font, diamond, layout.actionX() + index * 16, layout.actionY() - 16,
-                    available ? accent : 0xFF555560, true);
+                    index < remaining ? accent : 0xFF555560, true);
         }
     }
 
     private void renderActions(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
-        if ("spectator".equals(this.role) || this.resolved) return;
-        int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
-        if (this.submitted) {
-            Component waiting = Component.translatable("gui.astral_craft.board.waiting");
-            AstralFancyButton.renderButton(graphics, this.font, waiting, layout.actionX(), layout.actionY(),
-                    layout.actionW(), 30, false, false, ButtonStyle.button(0xFF555560));
-            return;
-        }
-        if ("defender".equals(this.role) && this.cardsLocked) {
+        if ("spectator".equals(this.role)) return;
+        if (this.view.defenseChoice()) {
+            if (!"defender".equals(this.role)) {
+                AstralFancyButton.renderButton(graphics, this.font,
+                        Component.translatable("gui.astral_craft.board.waiting"),
+                        layout.actionX(), layout.actionY(), layout.actionW(), 30, false, false,
+                        ButtonStyle.button(0xFF555560));
+                return;
+            }
             Component defend = Component.translatable("gui.astral_craft.board.defend");
             Component evade = Component.translatable("gui.astral_craft.board.evade");
-            boolean defendHover = inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 30);
-            boolean evadeHover = inside(mouseX, mouseY, layout.actionX(), layout.actionY() + 38, layout.actionW(), 30);
             AstralFancyButton.renderButton(graphics, this.font, defend, layout.actionX(), layout.actionY(),
-                    layout.actionW(), 30, false, defendHover, ButtonStyle.button(DEFENSE_ACCENT));
+                    layout.actionW(), 30, false,
+                    !this.submitted && inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 30),
+                    ButtonStyle.button(this.submitted ? 0xFF555560 : DEFENSE_ACCENT));
             AstralFancyButton.renderButton(graphics, this.font, evade, layout.actionX(), layout.actionY() + 38,
-                    layout.actionW(), 30, false, evadeHover, ButtonStyle.button(0xFF69A94B));
+                    layout.actionW(), 30, false,
+                    !this.submitted && inside(mouseX, mouseY, layout.actionX(), layout.actionY() + 38,
+                            layout.actionW(), 30),
+                    ButtonStyle.button(this.submitted ? 0xFF555560 : 0xFF69A94B));
             return;
         }
-        Component ready = Component.translatable("gui.astral_craft.board.ready");
-        boolean readyHover = inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 34);
-        AstralFancyButton.renderButton(graphics, this.font, ready, layout.actionX(), layout.actionY(),
-                layout.actionW(), 34, false, readyHover, ButtonStyle.button(accent));
+        if (!this.view.selecting()) return;
+        int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
+        if (this.submitted) {
+            AstralFancyButton.renderButton(graphics, this.font,
+                    Component.translatable("gui.astral_craft.board.waiting"),
+                    layout.actionX(), layout.actionY(), layout.actionW(), 30, false, false,
+                    ButtonStyle.button(0xFF555560));
+            return;
+        }
+
+        AstralFancyButton.renderButton(graphics, this.font, Component.translatable("gui.astral_craft.board.ready"),
+                layout.actionX(), layout.actionY(), layout.actionW(), 34, false,
+                inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 34),
+                ButtonStyle.button(accent));
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0 || this.resolved || this.submitted || "spectator".equals(this.role)) {
+        if (event.button() != 0 || "spectator".equals(this.role)) {
             return super.mouseClicked(event, doubleClick);
         }
+
         Layout layout = this.layout();
-        if ("defender".equals(this.role) && this.cardsLocked) {
+        if (this.view.defenseChoice() && "defender".equals(this.role) && !this.submitted) {
             if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 30)) {
                 this.submit("defend");
                 return true;
             }
-            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38, layout.actionW(), 30)) {
+            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38,
+                    layout.actionW(), 30)) {
                 this.submit("evade");
                 return true;
             }
             return super.mouseClicked(event, doubleClick);
         }
+
+        if (!this.view.selecting() || this.submitted) return super.mouseClicked(event, doubleClick);
         if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 34)) {
-            if ("defender".equals(this.role)) this.cardsLocked = true;
-            else this.submit("defend");
+            this.submit("defend");
             return true;
         }
-        if (this.cardsLocked) return super.mouseClicked(event, doubleClick);
+
         List<Integer> visible = this.visibleCardIndexes();
         for (int visibleIndex = 0; visibleIndex < visible.size(); visibleIndex++) {
             int index = visible.get(visibleIndex);
@@ -292,7 +442,7 @@ public class BoardBattleScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         Layout layout = this.layout();
-        if (mouseX >= layout.cardX() && mouseX <= layout.cardRight()
+        if (this.view.selecting() && mouseX >= layout.cardX() && mouseX <= layout.cardRight()
                 && mouseY >= layout.cardY() && mouseY <= layout.cardBottom()) {
             this.cardScroll = Math.clamp(this.cardScroll - (float) (deltaY + deltaX) * 34.0F,
                     0.0F, this.maximumCardScroll(layout));
@@ -327,14 +477,14 @@ public class BoardBattleScreen extends Screen {
     }
 
     private Layout layout() {
-        int width = Math.min(790, Math.max(300, this.width - 20));
-        int height = Math.min(430, Math.max(230, this.height - 20));
+        int width = Math.clamp(this.width - 20, 300, 790);
+        int height = Math.clamp(this.height - 20, 230, 430);
         int x = (this.width - width) / 2;
         int y = (this.height - height) / 2;
-        int modelTop = y + 38;
+        int modelTop = y + 48;
         int cardY = y + Math.max(160, height - CARD_H - 18);
         int modelBottom = Math.max(modelTop + 70, cardY - 10);
-        int actionW = Math.min(148, Math.max(94, width / 5));
+        int actionW = Math.clamp(width / 5, 94, 148);
         int actionX = x + width - actionW - 16;
         int cardX = x + 16;
         int cardRight = Math.max(cardX + 1, actionX - 10);
@@ -348,6 +498,14 @@ public class BoardBattleScreen extends Screen {
         int count = this.visibleCardIndexes().size();
         int contentWidth = Math.max(0, count * (CARD_W + CARD_GAP) - CARD_GAP);
         return Math.max(0, contentWidth - (layout.cardRight() - layout.cardX()));
+    }
+
+    private static int maximumBonus(int cost) {
+        return switch (cost) {
+            case 3 -> 10;
+            case 2 -> 6;
+            default -> 3;
+        };
     }
 
     private static List<CombatCard> decode(String encoded) {
@@ -366,6 +524,7 @@ public class BoardBattleScreen extends Screen {
                 result.add(new CombatCard(handIndex, stack, card.definition(stack), cost));
             } catch (IllegalArgumentException ignored) {}
         }
+
         return List.copyOf(result);
     }
 
@@ -377,11 +536,49 @@ public class BoardBattleScreen extends Screen {
 
     private record CardPosition(int x, int y) {}
 
+    private record Range(int minimum, int maximum) {}
+
+    private record BattleView(String phase, int attackerHealth, int defenderHealth,
+                              int attackBase, int defenseBase, int attackMinimum, int attackMaximum,
+                              int defenseMinimum, int defenseMaximum, int attackerDie, int defenderDie,
+                              int attackBonus, int defenseBonus, int attackTotal, int defenseTotal,
+                              int damage, boolean evaded, boolean knockout, String defenseMode) {
+        private boolean selecting() { return "select".equals(this.phase); }
+        private boolean attackerRolling() { return "attacker_roll".equals(this.phase); }
+        private boolean defenseChoice() { return "defense_choice".equals(this.phase); }
+        private boolean defenderRolling() { return "defender_roll".equals(this.phase); }
+        private boolean result() { return "result".equals(this.phase); }
+
+        private static BattleView parse(String encoded) {
+            String[] values = encoded == null ? new String[0] : encoded.split("\\|", -1);
+            if (values.length < 19) return empty();
+            try {
+                return new BattleView(values[0], Integer.parseInt(values[1]), Integer.parseInt(values[2]),
+                        Integer.parseInt(values[3]), Integer.parseInt(values[4]),
+                        Integer.parseInt(values[5]), Integer.parseInt(values[6]),
+                        Integer.parseInt(values[7]), Integer.parseInt(values[8]),
+                        Integer.parseInt(values[9]), Integer.parseInt(values[10]),
+                        Integer.parseInt(values[11]), Integer.parseInt(values[12]),
+                        Integer.parseInt(values[13]), Integer.parseInt(values[14]),
+                        Integer.parseInt(values[15]), Boolean.parseBoolean(values[16]),
+                        Boolean.parseBoolean(values[17]), values[18]);
+            } catch (NumberFormatException exception) {
+                return empty();
+            }
+        }
+
+        private static BattleView empty() {
+            return new BattleView("select", 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, false, false, "defend");
+        }
+    }
+
     private record Layout(int x, int y, int width, int height, int modelTop, int modelBottom,
                           int cardX, int cardY, int cardRight, int cardBottom,
                           int actionX, int actionY, int actionW) {
-        CardPosition cardPosition(int index, float scroll) {
+        private CardPosition cardPosition(int index, float scroll) {
             return new CardPosition(this.cardX + index * (CARD_W + CARD_GAP) - Math.round(scroll), this.cardY);
         }
     }
+
 }

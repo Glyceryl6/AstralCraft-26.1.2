@@ -75,6 +75,27 @@ public class SoulLinkManager {
         }
     }
 
+    public static void mirrorLogicalDamage(ServerLevel level, LivingEntity damaged, int amount) {
+        if (mirroringDamage || level == null || damaged == null || amount <= 0) return;
+        Link link = LINKS.get(damaged.getUUID());
+        if (link == null) return;
+        if (level.getGameTime() > link.untilGameTime()) {
+            remove(link);
+            return;
+        }
+        Entity other = level.getEntity(link.other(damaged.getUUID()));
+        if (!(other instanceof LivingEntity living) || !living.isAlive()) {
+            remove(link);
+            return;
+        }
+        mirroringDamage = true;
+        try {
+            living.hurtServer(level, level.damageSources().generic(), amount);
+        } finally {
+            mirroringDamage = false;
+        }
+    }
+
     public static void remove(UUID entityId) {
         Link link = LINKS.get(entityId);
         if (link != null) {
