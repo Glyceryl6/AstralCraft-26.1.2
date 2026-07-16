@@ -11,8 +11,8 @@ import java.util.List;
 
 public record OpenBoardCharacterSelectionPayload(
         String boardId, String encodedCharacters, List<Identifier> occupiedCharacterIds,
-        Identifier selectedCharacterId, Identifier selectedSkinId, int timeoutTicks,
-        boolean refresh) implements CustomPacketPayload {
+        Identifier selectedCharacterId, Identifier selectedSkinId,
+        int timeoutTicks, int timeoutDurationTicks, boolean refresh) implements CustomPacketPayload {
 
     private static final int MAXIMUM_CHARACTERS = 256;
 
@@ -25,11 +25,18 @@ public record OpenBoardCharacterSelectionPayload(
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedCharacterId,
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedSkinId,
             ByteBufCodecs.VAR_INT, OpenBoardCharacterSelectionPayload::timeoutTicks,
+            ByteBufCodecs.VAR_INT, OpenBoardCharacterSelectionPayload::timeoutDurationTicks,
             ByteBufCodecs.BOOL, OpenBoardCharacterSelectionPayload::refresh,
             OpenBoardCharacterSelectionPayload::new);
+
+    public OpenBoardCharacterSelectionPayload {
+        timeoutTicks = Math.max(0, timeoutTicks);
+        timeoutDurationTicks = Math.max(1, timeoutDurationTicks);
+    }
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
+
 }

@@ -38,6 +38,9 @@ public class BoardShopScreen extends Screen {
     private int starCoins;
     private int cardPrice;
     private int timeoutTicks;
+    private int timeoutDurationTicks;
+    private Identifier characterId;
+    private Identifier skinId;
     private int noticeCode;
     private boolean submitted;
 
@@ -64,6 +67,9 @@ public class BoardShopScreen extends Screen {
         this.starCoins = payload.starCoins();
         this.cardPrice = payload.cardPrice();
         this.timeoutTicks = payload.timeoutTicks();
+        this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
+        this.characterId = payload.characterId();
+        this.skinId = payload.skinId();
         this.noticeCode = payload.noticeCode();
         this.submitted = false;
         this.selected.removeIf(index -> index < 0 || index >= this.cards.size() || this.purchased(index));
@@ -82,8 +88,7 @@ public class BoardShopScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
-        if (this.timeoutTicks > 0) this.timeoutTicks--;
-        if (this.timeoutTicks <= 0 && !this.submitted) this.leave();
+        if (this.timeoutTicks > 0 && --this.timeoutTicks <= 0 && !this.submitted) this.onClose();
     }
 
     @Override
@@ -147,8 +152,9 @@ public class BoardShopScreen extends Screen {
                 layout.buttonWidth(), 30, false,
                 !this.submitted && inside(mouseX, mouseY, layout.leaveX(), layout.buttonY(), layout.buttonWidth(), 30),
                 this.submitted ? AstralFancyButton.disabledButtonStyle() : ButtonStyle.button(0xFF496AA5));
-        Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-        graphics.text(this.font, timer, layout.x() + 18, layout.y() + layout.height() - 19, 0xFFBFC8FF, false);
+        BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
+                this.timeoutTicks, this.timeoutDurationTicks, layout.x() + layout.width() / 2,
+                layout.y() + layout.height() - 15, Math.min(260, layout.width() - 50));
     }
 
     @Override

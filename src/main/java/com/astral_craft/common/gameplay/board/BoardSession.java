@@ -29,6 +29,7 @@ public class BoardSession {
     private boolean turnStarted;
     private long lobbyDeadlineTick;
     private long actionDeadlineTick;
+    private int actionDurationTicks;
     private boolean protectionEnabled;
     private boolean keepAfterGame;
     private int arrivalSequence;
@@ -263,6 +264,14 @@ public class BoardSession {
         this.actionDeadlineTick = Math.max(0L, tick);
     }
 
+    public int actionDurationTicks() {
+        return this.actionDurationTicks;
+    }
+
+    public void setActionDurationTicks(int ticks) {
+        this.actionDurationTicks = Math.max(0, ticks);
+    }
+
     public int nextArrivalOrder() {
         return ++this.arrivalSequence;
     }
@@ -467,8 +476,8 @@ public class BoardSession {
                     nextStepTick, nextRoute, List.of(), "", 0L, this.stepDurationTicks);
         }
 
-        public MovementState waitingForBranch(List<String> choices) {
-            return new MovementState(this.slotId, this.remainingSteps, this.nextStepTick,
+        public MovementState waitingForBranch(List<String> choices, long deadlineTick) {
+            return new MovementState(this.slotId, this.remainingSteps, Math.max(0L, deadlineTick),
                     this.route, choices, "", 0L, this.stepDurationTicks);
         }
 
@@ -482,8 +491,16 @@ public class BoardSession {
         }
     }
 
-    public record EncounterState(UUID moverSlotId, UUID targetSlotId, long deadlineTick) {}
+    public record EncounterState(UUID moverSlotId, UUID targetSlotId, long deadlineTick, int durationTicks) {
+        public EncounterState {
+            durationTicks = Math.max(1, durationTicks);
+        }
+    }
 
-    public record DiscardState(UUID slotId, int requiredCount, long deadlineTick) {}
+    public record DiscardState(UUID slotId, int requiredCount, long deadlineTick, int durationTicks) {
+        public DiscardState {
+            durationTicks = Math.max(1, durationTicks);
+        }
+    }
 
 }

@@ -54,6 +54,9 @@ public class BoardBattleScreen extends Screen {
     private int dragOffsetX;
     private int dragOffsetY;
     private int timeoutTicks;
+    private int timeoutDurationTicks;
+    private Identifier characterId;
+    private Identifier skinId;
     private int maximumCost;
     private boolean submitted;
     private BattleView view;
@@ -91,6 +94,9 @@ public class BoardBattleScreen extends Screen {
         }
         this.view = next;
         this.timeoutTicks = Math.max(0, payload.decisionTicks());
+        this.timeoutDurationTicks = Math.max(1, payload.decisionDurationTicks());
+        this.characterId = payload.characterId();
+        this.skinId = payload.skinId();
         this.maximumCost = Math.max(0, payload.maximumCost());
     }
 
@@ -114,12 +120,6 @@ public class BoardBattleScreen extends Screen {
         super.tick();
         this.phaseAgeTicks++;
         if (this.timeoutTicks > 0) this.timeoutTicks--;
-        if (this.view.selecting() && this.timeoutTicks <= 1 && !this.submitted && !"spectator".equals(this.role)) {
-            this.submit("defend");
-        }
-        if (this.view.defenseChoice() && this.timeoutTicks <= 1 && !this.submitted && "defender".equals(this.role)) {
-            this.submit("defend");
-        }
         if (this.view.result() && this.timeoutTicks <= 0) this.onClose();
     }
 
@@ -306,20 +306,22 @@ public class BoardBattleScreen extends Screen {
         if (this.view.result()) return attack ? this.view.attackTotal() : this.view.defenseTotal();
         if (this.view.attackerRolling()) {
             if (!attack) return 0;
-            return this.phaseAgeTicks < DICE_FLASH_END_TICK
-                    ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : die;
+            return this.phaseAgeTicks < DICE_FLASH_END_TICK ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : die;
         }
+
         if (this.view.defenseChoice()) return attack ? die : 0;
         if (this.view.defenderRolling()) {
             int age = this.phaseAgeTicks;
             if (age < DICE_FLASH_END_TICK) {
                 return attack ? die : 1 + Math.floorMod(age * 7 + 3, 6);
             }
+
             if (age < BASE_VALUE_STAGE_TICK) return die;
             if (!attack && "evade".equals(this.view.defenseMode())) return die;
             if (age < CARD_VALUE_STAGE_TICK) return die + base;
             return attack ? this.view.attackTotal() : this.view.defenseTotal();
         }
+
         return 0;
     }
 
@@ -357,8 +359,9 @@ public class BoardBattleScreen extends Screen {
         graphics.text(this.font, status, i - this.font.width(status) / 2,
                 layout.y() + 15, this.view.result() ? 0xFFFFFF80 : 0xFFFFFFFF, true);
         if (this.view.selecting() || this.view.defenseChoice()) {
-            Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-            graphics.text(this.font, timer, i - this.font.width(timer) / 2, layout.y() + 32, 0xFFBFC8FF, false);
+            BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
+                    this.timeoutTicks, this.timeoutDurationTicks, i,
+                    layout.y() + layout.height() - 16, Math.min(270, layout.width() - 50));
         }
     }
 
@@ -431,6 +434,7 @@ public class BoardBattleScreen extends Screen {
                     ButtonStyle.button(this.submitted ? 0xFF555560 : 0xFF69A94B));
             return;
         }
+
         if (!this.view.selecting()) return;
         int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
         if (this.submitted) {
@@ -457,13 +461,13 @@ public class BoardBattleScreen extends Screen {
                 this.submit("defend");
                 return true;
             }
-            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38,
-                    layout.actionW(), 30)) {
+            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38, layout.actionW(), 30)) {
                 this.submit("evade");
                 return true;
             }
             return super.mouseClicked(event, doubleClick);
         }
+
         if (!this.view.selecting() || this.submitted) return super.mouseClicked(event, doubleClick);
         if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 34)) {
             this.submit("defend");
@@ -584,6 +588,7 @@ public class BoardBattleScreen extends Screen {
                 result.add(new CombatCard(handIndex, stack, card.definition(stack), cost, minimumBonus, maximumBonus));
             } catch (IllegalArgumentException ignored) {}
         }
+
         return List.copyOf(result);
     }
 
@@ -591,8 +596,7 @@ public class BoardBattleScreen extends Screen {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 
-    private record CombatCard(int handIndex, ItemStack stack, CardDefinition definition, int cost,
-                              int minimumBonus, int maximumBonus) {}
+    private record CombatCard(int handIndex, ItemStack stack, CardDefinition definition, int cost, int minimumBonus, int maximumBonus) {}
     private record CardPosition(int x, int y) {}
     private record Range(int minimum, int maximum) {}
 
@@ -633,11 +637,11 @@ public class BoardBattleScreen extends Screen {
         }
     }
 
-    private record Layout(int x, int y, int width, int height, int modelTop, int modelBottom,
-                          int cardX, int cardY, int cardRight, int cardBottom,
-                          int actionX, int actionY, int actionW) {
+    private record Layout(int x, int y, int width, int height, int modelTop, int modelBottom, int cardX, int cardY,
+                          int cardRight, int cardBottom, int actionX, int actionY, int actionW) {
         private CardPosition cardPosition(int index, float scroll) {
             return new CardPosition(this.cardX + index * (CARD_W + CARD_GAP) - Math.round(scroll), this.cardY);
         }
     }
+
 }

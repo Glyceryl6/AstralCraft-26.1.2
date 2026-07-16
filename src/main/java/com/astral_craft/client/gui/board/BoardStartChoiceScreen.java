@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
@@ -22,6 +23,9 @@ public class BoardStartChoiceScreen extends Screen {
     private final int starCoins;
     private final int nextStarCost;
     private int timeoutTicks;
+    private final int timeoutDurationTicks;
+    private final Identifier characterId;
+    private final Identifier skinId;
     private boolean submitted;
 
     public BoardStartChoiceScreen(OpenBoardStartChoicePayload payload) {
@@ -33,6 +37,9 @@ public class BoardStartChoiceScreen extends Screen {
         this.starCoins = payload.starCoins();
         this.nextStarCost = payload.nextStarCost();
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
+        this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
+        this.characterId = payload.characterId();
+        this.skinId = payload.skinId();
     }
 
     public static void open(OpenBoardStartChoicePayload payload, IPayloadContext context) {
@@ -47,9 +54,7 @@ public class BoardStartChoiceScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
-        if (!this.submitted && --this.timeoutTicks <= 0) {
-            this.choose(false);
-        }
+        if (!this.submitted && this.timeoutTicks > 0 && --this.timeoutTicks <= 0) this.onClose();
     }
 
     @Override
@@ -85,8 +90,9 @@ public class BoardStartChoiceScreen extends Screen {
                 buttonWidth, buttonHeight, this.submitted,
                 inside(mouseX, mouseY, continueX, buttonY, buttonWidth, buttonHeight),
                 ButtonStyle.button(0xFF496AA5));
-        graphics.text(this.font, Component.translatable("gui.astral_craft.board.timeout",
-                (this.timeoutTicks + 19) / 20), x + 16, y + panelHeight - 24, 0xFFBFC8FF, false);
+        BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
+                this.timeoutTicks, this.timeoutDurationTicks, x + panelWidth / 2,
+                y + panelHeight - 15, Math.min(250, panelWidth - 50));
     }
 
     @Override

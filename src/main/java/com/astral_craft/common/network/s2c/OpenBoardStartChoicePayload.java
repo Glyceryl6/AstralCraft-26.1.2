@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 public record OpenBoardStartChoicePayload(
         String boardId,
@@ -13,7 +14,10 @@ public record OpenBoardStartChoicePayload(
         int stars,
         int starCoins,
         int nextStarCost,
-        int timeoutTicks) implements CustomPacketPayload {
+        int timeoutTicks,
+        int timeoutDurationTicks,
+        Identifier characterId,
+        Identifier skinId) implements CustomPacketPayload {
 
     public static final Type<OpenBoardStartChoicePayload> TYPE = new Type<>(AstralCraft.prefix("open_board_start_choice"));
     public static final StreamCodec<ByteBuf, OpenBoardStartChoicePayload> STREAM_CODEC = StreamCodec.composite(
@@ -24,6 +28,9 @@ public record OpenBoardStartChoicePayload(
             ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::starCoins,
             ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::nextStarCost,
             ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::timeoutTicks,
+            ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::timeoutDurationTicks,
+            Identifier.STREAM_CODEC, OpenBoardStartChoicePayload::characterId,
+            Identifier.STREAM_CODEC, OpenBoardStartChoicePayload::skinId,
             OpenBoardStartChoicePayload::new);
 
     @Override

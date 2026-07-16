@@ -43,6 +43,9 @@ public class BoardTurnScreen extends Screen {
     private int cardPlaysUsed;
     private int skillCooldown;
     private int decisionTicks;
+    private int decisionDurationTicks;
+    private Identifier characterId;
+    private Identifier skinId;
     private boolean currentTurn;
     private float scroll;
     private int draggingIndex = -1;
@@ -77,6 +80,9 @@ public class BoardTurnScreen extends Screen {
         this.maxCardPlays = Math.max(0, payload.maxCardPlays());
         this.skillCooldown = Math.max(0, payload.skillCooldownTurns());
         this.decisionTicks = Math.max(0, payload.decisionTicks());
+        this.decisionDurationTicks = Math.max(1, payload.decisionDurationTicks());
+        this.characterId = payload.characterId();
+        this.skinId = payload.skinId();
         this.currentTurn = payload.currentTurn();
         this.draggingIndex = -1;
         this.requestLockTicks = 0;
@@ -150,8 +156,9 @@ public class BoardTurnScreen extends Screen {
         AstralFancyButton.renderButton(graphics, this.font, skill, layout.skillX(), layout.skillY(),
                 layout.skillW(), skillH, false, skillHover,
                 ButtonStyle.button(skillEnabled ? 0xFF4D7AC7 : 0xFF555560));
-        Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.decisionTicks + 19) / 20);
-        graphics.text(this.font, timer, layout.skillX(), layout.skillY() - 14, 0xFFBFC8FF, false);
+        BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
+                this.decisionTicks, this.decisionDurationTicks, this.width / 2, this.height - 17,
+                Math.min(270, this.width - 44));
     }
 
     private void renderCard(GuiGraphicsExtractor graphics, BoardCard card, int x, int y,
@@ -260,7 +267,7 @@ public class BoardTurnScreen extends Screen {
         int skillY = top + 28;
         int infoX = skillX;
         int infoY = skillY + 36;
-        int leaveW = Math.clamp(controlsWidth - 20, 58, 88);
+        int leaveW = Math.min(88, Math.max(58, controlsWidth - 20));
         int leaveX = this.width - leaveW - 10;
         int leaveY = top + 5;
         return new Layout(top, cardLeft, cardTop, cardRight, cardBottom, cardY,

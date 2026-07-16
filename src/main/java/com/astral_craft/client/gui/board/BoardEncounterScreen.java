@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -21,6 +22,9 @@ public class BoardEncounterScreen extends Screen {
     private final int targetEntityId;
     private final String controllerName;
     private int timeoutTicks;
+    private final int timeoutDurationTicks;
+    private final Identifier characterId;
+    private final Identifier skinId;
 
     public BoardEncounterScreen(OpenBoardEncounterPayload payload) {
         super(Component.translatable("gui.astral_craft.board.encounter"));
@@ -28,6 +32,9 @@ public class BoardEncounterScreen extends Screen {
         this.targetEntityId = payload.targetEntityId();
         this.controllerName = payload.controllerName();
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
+        this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
+        this.characterId = payload.characterId();
+        this.skinId = payload.skinId();
     }
 
     public static void open(OpenBoardEncounterPayload payload, IPayloadContext context) {
@@ -39,10 +46,7 @@ public class BoardEncounterScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
-        if (--this.timeoutTicks <= 0) {
-            ClientPacketDistributor.sendToServer(new BoardEncounterChoicePayload(this.boardId, false));
-            this.onClose();
-        }
+        if (this.timeoutTicks > 0 && --this.timeoutTicks <= 0) this.onClose();
     }
 
     @Override
@@ -78,8 +82,9 @@ public class BoardEncounterScreen extends Screen {
         AstralFancyButton.renderButton(graphics, this.font, pass, buttonX, passY, buttonW, buttonH,
                 false, inside(mouseX, mouseY, buttonX, passY, buttonW, buttonH),
                 ButtonStyle.button(0xFF486A9C));
-        Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-        graphics.text(this.font, timer, buttonX, passY + buttonH + 12, 0xFFBFC8FF, false);
+        BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
+                this.timeoutTicks, this.timeoutDurationTicks, x + panelW / 2,
+                y + panelH - 14, Math.min(270, panelW - 40));
     }
 
     @Override

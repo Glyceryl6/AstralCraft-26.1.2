@@ -1,5 +1,7 @@
 package com.astral_craft.common.network;
 
+import com.astral_craft.common.blocks.platform.ShopPlatform;
+import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
@@ -179,7 +181,7 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardStartChoice(BoardStartChoicePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                BoardSessionManager.chooseStartPoint(player, payload.boardId(), payload.stop());
+                StartPlatform.choose(player, payload.boardId(), payload.stop());
             }
         });
     }
@@ -187,7 +189,7 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardShop(BoardShopActionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                BoardSessionManager.shopAction(player, payload.boardId(), payload.offerIndexes(), payload.leave());
+                ShopPlatform.handleAction(player, payload.boardId(), payload.offerIndexes(), payload.leave());
             }
         });
     }

@@ -116,6 +116,7 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(BoardHudOverlay.LAYER, BoardHudOverlay::render);
+        event.registerAboveAll(BoardRouteDecisionOverlay.LAYER, BoardRouteDecisionOverlay::render);
         event.registerAboveAll(CardRevealOverlay.LAYER, CardRevealOverlay::render);
         event.registerAboveAll(AstralHandCardHudOverlay.LAYER, AstralHandCardHudOverlay::render);
         event.registerAboveAll(CharacterSkillCutinOverlay.LAYER, CharacterSkillCutinOverlay::render);

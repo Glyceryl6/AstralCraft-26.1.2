@@ -16,6 +16,9 @@ public record OpenBoardShopPayload(
         int starCoins,
         int cardPrice,
         int timeoutTicks,
+        int timeoutDurationTicks,
+        Identifier characterId,
+        Identifier skinId,
         int noticeCode) implements CustomPacketPayload {
 
     public static final int MAXIMUM_OFFERS = 3;
@@ -27,6 +30,9 @@ public record OpenBoardShopPayload(
             ByteBufCodecs.VAR_INT, OpenBoardShopPayload::starCoins,
             ByteBufCodecs.VAR_INT, OpenBoardShopPayload::cardPrice,
             ByteBufCodecs.VAR_INT, OpenBoardShopPayload::timeoutTicks,
+            ByteBufCodecs.VAR_INT, OpenBoardShopPayload::timeoutDurationTicks,
+            Identifier.STREAM_CODEC, OpenBoardShopPayload::characterId,
+            Identifier.STREAM_CODEC, OpenBoardShopPayload::skinId,
             ByteBufCodecs.VAR_INT, OpenBoardShopPayload::noticeCode,
             OpenBoardShopPayload::new);
 
@@ -36,6 +42,7 @@ public record OpenBoardShopPayload(
         starCoins = Math.max(0, starCoins);
         cardPrice = Math.max(0, cardPrice);
         timeoutTicks = Math.max(0, timeoutTicks);
+        timeoutDurationTicks = Math.max(1, timeoutDurationTicks);
         noticeCode = Math.max(0, noticeCode);
     }
 

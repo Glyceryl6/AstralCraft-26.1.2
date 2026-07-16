@@ -35,6 +35,9 @@ public class BoardDiscardScreen extends Screen {
     private final int required;
     private final Set<Integer> selected = new LinkedHashSet<>();
     private int timeoutTicks;
+    private final int timeoutDurationTicks;
+    private final Identifier characterId;
+    private final Identifier skinId;
 
     public BoardDiscardScreen(OpenBoardDiscardPayload payload) {
         super(Component.translatable("gui.astral_craft.board.discard"));
@@ -42,6 +45,9 @@ public class BoardDiscardScreen extends Screen {
         this.cards = decode(payload.encodedCards());
         this.required = Math.clamp(payload.requiredCount(), 0, this.cards.size());
         this.timeoutTicks = Math.max(0, payload.timeoutTicks());
+        this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
+        this.characterId = payload.characterId();
+        this.skinId = payload.skinId();
     }
 
     public static void open(OpenBoardDiscardPayload payload, IPayloadContext context) {
@@ -89,8 +95,9 @@ public class BoardDiscardScreen extends Screen {
         AstralFancyButton.renderButton(graphics, this.font, confirm, buttonX, buttonY, buttonW, buttonH,
                 false, enabled && inside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH),
                 ButtonStyle.button(enabled ? 0xFFD64B91 : 0xFF555560));
-        Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-        graphics.text(this.font, timer, 18, this.height - 24, 0xFFBFC8FF, false);
+        BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
+                this.timeoutTicks, this.timeoutDurationTicks, this.width / 2, this.height - 18,
+                Math.min(260, this.width - 44));
     }
 
     @Override

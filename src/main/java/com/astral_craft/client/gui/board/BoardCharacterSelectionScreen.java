@@ -42,6 +42,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     private Identifier selectedCharacter;
     private String selectedSkin;
     private int timeoutTicks;
+    private int timeoutDurationTicks;
     private boolean submitted;
     private float characterScroll;
     private float skinScroll;
@@ -60,6 +61,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         }
         this.selectedSkin = payload.selectedSkinId().getPath();
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
+        this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
         this.ensureSkin();
     }
 
@@ -91,6 +93,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         this.occupied.clear();
         this.occupied.addAll(payload.occupiedCharacterIds());
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
+        this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
         if (this.occupied.contains(this.selectedCharacter)) {
             Identifier replacement = this.characters.stream().map(CharacterDefinition::id)
                     .filter(id -> !this.occupied.contains(id)).findFirst().orElse(this.selectedCharacter);
@@ -120,7 +123,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
-        if (!this.submitted && --this.timeoutTicks <= 0) this.submit();
+        if (!this.submitted && this.timeoutTicks > 0) this.timeoutTicks--;
     }
 
     @Override
@@ -186,9 +189,10 @@ public class BoardCharacterSelectionScreen extends Screen {
         Component confirm = Component.translatable("gui.astral_craft.board.confirm");
         AstralFancyButton.renderButton(graphics, this.font, confirm, layout.buttonX(), layout.buttonY(),
                 layout.buttonW(), layout.buttonH(), false, hover, ButtonStyle.button(0xFFD64B91));
-        Component timer = Component.translatable("gui.astral_craft.board.timeout", (this.timeoutTicks + 19) / 20);
-        graphics.text(this.font, timer, layout.buttonX() - this.font.width(timer) - 8,
-                layout.buttonY() + 9, 0xFFBFC8FF, false);
+        BoardDecisionProgressBar.render(graphics, this.font, this.selectedCharacter,
+                BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin),
+                this.timeoutTicks, this.timeoutDurationTicks, this.width / 2,
+                this.height - 17, Math.min(270, this.width - 44));
     }
 
     @Override
