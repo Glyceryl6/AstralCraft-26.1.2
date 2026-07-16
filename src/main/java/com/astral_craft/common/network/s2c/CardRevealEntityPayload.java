@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
  */
 public record CardRevealEntityPayload(
         int entityId,
+        int excludedViewerEntityId,
         String cardId,
         ItemStack stack,
         String cardType,
@@ -34,6 +35,8 @@ public record CardRevealEntityPayload(
     public static final StreamCodec<RegistryFriendlyByteBuf, CardRevealEntityPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT,
             CardRevealEntityPayload::entityId,
+            ByteBufCodecs.VAR_INT,
+            CardRevealEntityPayload::excludedViewerEntityId,
             ByteBufCodecs.STRING_UTF8,
             CardRevealEntityPayload::cardId,
             ItemStack.OPTIONAL_STREAM_CODEC,

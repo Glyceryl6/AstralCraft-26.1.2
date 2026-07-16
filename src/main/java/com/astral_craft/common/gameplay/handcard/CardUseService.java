@@ -287,15 +287,15 @@ public class CardUseService {
             ServerPlayer owner, String cardId, ItemStack stack, String cardType, Component title, Component body,
             Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation, int durationTicks) {
         int sourceEntityId = BoardSessionManager.revealSourceEntityId(owner);
-        CardRevealEntityPayload payload = new CardRevealEntityPayload(sourceEntityId, cardId, stack, cardType,
-                title, body, largeFrontTexture, largeBackTexture, animation, durationTicks);
-        if (sourceEntityId != owner.getId()) {
-            for (ServerPlayer viewer : BoardSessionManager.worldRevealViewers(owner)) {
-                PacketDistributor.sendToPlayer(viewer, payload);
-            }
-        } else {
+        int excludedViewerEntityId = sourceEntityId == owner.getId() ? -1 : owner.getId();
+        CardRevealEntityPayload payload = new CardRevealEntityPayload(sourceEntityId, excludedViewerEntityId,
+                cardId, stack, cardType, title, body, largeFrontTexture, largeBackTexture, animation, durationTicks);
+        if (sourceEntityId == owner.getId()) {
             PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, payload);
+            return;
         }
+        Entity source = owner.level().getEntity(sourceEntityId);
+        if (source != null) PacketDistributor.sendToPlayersTrackingEntity(source, payload);
     }
 
     protected static void sendReveal(ServerPlayer owner, ItemStack stack, CardDefinition definition,

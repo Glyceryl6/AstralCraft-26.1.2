@@ -50,6 +50,8 @@ public class CardRevealEntityOverlay {
     }
 
     public static void show(CardRevealEntityPayload payload) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null && minecraft.player.getId() == payload.excludedViewerEntityId()) return;
         Identifier animationId = normalizeAnimation(payload.animation());
         CardRevealAnimation animation = ANIMATIONS.get(animationId);
         int defaultDuration = animation.defaultDuration(SETTINGS);
