@@ -1,0 +1,11 @@
+package com.astral_craft.common.blocks.platform;
+
+import com.astral_craft.common.blocks.BasePlatform;
+import net.minecraft.world.level.block.Block;
+
+public class RelicPlatform extends BasePlatform {
+
+    public RelicPlatform(Block.Properties properties) {
+        super(properties, Trigger.BOTH);
+    }
+}

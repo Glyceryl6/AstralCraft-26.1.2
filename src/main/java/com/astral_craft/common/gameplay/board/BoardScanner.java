@@ -2,7 +2,7 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.blocks.PlatformBlocks;
+import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -86,7 +86,7 @@ public class BoardScanner {
             List<String> next = nextIds(adjacency.getOrDefault(pos, List.of()), pos, state);
             nodes.put(id, new BoardNode(id, platformId, next));
             positions.put(id, pos.immutable());
-            if (state.getBlock() instanceof PlatformBlocks.Start) {
+            if (state.getBlock() instanceof StartPlatform) {
                 starts.add(id);
             }
         }
