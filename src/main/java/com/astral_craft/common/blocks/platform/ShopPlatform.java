@@ -15,7 +15,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +30,7 @@ public class ShopPlatform extends BasePlatform {
 
     public static final int TIMEOUT_TICKS = 20 * 25;
     public static final int CARD_PRICE = 3;
+    private static final int DEFAULT_OFFER_COUNT = 3;
     private final Map<UUID, ShopState> states = new HashMap<>();
 
     public ShopPlatform(Block.Properties properties) {
@@ -39,10 +39,15 @@ public class ShopPlatform extends BasePlatform {
 
     @Override
     public void applyBoardEffect(BoardPanelContext context) {
-        this.open(context.level(), context.session(), context.participant());
+        this.open(context);
     }
 
-    public static void handleAction(ServerPlayer player, String rawBoardId, List<Integer> offerIndexes, boolean leave) {
+    protected int offerCount(BoardPanelContext context) {
+        return DEFAULT_OFFER_COUNT;
+    }
+
+    public static void handleAction(ServerPlayer player, String rawBoardId, List<Integer> offerIndexes,
+                                    boolean leave) {
         try {
             BoardSessionManager.session(player.level(), UUID.fromString(rawBoardId))
                     .ifPresent(session -> handleAction(player, session, offerIndexes, leave));
@@ -82,7 +87,7 @@ public class ShopPlatform extends BasePlatform {
         this.states.remove(boardId);
     }
 
-    private void handleActionInternal(ServerPlayer player, BoardSession session, @Nullable List<Integer> offerIndexes, boolean leave) {
+    private void handleActionInternal(ServerPlayer player, BoardSession session, List<Integer> offerIndexes, boolean leave) {
         ShopState state = this.states.get(session.id());
         if (state == null) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
@@ -125,9 +130,13 @@ public class ShopPlatform extends BasePlatform {
         this.send(player, updated, next, 3);
     }
 
-    private void open(ServerLevel level, BoardSession session, BoardParticipant participant) {
+    private void open(BoardPanelContext context) {
+        ServerLevel level = context.level();
+        BoardSession session = context.session();
+        BoardParticipant participant = context.participant();
         if (this.states.containsKey(session.id())) return;
-        List<Identifier> offers = this.randomOffers(level, OpenBoardShopPayload.MAXIMUM_OFFERS);
+        int offerCount = Math.clamp(this.offerCount(context), 0, OpenBoardShopPayload.MAXIMUM_ENCODED_OFFERS);
+        List<Identifier> offers = this.randomOffers(level, offerCount);
         if (offers.isEmpty()) return;
         if (BoardSessionManager.isAutomated(level, participant)) {
             int purchaseCount = Math.min(offers.size(), participant.stats().starCoins() / CARD_PRICE);
@@ -170,7 +179,7 @@ public class ShopPlatform extends BasePlatform {
         }
 
         Collections.shuffle(candidates, new Random(level.getRandom().nextLong()));
-        return List.copyOf(candidates.subList(0, Math.clamp(count, 0, candidates.size())));
+        return List.copyOf(candidates.subList(0, Math.min(Math.max(0, count), candidates.size())));
     }
 
     private void close(ServerLevel level, BoardSession session) {

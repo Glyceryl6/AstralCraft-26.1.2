@@ -25,7 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Three-card board shop with server-validated multi-purchase and persistent sold styling. */
+/** Board shop with server-validated multi-purchase and persistent sold styling. */
 public class BoardShopScreen extends Screen {
 
     private static final int CARD_WIDTH = HandCardRenderHelper.FRAMED_CARD_W;
@@ -104,13 +104,13 @@ public class BoardShopScreen extends Screen {
         graphics.text(this.font, balance, layout.x() + layout.width() - 18 - this.font.width(balance),
                 layout.y() + 15, 0xFFFFD36B, true);
         Component hint = Component.translatable("gui.astral_craft.board.shop_hint", this.cardPrice,
-                OpenBoardShopPayload.MAXIMUM_OFFERS);
+                this.cards.size());
         graphics.text(this.font, hint, layout.x() + 18, layout.y() + 34, 0xFFDDD7F3, false);
 
         for (int index = 0; index < this.cards.size(); index++) {
             ShopCard card = this.cards.get(index);
             int x = layout.cardX(index);
-            int y = layout.cardY();
+            int y = layout.cardY(index);
             HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(),
                     card.definition().largeFrontTexture(card.stack()), card.definition().displayName(card.stack()),
                     x, y, mouseX, mouseY, false);
@@ -162,11 +162,9 @@ public class BoardShopScreen extends Screen {
         if (event.button() != 0 || this.submitted) return super.mouseClicked(event, doubleClick);
         Layout layout = this.layout();
         for (int index = 0; index < this.cards.size(); index++) {
-            if (!this.purchased(index) && inside(event.x(), event.y(), layout.cardX(index), layout.cardY(),
+            if (!this.purchased(index) && inside(event.x(), event.y(), layout.cardX(index), layout.cardY(index),
                     CARD_WIDTH, CARD_HEIGHT)) {
-                if (!this.selected.remove(index) && this.selected.size() < OpenBoardShopPayload.MAXIMUM_OFFERS) {
-                    this.selected.add(index);
-                }
+                if (!this.selected.remove(index)) this.selected.add(index);
                 this.noticeCode = 0;
                 return true;
             }
@@ -212,16 +210,21 @@ public class BoardShopScreen extends Screen {
     }
 
     private Layout layout() {
-        int cardsWidth = this.cards.size() * CARD_WIDTH + Math.max(0, this.cards.size() - 1) * CARD_GAP;
-        int width = Math.clamp(Math.max(cardsWidth + 50, 430), 300, Math.max(300, this.width - 20));
-        int height = Math.clamp(CARD_HEIGHT + 126, 230, Math.max(230, this.height - 20));
+        int maximumWidth = Math.max(300, this.width - 20);
+        int maximumColumns = Math.max(1, (maximumWidth - 50 + CARD_GAP) / (CARD_WIDTH + CARD_GAP));
+        int columns = Math.max(1, Math.min(this.cards.size(), maximumColumns));
+        int rows = Math.max(1, (this.cards.size() + columns - 1) / columns);
+        int cardsWidth = columns * CARD_WIDTH + Math.max(0, columns - 1) * CARD_GAP;
+        int cardsHeight = rows * CARD_HEIGHT + Math.max(0, rows - 1) * CARD_GAP;
+        int width = Math.clamp(Math.max(cardsWidth + 50, 430), 300, maximumWidth);
+        int height = Math.clamp(cardsHeight + 126, 230, Math.max(230, this.height - 20));
         int x = (this.width - width) / 2;
         int y = (this.height - height) / 2;
         int cardsStart = x + (width - cardsWidth) / 2;
         int cardY = y + 55;
         int buttonWidth = Math.min(132, (width - 54) / 2);
         int buttonY = y + height - 52;
-        return new Layout(x, y, width, height, cardsStart, cardY, buttonWidth, buttonY);
+        return new Layout(x, y, width, height, cardsStart, cardY, columns, buttonWidth, buttonY);
     }
 
     private static List<ShopCard> decode(List<Identifier> offers) {
@@ -241,9 +244,14 @@ public class BoardShopScreen extends Screen {
 
     private record ShopCard(ItemStack stack, CardDefinition definition) {}
 
-    private record Layout(int x, int y, int width, int height, int cardsStartX, int cardY,
-                          int buttonWidth, int buttonY) {
-        private int cardX(int index) { return this.cardsStartX + index * (CARD_WIDTH + CARD_GAP); }
+    private record Layout(int x, int y, int width, int height, int cardsStartX, int cardsStartY,
+                          int columns, int buttonWidth, int buttonY) {
+        private int cardX(int index) {
+            return this.cardsStartX + Math.floorMod(index, this.columns) * (CARD_WIDTH + CARD_GAP);
+        }
+        private int cardY(int index) {
+            return this.cardsStartY + index / this.columns * (CARD_HEIGHT + CARD_GAP);
+        }
         private int buyX() { return this.x + 18; }
         private int leaveX() { return this.x + this.width - this.buttonWidth - 18; }
     }
