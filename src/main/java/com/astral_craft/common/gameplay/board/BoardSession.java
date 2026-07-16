@@ -186,6 +186,14 @@ public class BoardSession {
         return this.homeNode(participant.slotUuid()).filter(participant.currentNodeKey()::equals).isPresent();
     }
 
+    public boolean canStopAtStart(BoardParticipant participant, String nodeId) {
+        if (participant == null || nodeId == null || nodeId.isBlank()) return false;
+        String canonical = canonicalNodeId(nodeId);
+        if (!this.startNodes.contains(canonical)) return false;
+        if (this.homeNode(participant.slotUuid()).filter(canonical::equals).isPresent()) return true;
+        return !this.homeNodes.containsValue(canonical);
+    }
+
     public void clearParticipants() {
         this.participants.clear();
         this.homeNodes.clear();
@@ -451,39 +459,58 @@ public class BoardSession {
 
     public record MovementState(UUID slotId, int remainingSteps, long nextStepTick,
                                 List<String> route, List<String> branchChoices,
-                                String activeTargetNodeId, long stepStartedTick, int stepDurationTicks) {
+                                String activeTargetNodeId, long stepStartedTick, int stepDurationTicks,
+                                Set<UUID> resolvedEncounterSlots, boolean panelResolved) {
         public MovementState {
             remainingSteps = Math.max(0, remainingSteps);
             route = List.copyOf(route);
             branchChoices = List.copyOf(branchChoices);
             activeTargetNodeId = activeTargetNodeId == null ? "" : activeTargetNodeId;
             stepDurationTicks = Math.max(1, stepDurationTicks);
+            resolvedEncounterSlots = Set.copyOf(resolvedEncounterSlots);
         }
 
         public static MovementState begin(UUID slotId, int steps, long tick) {
-            return new MovementState(slotId, steps, tick, List.of(), List.of(), "", 0L, 6);
+            return new MovementState(slotId, steps, tick, List.of(), List.of(), "", 0L, 6, Set.of(), false);
         }
 
         public MovementState beginStep(String nodeId, long tick, int durationTicks) {
             return new MovementState(this.slotId, this.remainingSteps, this.nextStepTick,
-                    this.route, List.of(), nodeId, tick, durationTicks);
+                    this.route, List.of(), nodeId, tick, durationTicks, Set.of(), false);
         }
 
         public MovementState completeStep(String nodeId, long nextStepTick) {
             List<String> nextRoute = new ArrayList<>(this.route);
             nextRoute.add(nodeId);
             return new MovementState(this.slotId, Math.max(0, this.remainingSteps - 1),
-                    nextStepTick, nextRoute, List.of(), "", 0L, this.stepDurationTicks);
+                    nextStepTick, nextRoute, List.of(), "", 0L, this.stepDurationTicks,
+                    Set.of(), false);
         }
 
         public MovementState waitingForBranch(List<String> choices, long deadlineTick) {
             return new MovementState(this.slotId, this.remainingSteps, Math.max(0L, deadlineTick),
-                    this.route, choices, "", 0L, this.stepDurationTicks);
+                    this.route, choices, "", 0L, this.stepDurationTicks,
+                    this.resolvedEncounterSlots, this.panelResolved);
+        }
+
+        public MovementState withResolvedEncounter(UUID slotId) {
+            Set<UUID> resolved = new LinkedHashSet<>(this.resolvedEncounterSlots);
+            resolved.add(slotId);
+            return new MovementState(this.slotId, this.remainingSteps, this.nextStepTick,
+                    this.route, this.branchChoices, this.activeTargetNodeId, this.stepStartedTick,
+                    this.stepDurationTicks, resolved, this.panelResolved);
+        }
+
+        public MovementState withPanelResolved() {
+            return new MovementState(this.slotId, this.remainingSteps, this.nextStepTick,
+                    this.route, this.branchChoices, this.activeTargetNodeId, this.stepStartedTick,
+                    this.stepDurationTicks, this.resolvedEncounterSlots, true);
         }
 
         public MovementState stop() {
             return new MovementState(this.slotId, 0, this.nextStepTick,
-                    this.route, List.of(), "", 0L, this.stepDurationTicks);
+                    this.route, List.of(), "", 0L, this.stepDurationTicks,
+                    this.resolvedEncounterSlots, this.panelResolved);
         }
 
         public boolean stepping() {
