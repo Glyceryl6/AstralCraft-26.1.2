@@ -117,11 +117,17 @@ public class AstralCharacterEntity extends PathfinderMob {
 
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
-        if (!this.isBoardPawn()) return super.hurtServer(level, source, amount);
+        if (this.isBoardPawn()) return false;
+        return super.hurtServer(level, source, amount);
+    }
+
+    public boolean applyBoardDamage(int amount) {
+        if (!this.isBoardPawn() || !(this.level() instanceof ServerLevel)) return false;
+        int damage = Math.max(0, amount);
+        if (damage == 0) return false;
         AstralPlayerStats current = BoardSessionManager.statsForEntity(this, AstralPlayerStats.DEFAULT);
-        int damage = Math.max(1, (int) Math.ceil(amount));
-        AstralPlayerStats next = current.withHealth(Math.max(0, current.health() - damage));
-        if (!BoardSessionManager.setStatsForEntity(this, next)) return false;
+        AstralPlayerStats next = current.damage(damage);
+        if (next.health() == current.health() || !BoardSessionManager.setStatsForEntity(this, next)) return false;
         BoardSessionManager.onParticipantDamaged(this, next);
         return true;
     }

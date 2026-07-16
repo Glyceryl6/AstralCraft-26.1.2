@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.handcard;
 
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.gameplay.chip.ChipDefinition;
@@ -69,6 +70,10 @@ public class AstralCardEffects {
         int finalDamage = Math.max(0, amount + targetStats.incomingDamageBonus()
                 + Math.min(1, targetStats.buff(BuffKinds.MARK)));
         if (finalDamage <= 0) return;
+        if (target instanceof AstralCharacterEntity character && character.isBoardPawn()) {
+            character.applyBoardDamage(finalDamage);
+            return;
+        }
         if (target instanceof ServerPlayer player) {
             AstralPlayerStats next = AstralStats.get(player).damage(finalDamage);
             update(player, next);
