@@ -3,7 +3,7 @@ package com.astral_craft.client.gui.board;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.AstralStatusIconRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
-import com.astral_craft.common.network.BoardHudSnapshotPayload;
+import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -87,6 +87,7 @@ public class BoardHudOverlay {
         AstralStatusIconRenderer.renderCharacterSkinHead(graphics, pawn.characterId(), pawn.skinId(),
                 portraitX, portraitY, PORTRAIT_SIZE, 255);
         if (pawn.knockedDown()) renderKnockdownMask(graphics, portraitX, portraitY, PORTRAIT_SIZE);
+        if (pawn.disconnectedHuman()) renderDisconnectedMark(graphics, portraitX, portraitY, PORTRAIT_SIZE);
         int textX = portraitX + PORTRAIT_SIZE + 7;
         int availableNameWidth = Math.max(20, width - (textX - x) - 7);
         String name = minecraft.font.plainSubstrByWidth(pawn.controllerName(), availableNameWidth);
@@ -95,6 +96,18 @@ public class BoardHudOverlay {
         graphics.text(minecraft.font, values, textX, y + 14, pawn.knockedDown() ? 0xFF888892 : 0xFFE7DFFF, false);
         String stars = "★".repeat(Math.clamp(pawn.stars(), 0, 3)) + "☆".repeat(Math.clamp(3 - pawn.stars(), 0, 3));
         graphics.text(minecraft.font, stars, x + width - minecraft.font.width(stars) - 5, y + 14, 0xFFFFD34E, true);
+    }
+
+    private static void renderDisconnectedMark(GuiGraphicsExtractor graphics, int x, int y, int size) {
+        int markSize = 8;
+        int left = x + size - markSize;
+        int top = y;
+        graphics.fill(left - 1, top, left + markSize + 1, top + markSize + 1, 0xC0000000);
+        for (int offset = 1; offset < markSize; offset++) {
+            graphics.fill(left + offset, top + offset, left + offset + 2, top + offset + 2, 0xFFFF3030);
+            graphics.fill(left + markSize - offset, top + offset, left + markSize - offset + 2,
+                    top + offset + 2, 0xFFFF3030);
+        }
     }
 
     private static void renderKnockdownMask(GuiGraphicsExtractor graphics, int x, int y, int size) {
@@ -125,14 +138,14 @@ public class BoardHudOverlay {
             List<Pawn> pawns = new ArrayList<>();
             for (String raw : parts[6].split(";")) {
                 if (raw.isBlank()) continue;
-                String[] fields = raw.split(",", 12);
+                String[] fields = raw.split(",", 13);
                 if (fields.length < 12) continue;
                 try {
                     pawns.add(new Pawn(Identifier.parse(fields[3]), fields[4],
                             UUID.fromString(fields[5]), decodeName(fields[6]),
                             Integer.parseInt(fields[7]), Integer.parseInt(fields[8]),
                             Integer.parseInt(fields[9]), Integer.parseInt(fields[10]),
-                            "1".equals(fields[11])));
+                            "1".equals(fields[11]), fields.length >= 13 && "1".equals(fields[12])));
                 } catch (IllegalArgumentException ignored) {}
             }
             try {
@@ -157,6 +170,6 @@ public class BoardHudOverlay {
 
     private record Pawn(Identifier characterId, String skinId, UUID slotId,
                         String controllerName, int starCoins, int health,
-                        int maximumHealth, int stars, boolean knockedDown) {}
+                        int maximumHealth, int stars, boolean knockedDown, boolean disconnectedHuman) {}
 
 }

@@ -2,7 +2,7 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
-import com.astral_craft.common.network.OpenCharacterSettingsPayload;
+import com.astral_craft.common.network.s2c.OpenCharacterSettingsPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -89,8 +89,15 @@ public class CharacterProgressManager {
             deactivateCharacter(player);
             return;
         }
+        selectCharacter(player, safeParse(rawId, CharacterManager.INSTANCE.defaultCharacter().id()));
+    }
 
-        Identifier id = safeParse(rawId, CharacterManager.INSTANCE.defaultCharacter().id());
+    public static void selectCharacter(ServerPlayer player, Identifier id) {
+        if (isInactiveCharacterId(id)) {
+            deactivateCharacter(player);
+            return;
+        }
+
         if (!CharacterManager.INSTANCE.contains(id)) return;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(id);
         CharacterProgress progress = progress(player);
@@ -119,7 +126,11 @@ public class CharacterProgressManager {
 
     public static void selectSkin(ServerPlayer player, String rawCharacterId, String skinId) {
         CharacterProgress progress = progress(player);
-        Identifier characterId = safeParse(rawCharacterId, progress.selectedCharacter());
+        selectSkin(player, safeParse(rawCharacterId, progress.selectedCharacter()), skinId);
+    }
+
+    public static void selectSkin(ServerPlayer player, Identifier characterId, String skinId) {
+        CharacterProgress progress = progress(player);
         if (!CharacterManager.INSTANCE.contains(characterId)) return;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
         if (!definition.unlockedByDefault() && !progress.isCharacterUnlocked(definition.id())) return;
@@ -136,8 +147,11 @@ public class CharacterProgressManager {
 
 
     public static void activatePotential(ServerPlayer player, String rawCharacterId) {
-        if (player == null) return;
-        Identifier characterId = safeParse(rawCharacterId, CharacterManager.INSTANCE.defaultCharacter().id());
+        activatePotential(player, safeParse(rawCharacterId, CharacterManager.INSTANCE.defaultCharacter().id()));
+    }
+
+    public static void activatePotential(ServerPlayer player, Identifier characterId) {
+        if (player == null || characterId == null) return;
         if (!CharacterManager.INSTANCE.contains(characterId)) return;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
         CharacterPotentialDefinition potential = definition.potentialOrDefault();
@@ -269,9 +283,12 @@ public class CharacterProgressManager {
 
 
     public static boolean isInactiveCharacterId(String rawId) {
-        if (rawId == null || rawId.isBlank()) return true;
-        Identifier id = safeParse(rawId, NONE_CHARACTER_ID);
-        return NONE_CHARACTER_ID.equals(id) || NORMAL_CHARACTER_ID.equals(id) || NORMAL_PLAYER_ID.equals(id);
+        return rawId == null || rawId.isBlank() || isInactiveCharacterId(safeParse(rawId, NONE_CHARACTER_ID));
+    }
+
+    public static boolean isInactiveCharacterId(Identifier id) {
+        return id == null || NONE_CHARACTER_ID.equals(id) || NORMAL_CHARACTER_ID.equals(id)
+                || NORMAL_PLAYER_ID.equals(id);
     }
 
     public static Identifier safeParse(String rawId, Identifier fallback) {

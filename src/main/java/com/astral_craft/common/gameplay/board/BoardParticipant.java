@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.board;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
@@ -21,6 +22,7 @@ public record BoardParticipant(
         UUID slotId,
         Optional<UUID> controllerId,
         boolean bot,
+        boolean disconnectedHuman,
         Identifier characterId,
         Identifier skinId,
         Identifier currentNodeId,
@@ -45,11 +47,16 @@ public record BoardParticipant(
     private static final Codec<Identifier> LEGACY_IDENTIFIER_CODEC = Codec.STRING.xmap(
             BoardParticipant::parseIdentifier,
             Identifier::toString);
+    private static final MapCodec<ControlFlags> CONTROL_FLAGS_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("bot", false).forGetter(ControlFlags::bot),
+            Codec.BOOL.optionalFieldOf("disconnected_human", false).forGetter(ControlFlags::disconnectedHuman)
+    ).apply(instance, ControlFlags::new));
 
     public static final Codec<BoardParticipant> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             UUID_CODEC.fieldOf("slot_id").forGetter(BoardParticipant::slotId),
             OPTIONAL_UUID_CODEC.optionalFieldOf("controller_id", Optional.empty()).forGetter(BoardParticipant::controllerId),
-            Codec.BOOL.optionalFieldOf("bot", false).forGetter(BoardParticipant::bot),
+            CONTROL_FLAGS_CODEC.forGetter(participant -> new ControlFlags(
+                    participant.bot(), participant.disconnectedHuman())),
             Identifier.CODEC.fieldOf("character_id").forGetter(BoardParticipant::characterId),
             LEGACY_IDENTIFIER_CODEC.optionalFieldOf("skin_id", Identifier.withDefaultNamespace("default"))
                     .forGetter(BoardParticipant::skinId),
@@ -67,7 +74,18 @@ public record BoardParticipant(
             Codec.INT.optionalFieldOf("card_plays_used", 0).forGetter(BoardParticipant::cardPlaysUsed),
             Codec.INT.optionalFieldOf("max_hand_size", 7).forGetter(BoardParticipant::maxHandSize),
             Codec.INT.optionalFieldOf("arrival_order", 0).forGetter(BoardParticipant::arrivalOrder)
-    ).apply(instance, BoardParticipant::new));
+    ).apply(instance, BoardParticipant::fromCodecParts));
+
+    public BoardParticipant(
+            UUID slotId, Optional<UUID> controllerId, boolean bot,
+            Identifier characterId, Identifier skinId, Identifier currentNodeId, Identifier previousNodeId,
+            Optional<UUID> entityId, AstralPlayerStats stats, List<Identifier> hand,
+            Map<Identifier, Integer> roundStatusEffects, int skillCooldownTurns, int knockedDownTurns,
+            int cardPlaysUsed, int maxHandSize, int arrivalOrder) {
+        this(slotId, controllerId, bot, false, characterId, skinId, currentNodeId, previousNodeId, entityId,
+                stats, hand, roundStatusEffects, skillCooldownTurns, knockedDownTurns, cardPlaysUsed,
+                maxHandSize, arrivalOrder);
+    }
 
     public BoardParticipant {
         slotId = slotId == null ? UUID.randomUUID() : slotId;
@@ -122,27 +140,27 @@ public record BoardParticipant(
     }
 
     public BoardParticipant withNode(Identifier previousNodeId, Identifier currentNodeId, int arrivalOrder) {
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 currentNodeId, previousNodeId, this.entityId, this.stats, this.hand, this.roundStatusEffects,
                 this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed, this.maxHandSize, arrivalOrder);
     }
 
     public BoardParticipant withEntity(@Nullable UUID entityUuid) {
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, Optional.ofNullable(entityUuid), this.stats, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
     }
 
     public BoardParticipant withStats(AstralPlayerStats stats) {
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, stats, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
     }
 
     public BoardParticipant withHand(List<Identifier> hand) {
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats, hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
@@ -152,7 +170,7 @@ public record BoardParticipant(
         if (statusId == null || turns <= 0) return this;
         Map<Identifier, Integer> next = new LinkedHashMap<>(this.roundStatusEffects);
         next.merge(statusId, turns, Math::max);
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand, next,
                 this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
@@ -181,7 +199,7 @@ public record BoardParticipant(
         } else if (this.knockedDownTurns > 1 || this.stats.health() <= 0) {
             nextStats = nextStats.withHealth(0).clearNextMoveDiceEffects();
         }
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, nextStats, this.hand,
                 tickRoundStatusEffects(this.roundStatusEffects), Math.max(0, this.skillCooldownTurns - 1),
                 nextKnockdown, 0, this.maxHandSize, this.arrivalOrder);
@@ -193,14 +211,14 @@ public record BoardParticipant(
 
     public BoardParticipant repairKnockdownState() {
         if (this.stats.health() > 0 || this.knockedDownTurns > 0) return this;
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats.withHealth(0), this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, 2, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
     }
 
     public BoardParticipant asBot() {
-        return new BoardParticipant(this.slotId, Optional.empty(), true, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, Optional.empty(), true, true, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
@@ -211,14 +229,14 @@ public record BoardParticipant(
     }
 
     public BoardParticipant useCardPlay() {
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId,
                 this.stats.useCardPlay(), this.hand, this.roundStatusEffects, this.skillCooldownTurns,
                 this.knockedDownTurns, this.cardPlaysUsed + 1, this.maxHandSize, this.arrivalOrder);
     }
 
     public BoardParticipant withSkillCooldown(int turns) {
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
                 this.roundStatusEffects, Math.max(0, turns), this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
@@ -227,7 +245,7 @@ public record BoardParticipant(
     public BoardParticipant knockDown() {
         int lost = Math.max(0, (this.stats.starCoins() + 1) / 2);
         AstralPlayerStats next = this.stats.spendCoins(lost).withHealth(0);
-        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, next, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, 2, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder);
@@ -300,5 +318,19 @@ public record BoardParticipant(
             return Optional.empty();
         }
     }
+
+    private static BoardParticipant fromCodecParts(
+            UUID slotId, Optional<UUID> controllerId, ControlFlags controlFlags,
+            Identifier characterId, Identifier skinId, Identifier currentNodeId, Identifier previousNodeId,
+            Optional<UUID> entityId, AstralPlayerStats stats, List<Identifier> hand,
+            Map<Identifier, Integer> roundStatusEffects, int skillCooldownTurns, int knockedDownTurns,
+            int cardPlaysUsed, int maxHandSize, int arrivalOrder) {
+        return new BoardParticipant(slotId, controllerId, controlFlags.bot(), controlFlags.disconnectedHuman(),
+                characterId, skinId, currentNodeId, previousNodeId, entityId, stats, hand,
+                roundStatusEffects, skillCooldownTurns, knockedDownTurns, cardPlaysUsed,
+                maxHandSize, arrivalOrder);
+    }
+
+    private record ControlFlags(boolean bot, boolean disconnectedHuman) {}
 
 }

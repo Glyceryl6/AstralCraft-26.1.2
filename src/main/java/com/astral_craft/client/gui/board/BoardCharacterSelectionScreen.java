@@ -8,8 +8,9 @@ import com.astral_craft.common.gameplay.character.CharacterCodecLines;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
-import com.astral_craft.common.network.BoardCharacterSelectionPayload;
-import com.astral_craft.common.network.OpenBoardCharacterSelectionPayload;
+import com.astral_craft.common.gameplay.board.BoardParticipant;
+import com.astral_craft.common.network.c2s.BoardCharacterSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenBoardCharacterSelectionPayload;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -51,13 +52,13 @@ public class BoardCharacterSelectionScreen extends Screen {
         this.boardId = payload.boardId();
         List<CharacterDefinition> decoded = CharacterCodecLines.decode(payload.encodedCharacters());
         this.characters = decoded.isEmpty() ? List.of(CharacterManager.INSTANCE.defaultCharacter()) : decoded;
-        this.occupied = parseIds(payload.occupiedCharacterIds());
-        this.selectedCharacter = parse(payload.selectedCharacterId(), this.characters.getFirst().id());
+        this.occupied = new HashSet<>(payload.occupiedCharacterIds());
+        this.selectedCharacter = payload.selectedCharacterId();
         if (this.occupied.contains(this.selectedCharacter)) {
             this.selectedCharacter = this.characters.stream().map(CharacterDefinition::id)
                     .filter(id -> !this.occupied.contains(id)).findFirst().orElse(this.selectedCharacter);
         }
-        this.selectedSkin = payload.selectedSkinId();
+        this.selectedSkin = payload.selectedSkinId().getPath();
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
         this.ensureSkin();
     }
@@ -88,7 +89,7 @@ public class BoardCharacterSelectionScreen extends Screen {
 
     private void refresh(OpenBoardCharacterSelectionPayload payload) {
         this.occupied.clear();
-        this.occupied.addAll(parseIds(payload.occupiedCharacterIds()));
+        this.occupied.addAll(payload.occupiedCharacterIds());
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
         if (this.occupied.contains(this.selectedCharacter)) {
             Identifier replacement = this.characters.stream().map(CharacterDefinition::id)
@@ -251,7 +252,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         if (this.submitted) return;
         this.submitted = true;
         ClientPacketDistributor.sendToServer(new BoardCharacterSelectionPayload(this.boardId,
-                this.selectedCharacter.toString(), this.selectedSkin));
+                this.selectedCharacter, BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin)));
         this.onClose();
     }
 
@@ -320,26 +321,6 @@ public class BoardCharacterSelectionScreen extends Screen {
 
     private static boolean inside(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
-    }
-
-    private static Identifier parse(String raw, Identifier fallback) {
-        try {
-            return Identifier.parse(raw);
-        } catch (IllegalArgumentException exception) {
-            return fallback;
-        }
-    }
-
-    private static Set<Identifier> parseIds(String encoded) {
-        Set<Identifier> result = new HashSet<>();
-        if (encoded == null || encoded.isBlank()) return result;
-        for (String raw : encoded.split(";")) {
-            try {
-                result.add(Identifier.parse(raw));
-            } catch (IllegalArgumentException ignored) {}
-        }
-
-        return result;
     }
 
     private record CardPosition(int x, int y) {}

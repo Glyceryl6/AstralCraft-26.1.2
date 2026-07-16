@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.gameplay.BoardNode;
-import com.astral_craft.common.network.BoardHudSnapshotPayload;
+import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -10,7 +10,10 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /** Sends compact board snapshots used by the HUD and client-side protection rendering. */
 public class BoardHudSyncManager {
@@ -59,22 +62,34 @@ public class BoardHudSyncManager {
                 .append(area.max().getX()).append(',').append(area.max().getY()).append(',').append(area.max().getZ()).append('|')
                 .append(session.protectionEnabled()).append('|')
                 .append(session.phase().name()).append('|');
-        session.participants().forEach(participant -> {
-                    BlockPos pos = session.positions().get(participant.currentNodeKey());
-                    if (pos == null) return;
-                    out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
-                            .append(participant.characterId()).append(',').append(participant.skinName()).append(',')
-                            .append(participant.slotUuid()).append(',')
-                            .append(encodeName(BoardSessionManager.displayName(level, participant))).append(',')
-                            .append(participant.stats().starCoins()).append(',')
-                            .append(participant.stats().health()).append(',')
-                            .append(participant.stats().maxHealth()).append(',')
-                            .append(participant.stats().stars()).append(',')
-                            .append(participant.knockedDown() ? '1' : '0').append(';');
-                });
+        Set<UUID> encodedSlots = new LinkedHashSet<>();
+        for (UUID slotId : session.turnOrder()) {
+            session.participant(slotId).ifPresent(participant -> {
+                appendParticipant(level, session, out, participant);
+                encodedSlots.add(participant.slotUuid());
+            });
+        }
+
+        session.participants().stream().filter(participant -> !encodedSlots.contains(participant.slotUuid()))
+                .forEach(participant -> appendParticipant(level, session, out, participant));
         out.append('|').append(session.round() + 1).append('|')
                 .append(session.currentParticipant().map(value -> value.slotUuid().toString()).orElse(""));
         return out.toString();
+    }
+
+    private static void appendParticipant(ServerLevel level, BoardSession session, StringBuilder out, BoardParticipant participant) {
+        BlockPos pos = session.positions().get(participant.currentNodeKey());
+        if (pos == null) return;
+        out.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ()).append(',')
+                .append(participant.characterId()).append(',').append(participant.skinName()).append(',')
+                .append(participant.slotUuid()).append(',')
+                .append(encodeName(BoardSessionManager.displayName(level, participant))).append(',')
+                .append(participant.stats().starCoins()).append(',')
+                .append(participant.stats().health()).append(',')
+                .append(participant.stats().maxHealth()).append(',')
+                .append(participant.stats().stars()).append(',')
+                .append(participant.knockedDown() ? '1' : '0').append(',')
+                .append(participant.disconnectedHuman() ? '1' : '0').append(';');
     }
 
     private static String encodeName(String value) {
