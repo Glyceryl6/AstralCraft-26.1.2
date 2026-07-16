@@ -13,11 +13,11 @@ import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.CardRevealEntityPayload;
-import com.astral_craft.common.network.CardRevealPayload;
+import com.astral_craft.common.network.s2c.CardRevealEntityPayload;
+import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.network.CardTargetCandidate;
-import com.astral_craft.common.network.CardTargetSelectionPayload;
-import com.astral_craft.common.network.OpenTargetSelectionPayload;
+import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -60,10 +60,14 @@ public class CardUseService {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
             return false;
         }
+        return useDeckCard(player, itemId);
+    }
 
+    public static boolean useDeckCard(ServerPlayer player, Identifier itemId) {
+        if (itemId == null) return false;
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
         if (!(item instanceof BaseHandCard card)) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
+            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", itemId), true);
             return false;
         }
 
@@ -76,7 +80,7 @@ public class CardUseService {
         ItemStack requestedStack = new ItemStack(item);
         ItemStack stack = AstralHandCardManager.firstInventoryCardStack(player, requestedStack);
         if (stack.isEmpty()) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
+            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", itemId), true);
             return false;
         }
 
@@ -282,9 +286,16 @@ public class CardUseService {
     public static void sendEntityRevealAround(
             ServerPlayer owner, String cardId, ItemStack stack, String cardType, Component title, Component body,
             Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation, int durationTicks) {
-        CardRevealEntityPayload payload = new CardRevealEntityPayload(owner.getId(), cardId, stack, cardType,
+        int sourceEntityId = BoardSessionManager.revealSourceEntityId(owner);
+        CardRevealEntityPayload payload = new CardRevealEntityPayload(sourceEntityId, cardId, stack, cardType,
                 title, body, largeFrontTexture, largeBackTexture, animation, durationTicks);
-        PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, payload);
+        if (sourceEntityId != owner.getId()) {
+            for (ServerPlayer viewer : BoardSessionManager.worldRevealViewers(owner)) {
+                PacketDistributor.sendToPlayer(viewer, payload);
+            }
+        } else {
+            PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, payload);
+        }
     }
 
     protected static void sendReveal(ServerPlayer owner, ItemStack stack, CardDefinition definition,

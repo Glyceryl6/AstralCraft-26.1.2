@@ -3,6 +3,7 @@ package com.astral_craft.common.registry;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.components.CombatBonusDefinition;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -15,5 +16,7 @@ public class AstralDataComponents {
             () -> DataComponentType.<CardType>builder().persistent(CardType.CODEC).networkSynchronized(CardType.STREAM_CODEC).cacheEncoding().build());
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CardDefinition>> CARD_DEFINITION = DATA_COMPONENT_TYPE.register("card_definition",
             () -> DataComponentType.<CardDefinition>builder().persistent(CardDefinition.CODEC).networkSynchronized(CardDefinition.STREAM_CODEC).cacheEncoding().build());
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CombatBonusDefinition>> COMBAT_BONUS = DATA_COMPONENT_TYPE.register("combat_bonus",
+            () -> DataComponentType.<CombatBonusDefinition>builder().persistent(CombatBonusDefinition.CODEC).networkSynchronized(CombatBonusDefinition.STREAM_CODEC).cacheEncoding().build());
 
 }

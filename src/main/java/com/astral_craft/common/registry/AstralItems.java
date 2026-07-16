@@ -3,6 +3,7 @@ package com.astral_craft.common.registry;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.components.CombatBonusDefinition;
 import com.astral_craft.common.items.cards.*;
 import com.astral_craft.common.items.AstralDiceItem;
 import com.astral_craft.common.items.BoardProjectorItem;
@@ -59,12 +60,12 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
 
     // Handcard
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_L = registerCard("handcard_attack_l", HandcardAttackL::new, CardType.ATTACK, HandcardAttackL.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_G = registerCard("handcard_attack_g", HandcardAttackG::new, CardType.ATTACK, HandcardAttackG.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_M = registerCard("handcard_defense_m", HandcardDefenseM::new, CardType.DEFENSE, HandcardDefenseM.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_L = registerCard("handcard_defense_l", HandcardDefenseL::new, CardType.DEFENSE, HandcardDefenseL.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_G = registerCard("handcard_defense_g", HandcardDefenseG::new, CardType.DEFENSE, HandcardDefenseG.DEFINITION);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCombatCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION, 1, 3);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_L = registerCombatCard("handcard_attack_l", HandcardAttackL::new, CardType.ATTACK, HandcardAttackL.DEFINITION, 1, 6);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_G = registerCombatCard("handcard_attack_g", HandcardAttackG::new, CardType.ATTACK, HandcardAttackG.DEFINITION, 1, 10);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_M = registerCombatCard("handcard_defense_m", HandcardDefenseM::new, CardType.DEFENSE, HandcardDefenseM.DEFINITION, 1, 3);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_L = registerCombatCard("handcard_defense_l", HandcardDefenseL::new, CardType.DEFENSE, HandcardDefenseL.DEFINITION, 1, 6);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_G = registerCombatCard("handcard_defense_g", HandcardDefenseG::new, CardType.DEFENSE, HandcardDefenseG.DEFINITION, 1, 10);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_CHOCOLATE_CAKE = registerCard("handcard_chocolate_cake", HandcardChocolateCake::new, CardType.EFFECT, HandcardChocolateCake.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_HAMBURGER = registerCard("handcard_hamburger", HandcardHamburger::new, CardType.EFFECT, HandcardHamburger.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_SMART_DICE = registerCard("handcard_smart_dice", HandcardSmartDice::new, CardType.EFFECT, HandcardSmartDice.DEFINITION);
@@ -136,6 +137,19 @@ public class AstralItems {
         DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
                 new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)
                         .component(AstralDataComponents.CARD_DEFINITION, resolvedDefinition));
+        MODELLED_CARD_ITEMS.add(new ModelledCardItem(register, cardType));
+        return register;
+    }
+
+    public static DeferredHolder<Item, ? extends Item> registerCombatCard(
+            String name, Function<Item.Properties, Item> itemFactory, CardType cardType,
+            CardDefinition definition, int minBonus, int maxBonus) {
+        CardDefinition resolvedDefinition = definition.withType(cardType);
+        CombatBonusDefinition combatBonus = new CombatBonusDefinition(minBonus, maxBonus, true);
+        DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
+                new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)
+                        .component(AstralDataComponents.CARD_DEFINITION, resolvedDefinition)
+                        .component(AstralDataComponents.COMBAT_BONUS, combatBonus));
         MODELLED_CARD_ITEMS.add(new ModelledCardItem(register, cardType));
         return register;
     }

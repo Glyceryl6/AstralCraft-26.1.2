@@ -2,14 +2,14 @@ package com.astral_craft.common.gameplay.battle;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.components.CombatBonusDefinition;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.OpenBoardBattlePayload;
+import com.astral_craft.common.network.s2c.OpenBoardBattlePayload;
 import com.astral_craft.common.registry.AstralDataComponents;
-import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
@@ -214,9 +214,9 @@ public class BoardBattleService {
         int defenderDie = Mth.nextInt(level.getRandom(), 1, 6);
         int defenseBonus = randomCardBonus(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
         int attackTotal = preliminary.attackBase() + preliminary.attackerDie() + preliminary.attackBonus();
-        int defenseTotal = preliminary.defenseBase() + defenderDie + defenseBonus;
-        boolean evaded = "evade".equals(state.defenseMode())
-                && (defenderDie > preliminary.attackerDie() || defenderDie == 6);
+        boolean evading = "evade".equals(state.defenseMode());
+        int defenseTotal = evading ? defenderDie : preliminary.defenseBase() + defenderDie + defenseBonus;
+        boolean evaded = evading && (defenderDie > preliminary.attackerDie() || defenderDie == 6);
         int damage = "evade".equals(state.defenseMode())
                 ? (evaded ? 0 : Math.max(0, attackTotal + defender.stats().incomingDamageBonus()))
                 : Math.max(1, attackTotal - defenseTotal);
@@ -279,30 +279,21 @@ public class BoardBattleService {
         int minimum = 0;
         int maximum = 0;
         for (int index : validatedOrEmpty(participant, indexes, expected)) {
-            CardDefinition definition = combatDefinition(participant, index, expected);
-            if (definition == null) continue;
-            minimum += 1;
-            maximum += maximumBonus(definition.combatCost());
+            CombatBonusDefinition bonus = combatBonus(participant, index, expected);
+            if (bonus == null) continue;
+            minimum += bonus.minimum();
+            maximum += bonus.maximum();
         }
         return new CardRange(minimum, maximum);
     }
 
     private static int randomCardBonus(ServerLevel level, BoardParticipant participant, List<Integer> indexes, CardType expected) {
-        int bonus = 0;
+        int result = 0;
         for (int index : validatedOrEmpty(participant, indexes, expected)) {
-            CardDefinition definition = combatDefinition(participant, index, expected);
-            if (definition != null) bonus += Mth.nextInt(level.getRandom(), 1,
-                    maximumBonus(definition.combatCost()));
+            CombatBonusDefinition bonus = combatBonus(participant, index, expected);
+            if (bonus != null) result += bonus.random(level.getRandom());
         }
-        return bonus;
-    }
-
-    private static int maximumBonus(int cost) {
-        return switch (cost) {
-            case 3 -> 10;
-            case 2 -> 6;
-            default -> 3;
-        };
+        return result;
     }
 
     private static List<Integer> validateSelection(BoardParticipant participant, List<Integer> indexes, CardType expected) {
@@ -328,25 +319,25 @@ public class BoardBattleService {
     }
 
     private static CardDefinition combatDefinition(BoardParticipant participant, int index, CardType expected) {
-        if (index < 0 || index >= participant.hand().size()) return null;
-        Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
-        if (!(item instanceof BaseHandCard) || !isStandardCombatItem(item, expected)) return null;
-        ItemStack stack = new ItemStack(item);
-        CardDefinition definition = stack.get(AstralDataComponents.CARD_DEFINITION);
-        if (definition == null || definition.type() != expected
-                || definition.combatCost() <= 0 || definition.combatCost() > MAXIMUM_PVP_COST) return null;
-        return definition;
+        ItemStack stack = combatStack(participant, index, expected);
+        return stack == null ? null : stack.get(AstralDataComponents.CARD_DEFINITION);
     }
 
-    private static boolean isStandardCombatItem(Item item, CardType expected) {
-        if (expected == CardType.ATTACK) {
-            return item == AstralItems.HANDCARD_ATTACK_M.get()
-                    || item == AstralItems.HANDCARD_ATTACK_L.get()
-                    || item == AstralItems.HANDCARD_ATTACK_G.get();
-        }
-        return item == AstralItems.HANDCARD_DEFENSE_M.get()
-                || item == AstralItems.HANDCARD_DEFENSE_L.get()
-                || item == AstralItems.HANDCARD_DEFENSE_G.get();
+    private static CombatBonusDefinition combatBonus(BoardParticipant participant, int index, CardType expected) {
+        ItemStack stack = combatStack(participant, index, expected);
+        return stack == null ? null : stack.get(AstralDataComponents.COMBAT_BONUS);
+    }
+
+    private static ItemStack combatStack(BoardParticipant participant, int index, CardType expected) {
+        if (index < 0 || index >= participant.hand().size()) return null;
+        Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
+        if (!(item instanceof BaseHandCard)) return null;
+        ItemStack stack = new ItemStack(item);
+        CardDefinition definition = stack.get(AstralDataComponents.CARD_DEFINITION);
+        CombatBonusDefinition bonus = stack.get(AstralDataComponents.COMBAT_BONUS);
+        if (definition == null || bonus == null || !bonus.standardPvp() || definition.type() != expected
+                || definition.combatCost() <= 0 || definition.combatCost() > MAXIMUM_PVP_COST) return null;
+        return stack;
     }
 
     private static List<Integer> chooseBotCards(BoardParticipant participant, CardType expected) {
@@ -411,8 +402,8 @@ public class BoardBattleService {
 
     private static String encodeView(BattleState state, BoardParticipant attacker, BoardParticipant defender) {
         BattleRoll roll = state.roll();
-        int attackBase = attacker.stats().attack();
-        int defenseBase = defender.stats().defense();
+        int attackBase = Math.max(0, attacker.stats().attack());
+        int defenseBase = Math.max(0, defender.stats().defense() - defender.stats().incomingDamageBonus());
         if (roll == null) {
             return String.join("|", state.phase(),
                     Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
@@ -441,8 +432,10 @@ public class BoardBattleService {
         StringJoiner output = new StringJoiner(";");
         for (int index = 0; index < participant.hand().size(); index++) {
             CardDefinition definition = combatDefinition(participant, index, expected);
-            if (definition != null) {
-                output.add(index + "," + participant.hand().get(index) + "," + definition.combatCost());
+            CombatBonusDefinition bonus = combatBonus(participant, index, expected);
+            if (definition != null && bonus != null) {
+                output.add(index + "," + participant.hand().get(index) + "," + definition.combatCost()
+                        + "," + bonus.minimum() + "," + bonus.maximum());
             }
         }
 
