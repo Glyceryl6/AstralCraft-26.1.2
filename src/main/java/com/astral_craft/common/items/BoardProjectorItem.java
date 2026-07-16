@@ -1,7 +1,7 @@
 package com.astral_craft.common.items;
 
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
-import com.astral_craft.common.gameplay.board.PlatformPanelMapper;
+import com.astral_craft.common.blocks.BasePlatform;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -24,7 +24,7 @@ public class BoardProjectorItem extends Item {
             return InteractionResult.PASS;
         }
 
-        if (!PlatformPanelMapper.isPlatform(context.getLevel().getBlockState(context.getClickedPos()).getBlock())) {
+        if (!(context.getLevel().getBlockState(context.getClickedPos()).getBlock() instanceof BasePlatform)) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_panel"), true);
             return InteractionResult.SUCCESS;
         }

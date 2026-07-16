@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks;
 
+import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -20,10 +21,18 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class BasePlatform extends Block {
 
+    public enum Trigger { PASS, LANDING, BOTH }
+
     public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
+    private final Trigger trigger;
 
     public BasePlatform(Properties properties) {
+        this(properties, Trigger.LANDING);
+    }
+
+    public BasePlatform(Properties properties, Trigger trigger) {
         super(properties.instabreak().sound(SoundType.WOOL).noOcclusion());
+        this.trigger = trigger == null ? Trigger.LANDING : trigger;
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
@@ -46,6 +55,25 @@ public class BasePlatform extends Block {
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
+
+    public Trigger boardTrigger() {
+        return this.trigger;
+    }
+
+    public boolean triggers(boolean landing) {
+        return this.trigger == Trigger.BOTH || landing && this.trigger == Trigger.LANDING
+                || !landing && this.trigger == Trigger.PASS;
+    }
+
+    public boolean isStartPoint() {
+        return false;
+    }
+
+    public boolean isPortal() {
+        return false;
+    }
+
+    public void applyBoardEffect(BoardPanelContext context) {}
 
     public Component tooltip() {
         Identifier id = BuiltInRegistries.BLOCK.getKey(this);

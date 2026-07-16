@@ -6,20 +6,16 @@ import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
-public record BoardNode(String id, Identifier panelTypeId, List<String> next) {
+public record BoardNode(String id, Identifier platformId, List<String> next) {
 
     public static final Codec<BoardNode> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("id").forGetter(BoardNode::id),
-            Identifier.CODEC.fieldOf("panel_type").forGetter(BoardNode::panelTypeId),
+            Identifier.CODEC.fieldOf("panel_type").forGetter(BoardNode::platformId),
             Codec.STRING.listOf().optionalFieldOf("next", List.of()).forGetter(BoardNode::next)
     ).apply(instance, BoardNode::new));
 
     public BoardNode {
         next = List.copyOf(next);
-    }
-
-    public PanelType panelType() {
-        return PanelTypes.getOrEmpty(this.panelTypeId);
     }
 
     public String defaultNext() {

@@ -21,7 +21,7 @@ public class BoardMover {
         for (int remaining = steps; remaining > 0; remaining--) {
             String nextId = chooseNext(current, preferred);
             current = requireNode(nodes, nextId);
-            route.add(new MoveStep(current.id(), current.panelType(), remaining - 1, remaining == 1));
+            route.add(new MoveStep(current.id(), current.platformId(), remaining - 1, remaining == 1));
             preferred = null;
         }
 

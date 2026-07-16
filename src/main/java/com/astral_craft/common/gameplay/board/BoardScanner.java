@@ -2,11 +2,12 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
+import com.astral_craft.common.blocks.PlatformBlocks;
 import com.astral_craft.common.gameplay.BoardNode;
-import com.astral_craft.common.gameplay.PanelTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,7 +23,7 @@ public class BoardScanner {
     public static ScannedBoard scan(ServerLevel level, BlockPos origin) {
         List<String> errors = new ArrayList<>();
         BlockState originState = level.getBlockState(origin);
-        if (!PlatformPanelMapper.isPlatform(originState.getBlock())) {
+        if (!(originState.getBlock() instanceof BasePlatform)) {
             errors.add("origin_not_panel");
             return empty(origin, errors);
         }
@@ -37,7 +38,7 @@ public class BoardScanner {
             for (Direction direction : Direction.Plane.HORIZONTAL) {
                 BlockPos next = pos.relative(direction);
                 if (next.getY() != boardY || visited.contains(next)) continue;
-                if (PlatformPanelMapper.isPlatform(level.getBlockState(next).getBlock())) {
+                if (level.getBlockState(next).getBlock() instanceof BasePlatform) {
                     visited.add(next.immutable());
                     queue.add(next.immutable());
                 }
@@ -80,13 +81,12 @@ public class BoardScanner {
         List<BlockPos> orderedPositions = visited.stream().sorted(comparingInt.thenComparingInt(Vec3i::getZ)).toList();
         for (BlockPos pos : orderedPositions) {
             BlockState state = level.getBlockState(pos);
-            Identifier panelId = PlatformPanelMapper.panelId(state.getBlock())
-                    .orElse(AstralCraft.prefix("recover"));
+            Identifier platformId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
             String id = id(pos);
             List<String> next = nextIds(adjacency.getOrDefault(pos, List.of()), pos, state);
-            nodes.put(id, new BoardNode(id, panelId, next));
+            nodes.put(id, new BoardNode(id, platformId, next));
             positions.put(id, pos.immutable());
-            if (panelId.equals(PanelTypes.START.getId())) {
+            if (state.getBlock() instanceof PlatformBlocks.Start) {
                 starts.add(id);
             }
         }

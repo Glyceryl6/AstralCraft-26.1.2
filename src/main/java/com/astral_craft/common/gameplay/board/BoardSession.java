@@ -352,7 +352,7 @@ public class BoardSession {
         nodes.forEach((oldId, node) -> {
             String nodeId = remap.get(oldId);
             List<String> next = node.next().stream().map(value -> remap.getOrDefault(value, canonicalNodeId(value))).toList();
-            canonicalNodes.put(nodeId, new BoardNode(nodeId, node.panelTypeId(), next));
+            canonicalNodes.put(nodeId, new BoardNode(nodeId, node.platformId(), next));
         });
         List<String> canonicalStarts = startNodes.stream()
                 .map(value -> remap.getOrDefault(value, canonicalNodeId(value))).toList();
