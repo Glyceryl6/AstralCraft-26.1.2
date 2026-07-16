@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.board;
 import com.astral_craft.AstralCraft;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
@@ -23,6 +24,10 @@ public class BoardSavedData extends SavedData {
             AstralCraft.prefix("board_sessions"), BoardSavedData::new, CODEC);
 
     private final Map<UUID, BoardSession> sessions = new LinkedHashMap<>();
+
+    public static BoardSavedData get(ServerLevel level) {
+        return level.getDataStorage().computeIfAbsent(TYPE);
+    }
 
     public BoardSavedData() {}
 

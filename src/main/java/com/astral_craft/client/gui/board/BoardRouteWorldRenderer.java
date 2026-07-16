@@ -34,10 +34,13 @@ public class BoardRouteWorldRenderer {
     private static RouteState state = RouteState.EMPTY;
 
     public static void accept(BoardRouteStatePayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> state = payload.active()
-                ? RouteState.parse(payload.boardId(), payload.encodedRoute(),
-                payload.encodedHighlightedRoute(), payload.encodedBranches())
-                : RouteState.EMPTY);
+        context.enqueueWork(() -> {
+            state = payload.active()
+                    ? RouteState.parse(payload.boardId(), payload.encodedRoute(),
+                    payload.encodedHighlightedRoute(), payload.encodedBranches())
+                    : RouteState.EMPTY;
+            BoardRouteDecisionOverlay.accept(payload);
+        });
     }
 
     public static void submit(SubmitCustomGeometryEvent event) {
