@@ -171,7 +171,7 @@ public record CharacterDefinition(
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
                 "idle", 6, 5,
-                new CharacterStatsDefinition(1, 1, 9),
+                new CharacterStatsDefinition(1, 1, 9, 6),
                 List.of(new CharacterSkillDefinition(CharacterSkillType.ACTIVE, 3)),
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
                 List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",

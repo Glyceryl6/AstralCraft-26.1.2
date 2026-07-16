@@ -674,6 +674,7 @@
   "message.astral_craft.board.protected": "该区域正在进行星趴对局，暂时无法破坏方块。",
   "message.astral_craft.board.protection_disabled": "棋盘保护已解除，定义仍会保留。",
   "message.astral_craft.board.protection_enabled": "棋盘保护已启用。",
+  "message.astral_craft.board.round_reward": "第 %1$s 轮奖励：获得 %2$s 枚星币并抽取 %3$s 张手牌",
   "message.astral_craft.board.star_up": "%s升到了%s星！",
   "message.astral_craft.board.star_up_with_cost": "消耗 %2$s 星币，升至 %1$s 星",
   "message.astral_craft.board.start_healed": "在起始点恢复了 %s 点生命值",

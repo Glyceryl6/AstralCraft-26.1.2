@@ -3,6 +3,7 @@ package com.astral_craft.common.stats;
 import com.astral_craft.common.gameplay.BuffKind;
 import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.gameplay.StatBundle;
+import com.astral_craft.common.gameplay.character.CharacterStatsDefinition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
@@ -32,6 +33,13 @@ public record AstralPlayerStats(
 
     public static final AstralPlayerStats DEFAULT = new AstralPlayerStats(
             1, 0, 0, 10, 10, 0, 0, 1, 1, 0, 0, 0, Map.of(), List.of());
+
+    public static AstralPlayerStats initial(CharacterStatsDefinition definition) {
+        CharacterStatsDefinition stats = definition == null ? CharacterStatsDefinition.defaultStats() : definition;
+        int health = Math.max(1, stats.health());
+        return new AstralPlayerStats(stats.attack(), stats.defense(), 0, health, health,
+                Math.max(0, stats.initialStarCoins()), 0, 1, 1, 0, 0, 0, Map.of(), List.of());
+    }
 
     private static final Codec<Map<BuffKind, Integer>> BUFF_MAP_CODEC = Codec.unboundedMap(BuffKind.CODEC, Codec.INT);
     public static final Codec<AstralPlayerStats> CODEC = RecordCodecBuilder.create(instance -> instance.group(

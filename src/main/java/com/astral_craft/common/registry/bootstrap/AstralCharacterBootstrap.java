@@ -39,7 +39,7 @@ public class AstralCharacterBootstrap {
                 AstralCraft.prefix("player"),
                 AstralCraft.prefix("humanoid"),
                 "idle", 6, 6,
-                new CharacterStatsDefinition(entry.attack, entry.defense, entry.health),
+                new CharacterStatsDefinition(entry.attack, entry.defense, entry.health, 6),
                 entry.skillSameIn2Mode ? List.of(skill(id, CharacterSkillType.ACTIVE, entry.cooldown), skill(id, CharacterSkillType.PASSIVE, 0))
                         : List.of(skill(id, CharacterSkillType.ACTIVE, entry.pvpCooldown, entry.pveCooldown), skill(id, CharacterSkillType.PASSIVE, -1, -1)),
                 List.of(new CharacterProfileSection("", prefix + ".profile.basic.body")), List.of(), entry.hasPotential,

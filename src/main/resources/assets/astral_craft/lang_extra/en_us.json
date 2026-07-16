@@ -674,6 +674,7 @@
   "message.astral_craft.board.protected": "An Astral match is active here, so blocks in this area are protected.",
   "message.astral_craft.board.protection_disabled": "Board protection disabled; the definition was retained.",
   "message.astral_craft.board.protection_enabled": "Board protection enabled.",
+  "message.astral_craft.board.round_reward": "Round %1$s reward: gained %2$s coins and drew %3$s card(s)",
   "message.astral_craft.board.star_up": "%s reached star level %s!",
   "message.astral_craft.board.star_up_with_cost": "Spent %2$s coins and reached star level %1$s",
   "message.astral_craft.board.start_healed": "Recovered %s health at the Start Point",

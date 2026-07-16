@@ -27,7 +27,8 @@ public class CharacterCodecLines {
                     .append(definition.maxFriendshipLevel()).append('|')
                     .append(definition.baseStats().attack()).append(',')
                     .append(definition.baseStats().defense()).append(',')
-                    .append(definition.baseStats().health()).append('|')
+                    .append(definition.baseStats().health()).append(',')
+                    .append(definition.baseStats().initialStarCoins()).append('|')
                     .append(escapeSkills(definition.skills())).append('|')
                     .append(escapeProfiles(definition.profileSections())).append('|')
                     .append(escapeSkins(definition.skins())).append('|')
@@ -123,7 +124,9 @@ public class CharacterCodecLines {
         }
 
         try {
-            return new CharacterStatsDefinition(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+            int initialStarCoins = parts.length >= 4 ? Integer.parseInt(parts[3]) : 6;
+            return new CharacterStatsDefinition(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),
+                    Integer.parseInt(parts[2]), initialStarCoins);
         } catch (NumberFormatException exception) {
             return CharacterStatsDefinition.defaultStats();
         }
