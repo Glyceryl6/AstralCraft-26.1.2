@@ -12,7 +12,7 @@ import java.util.List;
 public record OpenBoardCharacterSelectionPayload(
         String boardId, String encodedCharacters, List<Identifier> occupiedCharacterIds,
         Identifier selectedCharacterId, Identifier selectedSkinId,
-        int timeoutTicks, int timeoutDurationTicks, boolean refresh) implements CustomPacketPayload {
+        int timeoutTicks, int timeoutDurationTicks, boolean selectionLocked, boolean refresh) implements CustomPacketPayload {
 
     private static final int MAXIMUM_CHARACTERS = 256;
 
@@ -26,6 +26,7 @@ public record OpenBoardCharacterSelectionPayload(
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedSkinId,
             ByteBufCodecs.VAR_INT, OpenBoardCharacterSelectionPayload::timeoutTicks,
             ByteBufCodecs.VAR_INT, OpenBoardCharacterSelectionPayload::timeoutDurationTicks,
+            ByteBufCodecs.BOOL, OpenBoardCharacterSelectionPayload::selectionLocked,
             ByteBufCodecs.BOOL, OpenBoardCharacterSelectionPayload::refresh,
             OpenBoardCharacterSelectionPayload::new);
 
