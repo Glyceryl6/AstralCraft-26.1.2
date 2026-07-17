@@ -812,6 +812,7 @@
   "gui.astral_craft.target_selection.no_targets": "No valid targets in range.",
   "gui.astral_craft.target_selection.title": "Choose Target",
   "hud.astral_craft.board": "Astral Board",
+  "hud.astral_craft.board_hand_count": "Cards: %s",
   "hud.astral_craft.board_round": "Round %s",
   "hud.astral_craft.board_stats": "Coins: %s  HP: %s/%s",
   "hud.astral_craft.board_world_stats": "Coins: %s  HP: %s/%s  %s",

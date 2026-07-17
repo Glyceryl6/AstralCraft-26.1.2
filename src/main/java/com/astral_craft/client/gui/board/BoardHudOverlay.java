@@ -89,11 +89,14 @@ public class BoardHudOverlay {
         if (pawn.knockedDown()) renderKnockdownMask(graphics, portraitX, portraitY, PORTRAIT_SIZE);
         if (pawn.disconnectedHuman()) renderDisconnectedMark(graphics, portraitX, portraitY, PORTRAIT_SIZE);
         int textX = portraitX + PORTRAIT_SIZE + 7;
-        int availableNameWidth = Math.max(20, width - (textX - x) - 7);
+        Component hand = Component.translatable("hud.astral_craft.board_hand_count", pawn.handCount());
+        int handX = x + width - minecraft.font.width(hand) - 5;
+        int availableNameWidth = Math.max(20, handX - textX - 5);
         String name = minecraft.font.plainSubstrByWidth(pawn.controllerName(), availableNameWidth);
         graphics.text(minecraft.font, name, textX, y + 3, pawn.knockedDown() ? 0xFF9A9AA2 : 0xFFFFFFFF, true);
         Component values = Component.translatable("hud.astral_craft.board_stats", pawn.starCoins(), pawn.health(), pawn.maximumHealth());
         graphics.text(minecraft.font, values, textX, y + 14, pawn.knockedDown() ? 0xFF888892 : 0xFFE7DFFF, false);
+        graphics.text(minecraft.font, hand, handX, y + 3, pawn.knockedDown() ? 0xFF888892 : 0xFF9FD8FF, false);
         String stars = "★".repeat(Math.clamp(pawn.stars(), 0, 3)) + "☆".repeat(Math.clamp(3 - pawn.stars(), 0, 3));
         graphics.text(minecraft.font, stars, x + width - minecraft.font.width(stars) - 5, y + 14, 0xFFFFD34E, true);
     }
@@ -138,14 +141,15 @@ public class BoardHudOverlay {
             List<Pawn> pawns = new ArrayList<>();
             for (String raw : parts[6].split(";")) {
                 if (raw.isBlank()) continue;
-                String[] fields = raw.split(",", 13);
+                String[] fields = raw.split(",", 14);
                 if (fields.length < 12) continue;
                 try {
                     pawns.add(new Pawn(Identifier.parse(fields[3]), fields[4],
                             UUID.fromString(fields[5]), decodeName(fields[6]),
                             Integer.parseInt(fields[7]), Integer.parseInt(fields[8]),
                             Integer.parseInt(fields[9]), Integer.parseInt(fields[10]),
-                            "1".equals(fields[11]), fields.length >= 13 && "1".equals(fields[12])));
+                            "1".equals(fields[11]), fields.length >= 13 && "1".equals(fields[12]),
+                            fields.length >= 14 ? Integer.parseInt(fields[13]) : 0));
                 } catch (IllegalArgumentException ignored) {}
             }
             try {
@@ -170,6 +174,7 @@ public class BoardHudOverlay {
 
     private record Pawn(Identifier characterId, String skinId, UUID slotId,
                         String controllerName, int starCoins, int health,
-                        int maximumHealth, int stars, boolean knockedDown, boolean disconnectedHuman) {}
+                        int maximumHealth, int stars, boolean knockedDown,
+                        boolean disconnectedHuman, int handCount) {}
 
 }

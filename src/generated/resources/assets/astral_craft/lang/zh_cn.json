@@ -812,6 +812,7 @@
   "gui.astral_craft.target_selection.no_targets": "范围内没有有效目标。",
   "gui.astral_craft.target_selection.title": "选择目标",
   "hud.astral_craft.board": "星趴棋盘",
+  "hud.astral_craft.board_hand_count": "手牌：%s",
   "hud.astral_craft.board_round": "第 %s 回合",
   "hud.astral_craft.board_stats": "星币：%s  生命：%s/%s",
   "hud.astral_craft.board_world_stats": "星币：%s  生命：%s/%s  %s",

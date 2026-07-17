@@ -52,12 +52,12 @@ public class BoardBattleScreen extends Screen {
     private static final int BASE_VALUE_STAGE_TICK = 49;
     private static final int CARD_VALUE_STAGE_TICK = 67;
     private static final int EVADE_FAILURE_STAGE_TICK = 49;
-    private static final int KNOCKOUT_FLIGHT_START_TICK = 2;
-    private static final int KNOCKOUT_FLIGHT_TICKS = 42;
-    private static final int KNOCKOUT_EXPLOSION_TICK = 47;
+    private static final int KNOCKOUT_FLIGHT_START_TICK = 1;
+    private static final int KNOCKOUT_FLIGHT_TICKS = 16;
+    private static final int KNOCKOUT_EXPLOSION_TICK = 18;
     private static final int KNOCKOUT_EXPLOSION_RENDER_TICKS = 24;
-    private static final int VICTORY_MOVE_START_TICK = 56;
-    private static final int VICTORY_MOVE_TICKS = 38;
+    private static final int VICTORY_MOVE_START_TICK = 27;
+    private static final int VICTORY_MOVE_TICKS = 24;
     private static final Identifier HEART_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full.png");
     private static final Identifier HEART_BLINKING_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full_blinking.png");
     private static final Identifier CRITICAL_HIT_TEXTURE = Identifier.withDefaultNamespace("textures/particle/critical_hit.png");
@@ -119,6 +119,7 @@ public class BoardBattleScreen extends Screen {
             if (next.attackMinimum() != this.view.attackMinimum() || next.attackMaximum() != this.view.attackMaximum()) {
                 this.attackerScoreFlashTicks = 7;
             }
+
             if (next.defenseMinimum() != this.view.defenseMinimum() || next.defenseMaximum() != this.view.defenseMaximum()) {
                 this.defenderScoreFlashTicks = 7;
             }
@@ -130,6 +131,7 @@ public class BoardBattleScreen extends Screen {
             this.knockoutExplosionTriggered = false;
             if (next.defenseChoice() && "defender".equals(this.role)) this.submitted = false;
         }
+
         this.view = next;
         this.timeoutTicks = Math.max(0, payload.decisionTicks());
         this.timeoutDurationTicks = Math.max(1, payload.decisionDurationTicks());
@@ -161,11 +163,13 @@ public class BoardBattleScreen extends Screen {
         if (this.defenderHealthFlashTicks > 0) this.defenderHealthFlashTicks--;
         if (this.attackerScoreFlashTicks > 0) this.attackerScoreFlashTicks--;
         if (this.defenderScoreFlashTicks > 0) this.defenderScoreFlashTicks--;
-        if (this.view.result() && this.view.knockout() && this.phaseAgeTicks >= KNOCKOUT_EXPLOSION_TICK
+        if (this.view.result() && this.view.knockout()
+                && this.phaseAgeTicks >= KNOCKOUT_EXPLOSION_TICK
                 && !this.knockoutExplosionTriggered) {
             this.knockoutExplosionTriggered = true;
-            this.playKnockoutExplosion();
+//            this.playKnockoutExplosion();
         }
+
         if (this.timeoutTicks > 0) this.timeoutTicks--;
         if (this.view.result() && this.timeoutTicks <= 0) this.onClose();
     }
@@ -252,22 +256,21 @@ public class BoardBattleScreen extends Screen {
         float approachOffset = Math.clamp(layout.width() * 0.025F, 8.0F, 18.0F) * approach;
         if (!this.view.result() || !this.view.knockout()) {
             BoardScreenEntityRenderer.render(graphics, attacker, attackerLeft, layout.modelTop(), attackerRight,
-                    layout.modelBottom(), -225.0F, 1.0F, approachOffset, 0.0F, 0.0F);
+                    layout.modelBottom(), 225.0F, 1.0F, approachOffset, 0.0F, 0.0F);
             BoardScreenEntityRenderer.render(graphics, defender, defenderLeft, layout.modelTop(), defenderRight,
-                    layout.modelBottom(), 225.0F, 1.0F, -approachOffset, 0.0F, 0.0F);
+                    layout.modelBottom(), -225.0F, 1.0F, -approachOffset, 0.0F, 0.0F);
             return;
         }
 
         float flightProgress = Mth.clamp((age - KNOCKOUT_FLIGHT_START_TICK) / KNOCKOUT_FLIGHT_TICKS, 0.0F, 1.0F);
-        float flight = easeInOutCubic(flightProgress);
+        float flight = easeOutCubic(flightProgress);
         float defenderCenterX = (defenderLeft + defenderRight) * 0.5F;
         float defenderCenterY = (layout.modelTop() + layout.modelBottom()) * 0.5F;
         float targetCenterX = this.explosionCenterX(layout);
         float targetCenterY = this.explosionCenterY(layout);
-        float defenderOffsetX = -approachOffset + (targetCenterX - defenderCenterX + approachOffset) * flight;
-        float defenderOffsetY = (targetCenterY - defenderCenterY) * flight
-                - (float) Math.sin(Math.PI * flightProgress) * 24.0F;
-        float defenderRoll = 118.0F * smoothStep(flightProgress);
+        float defenderOffsetX = Mth.lerp(flight, -approachOffset, targetCenterX - defenderCenterX);
+        float defenderOffsetY = Mth.lerp(flight, 0.0F, targetCenterY - defenderCenterY);
+        float defenderRoll = Mth.lerp(flight, 0.0F, 10.0F);
         if (age < KNOCKOUT_EXPLOSION_TICK) {
             BoardScreenEntityRenderer.render(graphics, defender, defenderLeft, layout.modelTop(), defenderRight,
                     layout.modelBottom(), 225.0F, 1.0F, defenderOffsetX, defenderOffsetY, defenderRoll);
@@ -293,9 +296,11 @@ public class BoardBattleScreen extends Screen {
         if (this.view.scorePhase()) {
             Range attackRange = this.displayRange(true);
             Range defenseRange = this.displayRange(false);
-            this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, y,
+            this.renderFraction(graphics, attackRange.minimum(),
+                    attackRange.maximum(), attackX, y,
                     ATTACK_ACCENT, this.attackerScoreFlashTicks);
-            this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, y,
+            this.renderFraction(graphics, defenseRange.minimum(),
+                    defenseRange.maximum(), defenseX, y,
                     DEFENSE_ACCENT, this.defenderScoreFlashTicks);
             this.renderReadyState(graphics, layout, true);
             this.renderReadyState(graphics, layout, false);
@@ -344,12 +349,12 @@ public class BoardBattleScreen extends Screen {
         int centerX = attacker ? layout.x() + layout.width() / 4 : layout.x() + layout.width() * 3 / 4;
         int y = layout.modelTop() + 6;
         Component text = ready
-                ? Component.translatable("gui.astral_craft.board.battle_ready_overhead")
+                ? Component.translatable("gui.astral_craft.board.battle_ready_overhead").withStyle(ChatFormatting.BLUE)
                 : coloredStatus(name, attacker, "gui.astral_craft.board.battle_playing_cards");
         int width = this.font.width(text) + 12;
-        graphics.fill(centerX - width / 2, y, centerX + width / 2, y + 16, 0xC9000000);
-        graphics.text(this.font, text, centerX - this.font.width(text) / 2, y + 4,
-                ready ? 0xFF8CFF9A : color, true);
+        graphics.fill(centerX - width / 2, y, centerX + width / 2, y - 12, 0xC9000000);
+        graphics.text(this.font, text, centerX - this.font.width(text) / 2, y - 10,
+                ready ? -1 : color, true);
     }
 
     private float numberScale(boolean attack) {
@@ -365,6 +370,7 @@ public class BoardBattleScreen extends Screen {
             pulseDistance = Math.min(Math.abs(age - BASE_VALUE_STAGE_TICK),
                     Math.abs(age - CARD_VALUE_STAGE_TICK));
         }
+
         if (pulseDistance > 4) return base;
         float pulse = 1.0F - Mth.clamp(pulseDistance / 4.0F, 0.0F, 1.0F);
         return base + pulse * 0.85F;
@@ -381,14 +387,14 @@ public class BoardBattleScreen extends Screen {
     private Range displayRange(boolean attack) {
         int minimum = attack ? this.view.attackMinimum() : this.view.defenseMinimum();
         int maximum = attack ? this.view.attackMaximum() : this.view.defenseMaximum();
-        if (this.view.selecting() && ((attack && "attacker".equals(this.role))
-                || (!attack && "defender".equals(this.role)))) {
+        if (this.view.selecting() && ((attack && "attacker".equals(this.role)) || (!attack && "defender".equals(this.role)))) {
             int base = attack ? this.view.attackBase() : this.view.defenseBase();
             int minBonus = this.selectedIndexes.stream().mapToInt(index -> this.cards.get(index).minimumBonus()).sum();
             int maxBonus = this.selectedIndexes.stream().mapToInt(index -> this.cards.get(index).maximumBonus()).sum();
             minimum = base + minBonus;
             maximum = base + maxBonus;
         }
+
         return new Range(minimum, maximum);
     }
 
@@ -425,6 +431,7 @@ public class BoardBattleScreen extends Screen {
                         || Math.abs(this.phaseAgeTicks - CARD_VALUE_STAGE_TICK) <= 4;
             }
         }
+
         if (flash && Math.floorMod(this.phaseAgeTicks, 4) < 2) return 0xFFFFFFFF;
         return attack ? 0xFFFFE3A0 : 0xFFA8E8FF;
     }
@@ -439,6 +446,7 @@ public class BoardBattleScreen extends Screen {
             }
             return attack ? this.view.attackTotal() : this.view.defenseTotal();
         }
+
         if (!this.view.defenderRolling()) return 0;
         int rollAge = this.defenderRollAge();
         if (rollAge < 0) return attack ? this.view.attackerDie() : 0;
@@ -460,11 +468,6 @@ public class BoardBattleScreen extends Screen {
 
     private static float smoothStep(float value) {
         return value * value * (3.0F - 2.0F * value);
-    }
-
-    private static float easeInOutCubic(float value) {
-        return value < 0.5F ? 4.0F * value * value * value
-                : 1.0F - (float) Math.pow(-2.0F * value + 2.0F, 3.0D) * 0.5F;
     }
 
     private static float easeOutCubic(float value) {
@@ -515,6 +518,7 @@ public class BoardBattleScreen extends Screen {
             graphics.fill(centerX - radius, centerY - radius, centerX + radius, centerY + radius,
                     alpha << 24 | 0x00FFF2C2);
         }
+
         this.renderExplosionParticle(graphics, centerX, centerY, age, 0, 0.0F, 0.0F, 1.65F);
         for (int index = 0; index < 24; index++) {
             float delay = (index % 8) * 0.55F;
@@ -530,8 +534,7 @@ public class BoardBattleScreen extends Screen {
         }
     }
 
-    private void renderExplosionParticle(GuiGraphicsExtractor graphics, int centerX, int centerY, float age,
-                                         int seed, float offsetX, float offsetY, float scale) {
+    private void renderExplosionParticle(GuiGraphicsExtractor graphics, int centerX, int centerY, float age, int seed, float offsetX, float offsetY, float scale) {
         int frame = Math.clamp((int) (age * 1.05F + seed % 3), 0, 15);
         Identifier texture = Identifier.withDefaultNamespace("textures/particle/explosion_" + frame + ".png");
         float fade = 1.0F - Mth.clamp(age / 16.0F, 0.0F, 1.0F);
@@ -627,6 +630,7 @@ public class BoardBattleScreen extends Screen {
                 this.renderCard(graphics, this.cards.get(index), position.x(), position.y(), mouseX, mouseY, false);
             }
         }
+
         graphics.disableScissor();
         if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
             this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX,
@@ -666,6 +670,7 @@ public class BoardBattleScreen extends Screen {
                         ButtonStyle.button(0xFF555560));
                 return;
             }
+
             Component defend = Component.translatable("gui.astral_craft.board.defend");
             Component evade = Component.translatable("gui.astral_craft.board.evade");
             AstralFancyButton.renderButton(graphics, this.font, defend, layout.actionX(), layout.actionY(),
@@ -679,6 +684,7 @@ public class BoardBattleScreen extends Screen {
                     ButtonStyle.button(this.submitted ? 0xFF555560 : 0xFF69A94B));
             return;
         }
+
         if (!this.view.selecting()) return;
         int accent = "defender".equals(this.role) ? DEFENSE_ACCENT : ATTACK_ACCENT;
         if (this.submitted) {
@@ -688,6 +694,7 @@ public class BoardBattleScreen extends Screen {
                     ButtonStyle.button(0xFF555560));
             return;
         }
+
         AstralFancyButton.renderButton(graphics, this.font, Component.translatable("gui.astral_craft.board.ready"),
                 layout.actionX(), layout.actionY(), layout.actionW(), 34, false,
                 inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 34),
@@ -699,24 +706,28 @@ public class BoardBattleScreen extends Screen {
         if (event.button() != 0 || "spectator".equals(this.role)) {
             return super.mouseClicked(event, doubleClick);
         }
+
         Layout layout = this.layout();
         if (this.view.defenseChoice() && "defender".equals(this.role) && !this.submitted) {
             if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 30)) {
                 this.submit("defend");
                 return true;
             }
-            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38,
-                    layout.actionW(), 30)) {
+
+            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38, layout.actionW(), 30)) {
                 this.submit("evade");
                 return true;
             }
+
             return super.mouseClicked(event, doubleClick);
         }
+
         if (!this.view.selecting() || this.submitted) return super.mouseClicked(event, doubleClick);
         if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 34)) {
             this.submit("defend");
             return true;
         }
+
         List<Integer> visible = this.visibleCardIndexes();
         for (int visibleIndex = 0; visibleIndex < visible.size(); visibleIndex++) {
             int index = visible.get(visibleIndex);
@@ -732,6 +743,7 @@ public class BoardBattleScreen extends Screen {
                 return true;
             }
         }
+
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -747,10 +759,13 @@ public class BoardBattleScreen extends Screen {
                     if ("attacker".equals(this.role)) this.attackerScoreFlashTicks = 7;
                     if ("defender".equals(this.role)) this.defenderScoreFlashTicks = 7;
                 }
+
                 this.cardScroll = Math.clamp(this.cardScroll, 0.0F, this.maximumCardScroll(layout));
             }
+
             return true;
         }
+
         return super.mouseReleased(event);
     }
 
@@ -763,6 +778,7 @@ public class BoardBattleScreen extends Screen {
                     0.0F, this.maximumCardScroll(layout));
             return true;
         }
+
         return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
     }
 
@@ -833,6 +849,7 @@ public class BoardBattleScreen extends Screen {
                 result.add(new CombatCard(handIndex, stack, card.definition(stack), cost, minimumBonus, maximumBonus));
             } catch (IllegalArgumentException ignored) {}
         }
+
         return List.copyOf(result);
     }
 
@@ -840,8 +857,7 @@ public class BoardBattleScreen extends Screen {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 
-    private record CombatCard(int handIndex, ItemStack stack, CardDefinition definition, int cost,
-                              int minimumBonus, int maximumBonus) {}
+    private record CombatCard(int handIndex, ItemStack stack, CardDefinition definition, int cost, int minimumBonus, int maximumBonus) {}
     private record CardPosition(int x, int y) {}
     private record Range(int minimum, int maximum) {}
 

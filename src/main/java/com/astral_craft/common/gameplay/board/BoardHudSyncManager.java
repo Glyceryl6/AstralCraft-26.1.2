@@ -89,7 +89,8 @@ public class BoardHudSyncManager {
                 .append(participant.stats().maxHealth()).append(',')
                 .append(participant.stats().stars()).append(',')
                 .append(participant.knockedDown() ? '1' : '0').append(',')
-                .append(participant.disconnectedHuman() ? '1' : '0').append(';');
+                .append(participant.disconnectedHuman() ? '1' : '0').append(',')
+                .append(participant.hand().size()).append(';');
     }
 
     private static String encodeName(String value) {
