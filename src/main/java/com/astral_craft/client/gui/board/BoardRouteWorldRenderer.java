@@ -21,12 +21,14 @@ public class BoardRouteWorldRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
     private static final int ROUTE_COLOR = 0xF08BE8FF;
-    private static final int STAR_ROUTE_COLOR = 0xFFFFE45F;
+    private static final int STAR_ROUTE_GLOW_COLOR = 0x66FFF19A;
+    private static final int STAR_ROUTE_COLOR = 0xFFFFFFB8;
     private static final int BRANCH_COLOR = 0xFFFFD875;
     private static final int STAR_BRANCH_COLOR = 0xFFFFFF8A;
     private static final float ROUTE_Y_OFFSET = 0.555F;
     private static final float ROUTE_HALF_WIDTH = 0.075F;
-    private static final float STAR_ROUTE_HALF_WIDTH = 0.105F;
+    private static final float STAR_ROUTE_GLOW_HALF_WIDTH = 0.19F;
+    private static final float STAR_ROUTE_HALF_WIDTH = 0.095F;
     private static final float DASH_LENGTH = 0.24F;
     private static final float DASH_GAP = 0.10F;
     private static final double STALE_AFTER_TICKS = 20.0D * 30.0D;
@@ -63,8 +65,8 @@ public class BoardRouteWorldRenderer {
                     ROUTE_COLOR, ROUTE_HALF_WIDTH);
         }
         for (Edge edge : highlightedEdges) {
-            submitDashedEdge(event, poseStack, cameraPos, edge, cycle,
-                    STAR_ROUTE_COLOR, STAR_ROUTE_HALF_WIDTH);
+            submitSolidEdge(event, poseStack, cameraPos, edge, STAR_ROUTE_GLOW_COLOR, STAR_ROUTE_GLOW_HALF_WIDTH);
+            submitSolidEdge(event, poseStack, cameraPos, edge, STAR_ROUTE_COLOR, STAR_ROUTE_HALF_WIDTH);
         }
 
         Vec3 branchOrigin = current.paths().isEmpty() || current.paths().getFirst().isEmpty()
@@ -114,6 +116,18 @@ public class BoardRouteWorldRenderer {
             Vec3 d = start.add(direction.scale(from)).add(side).subtract(cameraPos);
             submitQuad(event, poseStack, a, b, c, d, color);
         }
+    }
+
+    private static void submitSolidEdge(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos, Edge edge, int color, float halfWidth) {
+        Vec3 start = edge.start().add(0.5D, ROUTE_Y_OFFSET + 0.006D, 0.5D);
+        Vec3 end = edge.end().add(0.5D, ROUTE_Y_OFFSET + 0.006D, 0.5D);
+        Vec3 delta = end.subtract(start);
+        double length = delta.length();
+        if (length < 1.0E-5D) return;
+        Vec3 direction = delta.scale(1.0D / length);
+        Vec3 side = new Vec3(-direction.z, 0.0D, direction.x).scale(halfWidth);
+        submitQuad(event, poseStack, start.subtract(side).subtract(cameraPos), end.subtract(side).subtract(cameraPos),
+                end.add(side).subtract(cameraPos), start.add(side).subtract(cameraPos), color);
     }
 
     private static void submitBranchMarker(SubmitCustomGeometryEvent event, PoseStack poseStack,

@@ -13,16 +13,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** Subtle animated ground outline used to identify protected board areas without enclosing them in walls. */
+/** Solid violet ground outline used to identify protected board areas without resembling movement routes. */
 public class BoardProtectionWorldRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int OUTLINE_COLOR = 0x986BDFFF;
-    private static final int CORNER_COLOR = 0xC8B9F4FF;
+    private static final int OUTLINE_COLOR = 0x8CCE75FF;
+    private static final int CORNER_COLOR = 0xD8F1C1FF;
     private static final double MAX_RENDER_DISTANCE_SQR = 160.0D * 160.0D;
     private static final double STALE_AFTER_TICKS = 40.0D;
-    private static final double DASH_LENGTH = 0.48D;
-    private static final double DASH_GAP = 0.30D;
     private static final double HALF_WIDTH = 0.035D;
     private static final double CORNER_LENGTH = 1.35D;
     private static final Map<String, ProtectionSnapshot> SNAPSHOTS = new LinkedHashMap<>();
@@ -43,7 +41,6 @@ public class BoardProtectionWorldRenderer {
 
         Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
         PoseStack poseStack = event.getPoseStack();
-        double offset = ClientAnimationClock.phaseTicks(32) / 32.0D * (DASH_LENGTH + DASH_GAP);
         for (ProtectionSnapshot current : SNAPSHOTS.values()) {
             double y = current.minY() + 3.035D;
             double minX = current.minX() - 0.18D;
@@ -53,14 +50,14 @@ public class BoardProtectionWorldRenderer {
             Vec3 center = new Vec3((minX + maxX) * 0.5D, y, (minZ + maxZ) * 0.5D);
             if (center.distanceToSqr(cameraPos) > MAX_RENDER_DISTANCE_SQR) continue;
 
-            submitDashedLine(event, poseStack, cameraPos, new Vec3(minX, y, minZ),
-                    new Vec3(maxX, y, minZ), offset, OUTLINE_COLOR, HALF_WIDTH);
-            submitDashedLine(event, poseStack, cameraPos, new Vec3(maxX, y, minZ),
-                    new Vec3(maxX, y, maxZ), offset, OUTLINE_COLOR, HALF_WIDTH);
-            submitDashedLine(event, poseStack, cameraPos, new Vec3(maxX, y, maxZ),
-                    new Vec3(minX, y, maxZ), offset, OUTLINE_COLOR, HALF_WIDTH);
-            submitDashedLine(event, poseStack, cameraPos, new Vec3(minX, y, maxZ),
-                    new Vec3(minX, y, minZ), offset, OUTLINE_COLOR, HALF_WIDTH);
+            submitSolidLine(event, poseStack, cameraPos, new Vec3(minX, y, minZ),
+                    new Vec3(maxX, y, minZ), OUTLINE_COLOR, HALF_WIDTH);
+            submitSolidLine(event, poseStack, cameraPos, new Vec3(maxX, y, minZ),
+                    new Vec3(maxX, y, maxZ), OUTLINE_COLOR, HALF_WIDTH);
+            submitSolidLine(event, poseStack, cameraPos, new Vec3(maxX, y, maxZ),
+                    new Vec3(minX, y, maxZ), OUTLINE_COLOR, HALF_WIDTH);
+            submitSolidLine(event, poseStack, cameraPos, new Vec3(minX, y, maxZ),
+                    new Vec3(minX, y, minZ), OUTLINE_COLOR, HALF_WIDTH);
 
             submitCorner(event, poseStack, cameraPos, minX, y, minZ, 1.0D, 1.0D);
             submitCorner(event, poseStack, cameraPos, maxX, y, minZ, -1.0D, 1.0D);
@@ -75,21 +72,6 @@ public class BoardProtectionWorldRenderer {
                 new Vec3(x + xDirection * CORNER_LENGTH, y + 0.006D, z), CORNER_COLOR, HALF_WIDTH * 1.8D);
         submitSolidLine(event, poseStack, cameraPos, new Vec3(x, y + 0.006D, z),
                 new Vec3(x, y + 0.006D, z + zDirection * CORNER_LENGTH), CORNER_COLOR, HALF_WIDTH * 1.8D);
-    }
-
-    private static void submitDashedLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
-                                         Vec3 start, Vec3 end, double offset, int color, double halfWidth) {
-        Vec3 delta = end.subtract(start);
-        double length = delta.length();
-        if (length < 1.0E-5D) return;
-        Vec3 direction = delta.scale(1.0D / length);
-        double period = DASH_LENGTH + DASH_GAP;
-        for (double cursor = -offset; cursor < length; cursor += period) {
-            double from = Math.max(0.0D, cursor);
-            double to = Math.min(length, cursor + DASH_LENGTH);
-            if (to > from) submitSegment(event, poseStack, cameraPos,
-                    start.add(direction.scale(from)), start.add(direction.scale(to)), color, halfWidth);
-        }
     }
 
     private static void submitSolidLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
