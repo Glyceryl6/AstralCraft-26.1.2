@@ -2,6 +2,8 @@ package com.astral_craft.common.items;
 
 import com.astral_craft.common.gameplay.board.BoardSavedData;
 import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardRouteService;
+import com.astral_craft.common.gameplay.board.BoardProtectionService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -29,7 +31,7 @@ public class BoardDismantlerItem extends Item {
 
         ServerLevel level = player.level();
         boolean deleteDefinition = player.isShiftKeyDown();
-        BoardSessionManager.broadcastRouteState(session, false, "", "", "");
+        BoardRouteService.broadcastState(session, false, "", "", "");
         BoardSessionManager.resetForLobby(level, session);
         session.setProtectionEnabled(false);
         BoardSavedData data = BoardSavedData.get(level);
@@ -44,7 +46,7 @@ public class BoardDismantlerItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.protection_disabled")
                     .withStyle(ChatFormatting.YELLOW), true);
         }
-        BoardSessionManager.refreshProtectedAreas(level, data);
+        BoardProtectionService.refreshProtectedAreas(level, data);
         return InteractionResult.SUCCESS;
     }
 

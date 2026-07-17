@@ -4,6 +4,7 @@ import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardSavedData;
 import com.astral_craft.common.gameplay.board.BoardScanner;
 import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardProtectionService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.ScannedBoard;
 import net.minecraft.ChatFormatting;
@@ -50,7 +51,7 @@ public class BoardProjectorItem extends Item {
 
         BoardSession session = new BoardSession(UUID.randomUUID(), level.dimension(), scanned);
         data.put(session);
-        BoardSessionManager.refreshProtectedAreas(level, data);
+        BoardProtectionService.refreshProtectedAreas(level, data);
         BoardSessionManager.syncBoardSnapshot(level, session);
         player.sendSystemMessage(Component.translatable("message.astral_craft.board.started",
                         scanned.nodes().size(), scanned.startNodes().size(),

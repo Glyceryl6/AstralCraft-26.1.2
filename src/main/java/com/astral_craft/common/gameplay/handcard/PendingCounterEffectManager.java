@@ -7,7 +7,7 @@ import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardEntityService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -38,15 +38,15 @@ public class PendingCounterEffectManager {
     private static final Map<UUID, PendingEffect> BY_TARGET = new ConcurrentHashMap<>();
 
     public static void offerDirectDamage(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.direct(source, BoardSessionManager.effectSourceEntity(source), target, damage));
+        offer(PendingEffect.direct(source, BoardEntityService.effectSourceEntity(source), target, damage));
     }
 
     public static void offerLaser(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-        offer(PendingEffect.laser(source, BoardSessionManager.effectSourceEntity(source), target, damage, argb, radius));
+        offer(PendingEffect.laser(source, BoardEntityService.effectSourceEntity(source), target, damage, argb, radius));
     }
 
     public static void offerRailgun(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-        offer(PendingEffect.laser(source, BoardSessionManager.effectSourceEntity(source), target, damage, argb, radius));
+        offer(PendingEffect.laser(source, BoardEntityService.effectSourceEntity(source), target, damage, argb, radius));
     }
 
     public static void offerFirecracker(ServerPlayer source, LivingEntity target, int damage) {
@@ -54,7 +54,7 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerFirecracker(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.FIRECRACKERS, settings));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.FIRECRACKERS, settings));
     }
 
     public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage) {
@@ -62,7 +62,7 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.SLINGSHOT, settings));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.SLINGSHOT, settings));
     }
 
     public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage) {
@@ -70,11 +70,11 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.SNOWBALL_ATTACK, settings));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.SNOWBALL_ATTACK, settings));
     }
 
     public static void offerFallingBrick(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.projectile(source, BoardSessionManager.effectSourceEntity(source), target, damage, VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
     }
 
     private static void offer(PendingEffect effect) {

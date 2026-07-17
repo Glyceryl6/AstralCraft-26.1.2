@@ -169,7 +169,7 @@ public class StartPlatform extends BasePlatform {
         return true;
     }
 
-    private static int nextStarCost(int stars) {
+    public static int nextStarCost(int stars) {
         int next = Math.clamp(stars + 1, 0, STAR_COSTS.length - 1);
         return next >= 3 && stars >= 3 ? 0 : STAR_COSTS[next];
     }

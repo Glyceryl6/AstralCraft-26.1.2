@@ -4,6 +4,7 @@ import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
+import com.astral_craft.common.gameplay.board.BoardLobbyService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
@@ -129,7 +130,7 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardCharacterSelection(BoardCharacterSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                BoardSessionManager.selectCharacter(player, payload.boardId(), payload.characterId(), payload.skinId());
+                BoardLobbyService.selectCharacter(player, payload.boardId(), payload.characterId(), payload.skinId());
             }
         });
     }

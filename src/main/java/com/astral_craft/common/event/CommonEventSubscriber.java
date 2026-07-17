@@ -5,6 +5,8 @@ import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.SoulLinkManager;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
+import com.astral_craft.common.gameplay.board.BoardRouteService;
+import com.astral_craft.common.gameplay.board.BoardProtectionService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.cardback.CardBackManager;
@@ -140,7 +142,7 @@ public class CommonEventSubscriber {
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (event.getEntity() instanceof FallingBlockEntity fallingBlock
                 && event.getLevel() instanceof ServerLevel serverLevel
-                && BoardSessionManager.protectFallingBlock(serverLevel, fallingBlock)) {
+                && BoardProtectionService.protectFallingBlock(serverLevel, fallingBlock)) {
             event.setCanceled(true);
         }
     }
@@ -264,7 +266,7 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         if (event.getLevel() instanceof ServerLevel serverLevel
-                && BoardSessionManager.isProtected(serverLevel, event.getPos())) {
+                && BoardProtectionService.isProtected(serverLevel, event.getPos())) {
             event.setCanceled(true);
             if (event.getEntity() instanceof ServerPlayer player) {
                 player.sendOverlayMessage(Component.translatable("message.astral_craft.board.protected")
@@ -277,7 +279,7 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onBlockToolModification(BlockEvent.BlockToolModificationEvent event) {
         if (event.getLevel() instanceof ServerLevel serverLevel
-                && BoardSessionManager.isProtected(serverLevel, event.getPos())) {
+                && BoardProtectionService.isProtected(serverLevel, event.getPos())) {
             event.setCanceled(true);
         }
     }
@@ -285,7 +287,7 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onFarmlandTrample(BlockEvent.FarmlandTrampleEvent event) {
         if (event.getLevel() instanceof ServerLevel serverLevel
-                && BoardSessionManager.isProtected(serverLevel, event.getPos())) {
+                && BoardProtectionService.isProtected(serverLevel, event.getPos())) {
             event.setCanceled(true);
         }
     }
@@ -293,7 +295,7 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onFluidPlace(BlockEvent.FluidPlaceBlockEvent event) {
         if (event.getLevel() instanceof ServerLevel serverLevel
-                && BoardSessionManager.isProtected(serverLevel, event.getPos())) {
+                && BoardProtectionService.isProtected(serverLevel, event.getPos())) {
             event.setCanceled(true);
         }
     }
@@ -301,14 +303,14 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
         if (!(event.getLevel() instanceof ServerLevel serverLevel)) return;
-        event.getAffectedBlocks().removeIf(pos -> BoardSessionManager.isProtected(serverLevel, pos));
+        event.getAffectedBlocks().removeIf(pos -> BoardProtectionService.isProtected(serverLevel, pos));
     }
 
     @SubscribeEvent
     public static void onPistonMove(PistonEvent.Pre event) {
         if (!(event.getLevel() instanceof ServerLevel serverLevel)) return;
-        if (BoardSessionManager.isProtected(serverLevel, event.getPos())
-                || BoardSessionManager.isProtected(serverLevel, event.getFaceOffsetPos())) {
+        if (BoardProtectionService.isProtected(serverLevel, event.getPos())
+                || BoardProtectionService.isProtected(serverLevel, event.getFaceOffsetPos())) {
             event.setCanceled(true);
             return;
         }
@@ -316,16 +318,16 @@ public class CommonEventSubscriber {
         var resolver = event.getStructureHelper();
         if (resolver == null || !resolver.resolve()) return;
         for (var blockPos : resolver.getToPush()) {
-            if (BoardSessionManager.isProtected(serverLevel, blockPos)
-                    || BoardSessionManager.isProtected(serverLevel, blockPos.relative(event.getDirection()))
-                    || BoardSessionManager.isProtected(serverLevel, blockPos.relative(event.getDirection().getOpposite()))) {
+            if (BoardProtectionService.isProtected(serverLevel, blockPos)
+                    || BoardProtectionService.isProtected(serverLevel, blockPos.relative(event.getDirection()))
+                    || BoardProtectionService.isProtected(serverLevel, blockPos.relative(event.getDirection().getOpposite()))) {
                 event.setCanceled(true);
                 return;
             }
         }
 
         for (var blockPos : resolver.getToDestroy()) {
-            if (BoardSessionManager.isProtected(serverLevel, blockPos)) {
+            if (BoardProtectionService.isProtected(serverLevel, blockPos)) {
                 event.setCanceled(true);
                 return;
             }
@@ -335,14 +337,14 @@ public class CommonEventSubscriber {
     @SubscribeEvent
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        if (!BoardSessionManager.selectBranch(player, event.getPos())) return;
+        if (!BoardRouteService.selectBranch(player, event.getPos())) return;
         event.setCancellationResult(InteractionResult.SUCCESS);
         event.setCanceled(true);
     }
 
     @SubscribeEvent
     public static void onBlockBreak(BreakBlockEvent event) {
-        if (event.getLevel() instanceof ServerLevel serverLevel && BoardSessionManager.isProtected(serverLevel, event.getPos())) {
+        if (event.getLevel() instanceof ServerLevel serverLevel && BoardProtectionService.isProtected(serverLevel, event.getPos())) {
             event.setCanceled(true);
             event.setNotifyClient(true);
             event.getPlayer().sendOverlayMessage(Component.translatable("message.astral_craft.board.protected").withStyle(ChatFormatting.YELLOW));

@@ -6,6 +6,7 @@ import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardUseRestriction;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.KnockdownManager;
+import com.astral_craft.common.gameplay.board.BoardEntityService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
@@ -286,7 +287,7 @@ public class CardUseService {
     public static void sendEntityRevealAround(
             ServerPlayer owner, String cardId, ItemStack stack, String cardType, Component title, Component body,
             Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation, int durationTicks) {
-        int sourceEntityId = BoardSessionManager.revealSourceEntityId(owner);
+        int sourceEntityId = BoardEntityService.revealSourceEntityId(owner);
         int excludedViewerEntityId = sourceEntityId == owner.getId() ? -1 : owner.getId();
         CardRevealEntityPayload payload = new CardRevealEntityPayload(sourceEntityId, excludedViewerEntityId,
                 cardId, stack, cardType, title, body, largeFrontTexture, largeBackTexture, animation, durationTicks);
@@ -313,7 +314,7 @@ public class CardUseService {
                                                          List<? extends LivingEntity> targets, Identifier animation,
                                                          int durationTicks) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
-        int sourceEntityId = BoardSessionManager.revealSourceEntityId(owner);
+        int sourceEntityId = BoardEntityService.revealSourceEntityId(owner);
         List<Integer> targetEntityIds = targets == null || targets.isEmpty()
                 ? List.of()
                 : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();

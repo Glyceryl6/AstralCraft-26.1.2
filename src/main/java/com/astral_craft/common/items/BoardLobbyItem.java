@@ -3,6 +3,8 @@ package com.astral_craft.common.items;
 import com.astral_craft.common.gameplay.board.BoardPhase;
 import com.astral_craft.common.gameplay.board.BoardSavedData;
 import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardLobbyService;
+import com.astral_craft.common.gameplay.board.BoardProtectionService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -38,12 +40,13 @@ public class BoardLobbyItem extends Item {
             session.setPhase(BoardPhase.CHARACTER_SELECTION);
             session.setLobbyDeadlineTick(level.getGameTime() + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
             BoardSessionManager.markChanged(level);
-            BoardSessionManager.refreshProtectedAreas(level, BoardSavedData.get(level));
+            BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));
         } else if (session.lobbyDeadlineTick() <= 0L) {
             session.setLobbyDeadlineTick(level.getGameTime() + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
             BoardSessionManager.markChanged(level);
         }
-        BoardSessionManager.registerLobbyViewer(player, session);
+        BoardLobbyService.registerViewer(player, session);
         return InteractionResult.SUCCESS;
     }
+
 }
