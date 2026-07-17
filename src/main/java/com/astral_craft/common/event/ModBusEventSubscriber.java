@@ -51,7 +51,6 @@ public class ModBusEventSubscriber {
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
         registrar.playToClient(OpenTargetSelectionPayload.TYPE, OpenTargetSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenCardNumberSelectionPayload.TYPE, OpenCardNumberSelectionPayload.STREAM_CODEC);
-        registrar.playToClient(OpenBattleScenePayload.TYPE, OpenBattleScenePayload.STREAM_CODEC);
         registrar.playToClient(OpenChipSelectionPayload.TYPE, OpenChipSelectionPayload.STREAM_CODEC);
         registrar.playToClient(BoardHudSnapshotPayload.TYPE, BoardHudSnapshotPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardCharacterSelectionPayload.TYPE, OpenBoardCharacterSelectionPayload.STREAM_CODEC);

@@ -30,12 +30,6 @@ public record OpenBoardBattlePayload(
             ByteBufCodecs.STRING_UTF8, OpenBoardBattlePayload::resultText,
             OpenBoardBattlePayload::new);
 
-    public OpenBoardBattlePayload {
-        decision = decision == null
-                ? new BoardDecisionProgress(0, 1, AstralCraft.prefix("mimi"), Identifier.withDefaultNamespace("default"))
-                : decision;
-    }
-
     public int decisionTicks() {
         return this.decision.remainingTicks();
     }

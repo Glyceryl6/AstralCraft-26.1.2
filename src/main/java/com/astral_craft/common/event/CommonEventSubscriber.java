@@ -200,7 +200,6 @@ public class CommonEventSubscriber {
         BoardHudSyncManager.serverTick(event.getServer());
         AstralEventService.serverTick(event.getServer());
         event.getServer().getPlayerList().getPlayers().forEach(AstralCharacterSkillService::serverTick);
-
     }
 
     @SubscribeEvent
