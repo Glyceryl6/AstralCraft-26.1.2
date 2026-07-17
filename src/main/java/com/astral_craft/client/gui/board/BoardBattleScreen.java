@@ -4,6 +4,7 @@ import com.astral_craft.client.gui.HandCardRenderHelper;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.c2s.BoardBattleActionPayload;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload;
@@ -11,17 +12,24 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.particles.ExplosionParticleInfo;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
@@ -39,11 +47,20 @@ public class BoardBattleScreen extends Screen {
     private static final int CARD_GAP = 7;
     private static final int ATTACK_ACCENT = 0xFFD84B61;
     private static final int DEFENSE_ACCENT = 0xFF3F9DCE;
-    private static final int DICE_FLASH_END_TICK = 24;
-    private static final int BASE_VALUE_STAGE_TICK = 39;
-    private static final int CARD_VALUE_STAGE_TICK = 56;
+    private static final int DICE_FLASH_END_TICK = 26;
+    private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 10;
+    private static final int BASE_VALUE_STAGE_TICK = 49;
+    private static final int CARD_VALUE_STAGE_TICK = 67;
+    private static final int EVADE_FAILURE_STAGE_TICK = 49;
+    private static final int KNOCKOUT_FLIGHT_START_TICK = 2;
+    private static final int KNOCKOUT_FLIGHT_TICKS = 42;
+    private static final int KNOCKOUT_EXPLOSION_TICK = 47;
+    private static final int KNOCKOUT_EXPLOSION_RENDER_TICKS = 24;
+    private static final int VICTORY_MOVE_START_TICK = 56;
+    private static final int VICTORY_MOVE_TICKS = 38;
     private static final Identifier HEART_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full.png");
     private static final Identifier HEART_BLINKING_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full_blinking.png");
+    private static final Identifier CRITICAL_HIT_TEXTURE = Identifier.withDefaultNamespace("textures/particle/critical_hit.png");
     private final String boardId;
     private final int attackerEntityId;
     private final int defenderEntityId;
@@ -66,6 +83,10 @@ public class BoardBattleScreen extends Screen {
     private int phaseAgeTicks;
     private int attackerHealthFlashTicks;
     private int defenderHealthFlashTicks;
+    private int attackerScoreFlashTicks;
+    private int defenderScoreFlashTicks;
+    private boolean knockoutExplosionTriggered;
+    private float renderPartialTick;
 
     public BoardBattleScreen(OpenBoardBattlePayload payload) {
         super(Component.translatable("gui.astral_craft.board.battle"));
@@ -95,10 +116,18 @@ public class BoardBattleScreen extends Screen {
         if (this.view != null) {
             if (next.attackerHealth() < this.view.attackerHealth()) this.attackerHealthFlashTicks = 20;
             if (next.defenderHealth() < this.view.defenderHealth()) this.defenderHealthFlashTicks = 20;
+            if (next.attackMinimum() != this.view.attackMinimum() || next.attackMaximum() != this.view.attackMaximum()) {
+                this.attackerScoreFlashTicks = 7;
+            }
+            if (next.defenseMinimum() != this.view.defenseMinimum() || next.defenseMaximum() != this.view.defenseMaximum()) {
+                this.defenderScoreFlashTicks = 7;
+            }
         }
+
         boolean phaseChanged = this.view == null || !this.view.phase().equals(next.phase());
         if (phaseChanged) {
             this.phaseAgeTicks = 0;
+            this.knockoutExplosionTriggered = false;
             if (next.defenseChoice() && "defender".equals(this.role)) this.submitted = false;
         }
         this.view = next;
@@ -130,6 +159,13 @@ public class BoardBattleScreen extends Screen {
         this.phaseAgeTicks++;
         if (this.attackerHealthFlashTicks > 0) this.attackerHealthFlashTicks--;
         if (this.defenderHealthFlashTicks > 0) this.defenderHealthFlashTicks--;
+        if (this.attackerScoreFlashTicks > 0) this.attackerScoreFlashTicks--;
+        if (this.defenderScoreFlashTicks > 0) this.defenderScoreFlashTicks--;
+        if (this.view.result() && this.view.knockout() && this.phaseAgeTicks >= KNOCKOUT_EXPLOSION_TICK
+                && !this.knockoutExplosionTriggered) {
+            this.knockoutExplosionTriggered = true;
+            this.playKnockoutExplosion();
+        }
         if (this.timeoutTicks > 0) this.timeoutTicks--;
         if (this.view.result() && this.timeoutTicks <= 0) this.onClose();
     }
@@ -139,21 +175,21 @@ public class BoardBattleScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderPartialTick = partialTick;
         Layout layout = this.layout();
         this.renderArena(graphics, layout);
         this.renderNames(graphics, layout);
         LivingEntity attacker = this.entity(this.attackerEntityId);
         LivingEntity defender = this.entity(this.defenderEntityId);
-        BoardScreenEntityRenderer.render(graphics, attacker, layout.x() + 22, layout.modelTop(),
-                layout.x() + layout.width() / 2 - 24, layout.modelBottom(), -225.0F);
-        BoardScreenEntityRenderer.render(graphics, defender, layout.x() + layout.width() / 2 + 24,
-                layout.modelTop(), layout.x() + layout.width() - 22, layout.modelBottom(), 225.0F);
+        this.renderCombatants(graphics, layout, attacker, defender);
         this.renderHealth(graphics, this.view.attackerHealth(), layout.x() + layout.width() / 4,
                 layout.modelBottom() - 11, this.attackerHealthFlashTicks);
         this.renderHealth(graphics, this.view.defenderHealth(), layout.x() + layout.width() * 3 / 4,
                 layout.modelBottom() - 11, this.defenderHealthFlashTicks);
         this.renderBattleNumbers(graphics, layout);
         this.renderDamagePopup(graphics, layout);
+        this.renderVanillaCriticalParticles(graphics, layout);
+        this.renderVanillaExplosion(graphics, layout);
         if (this.view.selecting()) {
             this.renderHand(graphics, layout, mouseX, mouseY);
             this.renderCost(graphics, layout);
@@ -205,19 +241,78 @@ public class BoardBattleScreen extends Screen {
         graphics.text(this.font, health, left + 6 + iconSize + gap, y + 4, color, true);
     }
 
+    private void renderCombatants(GuiGraphicsExtractor graphics, Layout layout, LivingEntity attacker, LivingEntity defender) {
+        int attackerLeft = layout.x() + 22;
+        int attackerRight = layout.x() + layout.width() / 2 - 24;
+        int defenderLeft = layout.x() + layout.width() / 2 + 24;
+        int defenderRight = layout.x() + layout.width() - 22;
+        float age = this.phaseAgeTicks + this.renderPartialTick;
+        float approach = this.view.selecting() ? 0.0F
+                : this.view.ready() ? smoothStep(Mth.clamp(age / 10.0F, 0.0F, 1.0F)) : 1.0F;
+        float approachOffset = Math.clamp(layout.width() * 0.025F, 8.0F, 18.0F) * approach;
+        if (!this.view.result() || !this.view.knockout()) {
+            BoardScreenEntityRenderer.render(graphics, attacker, attackerLeft, layout.modelTop(), attackerRight,
+                    layout.modelBottom(), -225.0F, 1.0F, approachOffset, 0.0F, 0.0F);
+            BoardScreenEntityRenderer.render(graphics, defender, defenderLeft, layout.modelTop(), defenderRight,
+                    layout.modelBottom(), 225.0F, 1.0F, -approachOffset, 0.0F, 0.0F);
+            return;
+        }
+
+        float flightProgress = Mth.clamp((age - KNOCKOUT_FLIGHT_START_TICK) / KNOCKOUT_FLIGHT_TICKS, 0.0F, 1.0F);
+        float flight = easeInOutCubic(flightProgress);
+        float defenderCenterX = (defenderLeft + defenderRight) * 0.5F;
+        float defenderCenterY = (layout.modelTop() + layout.modelBottom()) * 0.5F;
+        float targetCenterX = this.explosionCenterX(layout);
+        float targetCenterY = this.explosionCenterY(layout);
+        float defenderOffsetX = -approachOffset + (targetCenterX - defenderCenterX + approachOffset) * flight;
+        float defenderOffsetY = (targetCenterY - defenderCenterY) * flight
+                - (float) Math.sin(Math.PI * flightProgress) * 24.0F;
+        float defenderRoll = 118.0F * smoothStep(flightProgress);
+        if (age < KNOCKOUT_EXPLOSION_TICK) {
+            BoardScreenEntityRenderer.render(graphics, defender, defenderLeft, layout.modelTop(), defenderRight,
+                    layout.modelBottom(), 225.0F, 1.0F, defenderOffsetX, defenderOffsetY, defenderRoll);
+        }
+
+        float victoryProgress = Mth.clamp((age - VICTORY_MOVE_START_TICK) / VICTORY_MOVE_TICKS, 0.0F, 1.0F);
+        float victory = easeOutCubic(victoryProgress);
+        float attackerCenterX = (attackerLeft + attackerRight) * 0.5F;
+        float targetAttackerCenterX = layout.x() + layout.width() * 0.5F;
+        float attackerOffsetX = approachOffset + (targetAttackerCenterX - attackerCenterX - approachOffset) * victory;
+        float attackerOffsetY = -(float) Math.sin(Math.PI * victoryProgress) * 7.0F;
+        BoardScreenEntityRenderer.render(graphics, attacker, attackerLeft, layout.modelTop(), attackerRight,
+                layout.modelBottom(), -225.0F, 1.0F + victory * 0.38F,
+                attackerOffsetX, attackerOffsetY, 0.0F);
+    }
+
     private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
         int center = layout.x() + layout.width() / 2;
-        int i = Math.clamp(layout.width() / 9, 58, 92);
-        int attackX = center - i;
-        int defenseX = center + i;
-        int y = this.view.selecting() ? layout.modelTop() + 28 : layout.modelTop() + 18;
-        if (this.view.selecting()) {
+        int separation = Math.clamp(layout.width() / 9, 58, 92);
+        int attackX = center - separation;
+        int defenseX = center + separation;
+        int y = this.view.scorePhase() ? layout.modelTop() + 28 : layout.modelTop() + 18;
+        if (this.view.scorePhase()) {
             Range attackRange = this.displayRange(true);
             Range defenseRange = this.displayRange(false);
-            this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, y, ATTACK_ACCENT);
-            this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, y, DEFENSE_ACCENT);
+            this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, y,
+                    ATTACK_ACCENT, this.attackerScoreFlashTicks);
+            this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, y,
+                    DEFENSE_ACCENT, this.defenderScoreFlashTicks);
             this.renderReadyState(graphics, layout, true);
             this.renderReadyState(graphics, layout, false);
+            return;
+        }
+
+        if (this.view.attackerRolling()) {
+            int value = this.phaseAgeTicks < DICE_FLASH_END_TICK
+                    ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : this.view.attackerDie();
+            this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(value)), attackX, y + 8,
+                    0xFFFFE3A0, this.phaseAgeTicks < DICE_FLASH_END_TICK ? 3.25F : 2.85F, true);
+            return;
+        }
+
+        if (this.view.defenseChoice()) {
+            this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(this.view.attackerDie())),
+                    attackX, y + 8, 0xFFFFE3A0, 2.85F, true);
             return;
         }
 
@@ -229,13 +324,17 @@ public class BoardBattleScreen extends Screen {
             this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(this.animatedValue(false))),
                     defenseX, y + 8, this.animatedValueColor(false), this.numberScale(false), true);
         }
-        if ((this.view.defenderRolling() && this.phaseAgeTicks >= 54 || this.view.result())
-                && "evade".equals(this.view.defenseMode())) {
+        if (this.showEvadeResult()) {
             Component evade = Component.translatable(this.view.evaded()
                     ? "gui.astral_craft.board.evade_success" : "gui.astral_craft.board.evade_failed");
             this.renderScaledCenteredText(graphics, evade, defenseX, y + 43,
                     this.view.evaded() ? 0xFF79FF8A : 0xFFFF7373, 1.35F, true);
         }
+    }
+
+    private boolean showEvadeResult() {
+        if (!"evade".equals(this.view.defenseMode())) return false;
+        return this.view.result() || this.view.defenderRolling() && this.defenderRollAge() >= DICE_FLASH_END_TICK;
     }
 
     private void renderReadyState(GuiGraphicsExtractor graphics, Layout layout, boolean attacker) {
@@ -255,25 +354,23 @@ public class BoardBattleScreen extends Screen {
 
     private float numberScale(boolean attack) {
         float base = 2.85F;
-        int pulseAge = -1;
-        boolean rollingSide = this.view.attackerRolling() && attack
-                || this.view.defenderRolling() && !attack;
-        if (rollingSide && this.phaseAgeTicks < DICE_FLASH_END_TICK + 2) {
-            pulseAge = Math.floorMod(this.phaseAgeTicks, 4);
-        } else if (this.view.defenderRolling()
-                && (attack || !"evade".equals(this.view.defenseMode()))) {
-            int fromBase = Math.abs(this.phaseAgeTicks - BASE_VALUE_STAGE_TICK);
-            int fromBonus = Math.abs(this.phaseAgeTicks - CARD_VALUE_STAGE_TICK);
-            pulseAge = Math.min(fromBase, fromBonus);
+        if (!this.view.defenderRolling()) return base;
+        int age = this.phaseAgeTicks;
+        int pulseDistance = Integer.MAX_VALUE;
+        if ("evade".equals(this.view.defenseMode())) {
+            if (!this.view.evaded() && this.defenderRollAge() >= DICE_FLASH_END_TICK) {
+                pulseDistance = Math.abs(age - EVADE_FAILURE_STAGE_TICK);
+            }
+        } else if (this.defenderRollAge() >= DICE_FLASH_END_TICK) {
+            pulseDistance = Math.min(Math.abs(age - BASE_VALUE_STAGE_TICK),
+                    Math.abs(age - CARD_VALUE_STAGE_TICK));
         }
-        if (pulseAge < 0 || pulseAge > 4) return base;
-        float pulse = 1.0F - Mth.clamp(pulseAge / 4.0F, 0.0F, 1.0F);
+        if (pulseDistance > 4) return base;
+        float pulse = 1.0F - Mth.clamp(pulseDistance / 4.0F, 0.0F, 1.0F);
         return base + pulse * 0.85F;
     }
 
-    private void renderScaledCenteredText(
-            GuiGraphicsExtractor graphics, Component text,
-            int centerX, int y, int color, float scale, boolean shadow) {
+    private void renderScaledCenteredText(GuiGraphicsExtractor graphics, Component text, int centerX, int y, int color, float scale, boolean shadow) {
         graphics.pose().pushMatrix();
         graphics.pose().translate(centerX, y);
         graphics.pose().scale(scale, scale);
@@ -295,30 +392,38 @@ public class BoardBattleScreen extends Screen {
         return new Range(minimum, maximum);
     }
 
-    private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator, int centerX, int y, int color) {
+    private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator, int centerX, int y, int color, int flashTicks) {
         Component top = Component.literal(Integer.toString(numerator));
         Component bottom = Component.literal(Integer.toString(denominator));
-        float scale = 1.65F;
+        float pulse = flashTicks > 0 ? 0.30F * (flashTicks / 10.0F) : 0.0F;
+        float scale = 1.65F + pulse;
         int width = Math.round(Math.max(this.font.width(top), this.font.width(bottom)) * scale) + 14;
         graphics.fill(centerX - width / 2, y, centerX + width / 2, y + 37, 0xC8000000);
-        this.renderScaledCenteredText(graphics, top, centerX, y + 8, color, scale, true);
+        int drawColor = flashTicks > 0 && Math.floorMod(flashTicks / 2, 2) == 0 ? 0xFFFFFFFF : color;
+        this.renderScaledCenteredText(graphics, top, centerX, y + 8, drawColor, scale, true);
         graphics.fill(centerX - width / 2 + 3, y + 18, centerX + width / 2 - 3, y + 20, 0xFFE8E8E8);
-        this.renderScaledCenteredText(graphics, bottom, centerX, y + 29, color, scale, true);
+        this.renderScaledCenteredText(graphics, bottom, centerX, y + 29, drawColor, scale, true);
     }
 
     private boolean shouldRenderAnimatedValue(boolean attack) {
-        if (this.view.result() || this.view.defenderRolling()) return true;
-        if (this.view.attackerRolling() || this.view.defenseChoice()) return attack;
-        return false;
+        if (this.view.result()) return true;
+        if (!this.view.defenderRolling()) return false;
+        if (attack) return true;
+        return this.phaseAgeTicks >= DEFENSE_CHOICE_ANNOUNCE_TICKS;
     }
 
     private int animatedValueColor(boolean attack) {
-        boolean rollingSide = this.view.attackerRolling() && attack
-                || this.view.defenderRolling() && !attack;
-        boolean flash = rollingSide && this.phaseAgeTicks < DICE_FLASH_END_TICK;
-        if (this.view.defenderRolling() && (attack || !"evade".equals(this.view.defenseMode()))) {
-            flash |= Math.abs(this.phaseAgeTicks - BASE_VALUE_STAGE_TICK) <= 4;
-            flash |= Math.abs(this.phaseAgeTicks - CARD_VALUE_STAGE_TICK) <= 4;
+        boolean flash = false;
+        if (this.view.defenderRolling()) {
+            int rollAge = this.defenderRollAge();
+            if (!attack && rollAge >= 0 && rollAge < DICE_FLASH_END_TICK) {
+                flash = Math.floorMod(rollAge, 4) < 2;
+            } else if ("evade".equals(this.view.defenseMode())) {
+                flash = !this.view.evaded() && Math.abs(this.phaseAgeTicks - EVADE_FAILURE_STAGE_TICK) <= 4;
+            } else if (rollAge >= DICE_FLASH_END_TICK) {
+                flash = Math.abs(this.phaseAgeTicks - BASE_VALUE_STAGE_TICK) <= 4
+                        || Math.abs(this.phaseAgeTicks - CARD_VALUE_STAGE_TICK) <= 4;
+            }
         }
         if (flash && Math.floorMod(this.phaseAgeTicks, 4) < 2) return 0xFFFFFFFF;
         return attack ? 0xFFFFE3A0 : 0xFFA8E8FF;
@@ -327,24 +432,44 @@ public class BoardBattleScreen extends Screen {
     private int animatedValue(boolean attack) {
         int die = attack ? this.view.attackerDie() : this.view.defenderDie();
         int base = attack ? this.view.attackBase() : this.view.defenseBase();
-        if (this.view.result()) return attack ? this.view.attackTotal() : this.view.defenseTotal();
-        if (this.view.attackerRolling()) {
-            if (!attack) return 0;
-            return this.phaseAgeTicks < DICE_FLASH_END_TICK
-                    ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : die;
-        }
-        if (this.view.defenseChoice()) return attack ? die : 0;
-        if (this.view.defenderRolling()) {
-            int age = this.phaseAgeTicks;
-            if (age < DICE_FLASH_END_TICK) {
-                return attack ? die : 1 + Math.floorMod(age * 7 + 3, 6);
+        if (this.view.result()) {
+            if ("evade".equals(this.view.defenseMode())) {
+                if (this.view.evaded()) return die;
+                return attack ? this.view.attackTotal() : 0;
             }
-            if (age < BASE_VALUE_STAGE_TICK) return die;
-            if (!attack && "evade".equals(this.view.defenseMode())) return die;
-            if (age < CARD_VALUE_STAGE_TICK) return die + base;
             return attack ? this.view.attackTotal() : this.view.defenseTotal();
         }
-        return 0;
+        if (!this.view.defenderRolling()) return 0;
+        int rollAge = this.defenderRollAge();
+        if (rollAge < 0) return attack ? this.view.attackerDie() : 0;
+        if (rollAge < DICE_FLASH_END_TICK) {
+            return attack ? this.view.attackerDie() : 1 + Math.floorMod(rollAge * 7 + 3, 6);
+        }
+        if ("evade".equals(this.view.defenseMode())) {
+            if (this.view.evaded() || this.phaseAgeTicks < EVADE_FAILURE_STAGE_TICK) return die;
+            return attack ? this.view.attackTotal() : 0;
+        }
+        if (this.phaseAgeTicks < BASE_VALUE_STAGE_TICK) return die;
+        if (this.phaseAgeTicks < CARD_VALUE_STAGE_TICK) return die + base;
+        return attack ? this.view.attackTotal() : this.view.defenseTotal();
+    }
+
+    private int defenderRollAge() {
+        return this.phaseAgeTicks - DEFENSE_CHOICE_ANNOUNCE_TICKS;
+    }
+
+    private static float smoothStep(float value) {
+        return value * value * (3.0F - 2.0F * value);
+    }
+
+    private static float easeInOutCubic(float value) {
+        return value < 0.5F ? 4.0F * value * value * value
+                : 1.0F - (float) Math.pow(-2.0F * value + 2.0F, 3.0D) * 0.5F;
+    }
+
+    private static float easeOutCubic(float value) {
+        float inverse = 1.0F - value;
+        return 1.0F - inverse * inverse * inverse;
     }
 
     private void renderDamagePopup(GuiGraphicsExtractor graphics, Layout layout) {
@@ -358,16 +483,114 @@ public class BoardBattleScreen extends Screen {
         this.renderScaledCenteredText(graphics, damage, centerX, y, 0xFFFF4545, pulse, true);
     }
 
+    private void renderVanillaCriticalParticles(GuiGraphicsExtractor graphics, Layout layout) {
+        if (!this.view.result() || this.view.damage() < DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) return;
+        float age = this.phaseAgeTicks + this.renderPartialTick;
+        if (age > 18.0F) return;
+        int centerX = layout.x() + layout.width() * 3 / 4;
+        int centerY = layout.modelTop() + (layout.modelBottom() - layout.modelTop()) / 2;
+        for (int index = 0; index < 12; index++) {
+            float progress = Mth.clamp((age - index * 0.45F) / 12.0F, 0.0F, 1.0F);
+            if (progress <= 0.0F || progress >= 1.0F) continue;
+            double angle = index * Math.PI * 2.0D / 12.0D + index * 0.31D;
+            float radius = 10.0F + 44.0F * smoothStep(progress);
+            int x = Math.round(centerX + (float) Math.cos(angle) * radius);
+            int y = Math.round(centerY + (float) Math.sin(angle) * radius * 0.62F);
+            int size = Math.max(4, Math.round(13.0F * (1.0F - progress * 0.55F)));
+            graphics.blit(RenderPipelines.GUI_TEXTURED, CRITICAL_HIT_TEXTURE, x - size / 2, y - size / 2,
+                    0.0F, 0.0F, size, size, 8, 8, 8, 8, 0xFFFFFFFF);
+        }
+    }
+
+    private void renderVanillaExplosion(GuiGraphicsExtractor graphics, Layout layout) {
+        if (!this.view.result() || !this.view.knockout()) return;
+        float age = this.phaseAgeTicks + this.renderPartialTick - KNOCKOUT_EXPLOSION_TICK;
+        if (age < 0.0F || age >= KNOCKOUT_EXPLOSION_RENDER_TICKS) return;
+        int centerX = Math.round(this.explosionCenterX(layout));
+        int centerY = Math.round(this.explosionCenterY(layout));
+        float flash = 1.0F - Mth.clamp(age / 4.0F, 0.0F, 1.0F);
+        if (flash > 0.0F) {
+            int radius = Math.round(48.0F * flash + 18.0F);
+            int alpha = Math.round(190.0F * flash);
+            graphics.fill(centerX - radius, centerY - radius, centerX + radius, centerY + radius,
+                    alpha << 24 | 0x00FFF2C2);
+        }
+        this.renderExplosionParticle(graphics, centerX, centerY, age, 0, 0.0F, 0.0F, 1.65F);
+        for (int index = 0; index < 24; index++) {
+            float delay = (index % 8) * 0.55F;
+            float particleAge = age - delay;
+            if (particleAge < 0.0F || particleAge >= 15.0F) continue;
+            double angle = index * 2.399963229728653D;
+            float distance = 8.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F))
+                    * (24.0F + index % 5 * 7.0F);
+            float x = (float) Math.cos(angle) * distance;
+            float y = (float) Math.sin(angle) * distance * 0.72F - particleAge * 0.28F;
+            float scale = 0.62F + index % 4 * 0.13F;
+            this.renderExplosionParticle(graphics, centerX, centerY, particleAge, index + 1, x, y, scale);
+        }
+    }
+
+    private void renderExplosionParticle(GuiGraphicsExtractor graphics, int centerX, int centerY, float age,
+                                         int seed, float offsetX, float offsetY, float scale) {
+        int frame = Math.clamp((int) (age * 1.05F + seed % 3), 0, 15);
+        Identifier texture = Identifier.withDefaultNamespace("textures/particle/explosion_" + frame + ".png");
+        float fade = 1.0F - Mth.clamp(age / 16.0F, 0.0F, 1.0F);
+        int size = Math.max(7, Math.round((28.0F + seed % 5 * 3.0F) * scale * (0.68F + fade * 0.52F)));
+        int alpha = Math.round(255.0F * Mth.clamp(fade * 1.35F, 0.0F, 1.0F));
+        int x = Math.round(centerX + offsetX) - size / 2;
+        int y = Math.round(centerY + offsetY) - size / 2;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F,
+                size, size, 16, 16, 16, 16, alpha << 24 | 0x00FFFFFF);
+    }
+
+    private void playKnockoutExplosion() {
+        Minecraft minecraft = Minecraft.getInstance();
+        LivingEntity defender = this.entity(this.defenderEntityId);
+        ClientLevel level = minecraft.level;
+        if (level != null && defender != null) {
+            RandomSource random = level.getRandom();
+            Vec3 directionFromCenter = new Vec3(random.nextFloat() * 2.0F - 1.0F,
+                    random.nextFloat() * 2.0F - 1.0F,
+                    random.nextFloat() * 2.0F - 1.0F).normalize();
+            float radius = (float) Math.cbrt(random.nextFloat()) * 4.0F;
+            Vec3 localPos = directionFromCenter.scale(radius);
+            float speed = 0.5F / (radius / 4.0F + 0.1F) * random.nextFloat() * random.nextFloat() + 0.3F;
+            ExplosionParticleInfo info = Level.DEFAULT_EXPLOSION_BLOCK_PARTICLES.getRandomOrThrow(random);
+            Vec3 particlePos = defender.position().add(localPos.scale(info.scaling()));
+            Vec3 particleVelocity = directionFromCenter.scale(speed * info.speed());
+            level.addParticle(ParticleTypes.EXPLOSION_EMITTER, defender.getX(), defender.getY() + defender.getBbHeight() * 0.65D, defender.getZ(), 0.0D, 0.0D, 0.0D);
+            level.addParticle(info.particle(), particlePos.x(), particlePos.y(), particlePos.z(), particleVelocity.x(), particleVelocity.y(), particleVelocity.z());
+        }
+
+        if (minecraft.player != null) minecraft.player.playSound(SoundEvents.GENERIC_EXPLODE.value(), 1.15F, 0.92F);
+    }
+
+    private float explosionCenterX(Layout layout) {
+        return layout.x() + layout.width() - Math.clamp(layout.width() / 10.0F, 34.0F, 72.0F);
+    }
+
+    private float explosionCenterY(Layout layout) {
+        return layout.modelTop() + Math.clamp((layout.modelBottom() - layout.modelTop()) / 7.0F, 16.0F, 38.0F);
+    }
+
     private void renderStatus(GuiGraphicsExtractor graphics, Layout layout) {
         Component status;
         if (this.view.selecting()) {
             status = Component.translatable("gui.astral_craft.board.battle_selecting");
+        } else if (this.view.ready()) {
+            status = Component.translatable("gui.astral_craft.board.battle_ready_phase");
         } else if (this.view.attackerRolling()) {
             status = coloredStatus(this.attackerName, true, "gui.astral_craft.board.battle_attacker_rolling");
         } else if (this.view.defenseChoice()) {
             status = coloredStatus(this.defenderName, false, "gui.astral_craft.board.battle_choose_defense");
         } else if (this.view.defenderRolling()) {
-            status = coloredStatus(this.defenderName, false, "gui.astral_craft.board.battle_defender_rolling");
+            if (this.phaseAgeTicks < DEFENSE_CHOICE_ANNOUNCE_TICKS) {
+                status = coloredStatus(this.defenderName, false, "evade".equals(this.view.defenseMode())
+                        ? "gui.astral_craft.board.battle_chose_evade"
+                        : "gui.astral_craft.board.battle_chose_defend");
+            } else {
+                status = coloredStatus(this.defenderName, false, "gui.astral_craft.board.battle_defender_rolling");
+            }
         } else if (this.view.knockout()) {
             status = coloredStatus(this.defenderName, false, "gui.astral_craft.board.battle_knockout");
         } else {
@@ -520,7 +743,10 @@ public class BoardBattleScreen extends Screen {
             Layout layout = this.layout();
             if (event.y() < layout.cardY() - 8
                     && this.selectedCost() + this.cards.get(index).cost() <= this.maximumCost) {
-                this.selectedIndexes.add(index);
+                if (this.selectedIndexes.add(index)) {
+                    if ("attacker".equals(this.role)) this.attackerScoreFlashTicks = 7;
+                    if ("defender".equals(this.role)) this.defenderScoreFlashTicks = 7;
+                }
                 this.cardScroll = Math.clamp(this.cardScroll, 0.0F, this.maximumCardScroll(layout));
             }
             return true;
@@ -626,7 +852,9 @@ public class BoardBattleScreen extends Screen {
                               int damage, boolean evaded, boolean knockout,
                               boolean attackerReady, boolean defenderReady, String defenseMode) {
         private boolean selecting() { return "select".equals(this.phase); }
+        private boolean ready() { return "ready".equals(this.phase); }
         private boolean attackerRolling() { return "attacker_roll".equals(this.phase); }
+        private boolean scorePhase() { return this.selecting() || this.ready(); }
         private boolean defenseChoice() { return "defense_choice".equals(this.phase); }
         private boolean defenderRolling() { return "defender_roll".equals(this.phase); }
         private boolean result() { return "result".equals(this.phase); }

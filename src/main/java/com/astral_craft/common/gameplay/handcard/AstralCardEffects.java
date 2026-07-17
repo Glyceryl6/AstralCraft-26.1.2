@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.handcard;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.chip.ChipDefinition;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.registry.AstralItems;
@@ -69,7 +70,10 @@ public class AstralCardEffects {
         AstralPlayerStats targetStats = AstralStats.getOrDefault(target);
         int finalDamage = Math.max(0, amount + targetStats.incomingDamageBonus()
                 + Math.min(1, targetStats.buff(BuffKinds.MARK)));
-        if (finalDamage <= 0) return;
+        if (finalDamage == 0) return;
+        if (finalDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
+            DamagePresentation.playCriticalImpact(level, target);
+        }
         if (target instanceof AstralCharacterEntity character && character.isBoardPawn()) {
             character.applyBoardDamage(finalDamage);
             return;

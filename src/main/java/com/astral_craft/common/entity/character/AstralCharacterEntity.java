@@ -128,6 +128,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         AstralPlayerStats current = BoardSessionManager.statsForEntity(this, AstralPlayerStats.DEFAULT);
         AstralPlayerStats next = current.damage(damage);
         if (next.health() == current.health() || !BoardSessionManager.setStatsForEntity(this, next)) return false;
+        this.playBoardHurtAnimation(10);
         BoardSessionManager.onParticipantDamaged(this, next);
         return true;
     }

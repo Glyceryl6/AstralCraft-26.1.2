@@ -2,6 +2,8 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
@@ -53,7 +55,7 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
         return this.session.participants().stream()
                 .filter(target -> !target.slotUuid().equals(source.slotUuid()))
                 .filter(target -> target.stats().health() > 0 && !target.knockedDown())
-                .filter(target -> BoardSessionManager.graphDistance(this.session,
+                .filter(target -> BoardRouteService.graphDistance(this.session,
                         source.currentNodeKey(), target.currentNodeKey(), range) >= 0)
                 .map(BoardParticipant::slotUuid).toList();
     }
@@ -71,20 +73,19 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
 
     public void damageTarget(UUID slotId, int amount, boolean rewardKnockout) {
         BoardParticipant source = this.user();
-        this.target(slotId).ifPresent(target -> BoardSessionManager.applyBotDamage(
-                this.level, this.session, source, target, amount, rewardKnockout));
+        this.target(slotId).ifPresent(target -> this.applyDamage(source, target, amount, rewardKnockout));
     }
 
     public void damageUser(int amount) {
         BoardParticipant source = this.user();
-        BoardSessionManager.applyBotDamage(this.level, this.session, source, source, amount, false);
+        this.applyDamage(source, source, amount, false);
     }
 
     public int slingshot(UUID targetSlotId, int amount) {
-        AstralCharacterEntity source = BoardSessionManager.entity(this.level, this.user());
+        AstralCharacterEntity source = BoardEntityService.entity(this.level, this.user());
         BoardParticipant targetParticipant = this.target(targetSlotId).orElse(null);
         AstralCharacterEntity target = targetParticipant == null ? null
-                : BoardSessionManager.entity(this.level, targetParticipant);
+                : BoardEntityService.entity(this.level, targetParticipant);
         if (source == null || target == null) return 0;
         CardProjectileSettings settings = CardProjectileSettings.slingshot();
         source.playBoardAttackAnimation(12);
@@ -94,10 +95,10 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
     }
 
     public int snowball(UUID targetSlotId, int amount) {
-        AstralCharacterEntity source = BoardSessionManager.entity(this.level, this.user());
+        AstralCharacterEntity source = BoardEntityService.entity(this.level, this.user());
         BoardParticipant targetParticipant = this.target(targetSlotId).orElse(null);
         AstralCharacterEntity target = targetParticipant == null ? null
-                : BoardSessionManager.entity(this.level, targetParticipant);
+                : BoardEntityService.entity(this.level, targetParticipant);
         if (source == null || target == null) return 0;
         CardProjectileSettings settings = CardProjectileSettings.snowballAttack();
         source.playBoardAttackAnimation(12);
@@ -107,10 +108,10 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
     }
 
     public int laser(UUID targetSlotId, int amount) {
-        AstralCharacterEntity source = BoardSessionManager.entity(this.level, this.user());
+        AstralCharacterEntity source = BoardEntityService.entity(this.level, this.user());
         BoardParticipant targetParticipant = this.target(targetSlotId).orElse(null);
         AstralCharacterEntity target = targetParticipant == null ? null
-                : BoardSessionManager.entity(this.level, targetParticipant);
+                : BoardEntityService.entity(this.level, targetParticipant);
         if (source == null || target == null) return 0;
         source.playBoardAttackAnimation(12);
         this.level.addFreshEntity(new LaserStrikeEntity(this.level, source, target, amount, 0xFF66E8FF, 0.12F));
@@ -119,15 +120,37 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
     }
 
     public int brick(UUID targetSlotId, int amount) {
-        AstralCharacterEntity source = BoardSessionManager.entity(this.level, this.user());
+        AstralCharacterEntity source = BoardEntityService.entity(this.level, this.user());
         BoardParticipant targetParticipant = this.target(targetSlotId).orElse(null);
         AstralCharacterEntity target = targetParticipant == null ? null
-                : BoardSessionManager.entity(this.level, targetParticipant);
+                : BoardEntityService.entity(this.level, targetParticipant);
         if (source == null || target == null) return 0;
         source.playBoardAttackAnimation(12);
         this.level.addFreshEntity(new FallingBrickEntity(this.level, source, target, amount, 10));
         this.level.playSound(null, source.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.55F, 1.55F);
         return 28;
+    }
+
+    private void applyDamage(BoardParticipant attacker, BoardParticipant target, int damage, boolean rewardKnockout) {
+        int resolvedDamage = Math.max(0, damage + target.stats().incomingDamageBonus()
+                + Math.min(1, target.stats().buff(BuffKinds.MARK)));
+        if (resolvedDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
+            AstralCharacterEntity targetEntity = BoardEntityService.entity(this.level, target);
+            if (targetEntity != null) DamagePresentation.playCriticalImpact(this.level, targetEntity);
+        }
+
+        BoardParticipant damaged = target.withStats(target.stats().damage(resolvedDamage));
+        if (damaged.stats().health() <= 0) {
+            int lostCoins = Math.max(0, (damaged.stats().starCoins() + 1) / 2);
+            damaged = damaged.knockDown();
+            if (rewardKnockout && lostCoins > 0) {
+                BoardParticipant currentAttacker = this.session.participant(attacker.slotUuid()).orElse(attacker);
+                BoardSessionManager.updateParticipant(this.level, this.session,
+                        currentAttacker.withStats(currentAttacker.stats().addCoins(lostCoins)));
+            }
+        }
+
+        BoardSessionManager.updateParticipant(this.level, this.session, damaged);
     }
 
     public void snatch(UUID targetSlotId, int amount) {
