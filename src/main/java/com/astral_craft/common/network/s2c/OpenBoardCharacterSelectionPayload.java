@@ -11,10 +11,12 @@ import java.util.List;
 
 public record OpenBoardCharacterSelectionPayload(
         String boardId, String encodedCharacters, List<Identifier> occupiedCharacterIds,
+        List<BoardCharacterSelectionEntry> lobbyEntries,
         Identifier selectedCharacterId, Identifier selectedSkinId,
         int timeoutTicks, int timeoutDurationTicks, boolean selectionLocked, boolean refresh) implements CustomPacketPayload {
 
     private static final int MAXIMUM_CHARACTERS = 256;
+    private static final int MAXIMUM_LOBBY_ENTRIES = 4;
 
     public static final Type<OpenBoardCharacterSelectionPayload> TYPE = new Type<>(AstralCraft.prefix("open_board_character_selection"));
     public static final StreamCodec<ByteBuf, OpenBoardCharacterSelectionPayload> STREAM_CODEC = StreamCodec.composite(
@@ -22,6 +24,8 @@ public record OpenBoardCharacterSelectionPayload(
             ByteBufCodecs.STRING_UTF8, OpenBoardCharacterSelectionPayload::encodedCharacters,
             Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_CHARACTERS)),
             OpenBoardCharacterSelectionPayload::occupiedCharacterIds,
+            BoardCharacterSelectionEntry.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_LOBBY_ENTRIES)),
+            OpenBoardCharacterSelectionPayload::lobbyEntries,
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedCharacterId,
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedSkinId,
             ByteBufCodecs.VAR_INT, OpenBoardCharacterSelectionPayload::timeoutTicks,
@@ -31,6 +35,7 @@ public record OpenBoardCharacterSelectionPayload(
             OpenBoardCharacterSelectionPayload::new);
 
     public OpenBoardCharacterSelectionPayload {
+        lobbyEntries = List.copyOf(lobbyEntries);
         timeoutTicks = Math.max(0, timeoutTicks);
         timeoutDurationTicks = Math.max(1, timeoutDurationTicks);
     }

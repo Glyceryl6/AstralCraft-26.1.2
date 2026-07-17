@@ -130,7 +130,7 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardCharacterSelection(BoardCharacterSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                BoardLobbyService.selectCharacter(player, payload.boardId(), payload.characterId(), payload.skinId());
+                BoardLobbyService.updateSelection(player, payload.boardId(), payload.characterId(), payload.skinId(), payload.confirmed());
             }
         });
     }

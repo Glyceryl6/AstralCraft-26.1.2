@@ -465,8 +465,9 @@ public class BoardSessionManager {
             if (session.lobbyDeadlineTick() <= 0L) {
                 session.setLobbyDeadlineTick(level.getGameTime() + LOBBY_TIMEOUT_TICKS);
             }
-            if (session.participantCount() > 0 && level.getGameTime() >= session.lobbyDeadlineTick()) {
-                startGame(level, session);
+            if (level.getGameTime() >= session.lobbyDeadlineTick()) {
+                BoardLobbyService.finalizeTimedOutSelections(level, session);
+                if (session.participantCount() > 0) startGame(level, session);
             }
             return;
         }

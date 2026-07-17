@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.network.s2c.BoardCharacterSelectionEntry;
 import com.astral_craft.common.network.s2c.OpenBoardCharacterSelectionPayload;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.ChatFormatting;
@@ -10,8 +11,10 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -19,36 +22,45 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-/** Character-selection lobby viewers and server-authoritative selection locking. */
+/** Character-selection lobby viewers, live previews and server-authoritative selection locking. */
 public class BoardLobbyService {
 
     private static final Map<UUID, Set<UUID>> VIEWERS = new HashMap<>();
+    private static final Map<UUID, LobbyState> LOBBIES = new HashMap<>();
 
-    public static void selectCharacter(ServerPlayer player, String rawBoardId, Identifier characterId, Identifier skinId) {
+    public static void updateSelection(ServerPlayer player, String rawBoardId, Identifier characterId,
+                                       Identifier skinId, boolean confirmed) {
         BoardSession session = parseSession(player.level(), rawBoardId);
         if (session == null || session.phase() != BoardPhase.CHARACTER_SELECTION) return;
         if (!CharacterManager.INSTANCE.contains(characterId)) return;
-        Optional<BoardParticipant> existing = session.participantByController(player.getUUID());
-        if (existing.isPresent()) {
+        BoardParticipant existing = session.participantByController(player.getUUID()).orElse(null);
+        if (existing != null) {
             sendSelection(player, session, true);
             return;
         }
-        boolean occupied = session.participants().stream()
-                .anyMatch(participant -> participant.characterId().equals(characterId));
+
+        boolean occupied = session.participants().stream().anyMatch(participant -> participant.characterId().equals(characterId));
         if (occupied) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_taken"), true);
+            if (confirmed) {
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_taken"), true);
+            }
             sendSelection(player, session, true);
             return;
         }
 
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
-        String safeSkin = definition.skinOrDefault(skinId.getPath()).id();
-        UUID slotId = UUID.randomUUID();
-        BoardParticipant participant = new BoardParticipant(slotId, Optional.of(player.getUUID()), false,
-                characterId, BoardParticipant.skinIdentifier(characterId, safeSkin), BoardParticipant.EMPTY_NODE_ID,
-                BoardParticipant.EMPTY_NODE_ID, Optional.empty(), AstralPlayerStats.DEFAULT, List.of(), Map.of(),
-                0, 0, 0, 7, session.nextArrivalOrder());
+        Identifier safeSkin = BoardParticipant.skinIdentifier(characterId, definition.skinOrDefault(skinId.getPath()).id());
+        LobbyState lobby = lobby(session.id());
+        LobbySelection selection = lobby.selection(player, characterId, safeSkin);
+        lobby.put(selection.withChoice(characterId, safeSkin, true, confirmed));
+        if (!confirmed) {
+            refreshScreens(player.level(), session);
+            return;
+        }
+
+        BoardParticipant participant = createParticipant(session, player, characterId, safeSkin);
         session.putParticipant(participant);
         session.setLobbyDeadlineTick(Math.max(session.lobbyDeadlineTick(), player.level().getGameTime() + 20L));
         BoardSessionManager.markChanged(player.level());
@@ -63,42 +75,92 @@ public class BoardLobbyService {
 
     public static void registerViewer(ServerPlayer player, BoardSession session) {
         VIEWERS.computeIfAbsent(session.id(), ignored -> new LinkedHashSet<>()).add(player.getUUID());
-        sendSelection(player, session, false);
+        LobbyState lobby = lobby(session.id());
+        BoardParticipant participant = session.participantByController(player.getUUID()).orElse(null);
+        CharacterDefinition fallback = CharacterManager.INSTANCE.defaultCharacter();
+        Identifier fallbackSkin = BoardParticipant.skinIdentifier(fallback.id(), fallback.skinOrDefault("default").id());
+        LobbySelection selection = lobby.selection(player,
+                participant == null ? fallback.id() : participant.characterId(),
+                participant == null ? fallbackSkin : participant.skinId());
+        if (participant != null) {
+            lobby.put(selection.withChoice(participant.characterId(), participant.skinId(), true, true));
+        }
+        refreshScreens(player.level(), session);
+    }
+
+    public static void finalizeTimedOutSelections(ServerLevel level, BoardSession session) {
+        LobbyState lobby = LOBBIES.get(session.id());
+        if (lobby == null) return;
+        boolean changed = false;
+        for (LobbySelection selection : lobby.ordered()) {
+            if (session.participantByController(selection.playerId()).isPresent()) continue;
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(selection.playerId());
+            if (player == null || player.level() != level) continue;
+            Identifier characterId = selection.selected() && !session.hasCharacter(selection.characterId())
+                    ? selection.characterId() : firstAvailableCharacter(session);
+            if (characterId == null) break;
+            CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
+            Identifier skinId = selection.selected() && characterId.equals(selection.characterId())
+                    ? BoardParticipant.skinIdentifier(characterId, definition.skinOrDefault(selection.skinId().getPath()).id())
+                    : BoardParticipant.skinIdentifier(characterId, definition.skinOrDefault("default").id());
+            session.putParticipant(createParticipant(session, player, characterId, skinId));
+            lobby.put(selection.withChoice(characterId, skinId, true, true));
+            changed = true;
+        }
+        if (changed) BoardSessionManager.markChanged(level);
     }
 
     public static void sendSelection(ServerPlayer player, BoardSession session, boolean refresh) {
-        BoardParticipant selected = session.participantByController(player.getUUID()).orElse(null);
-        List<Identifier> occupiedCharacters = session.participants().stream().map(BoardParticipant::characterId).toList();
+        LobbyState lobby = lobby(session.id());
         CharacterDefinition fallback = CharacterManager.INSTANCE.defaultCharacter();
-        String fallbackSkin = fallback.skins().isEmpty() ? "default" : fallback.skins().getFirst().id();
-        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - player.level().getGameTime(), 0L,
-                BoardSessionManager.LOBBY_TIMEOUT_TICKS);
+        Identifier fallbackSkin = BoardParticipant.skinIdentifier(fallback.id(), fallback.skinOrDefault("default").id());
+        LobbySelection own = lobby.selection(player, fallback.id(), fallbackSkin);
+        BoardParticipant selected = session.participantByController(player.getUUID()).orElse(null);
+        if (selected != null && !own.confirmed()) {
+            own = own.withChoice(selected.characterId(), selected.skinId(), true, true);
+            lobby.put(own);
+        }
+
+        List<Identifier> occupiedCharacters = session.participants().stream().map(BoardParticipant::characterId).toList();
+        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - player.level().getGameTime(), 0L, BoardSessionManager.LOBBY_TIMEOUT_TICKS);
         PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id().toString(),
-                CharacterManager.INSTANCE.encodeList(), new ArrayList<>(occupiedCharacters),
-                selected == null ? fallback.id() : selected.characterId(),
-                selected == null ? BoardParticipant.skinIdentifier(fallback.id(), fallbackSkin) : selected.skinId(),
+                CharacterManager.INSTANCE.encodeList(), new ArrayList<>(occupiedCharacters), lobby.entries(),
+                own.selected() ? own.characterId() : fallback.id(), own.selected() ? own.skinId() : fallbackSkin,
                 remaining, BoardSessionManager.LOBBY_TIMEOUT_TICKS, selected != null, refresh));
     }
 
     public static void refreshScreens(ServerLevel level, BoardSession session) {
         Set<UUID> viewers = VIEWERS.get(session.id());
         if (viewers == null || viewers.isEmpty()) return;
+        LobbyState lobby = lobby(session.id());
         viewers.removeIf(viewerId -> {
             ServerPlayer viewer = level.getServer().getPlayerList().getPlayer(viewerId);
-            if (viewer == null || viewer.level() != level) return true;
-            sendSelection(viewer, session, true);
+            if (viewer == null || viewer.level() != level) {
+                lobby.remove(viewerId);
+                return true;
+            }
             return false;
         });
-        if (viewers.isEmpty()) VIEWERS.remove(session.id());
+
+        for (UUID viewerId : viewers) {
+            ServerPlayer viewer = level.getServer().getPlayerList().getPlayer(viewerId);
+            if (viewer != null) sendSelection(viewer, session, true);
+        }
+
+        if (viewers.isEmpty()) {
+            VIEWERS.remove(session.id());
+            LOBBIES.remove(session.id());
+        }
     }
 
     public static void closeScreens(ServerLevel level, UUID boardId) {
         Set<UUID> viewers = VIEWERS.remove(boardId);
+        LOBBIES.remove(boardId);
         if (viewers == null) return;
         CharacterDefinition fallback = CharacterManager.INSTANCE.defaultCharacter();
-        String fallbackSkin = fallback.skins().isEmpty() ? "default" : fallback.skins().getFirst().id();
+        Identifier fallbackSkin = BoardParticipant.skinIdentifier(fallback.id(), fallback.skinOrDefault("default").id());
         OpenBoardCharacterSelectionPayload closePayload = new OpenBoardCharacterSelectionPayload(boardId.toString(),
-                "", List.of(), fallback.id(), BoardParticipant.skinIdentifier(fallback.id(), fallbackSkin), 0,
+                StringUtils.EMPTY, List.of(), List.of(), fallback.id(), fallbackSkin, 0,
                 BoardSessionManager.LOBBY_TIMEOUT_TICKS, false, false);
         for (UUID viewerId : viewers) {
             ServerPlayer viewer = level.getServer().getPlayerList().getPlayer(viewerId);
@@ -108,6 +170,23 @@ public class BoardLobbyService {
 
     public static void clear(UUID boardId) {
         VIEWERS.remove(boardId);
+        LOBBIES.remove(boardId);
+    }
+
+    private static BoardParticipant createParticipant(BoardSession session, ServerPlayer player, Identifier characterId, Identifier skinId) {
+        return new BoardParticipant(UUID.randomUUID(), Optional.of(player.getUUID()), false,
+                characterId, skinId, BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID,
+                Optional.empty(), AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7,
+                session.nextArrivalOrder());
+    }
+
+    private static Identifier firstAvailableCharacter(BoardSession session) {
+        return CharacterManager.INSTANCE.values().stream().map(CharacterDefinition::id)
+                .filter(id -> !session.hasCharacter(id)).findFirst().orElse(null);
+    }
+
+    private static LobbyState lobby(UUID boardId) {
+        return LOBBIES.computeIfAbsent(boardId, ignored -> new LobbyState());
     }
 
     private static BoardSession parseSession(ServerLevel level, String rawBoardId) {
@@ -120,6 +199,54 @@ public class BoardLobbyService {
 
     private static boolean isSoloIntegratedServer(ServerPlayer player) {
         return player.server.isSingleplayer() && player.server.getPlayerList().getPlayerCount() <= 1;
+    }
+
+    private static class LobbyState {
+        private final Map<UUID, LobbySelection> selections = new HashMap<>();
+
+        private LobbySelection selection(ServerPlayer player, Identifier fallbackCharacter, Identifier fallbackSkin) {
+            LobbySelection existing = this.selections.get(player.getUUID());
+            if (existing != null) return existing;
+            Set<Integer> used = this.selections.values().stream().map(LobbySelection::slot)
+                    .collect(Collectors.toSet());
+            List<Integer> available = new ArrayList<>();
+            for (int slot = 0; slot < BoardSessionManager.REQUIRED_PLAYERS; slot++) {
+                if (!used.contains(slot)) available.add(slot);
+            }
+            int slot = available.isEmpty() ? this.selections.size() % BoardSessionManager.REQUIRED_PLAYERS
+                    : available.get(player.getRandom().nextInt(available.size()));
+            LobbySelection created = new LobbySelection(player.getUUID(), slot, player.getScoreboardName(),
+                    fallbackCharacter, fallbackSkin, false, false);
+            this.selections.put(player.getUUID(), created);
+            return created;
+        }
+
+        private void put(LobbySelection selection) {
+            this.selections.put(selection.playerId(), selection);
+        }
+
+        private void remove(UUID playerId) {
+            this.selections.remove(playerId);
+        }
+
+        private List<LobbySelection> ordered() {
+            return this.selections.values().stream().sorted(Comparator.comparingInt(LobbySelection::slot)).toList();
+        }
+
+        private List<BoardCharacterSelectionEntry> entries() {
+            return this.ordered().stream().map(selection -> new BoardCharacterSelectionEntry(selection.slot(),
+                    selection.playerName(), selection.characterId(), selection.skinId(),
+                    selection.selected(), selection.confirmed())).toList();
+        }
+    }
+
+    private record LobbySelection(UUID playerId, int slot, String playerName, Identifier characterId,
+                                  Identifier skinId, boolean selected, boolean confirmed) {
+        private LobbySelection withChoice(Identifier characterId, Identifier skinId,
+                                          boolean selected, boolean confirmed) {
+            return new LobbySelection(this.playerId, this.slot, this.playerName, characterId, skinId,
+                    selected, confirmed);
+        }
     }
 
 }
