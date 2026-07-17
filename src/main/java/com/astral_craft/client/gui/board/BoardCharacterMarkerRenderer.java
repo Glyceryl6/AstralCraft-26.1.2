@@ -17,7 +17,8 @@ public class BoardCharacterMarkerRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
     private static final int SHADOW_COLOR = 0x6A131326;
-    private static final int ARROW_COLOR = 0xDD74E9FF;
+    private static final int ARROW_OUTLINE_COLOR = 0xEE07131C;
+    private static final int ARROW_COLOR = 0xF574E9FF;
     private static final int KNOCKOUT_COLOR = 0xEEFF4257;
     private static final int KNOCKOUT_BACK_COLOR = 0xDD2A0710;
 
@@ -36,7 +37,7 @@ public class BoardCharacterMarkerRenderer {
     private static void submitMarker(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
                                      AstralCharacterEntity entity, float pulse) {
         Vec3 center = new Vec3(entity.getX(), entity.getY() + 0.025D, entity.getZ()).subtract(cameraPos);
-        double shadow = 0.47D;
+        double shadow = 0.58D;
         submitQuad(event, poseStack,
                 center.add(0.0D, 0.0D, -shadow), center.add(shadow, 0.0D, 0.0D),
                 center.add(0.0D, 0.0D, shadow), center.add(-shadow, 0.0D, 0.0D), SHADOW_COLOR);
@@ -54,14 +55,20 @@ public class BoardCharacterMarkerRenderer {
         if (forward.lengthSqr() < 0.5D) forward = new Vec3(0.0D, 0.0D, -1.0D);
         forward = forward.normalize();
         Vec3 side = new Vec3(-forward.z, 0.0D, forward.x);
-        double length = 0.44D * pulse;
-        double halfWidth = 0.14D * pulse;
-        Vec3 base = center.subtract(forward.scale(0.14D));
+        submitArrow(event, poseStack, center.add(0.0D, 0.012D, 0.0D), forward, side,
+                0.70D * pulse, 0.24D * pulse, ARROW_OUTLINE_COLOR);
+        submitArrow(event, poseStack, center.add(0.0D, 0.018D, 0.0D), forward, side,
+                0.58D * pulse, 0.16D * pulse, ARROW_COLOR);
+    }
+
+    private static void submitArrow(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 center,
+                                    Vec3 forward, Vec3 side, double length, double halfWidth, int color) {
+        Vec3 base = center.subtract(forward.scale(length * 0.38D));
         Vec3 tip = base.add(forward.scale(length));
         Vec3 left = base.subtract(side.scale(halfWidth));
         Vec3 right = base.add(side.scale(halfWidth));
-        Vec3 notch = base.add(forward.scale(length * 0.36D));
-        submitQuad(event, poseStack, left, tip, right, notch, ARROW_COLOR);
+        Vec3 notch = base.add(forward.scale(length * 0.38D));
+        submitQuad(event, poseStack, left, tip, right, notch, color);
     }
 
     private static void submitCross(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 center,

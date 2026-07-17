@@ -21,6 +21,9 @@ public class BoardStartChoiceScreen extends Screen {
     private final int timeoutDurationTicks;
     private final Identifier characterId;
     private final Identifier skinId;
+    private final int stars;
+    private final int starCoins;
+    private final int nextStarCost;
     private boolean submitted;
 
     public BoardStartChoiceScreen(OpenBoardStartChoicePayload payload) {
@@ -30,6 +33,9 @@ public class BoardStartChoiceScreen extends Screen {
         this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
         this.characterId = payload.characterId();
         this.skinId = payload.skinId();
+        this.stars = Math.max(0, payload.stars());
+        this.starCoins = Math.max(0, payload.starCoins());
+        this.nextStarCost = Math.max(0, payload.nextStarCost());
     }
 
     public static void open(OpenBoardStartChoicePayload payload, IPayloadContext context) {
@@ -60,7 +66,7 @@ public class BoardStartChoiceScreen extends Screen {
                 this.timeoutTicks, this.timeoutDurationTicks, layout.x() + layout.width() / 2,
                 layout.y() + 18, Math.min(250, layout.width() - 54));
         AstralFancyButton.renderButton(graphics, this.font,
-                Component.translatable("gui.astral_craft.board.start_stop"), layout.stopX(), layout.buttonY(),
+                this.stopLabel(), layout.stopX(), layout.buttonY(),
                 layout.buttonWidth(), layout.buttonHeight(), this.submitted,
                 inside(mouseX, mouseY, layout.stopX(), layout.buttonY(),
                         layout.buttonWidth(), layout.buttonHeight()),
@@ -90,6 +96,16 @@ public class BoardStartChoiceScreen extends Screen {
         return super.mouseClicked(event, doubleClick);
     }
 
+
+    private Component stopLabel() {
+        if (this.stars >= 3 || this.nextStarCost <= 0) {
+            return Component.translatable("gui.astral_craft.board.start_stop");
+        }
+        int missing = Math.max(0, this.nextStarCost - this.starCoins);
+        return missing == 0
+                ? Component.translatable("gui.astral_craft.board.start_stop_ready")
+                : Component.translatable("gui.astral_craft.board.start_stop_missing", missing);
+    }
 
     private Layout layout() {
         int panelWidth = Math.min(370, this.width - 24);

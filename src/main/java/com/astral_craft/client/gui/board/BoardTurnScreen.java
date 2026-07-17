@@ -32,7 +32,7 @@ import java.util.List;
 /** Board-specific non-stacking hand UI with skill and movement controls. */
 public class BoardTurnScreen extends Screen {
 
-    private static final int PANEL_H = 178;
+    private static final int PANEL_H = 136;
     private static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
     private static final int CARD_H = HandCardRenderHelper.FRAMED_CARD_H;
     private static final int GAP = 7;
@@ -253,21 +253,21 @@ public class BoardTurnScreen extends Screen {
     private Layout layout() {
         int panelHeight = Math.clamp(this.height, 1, PANEL_H);
         int top = Math.max(0, this.height - panelHeight);
-        int controlsWidth = Math.clamp(this.width - 22, 1, Math.clamp(this.width / 3, 118, 154));
+        int controlsWidth = Math.clamp(this.width / 4, 112, 142);
         int cardLeft = 10;
         int cardRight = Math.max(cardLeft + 1, this.width - controlsWidth - 8);
-        int cardTop = Math.min(this.height, top + 32);
-        int cardBottom = Math.max(cardTop + 1, this.height - 10);
-        int cardY = top + 40;
-        int moveSize = Math.clamp(controlsWidth - 28, 36, 72);
-        int moveX = Math.max(cardRight + 6, this.width - moveSize - 14);
-        int moveY = Math.max(top + 48, this.height - moveSize - 16);
+        int cardTop = Math.min(this.height, top + 31);
+        int cardBottom = Math.max(cardTop + 1, this.height - 7);
+        int cardY = top + 34;
+        int moveSize = Math.clamp(controlsWidth - 64, 40, 52);
+        int moveX = this.width - moveSize - 10;
+        int moveY = this.height - moveSize - 9;
         int skillX = cardRight + 7;
         int skillW = Math.max(1, this.width - skillX - 10);
-        int skillY = top + 28;
+        int skillY = top + 31;
         int infoX = skillX;
-        int infoY = skillY + 36;
-        int leaveW = Math.min(88, Math.max(58, controlsWidth - 20));
+        int infoY = skillY + 31;
+        int leaveW = Math.clamp(controlsWidth - 24, 54, 78);
         int leaveX = this.width - leaveW - 10;
         int leaveY = top + 5;
         return new Layout(top, cardLeft, cardTop, cardRight, cardBottom, cardY,
