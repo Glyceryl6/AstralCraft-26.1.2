@@ -11,7 +11,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,9 +29,9 @@ public class BoardLobbyService {
     private static final Map<UUID, Set<UUID>> VIEWERS = new HashMap<>();
     private static final Map<UUID, LobbyState> LOBBIES = new HashMap<>();
 
-    public static void updateSelection(ServerPlayer player, String rawBoardId, Identifier characterId,
+    public static void updateSelection(ServerPlayer player, UUID boardId, Identifier characterId,
                                        Identifier skinId, boolean confirmed) {
-        BoardSession session = parseSession(player.level(), rawBoardId);
+        BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (session == null || session.phase() != BoardPhase.CHARACTER_SELECTION) return;
         if (!CharacterManager.INSTANCE.contains(characterId)) return;
         BoardParticipant existing = session.participantByController(player.getUUID()).orElse(null);
@@ -123,8 +122,8 @@ public class BoardLobbyService {
 
         List<Identifier> occupiedCharacters = session.participants().stream().map(BoardParticipant::characterId).toList();
         int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - player.level().getGameTime(), 0L, BoardSessionManager.LOBBY_TIMEOUT_TICKS);
-        PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id().toString(),
-                CharacterManager.INSTANCE.encodeList(), new ArrayList<>(occupiedCharacters), lobby.entries(),
+        PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id(),
+                CharacterManager.INSTANCE.values(), new ArrayList<>(occupiedCharacters), lobby.entries(),
                 own.selected() ? own.characterId() : fallback.id(), own.selected() ? own.skinId() : fallbackSkin,
                 remaining, BoardSessionManager.LOBBY_TIMEOUT_TICKS, selected != null, refresh));
     }
@@ -153,14 +152,46 @@ public class BoardLobbyService {
         }
     }
 
+
+    public static List<BoardParticipant> orderedParticipants(BoardSession session) {
+        LobbyState lobby = LOBBIES.get(session.id());
+        if (lobby == null) {
+            return session.participants().stream()
+                    .sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder)).toList();
+        }
+
+        Map<Integer, BoardParticipant> bySlot = new HashMap<>();
+        Set<UUID> assigned = new LinkedHashSet<>();
+        for (LobbySelection selection : lobby.ordered()) {
+            BoardParticipant participant = session.participantByController(selection.playerId()).orElse(null);
+            if (participant == null || !assigned.add(participant.slotUuid())) continue;
+            bySlot.put(selection.slot(), participant);
+        }
+
+        List<BoardParticipant> remaining = session.participants().stream()
+                .filter(participant -> !assigned.contains(participant.slotUuid()))
+                .sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder)).toList();
+        int cursor = 0;
+        for (int slot = 0; slot < BoardSessionManager.REQUIRED_PLAYERS && cursor < remaining.size(); slot++) {
+            if (!bySlot.containsKey(slot)) bySlot.put(slot, remaining.get(cursor++));
+        }
+
+        List<BoardParticipant> ordered = new ArrayList<>();
+        for (int slot = 0; slot < BoardSessionManager.REQUIRED_PLAYERS; slot++) {
+            BoardParticipant participant = bySlot.get(slot);
+            if (participant != null) ordered.add(participant);
+        }
+        return List.copyOf(ordered);
+    }
+
     public static void closeScreens(ServerLevel level, UUID boardId) {
         Set<UUID> viewers = VIEWERS.remove(boardId);
         LOBBIES.remove(boardId);
         if (viewers == null) return;
         CharacterDefinition fallback = CharacterManager.INSTANCE.defaultCharacter();
         Identifier fallbackSkin = BoardParticipant.skinIdentifier(fallback.id(), fallback.skinOrDefault("default").id());
-        OpenBoardCharacterSelectionPayload closePayload = new OpenBoardCharacterSelectionPayload(boardId.toString(),
-                StringUtils.EMPTY, List.of(), List.of(), fallback.id(), fallbackSkin, 0,
+        OpenBoardCharacterSelectionPayload closePayload = new OpenBoardCharacterSelectionPayload(boardId,
+                List.of(), List.of(), List.of(), fallback.id(), fallbackSkin, 0,
                 BoardSessionManager.LOBBY_TIMEOUT_TICKS, false, false);
         for (UUID viewerId : viewers) {
             ServerPlayer viewer = level.getServer().getPlayerList().getPlayer(viewerId);
@@ -187,14 +218,6 @@ public class BoardLobbyService {
 
     private static LobbyState lobby(UUID boardId) {
         return LOBBIES.computeIfAbsent(boardId, ignored -> new LobbyState());
-    }
-
-    private static BoardSession parseSession(ServerLevel level, String rawBoardId) {
-        try {
-            return BoardSessionManager.session(level, UUID.fromString(rawBoardId)).orElse(null);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
     }
 
     private static boolean isSoloIntegratedServer(ServerPlayer player) {

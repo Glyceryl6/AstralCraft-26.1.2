@@ -6,7 +6,6 @@ import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
-import com.astral_craft.common.gameplay.character.CharacterCodecLines;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
@@ -28,8 +27,9 @@ import org.jspecify.annotations.NonNull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
-/** Board lobby selector with four live, randomly assigned player preview slots. */
+/** Board lobby selector with four live preview slots; slot order is also the later turn order. */
 public class BoardCharacterSelectionScreen extends Screen {
 
     private static final int MARGIN = 10;
@@ -39,7 +39,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     private static final int SKIN_W = 46;
     private static final int SKIN_H = 44;
     private static final int SLOT_COUNT = 4;
-    private final String boardId;
+    private final UUID boardId;
     private final List<CharacterDefinition> characters;
     private final Set<Identifier> occupied;
     private final AstralCharacterEntity[] slotPreviews = new AstralCharacterEntity[SLOT_COUNT];
@@ -56,8 +56,8 @@ public class BoardCharacterSelectionScreen extends Screen {
     public BoardCharacterSelectionScreen(OpenBoardCharacterSelectionPayload payload) {
         super(Component.translatable("gui.astral_craft.board.character_select"));
         this.boardId = payload.boardId();
-        List<CharacterDefinition> decoded = CharacterCodecLines.decode(payload.encodedCharacters());
-        this.characters = decoded.isEmpty() ? List.of(CharacterManager.INSTANCE.defaultCharacter()) : decoded;
+        List<CharacterDefinition> definitions = payload.characters();
+        this.characters = definitions.isEmpty() ? List.of(CharacterManager.INSTANCE.defaultCharacter()) : definitions;
         ClientCharacterDefinitionCache.INSTANCE.replace(this.characters);
         this.occupied = new HashSet<>(payload.occupiedCharacterIds());
         this.lobbyEntries = payload.lobbyEntries();
@@ -74,7 +74,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     public static void open(OpenBoardCharacterSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Minecraft minecraft = Minecraft.getInstance();
-            if (payload.encodedCharacters().isBlank()) {
+            if (payload.characters().isEmpty()) {
                 if (minecraft.screen instanceof BoardCharacterSelectionScreen screen
                         && screen.boardId.equals(payload.boardId())) minecraft.setScreen(null);
                 return;
