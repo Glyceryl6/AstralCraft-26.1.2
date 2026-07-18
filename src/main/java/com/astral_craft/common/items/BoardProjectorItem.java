@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.ScannedBoard;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -35,8 +36,14 @@ public class BoardProjectorItem extends Item {
         ServerLevel level = player.level();
         ScannedBoard scanned = BoardScanner.scan(level, context.getClickedPos());
         if (!scanned.isValid()) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.invalid",
-                    String.join(", ", scanned.errors())).withStyle(ChatFormatting.RED), false);
+            MutableComponent reasons = Component.empty();
+            for (int index = 0; index < scanned.errors().size(); index++) {
+                if (index > 0) reasons.append(Component.translatable("text.astral_craft.list_separator"));
+                reasons.append(Component.translatable("message.astral_craft.board.scan_error." + scanned.errors().get(index)));
+            }
+
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.invalid", reasons)
+                    .withStyle(ChatFormatting.RED), false);
             return InteractionResult.FAIL;
         }
 

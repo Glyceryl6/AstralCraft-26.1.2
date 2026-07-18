@@ -9,7 +9,7 @@ import java.util.Map;
 public record ScannedBoard(Map<String, BoardNode> nodes, Map<String, BlockPos> positions, BoardArea area, List<String> startNodes, List<String> errors) {
 
     public boolean isValid() {
-        return errors.isEmpty() && startNodes.size() >= 4 && !nodes.isEmpty();
+        return this.errors.isEmpty() && this.startNodes.size() == 4 && !this.nodes.isEmpty();
     }
 
 }
