@@ -25,13 +25,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import java.util.UUID;
+
 /** Board shop with server-validated multi-purchase and persistent sold styling. */
 public class BoardShopScreen extends Screen {
 
     private static final int CARD_WIDTH = HandCardRenderHelper.FRAMED_CARD_W;
     private static final int CARD_HEIGHT = HandCardRenderHelper.FRAMED_CARD_H;
     private static final int CARD_GAP = 18;
-    private final String boardId;
+    private final UUID boardId;
     private final Set<Integer> selected = new LinkedHashSet<>();
     private List<ShopCard> cards = List.of();
     private int purchasedMask;

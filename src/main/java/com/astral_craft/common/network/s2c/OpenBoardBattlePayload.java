@@ -39,9 +39,7 @@ public record OpenBoardBattlePayload(
             OpenBoardBattlePayload::new);
 
     public OpenBoardBattlePayload {
-        cards = List.copyOf(cards == null ? List.of() : cards);
-        role = role == null ? BattleRole.SPECTATOR : role;
-        view = view == null ? BattleView.empty() : view;
+        cards = List.copyOf(cards);
         maximumCost = Math.max(0, maximumCost);
     }
 
@@ -102,7 +100,7 @@ public record OpenBoardBattlePayload(
                 CombatCardView::new);
 
         public CombatCardView {
-            stack = stack == null ? ItemStack.EMPTY : stack.copy();
+            stack = stack.copy();
             cost = Math.max(0, cost);
             minimumBonus = Math.max(0, minimumBonus);
             maximumBonus = Math.max(minimumBonus, maximumBonus);
@@ -161,8 +159,6 @@ public record OpenBoardBattlePayload(
         };
 
         public BattleView {
-            phase = phase == null ? BattlePhase.SELECT : phase;
-            defenseMode = defenseMode == null ? DefenseMode.DEFEND : defenseMode;
             attackerHealth = Math.max(0, attackerHealth);
             defenderHealth = Math.max(0, defenderHealth);
             damage = Math.max(0, damage);
@@ -212,7 +208,7 @@ public record OpenBoardBattlePayload(
 
             @Override
             public void encode(ByteBuf buffer, E value) {
-                ByteBufCodecs.VAR_INT.encode(buffer, value == null ? fallback.ordinal() : value.ordinal());
+                ByteBufCodecs.VAR_INT.encode(buffer, value.ordinal());
             }
         };
     }

@@ -16,9 +16,11 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
 
+import java.util.UUID;
+
 public class BoardEncounterScreen extends Screen {
 
-    private final String boardId;
+    private final UUID boardId;
     private final int targetEntityId;
     private final String controllerName;
     private int timeoutTicks;

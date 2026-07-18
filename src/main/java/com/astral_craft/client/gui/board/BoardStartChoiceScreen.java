@@ -14,9 +14,11 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
 
+import java.util.UUID;
+
 public class BoardStartChoiceScreen extends Screen {
 
-    private final String boardId;
+    private final UUID boardId;
     private int timeoutTicks;
     private final int timeoutDurationTicks;
     private final Identifier characterId;

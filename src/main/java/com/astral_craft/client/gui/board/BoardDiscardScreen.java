@@ -5,16 +5,16 @@ import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.BoardCardView;
 import com.astral_craft.common.network.c2s.BoardDiscardPayload;
 import com.astral_craft.common.network.s2c.OpenBoardDiscardPayload;
+import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -24,13 +24,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class BoardDiscardScreen extends Screen {
 
     private static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
     private static final int CARD_H = HandCardRenderHelper.FRAMED_CARD_H;
     private static final int GAP = 8;
-    private final String boardId;
+    private final UUID boardId;
     private final List<Card> cards;
     private final int required;
     private final Set<Integer> selected = new LinkedHashSet<>();
@@ -42,7 +43,7 @@ public class BoardDiscardScreen extends Screen {
     public BoardDiscardScreen(OpenBoardDiscardPayload payload) {
         super(Component.translatable("gui.astral_craft.board.discard"));
         this.boardId = payload.boardId();
-        this.cards = decode(payload.encodedCards());
+        this.cards = cards(payload.cards());
         this.required = Math.clamp(payload.requiredCount(), 0, this.cards.size());
         this.timeoutTicks = Math.max(0, payload.timeoutTicks());
         this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
@@ -130,21 +131,17 @@ public class BoardDiscardScreen extends Screen {
         return super.mouseClicked(event, doubleClick);
     }
 
-    private static List<Card> decode(String encoded) {
+    private static List<Card> cards(List<BoardCardView> views) {
         List<Card> result = new ArrayList<>();
-        if (encoded == null || encoded.isBlank()) return result;
-        String[] ids = encoded.split(";");
-        for (int index = 0; index < ids.length; index++) {
-            String raw = ids[index];
-            try {
-                Identifier id = Identifier.parse(raw);
-                Item item = BuiltInRegistries.ITEM.getValue(id);
-                if (!(item instanceof BaseHandCard card)) continue;
-                ItemStack stack = new ItemStack(item);
-                result.add(new Card(index, stack, card.definition(stack)));
-            } catch (Exception ignored) {}
+        for (BoardCardView view : views) {
+            ItemStack stack = view.stack().copy();
+            CardDefinition definition = stack.get(AstralDataComponents.CARD_DEFINITION);
+            if (definition == null && stack.getItem() instanceof BaseHandCard card) {
+                definition = card.definition(stack);
+            }
+            if (definition != null) result.add(new Card(view.handIndex(), stack, definition));
         }
-        return result;
+        return List.copyOf(result);
     }
 
     private static boolean inside(double mx, double my, int x, int y, int w, int h) {

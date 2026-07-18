@@ -7,20 +7,20 @@ import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.BoardCardView;
 import com.astral_craft.common.network.c2s.BoardLeavePayload;
 import com.astral_craft.common.network.c2s.BoardMoveRequestPayload;
 import com.astral_craft.common.network.c2s.BoardSkillRequestPayload;
 import com.astral_craft.common.network.s2c.OpenBoardTurnPayload;
 import com.astral_craft.common.network.c2s.UseBoardCardPayload;
+import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -28,6 +28,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /** Board-specific non-stacking hand UI with skill and movement controls. */
 public class BoardTurnScreen extends Screen {
@@ -36,7 +37,7 @@ public class BoardTurnScreen extends Screen {
     private static final int CARD_W = HandCardRenderHelper.FRAMED_CARD_W;
     private static final int CARD_H = HandCardRenderHelper.FRAMED_CARD_H;
     private static final int GAP = 7;
-    private final String boardId;
+    private final UUID boardId;
     private final int characterEntityId;
     private List<BoardCard> cards;
     private int maxCardPlays;
@@ -57,7 +58,7 @@ public class BoardTurnScreen extends Screen {
         super(Component.translatable("gui.astral_craft.board.turn"));
         this.boardId = payload.boardId();
         this.characterEntityId = payload.characterEntityId();
-        this.cards = decode(payload.encodedCards());
+        this.cards = cards(payload.cards());
         this.refresh(payload);
     }
 
@@ -75,7 +76,7 @@ public class BoardTurnScreen extends Screen {
     }
 
     private void refresh(OpenBoardTurnPayload payload) {
-        this.cards = decode(payload.encodedCards());
+        this.cards = cards(payload.cards());
         this.cardPlaysUsed = Math.max(0, payload.cardPlaysUsed());
         this.maxCardPlays = Math.max(0, payload.maxCardPlays());
         this.skillCooldown = Math.max(0, payload.skillCooldownTurns());
@@ -110,11 +111,9 @@ public class BoardTurnScreen extends Screen {
         graphics.fill(0, layout.top(), this.width, layout.top() + 2, 0xB0FFFFFF);
         graphics.text(this.font, this.title, 12, layout.top() + 9, 0xFFFFFFFF, false);
         boolean leaveHover = inside(mouseX, mouseY, layout.leaveX(), layout.leaveY(), layout.leaveW(), 22);
-        AstralFancyButton.renderButton(graphics, this.font,
-                Component.translatable("gui.astral_craft.board.leave"),
+        AstralFancyButton.renderButton(graphics, this.font, Component.translatable("gui.astral_craft.board.leave"),
                 layout.leaveX(), layout.leaveY(), layout.leaveW(), 22, false, leaveHover,
                 ButtonStyle.button(0xFF8E3542));
-
         graphics.enableScissor(layout.cardLeft(), layout.cardTop(), layout.cardRight(), layout.cardBottom());
         int x = 12 - Math.round(this.scroll);
         int y = layout.cardY();
@@ -123,8 +122,10 @@ public class BoardTurnScreen extends Screen {
             if (index != this.draggingIndex && x + CARD_W >= layout.cardLeft() && x <= layout.cardRight()) {
                 this.renderCard(graphics, card, x, y, mouseX, mouseY, false);
             }
+
             x += CARD_W + GAP;
         }
+
         graphics.disableScissor();
         if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
             this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX,
@@ -139,30 +140,23 @@ public class BoardTurnScreen extends Screen {
         AstralFancyButton.renderButton(graphics, this.font, move, layout.moveX(), layout.moveY(),
                 layout.moveSize(), layout.moveSize(), false, moveHover,
                 ButtonStyle.button(moveEnabled ? 0xFFD84484 : 0xFF555560));
-
         Component play = Component.translatable("gui.astral_craft.board.play_card");
-        Component count = Component.translatable("gui.astral_craft.board.card_count",
-                this.cardPlaysUsed, this.maxCardPlays);
+        Component count = Component.translatable("gui.astral_craft.board.card_count", this.cardPlaysUsed, this.maxCardPlays);
         graphics.text(this.font, play, layout.infoX(), layout.infoY(), 0xFFFFFFFF, false);
         graphics.text(this.font, count, layout.infoX(), layout.infoY() + 17, 0xFFFFC75C, false);
-
-        int skillH = 25;
         boolean skillEnabled = this.currentTurn && this.skillCooldown <= 0 && !busy;
-        boolean skillHover = skillEnabled && inside(mouseX, mouseY, layout.skillX(), layout.skillY(),
-                layout.skillW(), skillH);
-        Component skill = this.skillCooldown <= 0
-                ? Component.translatable("gui.astral_craft.board.skill")
+        boolean skillHover = skillEnabled && inside(mouseX, mouseY, layout.skillX(), layout.skillY(), layout.skillW(), 25);
+        Component skill = this.skillCooldown <= 0 ? Component.translatable("gui.astral_craft.board.skill")
                 : Component.translatable("gui.astral_craft.board.skill_cooldown", this.skillCooldown);
-        AstralFancyButton.renderButton(graphics, this.font, skill, layout.skillX(), layout.skillY(),
-                layout.skillW(), skillH, false, skillHover,
+        AstralFancyButton.renderButton(graphics, this.font, skill, layout.skillX(),
+                layout.skillY(), layout.skillW(), 25, false, skillHover,
                 ButtonStyle.button(skillEnabled ? 0xFF4D7AC7 : 0xFF555560));
         BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
-                this.decisionTicks, this.decisionDurationTicks, this.width / 2, this.height - 17,
-                Math.min(270, this.width - 44));
+                this.decisionTicks, this.decisionDurationTicks, this.width / 2,
+                this.height - 17, Math.min(270, this.width - 44));
     }
 
-    private void renderCard(GuiGraphicsExtractor graphics, BoardCard card, int x, int y,
-                            int mouseX, int mouseY, boolean dragging) {
+    private void renderCard(GuiGraphicsExtractor graphics, BoardCard card, int x, int y, int mouseX, int mouseY, boolean dragging) {
         boolean playable = this.canPlayCard(card);
         HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(),
                 card.definition().largeFrontTexture(card.stack()), card.definition().displayName(card.stack()),
@@ -184,6 +178,7 @@ public class BoardTurnScreen extends Screen {
             this.onClose();
             return true;
         }
+
         boolean busy = this.requestLockTicks > 0 || CardRevealOverlay.isActive();
         if (inside(event.x(), event.y(), layout.moveX(), layout.moveY(),
                 layout.moveSize(), layout.moveSize()) && this.currentTurn && !busy) {
@@ -192,12 +187,14 @@ public class BoardTurnScreen extends Screen {
             this.onClose();
             return true;
         }
+
         if (inside(event.x(), event.y(), layout.skillX(), layout.skillY(), layout.skillW(), 25)
                 && this.currentTurn && this.skillCooldown <= 0 && !busy) {
             this.requestLockTicks = 8;
             ClientPacketDistributor.sendToServer(new BoardSkillRequestPayload(this.boardId));
             return true;
         }
+
         int x = 12 - Math.round(this.scroll);
         int y = layout.cardY();
         for (int index = 0; index < this.cards.size(); index++) {
@@ -212,8 +209,10 @@ public class BoardTurnScreen extends Screen {
                 }
                 return true;
             }
+
             x += CARD_W + GAP;
         }
+
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -229,6 +228,7 @@ public class BoardTurnScreen extends Screen {
             }
             return true;
         }
+
         return super.mouseReleased(event);
     }
 
@@ -239,6 +239,7 @@ public class BoardTurnScreen extends Screen {
                 || mouseY < layout.cardTop() || mouseY > layout.cardBottom()) {
             return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
         }
+
         this.scroll = Mth.clamp(this.scroll - (float) (deltaY + deltaX) * 38.0F,
                 0.0F, this.maximumScroll(layout));
         return true;
@@ -275,18 +276,15 @@ public class BoardTurnScreen extends Screen {
                 leaveX, leaveY, leaveW);
     }
 
-    private static List<BoardCard> decode(String encoded) {
+    private static List<BoardCard> cards(List<BoardCardView> views) {
         List<BoardCard> result = new ArrayList<>();
-        if (encoded == null || encoded.isBlank()) return result;
-        String[] ids = encoded.split(";");
-        for (int index = 0; index < ids.length; index++) {
-            try {
-                Identifier id = Identifier.parse(ids[index]);
-                Item item = BuiltInRegistries.ITEM.getValue(id);
-                if (!(item instanceof BaseHandCard card)) continue;
-                ItemStack stack = new ItemStack(item);
-                result.add(new BoardCard(index, stack, card.definition(stack)));
-            } catch (Exception ignored) {}
+        for (BoardCardView view : views) {
+            ItemStack stack = view.stack().copy();
+            CardDefinition definition = stack.get(AstralDataComponents.CARD_DEFINITION);
+            if (definition == null && stack.getItem() instanceof BaseHandCard card) {
+                definition = card.definition(stack);
+            }
+            if (definition != null) result.add(new BoardCard(view.handIndex(), stack, definition));
         }
         return List.copyOf(result);
     }

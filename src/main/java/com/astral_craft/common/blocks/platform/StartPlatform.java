@@ -32,11 +32,9 @@ public class StartPlatform extends BasePlatform {
         this.arrive(context);
     }
 
-    public static void choose(ServerPlayer player, String rawBoardId, boolean stop) {
-        try {
-            BoardSessionManager.session(player.level(), UUID.fromString(rawBoardId))
-                    .ifPresent(session -> choose(player, session, stop));
-        } catch (IllegalArgumentException ignored) {}
+    public static void choose(ServerPlayer player, UUID boardId, boolean stop) {
+        BoardSessionManager.session(player.level(), boardId)
+                .ifPresent(session -> choose(player, session, stop));
     }
 
     private static void choose(ServerPlayer player, BoardSession session, boolean stop) {
@@ -118,7 +116,7 @@ public class StartPlatform extends BasePlatform {
         this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(),
                 level.getGameTime() + duration, duration));
         this.activateBoardEffect(session);
-        PacketDistributor.sendToPlayer(player, new OpenBoardStartChoicePayload(session.id().toString(),
+        PacketDistributor.sendToPlayer(player, new OpenBoardStartChoicePayload(session.id(),
                 participant.stats().health(), participant.stats().maxHealth(), participant.stats().stars(),
                 participant.stats().starCoins(), nextStarCost(participant.stats().stars()), duration, duration,
                 participant.characterId(), participant.skinId()));

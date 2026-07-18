@@ -1,6 +1,7 @@
 package com.astral_craft.common.network.s2c;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.network.BoardNetworkCodecs;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -9,8 +10,10 @@ import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
+import java.util.UUID;
+
 public record OpenBoardShopPayload(
-        String boardId,
+        UUID boardId,
         List<Identifier> offers,
         int purchasedMask,
         int starCoins,
@@ -24,7 +27,7 @@ public record OpenBoardShopPayload(
     public static final int MAXIMUM_ENCODED_OFFERS = 24;
     public static final Type<OpenBoardShopPayload> TYPE = new Type<>(AstralCraft.prefix("open_board_shop"));
     public static final StreamCodec<ByteBuf, OpenBoardShopPayload> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.STRING_UTF8, OpenBoardShopPayload::boardId,
+            BoardNetworkCodecs.UUID_STREAM_CODEC, OpenBoardShopPayload::boardId,
             Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_ENCODED_OFFERS)), OpenBoardShopPayload::offers,
             ByteBufCodecs.VAR_INT, OpenBoardShopPayload::purchasedMask,
             ByteBufCodecs.VAR_INT, OpenBoardShopPayload::starCoins,

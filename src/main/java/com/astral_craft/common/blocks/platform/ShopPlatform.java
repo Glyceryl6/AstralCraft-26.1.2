@@ -46,12 +46,8 @@ public class ShopPlatform extends BasePlatform {
         return DEFAULT_OFFER_COUNT;
     }
 
-    public static void handleAction(ServerPlayer player, String rawBoardId, List<Integer> offerIndexes,
-                                    boolean leave) {
-        try {
-            BoardSessionManager.session(player.level(), UUID.fromString(rawBoardId))
-                    .ifPresent(session -> handleAction(player, session, offerIndexes, leave));
-        } catch (IllegalArgumentException ignored) {}
+    public static void handleAction(ServerPlayer player, UUID boardId, List<Integer> offerIndexes, boolean leave) {
+        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> handleAction(player, session, offerIndexes, leave));
     }
 
     private static void handleAction(ServerPlayer player, BoardSession session, List<Integer> offerIndexes, boolean leave) {
@@ -162,7 +158,7 @@ public class ShopPlatform extends BasePlatform {
 
     private void send(ServerPlayer player, BoardParticipant participant, ShopState state, int noticeCode) {
         int remaining = (int) Math.max(0L, state.deadlineTick() - player.level().getGameTime());
-        PacketDistributor.sendToPlayer(player, new OpenBoardShopPayload(state.boardId().toString(),
+        PacketDistributor.sendToPlayer(player, new OpenBoardShopPayload(state.boardId(),
                 state.offers(), state.purchasedMask(), participant.stats().starCoins(), CARD_PRICE,
                 remaining, state.durationTicks(), participant.characterId(), participant.skinId(), noticeCode));
     }

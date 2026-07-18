@@ -34,10 +34,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class CardUseService {
 
@@ -89,7 +86,7 @@ public class CardUseService {
     }
 
 
-    public static boolean useBoardCard(ServerPlayer player, String boardId, int cardIndex) {
+    public static boolean useBoardCard(ServerPlayer player, UUID boardId, int cardIndex) {
         if (!BoardSessionManager.canUseBoardCard(player, boardId, cardIndex)) return false;
         ItemStack stack = BoardSessionManager.boardCardStack(player, cardIndex);
         if (!(stack.getItem() instanceof BaseHandCard card)) return false;
