@@ -12,6 +12,7 @@ import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardDecisionProgress;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload;
+import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.*;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.UUID;
 
 /** Server-authoritative board battle selection, dice presentation and result coordinator. */
@@ -50,12 +50,6 @@ public class BoardBattleService {
     private static final int BOT_FINAL_SCORE_HOLD_TICKS = 32;
     public static final int MAXIMUM_PVP_COST = 3;
     private static final int MAXIMUM_SELECTED_CARDS = 7;
-    private static final String PHASE_SELECT = "select";
-    private static final String PHASE_READY = "ready";
-    private static final String PHASE_ATTACKER_ROLL = "attacker_roll";
-    private static final String PHASE_DEFENSE_CHOICE = "defense_choice";
-    private static final String PHASE_DEFENDER_ROLL = "defender_roll";
-    private static final String PHASE_RESULT = "result";
     private static final Map<UUID, BattleState> ACTIVE = new HashMap<>();
 
     public static void start(ServerLevel level, BoardSession session, BoardParticipant attacker, BoardParticipant defender) {
@@ -68,9 +62,9 @@ public class BoardBattleService {
         long attackerDeadlineTick = now + attackerDurationTicks;
         long defenderDeadlineTick = now + defenderDurationTicks;
         BattleState state = new BattleState(session.id(), attacker.slotUuid(), defender.slotUuid(),
-                PHASE_SELECT, Math.max(attackerDeadlineTick, defenderDeadlineTick),
+                BattlePhase.SELECT, Math.max(attackerDeadlineTick, defenderDeadlineTick),
                 Math.max(attackerDurationTicks, defenderDurationTicks), attackerDeadlineTick, attackerDurationTicks,
-                defenderDeadlineTick, defenderDurationTicks, List.of(), List.of(), "defend", false, false, null);
+                defenderDeadlineTick, defenderDurationTicks, List.of(), List.of(), DefenseMode.DEFEND, false, false, null);
         ACTIVE.put(session.id(), state);
         send(level, session, state);
     }
@@ -79,21 +73,15 @@ public class BoardBattleService {
         return ACTIVE.containsKey(boardId);
     }
 
-    public static void submit(ServerPlayer player, String rawBoardId, List<Integer> selectedCardIndexes, String defenseMode) {
-        UUID boardId;
-        try {
-            boardId = UUID.fromString(rawBoardId);
-        } catch (IllegalArgumentException exception) {
-            return;
-        }
-
+    public static void submit(ServerPlayer player, UUID boardId, List<Integer> selectedCardIndexes, DefenseMode defenseMode) {
+        if (boardId == null) return;
         BattleState state = ACTIVE.get(boardId);
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (state == null || session == null) return;
         BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
         BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
         if (attacker == null || defender == null) return;
-        if (PHASE_SELECT.equals(state.phase())) {
+        if (state.phase() == BattlePhase.SELECT) {
             if (attacker.controlledBy(player.getUUID())) {
                 if (state.attackerReady()) return;
                 List<Integer> indexes = validateSelection(attacker, selectedCardIndexes, CardType.ATTACK);
@@ -116,10 +104,10 @@ public class BoardBattleService {
             return;
         }
 
-        if (PHASE_DEFENSE_CHOICE.equals(state.phase()) && defender.controlledBy(player.getUUID())) {
+        if (state.phase() == BattlePhase.DEFENSE_CHOICE && defender.controlledBy(player.getUUID())) {
             BoardSessionManager.updateParticipant(player.level(), session, defender.recordManualDecision());
             beginDefenderRoll(player.level(), session,
-                    state.withDefenseMode("evade".equals(defenseMode) ? "evade" : "defend"));
+                    state.withDefenseMode(defenseMode == DefenseMode.EVADE ? DefenseMode.EVADE : DefenseMode.DEFEND));
         }
     }
 
@@ -138,7 +126,7 @@ public class BoardBattleService {
                 continue;
             }
 
-            if (PHASE_SELECT.equals(state.phase())) {
+            if (state.phase() == BattlePhase.SELECT) {
                 long now = level.getGameTime();
                 BattleState next = state;
                 BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
@@ -172,16 +160,16 @@ public class BoardBattleService {
 
             if (level.getGameTime() < state.deadlineTick()) continue;
             switch (state.phase()) {
-                case PHASE_READY -> beginAttackerRoll(level, session, state);
-                case PHASE_ATTACKER_ROLL -> beginDefenseChoice(level, session, state);
-                case PHASE_DEFENSE_CHOICE -> {
+                case READY -> beginAttackerRoll(level, session, state);
+                case ATTACKER_ROLL -> beginDefenseChoice(level, session, state);
+                case DEFENSE_CHOICE -> {
                     BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
                     if (defender != null && !BoardSessionManager.isAutomated(level, defender)) {
                         BoardSessionManager.updateParticipant(level, session, defender.recordTimedOutDecision());
                     }
-                    beginDefenderRoll(level, session, state.withDefenseMode("defend"));
+                    beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
                 }
-                case PHASE_DEFENDER_ROLL -> applyRoll(level, session, state);
+                case DEFENDER_ROLL -> applyRoll(level, session, state);
                 default -> {
                     ACTIVE.remove(state.boardId());
                     BoardSessionManager.resumeAfterBattle(level, session);
@@ -195,7 +183,7 @@ public class BoardBattleService {
         if (state == null) return;
         BoardParticipant participant = session.participant(slotId).orElse(null);
         if (participant == null) return;
-        if (PHASE_SELECT.equals(state.phase())) {
+        if (state.phase() == BattlePhase.SELECT) {
             long nextTick = level.getGameTime() + BOT_INITIAL_CARD_TICKS;
             if (state.attackerSlot().equals(slotId) && !state.attackerReady()) {
                 state = state.withAttackerSelection(state.attackerCards(), false, nextTick, BOT_INITIAL_CARD_TICKS);
@@ -207,8 +195,8 @@ public class BoardBattleService {
             send(level, session, state);
             return;
         }
-        if (PHASE_DEFENSE_CHOICE.equals(state.phase()) && state.defenderSlot().equals(slotId)) {
-            beginDefenderRoll(level, session, state.withDefenseMode("defend"));
+        if (state.phase() == BattlePhase.DEFENSE_CHOICE && state.defenderSlot().equals(slotId)) {
+            beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
         }
     }
 
@@ -241,7 +229,7 @@ public class BoardBattleService {
                 && BoardSessionManager.isAutomated(level, attacker)
                 && BoardSessionManager.isAutomated(level, defender);
         int holdTicks = automatedBattle ? BOT_FINAL_SCORE_HOLD_TICKS : CARD_READY_HOLD_TICKS;
-        BattleState ready = state.withPhase(PHASE_READY, level.getGameTime() + holdTicks, holdTicks);
+        BattleState ready = state.withPhase(BattlePhase.READY, level.getGameTime() + holdTicks, holdTicks);
         ACTIVE.put(session.id(), ready);
         send(level, session, ready);
     }
@@ -267,7 +255,7 @@ public class BoardBattleService {
                 attackerDie, 0, attackBonus, 0,
                 attackBase + attackerDie + attackBonus, 0,
                 0, false, false);
-        BattleState rolling = state.withRoll(PHASE_ATTACKER_ROLL,
+        BattleState rolling = state.withRoll(BattlePhase.ATTACKER_ROLL,
                 level.getGameTime() + ATTACKER_ROLL_TICKS, ATTACKER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
         send(level, session, rolling);
@@ -280,11 +268,11 @@ public class BoardBattleService {
             return;
         }
         if (BoardSessionManager.isAutomated(level, defender)) {
-            beginDefenderRoll(level, session, state.withDefenseMode("defend"));
+            beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
             return;
         }
         int durationTicks = defender.decisionDurationTicks(DEFENSE_CHOICE_TICKS);
-        BattleState choosing = state.withPhase(PHASE_DEFENSE_CHOICE, level.getGameTime() + durationTicks, durationTicks);
+        BattleState choosing = state.withPhase(BattlePhase.DEFENSE_CHOICE, level.getGameTime() + durationTicks, durationTicks);
         ACTIVE.put(session.id(), choosing);
         send(level, session, choosing);
     }
@@ -297,13 +285,14 @@ public class BoardBattleService {
             cancelAndResume(level, session);
             return;
         }
+
         int defenderDie = Mth.nextInt(level.getRandom(), 1, 6);
         int defenseBonus = randomCardBonus(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
         int attackTotal = preliminary.attackBase() + preliminary.attackerDie() + preliminary.attackBonus();
-        boolean evading = "evade".equals(state.defenseMode());
+        boolean evading = state.defenseMode() == DefenseMode.EVADE;
         int defenseTotal = evading ? defenderDie : preliminary.defenseBase() + defenderDie + defenseBonus;
         boolean evaded = evading && (defenderDie > preliminary.attackerDie() || defenderDie == 6);
-        int damage = "evade".equals(state.defenseMode())
+        int damage = state.defenseMode() == DefenseMode.EVADE
                 ? (evaded ? 0 : Math.max(0, attackTotal + defender.stats().incomingDamageBonus()))
                 : Math.max(1, attackTotal - defenseTotal);
         int remainingHealth = Math.max(0, defender.stats().health() - damage);
@@ -313,7 +302,7 @@ public class BoardBattleService {
                 preliminary.defenseCardMinimum(), preliminary.defenseCardMaximum(),
                 preliminary.attackerDie(), defenderDie, preliminary.attackBonus(), defenseBonus,
                 attackTotal, defenseTotal, damage, evaded, remainingHealth == 0);
-        BattleState rolling = state.withRoll(PHASE_DEFENDER_ROLL,
+        BattleState rolling = state.withRoll(BattlePhase.DEFENDER_ROLL,
                 level.getGameTime() + DEFENDER_ROLL_TICKS, DEFENDER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
         send(level, session, rolling);
@@ -344,7 +333,7 @@ public class BoardBattleService {
         BoardSessionManager.updateParticipant(level, session, nextAttacker);
         BoardSessionManager.updateParticipant(level, session, nextDefender);
         int resultTicks = roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
-        BattleState result = state.withPhase(PHASE_RESULT, level.getGameTime() + resultTicks, resultTicks);
+        BattleState result = state.withPhase(BattlePhase.RESULT, level.getGameTime() + resultTicks, resultTicks);
         ACTIVE.put(session.id(), result);
         send(level, session, result);
     }
@@ -484,69 +473,60 @@ public class BoardBattleService {
         int attackerEntity = BoardEntityService.entityId(level, attacker);
         int defenderEntity = BoardEntityService.entityId(level, defender);
         for (ServerPlayer viewer : BoardSessionManager.humanPlayers(level, session)) {
-            String role = attacker.controlledBy(viewer.getUUID()) ? "attacker"
-                    : defender.controlledBy(viewer.getUUID()) ? "defender" : "spectator";
-            BoardParticipant own = "attacker".equals(role) ? attacker
-                    : "defender".equals(role) ? defender : null;
-            String cards = own == null || !PHASE_SELECT.equals(state.phase()) ? ""
-                    : encodeCombatCards(own, "attacker".equals(role) ? CardType.ATTACK : CardType.DEFENSE);
+            BattleRole role = attacker.controlledBy(viewer.getUUID()) ? BattleRole.ATTACKER
+                    : defender.controlledBy(viewer.getUUID()) ? BattleRole.DEFENDER : BattleRole.SPECTATOR;
+            BoardParticipant own = role == BattleRole.ATTACKER ? attacker
+                    : role == BattleRole.DEFENDER ? defender : null;
+            List<CombatCardView> cards = own == null || state.phase() != BattlePhase.SELECT ? List.of()
+                    : combatCards(own, role == BattleRole.ATTACKER ? CardType.ATTACK : CardType.DEFENSE);
             long deadlineTick = state.deadlineFor(role);
             int durationTicks = state.durationFor(role);
             int remaining = (int) Math.max(0L, deadlineTick - level.getGameTime());
-            BoardParticipant progressParticipant = PHASE_DEFENSE_CHOICE.equals(state.phase())
-                    || "defender".equals(role) ? defender : attacker;
-            PacketDistributor.sendToPlayer(viewer, new OpenBoardBattlePayload(session.id().toString(),
+            BoardParticipant progressParticipant = state.phase() == BattlePhase.DEFENSE_CHOICE
+                    || role == BattleRole.DEFENDER ? defender : attacker;
+            PacketDistributor.sendToPlayer(viewer, new OpenBoardBattlePayload(session.id(),
                     attackerEntity, defenderEntity, BoardSessionManager.displayName(level, attacker),
                     BoardSessionManager.displayName(level, defender), cards, role,
                     new BoardDecisionProgress(remaining, durationTicks,
                             progressParticipant.characterId(), progressParticipant.skinId()),
-                    MAXIMUM_PVP_COST, !PHASE_SELECT.equals(state.phase()), encodeView(state, attacker, defender)));
+                    MAXIMUM_PVP_COST, battleView(state, attacker, defender)));
         }
     }
 
-    private static String encodeView(BattleState state, BoardParticipant attacker, BoardParticipant defender) {
+    private static BattleView battleView(BattleState state, BoardParticipant attacker, BoardParticipant defender) {
         BattleRoll roll = state.roll();
         int attackBase = Math.max(0, attacker.stats().attack());
         int defenseBase = Math.max(0, defender.stats().defense() - defender.stats().incomingDamageBonus());
         if (roll == null) {
             CardRange attackRange = cardRange(attacker, state.attackerCards(), CardType.ATTACK);
             CardRange defenseRange = cardRange(defender, state.defenderCards(), CardType.DEFENSE);
-            return String.join("|", state.phase(),
-                    Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
-                    Integer.toString(attackBase), Integer.toString(defenseBase),
-                    Integer.toString(attackBase + attackRange.minimum()),
-                    Integer.toString(attackBase + attackRange.maximum()),
-                    Integer.toString(defenseBase + defenseRange.minimum()),
-                    Integer.toString(defenseBase + defenseRange.maximum()),
-                    "0", "0", "0", "0", "0", "0", "0", "false", "false",
-                    Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()), state.defenseMode());
+            return new BattleView(state.phase(), attacker.stats().health(), defender.stats().health(),
+                    attackBase, defenseBase, attackBase + attackRange.minimum(),
+                    attackBase + attackRange.maximum(), defenseBase + defenseRange.minimum(),
+                    defenseBase + defenseRange.maximum(), 0, 0, 0, 0, 0, 0, 0,
+                    false, false, state.attackerReady(), state.defenderReady(), state.defenseMode());
         }
-        return String.join("|", state.phase(),
-                Integer.toString(attacker.stats().health()), Integer.toString(defender.stats().health()),
-                Integer.toString(roll.attackBase()), Integer.toString(roll.defenseBase()),
-                Integer.toString(roll.attackBase() + roll.attackCardMinimum()),
-                Integer.toString(roll.attackBase() + roll.attackCardMaximum()),
-                Integer.toString(roll.defenseBase() + roll.defenseCardMinimum()),
-                Integer.toString(roll.defenseBase() + roll.defenseCardMaximum()),
-                Integer.toString(roll.attackerDie()), Integer.toString(roll.defenderDie()),
-                Integer.toString(roll.attackBonus()), Integer.toString(roll.defenseBonus()),
-                Integer.toString(roll.attackTotal()), Integer.toString(roll.defenseTotal()),
-                Integer.toString(roll.damage()), Boolean.toString(roll.evaded()), Boolean.toString(roll.knockout()),
-                Boolean.toString(state.attackerReady()), Boolean.toString(state.defenderReady()), state.defenseMode());
+        return new BattleView(state.phase(), attacker.stats().health(), defender.stats().health(),
+                roll.attackBase(), roll.defenseBase(),
+                roll.attackBase() + roll.attackCardMinimum(), roll.attackBase() + roll.attackCardMaximum(),
+                roll.defenseBase() + roll.defenseCardMinimum(), roll.defenseBase() + roll.defenseCardMaximum(),
+                roll.attackerDie(), roll.defenderDie(), roll.attackBonus(), roll.defenseBonus(),
+                roll.attackTotal(), roll.defenseTotal(), roll.damage(), roll.evaded(), roll.knockout(),
+                state.attackerReady(), state.defenderReady(), state.defenseMode());
     }
 
-    private static String encodeCombatCards(BoardParticipant participant, CardType expected) {
-        StringJoiner output = new StringJoiner(";");
+    private static List<CombatCardView> combatCards(BoardParticipant participant, CardType expected) {
+        List<CombatCardView> result = new ArrayList<>();
         for (int index = 0; index < participant.hand().size(); index++) {
             CardDefinition definition = combatDefinition(participant, index, expected);
             CombatBonusDefinition bonus = combatBonus(participant, index, expected);
-            if (definition != null && bonus != null) {
-                output.add(index + "," + participant.hand().get(index) + "," + definition.combatCost()
-                        + "," + bonus.minimum() + "," + bonus.maximum());
+            ItemStack stack = combatStack(participant, index, expected);
+            if (definition != null && bonus != null && stack != null) {
+                result.add(new CombatCardView(index, stack, definition.combatCost(),
+                        bonus.minimum(), bonus.maximum()));
             }
         }
-
-        return output.toString();
+        return List.copyOf(result);
     }
 
     private record CardRange(int minimum, int maximum) {}
@@ -564,17 +544,17 @@ public class BoardBattleService {
         }
     }
 
-    private record BattleState(UUID boardId, UUID attackerSlot, UUID defenderSlot, String phase,
+    private record BattleState(UUID boardId, UUID attackerSlot, UUID defenderSlot, BattlePhase phase,
                                long deadlineTick, int decisionDurationTicks,
                                long attackerDeadlineTick, int attackerDurationTicks,
                                long defenderDeadlineTick, int defenderDurationTicks,
                                List<Integer> attackerCards, List<Integer> defenderCards,
-                               String defenseMode, boolean attackerReady, boolean defenderReady, BattleRoll roll) {
+                               DefenseMode defenseMode, boolean attackerReady, boolean defenderReady, BattleRoll roll) {
         private BattleState {
             attackerCards = List.copyOf(attackerCards);
             defenderCards = List.copyOf(defenderCards);
-            phase = phase == null || phase.isBlank() ? PHASE_SELECT : phase;
-            defenseMode = "evade".equals(defenseMode) ? "evade" : "defend";
+            phase = phase == null ? BattlePhase.SELECT : phase;
+            defenseMode = defenseMode == DefenseMode.EVADE ? DefenseMode.EVADE : DefenseMode.DEFEND;
             decisionDurationTicks = Math.max(1, decisionDurationTicks);
             attackerDurationTicks = Math.max(1, attackerDurationTicks);
             defenderDurationTicks = Math.max(1, defenderDurationTicks);
@@ -584,18 +564,18 @@ public class BoardBattleService {
             return this.attackerReady && this.defenderReady;
         }
 
-        private long deadlineFor(String role) {
-            if (!PHASE_SELECT.equals(this.phase)) return this.deadlineTick;
-            if ("defender".equals(role)) return this.defenderReady ? 0L : this.defenderDeadlineTick;
-            if ("attacker".equals(role)) return this.attackerReady ? 0L : this.attackerDeadlineTick;
+        private long deadlineFor(BattleRole role) {
+            if (this.phase != BattlePhase.SELECT) return this.deadlineTick;
+            if (role == BattleRole.DEFENDER) return this.defenderReady ? 0L : this.defenderDeadlineTick;
+            if (role == BattleRole.ATTACKER) return this.attackerReady ? 0L : this.attackerDeadlineTick;
             return Math.max(this.attackerReady ? 0L : this.attackerDeadlineTick,
                     this.defenderReady ? 0L : this.defenderDeadlineTick);
         }
 
-        private int durationFor(String role) {
-            if (!PHASE_SELECT.equals(this.phase)) return this.decisionDurationTicks;
-            if ("defender".equals(role)) return this.defenderDurationTicks;
-            if ("attacker".equals(role)) return this.attackerDurationTicks;
+        private int durationFor(BattleRole role) {
+            if (this.phase != BattlePhase.SELECT) return this.decisionDurationTicks;
+            if (role == BattleRole.DEFENDER) return this.defenderDurationTicks;
+            if (role == BattleRole.ATTACKER) return this.attackerDurationTicks;
             return Math.max(this.attackerDurationTicks, this.defenderDurationTicks);
         }
 
@@ -621,7 +601,7 @@ public class BoardBattleService {
                     this.attackerCards, cards, this.defenseMode, this.attackerReady, ready, this.roll);
         }
 
-        private BattleState withDefenseMode(String mode) {
+        private BattleState withDefenseMode(DefenseMode mode) {
             return new BattleState(this.boardId, this.attackerSlot, this.defenderSlot,
                     this.phase, this.deadlineTick, this.decisionDurationTicks,
                     this.attackerDeadlineTick, this.attackerDurationTicks,
@@ -630,7 +610,7 @@ public class BoardBattleService {
                     mode, this.attackerReady, this.defenderReady, this.roll);
         }
 
-        private BattleState withPhase(String phase, long deadlineTick, int durationTicks) {
+        private BattleState withPhase(BattlePhase phase, long deadlineTick, int durationTicks) {
             return new BattleState(this.boardId, this.attackerSlot, this.defenderSlot,
                     phase, deadlineTick, durationTicks,
                     deadlineTick, durationTicks, deadlineTick, durationTicks,
@@ -638,7 +618,7 @@ public class BoardBattleService {
                     this.defenseMode, this.attackerReady, this.defenderReady, this.roll);
         }
 
-        private BattleState withRoll(String phase, long deadlineTick, int durationTicks, BattleRoll roll) {
+        private BattleState withRoll(BattlePhase phase, long deadlineTick, int durationTicks, BattleRoll roll) {
             return new BattleState(this.boardId, this.attackerSlot, this.defenderSlot,
                     phase, deadlineTick, durationTicks,
                     deadlineTick, durationTicks, deadlineTick, durationTicks,
