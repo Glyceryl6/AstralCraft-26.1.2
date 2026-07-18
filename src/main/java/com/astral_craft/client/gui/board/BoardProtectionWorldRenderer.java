@@ -2,16 +2,18 @@ package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.render.effect.EffectRenderGeometry;
 import com.astral_craft.client.util.ClientAnimationClock;
+import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.UUID;
 
 /** Solid violet ground outline used to identify protected board areas without resembling movement routes. */
 public class BoardProtectionWorldRenderer {
@@ -23,13 +25,15 @@ public class BoardProtectionWorldRenderer {
     private static final double STALE_AFTER_TICKS = 40.0D;
     private static final double HALF_WIDTH = 0.035D;
     private static final double CORNER_LENGTH = 1.35D;
-    private static final Map<String, ProtectionSnapshot> SNAPSHOTS = new LinkedHashMap<>();
+    private static final Map<UUID, ProtectionSnapshot> SNAPSHOTS = new LinkedHashMap<>();
 
-    public static void acceptSnapshot(String encoded) {
-        ProtectionSnapshot.parse(encoded).ifPresent(snapshot -> {
-            if (snapshot.enabled()) SNAPSHOTS.put(snapshot.boardId(), snapshot);
-            else SNAPSHOTS.remove(snapshot.boardId());
-        });
+    public static void acceptSnapshot(BoardHudSnapshotPayload payload) {
+        if (payload.protectionEnabled()) {
+            SNAPSHOTS.put(payload.boardId(), new ProtectionSnapshot(
+                    payload.areaMin(), payload.areaMax(), ClientAnimationClock.nowTicks()));
+        } else {
+            SNAPSHOTS.remove(payload.boardId());
+        }
     }
 
     public static void submit(SubmitCustomGeometryEvent event) {
@@ -42,11 +46,11 @@ public class BoardProtectionWorldRenderer {
         Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
         PoseStack poseStack = event.getPoseStack();
         for (ProtectionSnapshot current : SNAPSHOTS.values()) {
-            double y = current.minY() + 3.035D;
-            double minX = current.minX() - 0.18D;
-            double maxX = current.maxX() + 1.18D;
-            double minZ = current.minZ() - 0.18D;
-            double maxZ = current.maxZ() + 1.18D;
+            double y = current.min().getY() + 3.035D;
+            double minX = current.min().getX() - 0.18D;
+            double maxX = current.max().getX() + 1.18D;
+            double minZ = current.min().getZ() - 0.18D;
+            double maxZ = current.max().getZ() + 1.18D;
             Vec3 center = new Vec3((minX + maxX) * 0.5D, y, (minZ + maxZ) * 0.5D);
             if (center.distanceToSqr(cameraPos) > MAX_RENDER_DISTANCE_SQR) continue;
 
@@ -99,24 +103,6 @@ public class BoardProtectionWorldRenderer {
                 });
     }
 
-    private record ProtectionSnapshot(String boardId, int minX, int minY, int minZ,
-                                      int maxX, int maxY, int maxZ, boolean enabled,
-                                      double receivedAtTick) {
+    private record ProtectionSnapshot(BlockPos min, BlockPos max, double receivedAtTick) {}
 
-        private static Optional<ProtectionSnapshot> parse(String encoded) {
-            if (encoded == null || encoded.isBlank()) return Optional.empty();
-            String[] parts = encoded.split("\\|", -1);
-            if (parts.length < 6 || parts[0].isBlank()) return Optional.empty();
-            String[] area = parts[3].split(",", 6);
-            if (area.length != 6) return Optional.empty();
-            try {
-                return Optional.of(new ProtectionSnapshot(parts[0],
-                        Integer.parseInt(area[0]), Integer.parseInt(area[1]), Integer.parseInt(area[2]),
-                        Integer.parseInt(area[3]), Integer.parseInt(area[4]), Integer.parseInt(area[5]),
-                        Boolean.parseBoolean(parts[4]), ClientAnimationClock.nowTicks()));
-            } catch (NumberFormatException exception) {
-                return Optional.empty();
-            }
-        }
-    }
 }

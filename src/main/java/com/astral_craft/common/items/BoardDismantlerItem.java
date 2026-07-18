@@ -13,6 +13,8 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
 
+import java.util.List;
+
 public class BoardDismantlerItem extends Item {
 
     public BoardDismantlerItem(Properties properties) {
@@ -31,7 +33,7 @@ public class BoardDismantlerItem extends Item {
 
         ServerLevel level = player.level();
         boolean deleteDefinition = player.isShiftKeyDown();
-        BoardRouteService.broadcastState(session, false, "", "", "");
+        BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
         BoardSessionManager.resetForLobby(level, session);
         session.setProtectionEnabled(false);
         BoardSavedData data = BoardSavedData.get(level);

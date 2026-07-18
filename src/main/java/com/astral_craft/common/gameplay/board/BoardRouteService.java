@@ -69,7 +69,7 @@ public class BoardRouteService {
     public static void preview(ServerLevel level, BoardSession session) {
         BoardSession.MovementState movement = session.movement();
         if (movement == null) {
-            broadcastState(session, false, "", "", "");
+            broadcastState(session, false, List.of(), List.of(), List.of());
             return;
         }
         BoardParticipant participant = session.participant(movement.slotId()).orElse(null);
@@ -77,11 +77,12 @@ public class BoardRouteService {
         List<List<String>> paths = possiblePaths(session, participant.currentNodeKey(), participant.previousNodeKey(),
                 movement.remainingSteps());
         List<List<String>> highlightedPaths = startOpportunityPaths(session, participant, paths);
-        broadcastState(session, true, encodePaths(session, paths), encodePaths(session, highlightedPaths),
-                encodeNodePositions(session, movement.branchChoices()));
+        broadcastState(session, true, routePositions(session, paths), routePositions(session, highlightedPaths),
+                nodePositions(session, movement.branchChoices()));
     }
 
-    public static void broadcastState(BoardSession session, boolean active, String route, String highlightedRoute, String branches) {
+    public static void broadcastState(BoardSession session, boolean active, List<List<BlockPos>> routes,
+                                      List<List<BlockPos>> highlightedRoutes, List<BlockPos> branches) {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
         ServerLevel level = server.getLevel(session.dimension());
@@ -98,10 +99,10 @@ public class BoardRouteService {
         for (ServerPlayer player : level.players()) {
             if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D)
                     > 160.0D * 160.0D) continue;
-            String personalHighlight = participant != null && participant.controlledBy(player.getUUID())
-                    ? highlightedRoute : "";
-            PacketDistributor.sendToPlayer(player, new BoardRouteStatePayload(session.id().toString(), route,
-                    personalHighlight, branches, decisionTicks, decisionDurationTicks, characterId, skinId, active));
+            List<List<BlockPos>> personalHighlights = participant != null && participant.controlledBy(player.getUUID())
+                    ? highlightedRoutes : List.of();
+            PacketDistributor.sendToPlayer(player, new BoardRouteStatePayload(session.id(), routes,
+                    personalHighlights, branches, decisionTicks, decisionDurationTicks, characterId, skinId, active));
         }
     }
 
@@ -149,19 +150,20 @@ public class BoardRouteService {
         }
     }
 
-    private static String encodePaths(BoardSession session, List<List<String>> paths) {
-        StringJoiner routes = new StringJoiner("|");
-        for (List<String> path : paths) routes.add(encodeNodePositions(session, path));
-        return routes.toString();
+    private static List<List<BlockPos>> routePositions(BoardSession session, List<List<String>> paths) {
+        List<List<BlockPos>> result = new ArrayList<>();
+        for (List<String> path : paths) {
+            List<BlockPos> positions = nodePositions(session, path);
+            if (positions.size() >= 2) result.add(positions);
+        }
+        return List.copyOf(result);
     }
 
-    private static String encodeNodePositions(BoardSession session, List<String> nodeIds) {
-        StringJoiner joiner = new StringJoiner(";");
-        for (String nodeId : nodeIds) {
-            BlockPos pos = session.positions().get(nodeId);
-            if (pos != null) joiner.add(pos.getX() + "," + pos.getY() + "," + pos.getZ());
-        }
-        return joiner.toString();
+    private static List<BlockPos> nodePositions(BoardSession session, List<String> nodeIds) {
+        return nodeIds.stream()
+                .map(session.positions()::get)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
 }

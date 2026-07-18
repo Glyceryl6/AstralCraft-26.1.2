@@ -15,7 +15,7 @@ public class BoardRouteDecisionOverlay {
     private static DecisionState state = DecisionState.EMPTY;
 
     public static void accept(BoardRouteStatePayload payload) {
-        if (!payload.active() || payload.encodedBranches().isBlank() || payload.decisionTicks() <= 0) {
+        if (!payload.active() || payload.branches().isEmpty() || payload.decisionTicks() <= 0) {
             state = DecisionState.EMPTY;
             return;
         }

@@ -6,15 +6,16 @@ import com.astral_craft.common.network.s2c.BoardRouteStatePayload;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /** Client-only route preview for the currently moving board pawn. */
 public class BoardRouteWorldRenderer {
@@ -37,10 +38,7 @@ public class BoardRouteWorldRenderer {
 
     public static void accept(BoardRouteStatePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            state = payload.active()
-                    ? RouteState.parse(payload.boardId(), payload.encodedRoute(),
-                    payload.encodedHighlightedRoute(), payload.encodedBranches())
-                    : RouteState.EMPTY;
+            state = payload.active() ? RouteState.from(payload) : RouteState.EMPTY;
             BoardRouteDecisionOverlay.accept(payload);
         });
     }
@@ -167,42 +165,31 @@ public class BoardRouteWorldRenderer {
                 });
     }
 
-    private record RouteState(String boardId, List<List<Vec3>> paths,
+    private record RouteState(UUID boardId, List<List<Vec3>> paths,
                               List<List<Vec3>> highlightedPaths, List<Vec3> branches,
                               double receivedAtTick, boolean active) {
 
-        private static final RouteState EMPTY = new RouteState("", List.of(), List.of(),
-                List.of(), 0.0D, false);
+        private static final UUID EMPTY_BOARD_ID = new UUID(0L, 0L);
+        private static final RouteState EMPTY = new RouteState(EMPTY_BOARD_ID,
+                List.<List<Vec3>>of(), List.<List<Vec3>>of(), List.<Vec3>of(), 0.0D, false);
 
-        private static RouteState parse(String boardId, String encodedRoute,
-                                        String encodedHighlightedRoute, String encodedBranches) {
-            return new RouteState(boardId, parsePaths(encodedRoute),
-                    parsePaths(encodedHighlightedRoute), parsePoints(encodedBranches),
+        private static RouteState from(BoardRouteStatePayload payload) {
+            return new RouteState(payload.boardId(), toPaths(payload.routes()),
+                    toPaths(payload.highlightedRoutes()), toPoints(payload.branches()),
                     ClientAnimationClock.nowTicks(), true);
         }
 
-        private static List<List<Vec3>> parsePaths(String encoded) {
-            if (encoded == null || encoded.isBlank()) return List.of();
-            List<List<Vec3>> paths = new ArrayList<>();
-            for (String route : encoded.split("\\|", -1)) {
-                List<Vec3> points = parsePoints(route);
-                if (points.size() >= 2) paths.add(points);
-            }
-            return List.copyOf(paths);
+        private static List<List<Vec3>> toPaths(List<List<BlockPos>> routes) {
+            return routes.stream()
+                    .map(RouteState::toPoints)
+                    .filter(path -> path.size() >= 2)
+                    .toList();
         }
 
-        private static List<Vec3> parsePoints(String encoded) {
-            if (encoded == null || encoded.isBlank()) return List.of();
-            List<Vec3> result = new ArrayList<>();
-            for (String point : encoded.split(";")) {
-                String[] fields = point.split(",", 3);
-                if (fields.length != 3) continue;
-                try {
-                    result.add(new Vec3(Integer.parseInt(fields[0]),
-                            Integer.parseInt(fields[1]), Integer.parseInt(fields[2])));
-                } catch (NumberFormatException ignored) {}
-            }
-            return List.copyOf(result);
+        private static List<Vec3> toPoints(List<BlockPos> positions) {
+            return positions.stream()
+                    .map(position -> new Vec3(position.getX(), position.getY(), position.getZ()))
+                    .toList();
         }
     }
 

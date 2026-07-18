@@ -4,21 +4,18 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.AstralStatusIconRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload;
+import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload.PawnView;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /** Compact 2D board status HUD. It intentionally omits the board outline on large maps. */
@@ -26,7 +23,6 @@ public class BoardHudOverlay {
 
     public static final Identifier LAYER = AstralCraft.prefix("board_hud_overlay");
 
-    private static final int HUD_WIDTH = 232;
     private static final int HEADER_HEIGHT = 23;
     private static final int ROW_HEIGHT = 27;
     private static final int PORTRAIT_SIZE = 21;
@@ -34,18 +30,16 @@ public class BoardHudOverlay {
     private static final int HUD_MARGIN_Y = 32;
     private static final int CURRENT_COLOR = 0xFF55FF70;
     private static final double STALE_AFTER_TICKS = 40.0D;
-    private static final Map<String, TrackedSnapshot> SNAPSHOTS = new LinkedHashMap<>();
+    private static final Map<UUID, TrackedSnapshot> SNAPSHOTS = new LinkedHashMap<>();
 
     public static void acceptSnapshot(BoardHudSnapshotPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            BoardProtectionWorldRenderer.acceptSnapshot(payload.encoded());
-            Snapshot.parse(payload.encoded()).ifPresent(snapshot -> {
-                if (snapshot.enabled()) {
-                    SNAPSHOTS.put(snapshot.boardId(), new TrackedSnapshot(snapshot, ClientAnimationClock.nowTicks()));
-                } else {
-                    SNAPSHOTS.remove(snapshot.boardId());
-                }
-            });
+            BoardProtectionWorldRenderer.acceptSnapshot(payload);
+            if (payload.playing()) {
+                SNAPSHOTS.put(payload.boardId(), new TrackedSnapshot(payload, ClientAnimationClock.nowTicks()));
+            } else {
+                SNAPSHOTS.remove(payload.boardId());
+            }
         });
     }
 
@@ -53,8 +47,8 @@ public class BoardHudOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.options.hideGui || SNAPSHOTS.isEmpty()) return;
         SNAPSHOTS.values().removeIf(snapshot -> ClientAnimationClock.elapsedTicks(snapshot.receivedAtTick()) > STALE_AFTER_TICKS);
-        Snapshot snapshot = SNAPSHOTS.values().stream().map(TrackedSnapshot::snapshot)
-                .min(Comparator.comparingDouble(value -> value.distanceToSqr(
+        BoardHudSnapshotPayload snapshot = SNAPSHOTS.values().stream().map(TrackedSnapshot::snapshot)
+                .min(Comparator.comparingDouble(value -> distanceToSqr(value.center(),
                         minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ()))).orElse(null);
         if (snapshot == null || snapshot.pawns().isEmpty()) return;
         int rowCount = Math.min(4, snapshot.pawns().size());
@@ -69,12 +63,12 @@ public class BoardHudOverlay {
         graphics.text(minecraft.font, round, x + 7, y + 7, 0xFFFFFFFF, true);
         int rowY = y + HEADER_HEIGHT;
         for (int index = 0; index < rowCount; index++) {
-            thisRenderParticipantRow(graphics, minecraft, snapshot, snapshot.pawns().get(index),
+            renderParticipantRow(graphics, minecraft, snapshot, snapshot.pawns().get(index),
                     x + 4, rowY + index * ROW_HEIGHT, width - 8);
         }
     }
 
-    private static void thisRenderParticipantRow(GuiGraphicsExtractor graphics, Minecraft minecraft, Snapshot snapshot, Pawn pawn, int x, int y, int width) {
+    private static void renderParticipantRow(GuiGraphicsExtractor graphics, Minecraft minecraft, BoardHudSnapshotPayload snapshot, PawnView pawn, int x, int y, int width) {
         boolean current = pawn.slotId().equals(snapshot.currentSlotId());
         graphics.fill(x, y, x + width, y + ROW_HEIGHT - 2, 0xA811121B);
         if (current) graphics.fill(x, y, x + 3, y + ROW_HEIGHT - 2, CURRENT_COLOR);
@@ -84,7 +78,7 @@ public class BoardHudOverlay {
                 portraitX + PORTRAIT_SIZE + 1, portraitY + PORTRAIT_SIZE + 1, 0xFF696976);
         graphics.fill(portraitX, portraitY,
                 portraitX + PORTRAIT_SIZE, portraitY + PORTRAIT_SIZE, 0xFF07070B);
-        AstralStatusIconRenderer.renderCharacterSkinHead(graphics, pawn.characterId(), pawn.skinId(),
+        AstralStatusIconRenderer.renderCharacterSkinHead(graphics, pawn.characterId(), pawn.skinId().getPath(),
                 portraitX, portraitY, PORTRAIT_SIZE, 255);
         if (pawn.knockedDown()) renderKnockdownMask(graphics, portraitX, portraitY, PORTRAIT_SIZE);
         if (pawn.disconnectedHuman()) renderDisconnectedMark(graphics, portraitX, portraitY, PORTRAIT_SIZE);
@@ -121,60 +115,13 @@ public class BoardHudOverlay {
         graphics.fill(x + size - 1, y, x + size, y + size, 0xFF3A3A3A);
     }
 
-    private record TrackedSnapshot(Snapshot snapshot, double receivedAtTick) {}
-
-    private record Snapshot(String boardId, int centerX, int centerY, int centerZ,
-                            List<Pawn> pawns, boolean enabled, int round, UUID currentSlotId) {
-        private double distanceToSqr(double x, double y, double z) {
-            double dx = this.centerX + 0.5D - x;
-            double dy = this.centerY + 0.5D - y;
-            double dz = this.centerZ + 0.5D - z;
-            return dx * dx + dy * dy + dz * dz;
-        }
-
-        private static Optional<Snapshot> parse(String encoded) {
-            if (encoded == null || encoded.isBlank()) return Optional.empty();
-            String[] parts = encoded.split("\\|", -1);
-            if (parts.length < 9 || parts[0].isBlank()) return Optional.empty();
-            String[] center = parts[1].split(",", 3);
-            if (center.length != 3) return Optional.empty();
-            List<Pawn> pawns = new ArrayList<>();
-            for (String raw : parts[6].split(";")) {
-                if (raw.isBlank()) continue;
-                String[] fields = raw.split(",", 14);
-                if (fields.length < 12) continue;
-                try {
-                    pawns.add(new Pawn(Identifier.parse(fields[3]), fields[4],
-                            UUID.fromString(fields[5]), decodeName(fields[6]),
-                            Integer.parseInt(fields[7]), Integer.parseInt(fields[8]),
-                            Integer.parseInt(fields[9]), Integer.parseInt(fields[10]),
-                            "1".equals(fields[11]), fields.length >= 13 && "1".equals(fields[12]),
-                            fields.length >= 14 ? Integer.parseInt(fields[13]) : 0));
-                } catch (IllegalArgumentException ignored) {}
-            }
-            try {
-                UUID current = parts[8].isBlank() ? new UUID(0L, 0L) : UUID.fromString(parts[8]);
-                return Optional.of(new Snapshot(parts[0], Integer.parseInt(center[0]),
-                        Integer.parseInt(center[1]), Integer.parseInt(center[2]), List.copyOf(pawns),
-                        Boolean.parseBoolean(parts[4]) && "PLAYING".equals(parts[5]),
-                        Integer.parseInt(parts[7]), current));
-            } catch (IllegalArgumentException exception) {
-                return Optional.empty();
-            }
-        }
-
-        private static String decodeName(String value) {
-            try {
-                return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
-            } catch (IllegalArgumentException exception) {
-                return value;
-            }
-        }
+    private static double distanceToSqr(BlockPos center, double x, double y, double z) {
+        double dx = center.getX() + 0.5D - x;
+        double dy = center.getY() + 0.5D - y;
+        double dz = center.getZ() + 0.5D - z;
+        return dx * dx + dy * dy + dz * dz;
     }
 
-    private record Pawn(Identifier characterId, String skinId, UUID slotId,
-                        String controllerName, int starCoins, int health,
-                        int maximumHealth, int stars, boolean knockedDown,
-                        boolean disconnectedHuman, int handCount) {}
+    private record TrackedSnapshot(BoardHudSnapshotPayload snapshot, double receivedAtTick) {}
 
 }
