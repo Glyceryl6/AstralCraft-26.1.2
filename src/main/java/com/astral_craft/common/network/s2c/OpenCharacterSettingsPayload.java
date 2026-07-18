@@ -1,90 +1,69 @@
 package com.astral_craft.common.network.s2c;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.character.CharacterCodecLines;
+import com.astral_craft.common.gameplay.character.CharacterDefinition;
+import com.astral_craft.common.gameplay.character.CharacterProgressEntry;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
-import io.netty.handler.codec.EncoderException;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public record OpenCharacterSettingsPayload(
-        String encodedCharacters, String selectedCharacterId, String selectedSkinId, String activeCharacterId, String activeSkinId, int level, int experience, int friendship,
-        String unlockedCharacterIds, String unlockedSkinIds, String encodedProgressEntries) implements CustomPacketPayload {
+        List<CharacterDefinition> characters,
+        Identifier selectedCharacterId,
+        String selectedSkinId,
+        Identifier activeCharacterId,
+        String activeSkinId,
+        int level,
+        int experience,
+        int friendship,
+        List<Identifier> unlockedCharacterIds,
+        List<String> unlockedSkinIds,
+        List<CharacterProgressView> progressEntries) implements CustomPacketPayload {
 
-    public static final CustomPacketPayload.Type<OpenCharacterSettingsPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("open_character_settings"));
-    private static final int MAX_LARGE_STRING_BYTES = 1024 * 1024;
+    private static final int MAXIMUM_SKIN_KEYS = 4096;
+    public static final Type<OpenCharacterSettingsPayload> TYPE = new Type<>(AstralCraft.prefix("open_character_settings"));
+    public static final StreamCodec<ByteBuf, OpenCharacterSettingsPayload> STREAM_CODEC = StreamCodec.composite(
+            CharacterCodecLines.STREAM_CODEC, OpenCharacterSettingsPayload::characters,
+            Identifier.STREAM_CODEC, OpenCharacterSettingsPayload::selectedCharacterId,
+            ByteBufCodecs.STRING_UTF8, OpenCharacterSettingsPayload::selectedSkinId,
+            Identifier.STREAM_CODEC, OpenCharacterSettingsPayload::activeCharacterId,
+            ByteBufCodecs.STRING_UTF8, OpenCharacterSettingsPayload::activeSkinId,
+            ByteBufCodecs.VAR_INT, OpenCharacterSettingsPayload::level,
+            ByteBufCodecs.VAR_INT, OpenCharacterSettingsPayload::experience,
+            ByteBufCodecs.VAR_INT, OpenCharacterSettingsPayload::friendship,
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(CharacterCodecLines.MAXIMUM_CHARACTERS)),
+            OpenCharacterSettingsPayload::unlockedCharacterIds,
+            ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(MAXIMUM_SKIN_KEYS)),
+            OpenCharacterSettingsPayload::unlockedSkinIds,
+            CharacterProgressView.STREAM_CODEC.apply(ByteBufCodecs.list(CharacterCodecLines.MAXIMUM_CHARACTERS)),
+            OpenCharacterSettingsPayload::progressEntries,
+            OpenCharacterSettingsPayload::new);
 
-    public static final StreamCodec<ByteBuf, OpenCharacterSettingsPayload> STREAM_CODEC = new StreamCodec<>() {
-
-        @Override
-        public OpenCharacterSettingsPayload decode(ByteBuf buffer) {
-            String encodedCharacters = readLargeUtf(buffer);
-            String selectedCharacterId = ByteBufCodecs.STRING_UTF8.decode(buffer);
-            String selectedSkinId = ByteBufCodecs.STRING_UTF8.decode(buffer);
-            String activeCharacterId = ByteBufCodecs.STRING_UTF8.decode(buffer);
-            String activeSkinId = ByteBufCodecs.STRING_UTF8.decode(buffer);
-            int level = ByteBufCodecs.VAR_INT.decode(buffer);
-            int experience = ByteBufCodecs.VAR_INT.decode(buffer);
-            int friendship = ByteBufCodecs.VAR_INT.decode(buffer);
-            String unlockedCharacterIds = readLargeUtf(buffer);
-            String unlockedSkinIds = readLargeUtf(buffer);
-            String encodedProgressEntries = readLargeUtf(buffer);
-            return new OpenCharacterSettingsPayload(encodedCharacters, selectedCharacterId, selectedSkinId, activeCharacterId, activeSkinId,
-                    level, experience, friendship, unlockedCharacterIds, unlockedSkinIds, encodedProgressEntries);
-        }
-
-        @Override
-        public void encode(ByteBuf buffer, OpenCharacterSettingsPayload payload) {
-            writeLargeUtf(buffer, payload.encodedCharacters());
-            ByteBufCodecs.STRING_UTF8.encode(buffer, payload.selectedCharacterId());
-            ByteBufCodecs.STRING_UTF8.encode(buffer, payload.selectedSkinId());
-            ByteBufCodecs.STRING_UTF8.encode(buffer, payload.activeCharacterId());
-            ByteBufCodecs.STRING_UTF8.encode(buffer, payload.activeSkinId());
-            ByteBufCodecs.VAR_INT.encode(buffer, payload.level());
-            ByteBufCodecs.VAR_INT.encode(buffer, payload.experience());
-            ByteBufCodecs.VAR_INT.encode(buffer, payload.friendship());
-            writeLargeUtf(buffer, payload.unlockedCharacterIds());
-            writeLargeUtf(buffer, payload.unlockedSkinIds());
-            writeLargeUtf(buffer, payload.encodedProgressEntries());
-        }
-
-    };
-
-    private static String readLargeUtf(ByteBuf buffer) {
-        int length = ByteBufCodecs.VAR_INT.decode(buffer);
-        if (length < 0) {
-            throw new DecoderException("Negative OpenCharacterSettingsPayload string length: " + length);
-        }
-
-        if (length > MAX_LARGE_STRING_BYTES) {
-            throw new DecoderException("OpenCharacterSettingsPayload string too big: " + length + " bytes, max " + MAX_LARGE_STRING_BYTES);
-        }
-
-        if (length > buffer.readableBytes()) {
-            throw new DecoderException("OpenCharacterSettingsPayload string length " + length + " is larger than readable bytes " + buffer.readableBytes());
-        }
-
-        byte[] bytes = new byte[length];
-        buffer.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
-    }
-
-    private static void writeLargeUtf(ByteBuf buffer, String value) {
-        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length > MAX_LARGE_STRING_BYTES) {
-            throw new EncoderException("OpenCharacterSettingsPayload string too big: " + bytes.length + " bytes, max " + MAX_LARGE_STRING_BYTES);
-        }
-
-        ByteBufCodecs.VAR_INT.encode(buffer, bytes.length);
-        buffer.writeBytes(bytes);
+    public OpenCharacterSettingsPayload {
+        characters = List.copyOf(characters == null ? List.of() : characters);
+        selectedSkinId = selectedSkinId == null || selectedSkinId.isBlank() ? "default" : selectedSkinId;
+        activeSkinId = activeSkinId == null || activeSkinId.isBlank() ? "default" : activeSkinId;
+        unlockedCharacterIds = List.copyOf(unlockedCharacterIds == null ? List.of() : unlockedCharacterIds);
+        unlockedSkinIds = List.copyOf(unlockedSkinIds == null ? List.of() : unlockedSkinIds);
+        progressEntries = List.copyOf(progressEntries == null ? List.of() : progressEntries);
     }
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
+    }
+
+    public record CharacterProgressView(Identifier characterId, CharacterProgressEntry progress) {
+
+        public static final StreamCodec<ByteBuf, CharacterProgressView> STREAM_CODEC = StreamCodec.composite(
+                Identifier.STREAM_CODEC, CharacterProgressView::characterId,
+                CharacterProgressEntry.STREAM_CODEC, CharacterProgressView::progress,
+                CharacterProgressView::new);
     }
 
 }

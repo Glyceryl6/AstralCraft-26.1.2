@@ -7,16 +7,17 @@ import com.astral_craft.common.network.s2c.OpenChipSelectionPayload;
 import com.astral_craft.common.registry.AstralChips;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
 
 /** Opens and resolves the three-choice chip selection UI. */
-public final class ChipSelectionService {
+public class ChipSelectionService {
 
     private static final Map<UUID, PlayerChipState> STATES = new HashMap<>();
-    private static final Map<UUID, List<String>> PENDING = new HashMap<>();
+    private static final Map<UUID, List<Identifier>> PENDING = new HashMap<>();
 
     public static void open(ServerPlayer player, boolean normalDifficulty, int level) {
         PlayerChipState state = STATES.computeIfAbsent(player.getUUID(), ignored -> new PlayerChipState());
@@ -26,16 +27,23 @@ public final class ChipSelectionService {
             return;
         }
 
-        PENDING.put(player.getUUID(), choices.stream().map(ChipDefinition::id).toList());
-        PacketDistributor.sendToPlayer(player, new OpenChipSelectionPayload(encode(choices)));
+        PENDING.put(player.getUUID(), choices.stream().map(chip -> AstralCraft.prefix(chip.id())).toList());
+        List<OpenChipSelectionPayload.Choice> views = choices.stream()
+                .map(chip -> new OpenChipSelectionPayload.Choice(
+                        AstralCraft.prefix(chip.id()),
+                        chip.nameKey(),
+                        chip.effectKey(),
+                        AstralCraft.prefix("textures/gui/chips/" + chip.id() + ".png")))
+                .toList();
+        PacketDistributor.sendToPlayer(player, new OpenChipSelectionPayload(views));
     }
 
-    public static void choose(ServerPlayer player, String chipId) {
-        List<String> offered = PENDING.get(player.getUUID());
+    public static void choose(ServerPlayer player, Identifier chipId) {
+        List<Identifier> offered = PENDING.get(player.getUUID());
         if (offered == null || !offered.contains(chipId)) return;
         PlayerChipState state = STATES.computeIfAbsent(player.getUUID(), ignored -> new PlayerChipState());
-        if (state.owned.contains(chipId)) return;
-        AstralChips.get(chipId).ifPresent(chip -> {
+        if (state.owned.contains(chipId.getPath())) return;
+        AstralChips.get(chipId.getPath()).ifPresent(chip -> {
             AstralCardEffects.applyChip(player, chip);
             state.owned.add(chip.id());
             chip.keyword().ifPresent(keyword -> state.keywordBias.merge(keyword, 1, Integer::sum));
@@ -91,21 +99,7 @@ public final class ChipSelectionService {
         return 10 + chip.keyword().map(keyword -> state.keywordBias.getOrDefault(keyword, 0) * 18).orElse(0);
     }
 
-    private static String encode(List<ChipDefinition> choices) {
-        StringBuilder builder = new StringBuilder();
-        for (ChipDefinition chip : choices) {
-            if (!builder.isEmpty()) builder.append(';');
-            builder.append(chip.id()).append('|')
-                    .append(chip.nameKey()).append('|')
-                    .append(chip.effectKey()).append('|')
-                    .append(AstralCraft.MOD_ID).append(":textures/gui/chips/")
-                    .append(chip.id()).append(".png");
-        }
-
-        return builder.toString();
-    }
-
-    private static final class PlayerChipState {
+    private static class PlayerChipState {
         private final Set<String> owned = new HashSet<>();
         private final Map<BuffKind, Integer> keywordBias = new HashMap<>();
     }

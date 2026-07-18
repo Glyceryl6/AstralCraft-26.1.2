@@ -2,6 +2,9 @@ package com.astral_craft.common.gameplay.character;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +35,7 @@ public record CharacterProgressEntry(
             STRING_SET_CODEC.optionalFieldOf("unlocked_skins", Set.of("default")).forGetter(CharacterProgressEntry::unlockedSkins),
             Codec.BOOL.optionalFieldOf("potential_activated", false).forGetter(CharacterProgressEntry::potentialActivated)
     ).apply(instance, CharacterProgressEntry::new));
+    public static final StreamCodec<ByteBuf, CharacterProgressEntry> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
     public static CharacterProgressEntry locked() {
         return new CharacterProgressEntry(false, "default", MIN_PVE_LEVEL, 0, MIN_FRIENDSHIP_LEVEL, Set.of("default"), false);

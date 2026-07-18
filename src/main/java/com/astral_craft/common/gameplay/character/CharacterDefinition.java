@@ -7,6 +7,9 @@ import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 
 import java.util.List;
@@ -71,6 +74,7 @@ public record CharacterDefinition(
             PROGRESSION_METADATA_CODEC.forGetter(CharacterDefinition::progressionMetadata),
             CONTENT_CODEC.forGetter(CharacterDefinition::content)
     ).apply(instance, CharacterDefinition::fromCodecParts));
+    public static final StreamCodec<ByteBuf, CharacterDefinition> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
     private static CharacterDefinition fromCodecParts(CharacterIdentity identity, CharacterProgressionMetadata progressionMetadata, CharacterContent content) {
         return new CharacterDefinition(

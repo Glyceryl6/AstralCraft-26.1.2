@@ -7,18 +7,14 @@ import com.astral_craft.common.network.s2c.OpenHandCardDeckPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class AstralHandCardManager {
 
@@ -65,7 +61,7 @@ public class AstralHandCardManager {
             return;
         }
 
-        PacketDistributor.sendToPlayer(player, new OpenHandCardDeckPayload(encodeInventoryEffectCards(player), false));
+        PacketDistributor.sendToPlayer(player, new OpenHandCardDeckPayload(inventoryEffectCards(player), false));
     }
 
     public static boolean isUsableEffectCard(Item item) {
@@ -120,22 +116,27 @@ public class AstralHandCardManager {
         }
     }
 
-    protected static String encodeInventoryEffectCards(ServerPlayer player) {
-        Map<Identifier, Integer> entries = new LinkedHashMap<>();
+    protected static List<OpenHandCardDeckPayload.HandCardEntry> inventoryEffectCards(ServerPlayer player) {
+        List<OpenHandCardDeckPayload.HandCardEntry> entries = new ArrayList<>();
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
             if (stack.isEmpty() || !isUsableEffectCard(stack)) continue;
-            Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-            entries.merge(itemId, stack.getCount(), Integer::sum);
+            int matchingIndex = -1;
+            for (int i = 0; i < entries.size(); i++) {
+                if (ItemStack.isSameItemSameComponents(entries.get(i).stack(), stack)) {
+                    matchingIndex = i;
+                    break;
+                }
+            }
+
+            if (matchingIndex >= 0) {
+                OpenHandCardDeckPayload.HandCardEntry entry = entries.get(matchingIndex);
+                entries.set(matchingIndex, new OpenHandCardDeckPayload.HandCardEntry(entry.stack(), entry.count() + stack.getCount()));
+            } else {
+                entries.add(new OpenHandCardDeckPayload.HandCardEntry(stack, stack.getCount()));
+            }
         }
 
-        StringBuilder builder = new StringBuilder();
-        for (Map.Entry<Identifier, Integer> entry : entries.entrySet()) {
-            if (entry.getValue() <= 0) continue;
-            if (!builder.isEmpty()) builder.append(';');
-            builder.append(entry.getKey()).append('|').append(entry.getValue());
-        }
-
-        return builder.toString();
+        return entries;
     }
 
     protected static List<ItemStack> effectCardStacks() {

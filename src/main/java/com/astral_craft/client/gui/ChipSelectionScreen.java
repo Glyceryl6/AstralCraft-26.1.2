@@ -9,12 +9,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** Three-option chip selector. The player must pick one option; closing with ESC is disabled. */
@@ -25,12 +23,12 @@ public class ChipSelectionScreen extends Screen {
     private static final int CARD_GAP = 16;
     private static final int ICON_SIZE = 54;
 
-    private final List<Choice> choices;
+    private final List<OpenChipSelectionPayload.Choice> choices;
     private boolean confirmed;
 
     public ChipSelectionScreen(OpenChipSelectionPayload payload) {
         super(Component.translatable("gui.astral_craft.chip_selection.title"));
-        this.choices = Choice.parse(payload.choices());
+        this.choices = payload.choices();
     }
 
     public static void open(OpenChipSelectionPayload payload, IPayloadContext context) {
@@ -79,7 +77,7 @@ public class ChipSelectionScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() == 0) {
-            Choice choice = choiceAt(event.x(), event.y());
+            OpenChipSelectionPayload.Choice choice = this.choiceAt(event.x(), event.y());
             if (choice != null) {
                 this.confirmed = true;
                 ClientPacketDistributor.sendToServer(new ChipSelectionPayload(choice.id()));
@@ -91,7 +89,7 @@ public class ChipSelectionScreen extends Screen {
         return super.mouseClicked(event, doubleClick);
     }
 
-    private Choice choiceAt(double mouseX, double mouseY) {
+    private OpenChipSelectionPayload.Choice choiceAt(double mouseX, double mouseY) {
         int totalW = this.choices.size() * CARD_WIDTH + Math.max(0, this.choices.size() - 1) * CARD_GAP;
         int x = this.width / 2 - totalW / 2;
         int panelY = Math.max(14, (this.height - 238) / 2);
@@ -106,7 +104,7 @@ public class ChipSelectionScreen extends Screen {
         return null;
     }
 
-    private static void renderChoice(GuiGraphicsExtractor graphics, Font font, Choice choice, int x, int y, int mouseX, int mouseY) {
+    private static void renderChoice(GuiGraphicsExtractor graphics, Font font, OpenChipSelectionPayload.Choice choice, int x, int y, int mouseX, int mouseY) {
         boolean hovered = mouseX >= x && mouseX <= x + CARD_WIDTH && mouseY >= y && mouseY <= y + CARD_HEIGHT;
         int bg = hovered ? 0xCC303038 : 0xAA202028;
         int border = hovered ? 0xFFFFD66B : 0xFF808080;
@@ -126,20 +124,6 @@ public class ChipSelectionScreen extends Screen {
         for (int i = 0; i < Math.min(6, lines.size()); i++) {
             graphics.text(font, lines.get(i), x + 9, lineY, 0xFFE0E0E0, false);
             lineY += 10;
-        }
-    }
-
-    private record Choice(String id, String nameKey, String effectKey, Identifier icon) {
-        static List<Choice> parse(String encoded) {
-            List<Choice> choices = new ArrayList<>();
-            if (encoded == null || encoded.isBlank()) return choices;
-            for (String part : encoded.split(";")) {
-                String[] fields = part.split("\\|", 4);
-                if (fields.length < 4) continue;
-                choices.add(new Choice(fields[0], fields[1], fields[2], Identifier.parse(fields[3])));
-            }
-
-            return choices;
         }
     }
 

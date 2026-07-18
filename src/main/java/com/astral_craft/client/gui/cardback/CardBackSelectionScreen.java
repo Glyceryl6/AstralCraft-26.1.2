@@ -1,7 +1,6 @@
 package com.astral_craft.client.gui.cardback;
 
 import com.astral_craft.common.gameplay.cardback.CardBackDefinition;
-import com.astral_craft.common.gameplay.cardback.CardBackManager;
 import com.astral_craft.common.network.c2s.CardBackSelectionPayload;
 import com.astral_craft.common.network.s2c.OpenCardBackSelectionPayload;
 import net.minecraft.client.Minecraft;
@@ -43,7 +42,7 @@ public class CardBackSelectionScreen extends Screen {
     public static void open(OpenCardBackSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Identifier selected = payload.selectedId();
-            Minecraft.getInstance().setScreen(new CardBackSelectionScreen(CardBackManager.decodeList(payload.encodedOptions()), selected));
+            Minecraft.getInstance().setScreen(new CardBackSelectionScreen(payload.options(), selected));
         });
     }
 

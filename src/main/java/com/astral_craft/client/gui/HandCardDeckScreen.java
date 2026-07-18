@@ -18,7 +18,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -49,14 +48,19 @@ public class HandCardDeckScreen extends Screen {
     protected double dragStartX;
     protected float dragStartScrollX;
 
-    public HandCardDeckScreen(String encodedCards, boolean creativeMode) {
+    public HandCardDeckScreen(List<OpenHandCardDeckPayload.HandCardEntry> cards, boolean creativeMode) {
         super(Component.translatable("gui.astral_craft.hand_card_deck.title"));
         this.creativeMode = creativeMode;
-        this.cards.addAll(this.decodeCards(encodedCards, creativeMode));
+        for (OpenHandCardDeckPayload.HandCardEntry card : cards) {
+            CardEntry entry = this.entryFor(card.stack(), card.count(), creativeMode);
+            if (entry != null) {
+                this.cards.add(entry);
+            }
+        }
     }
 
     public static void open(OpenHandCardDeckPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new HandCardDeckScreen(payload.encodedCards(), payload.creative())));
+        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new HandCardDeckScreen(payload.cards(), payload.creative())));
     }
 
     @Override
@@ -356,39 +360,17 @@ public class HandCardDeckScreen extends Screen {
         this.scrollX = Mth.clamp((float) (centerOffset / movable * this.maxScroll()), 0.0F, this.maxScroll());
     }
 
-    protected List<CardEntry> decodeCards(String encodedCards, boolean creative) {
-        List<CardEntry> result = new ArrayList<>();
-        if (encodedCards == null || encodedCards.isBlank()) {
-            return result;
-        }
-
-        for (String encodedCard : encodedCards.split(";")) {
-            String[] split = encodedCard.split("\\|", 2);
-            if (split.length == 0 || split[0].isBlank()) continue;
-            try {
-                Identifier itemId = Identifier.parse(split[0]);
-                int count = split.length > 1 ? Math.max(1, Integer.parseInt(split[1])) : 1;
-                CardEntry entry = this.entryFor(itemId, count, creative);
-                if (entry != null) {
-                    result.add(entry);
-                }
-            } catch (Exception ignored) {}
-        }
-
-        return result;
-    }
-
-    protected CardEntry entryFor(Identifier itemId, int count, boolean creative) {
-        Item item = BuiltInRegistries.ITEM.getValue(itemId);
-        if (!(item instanceof BaseHandCard card)) {
+    protected CardEntry entryFor(ItemStack sourceStack, int count, boolean creative) {
+        if (sourceStack == null || sourceStack.isEmpty() || !(sourceStack.getItem() instanceof BaseHandCard card)) {
             return null;
         }
 
-        ItemStack stack = new ItemStack(item);
+        ItemStack stack = sourceStack.copyWithCount(1);
         if (stack.get(AstralDataComponents.CARD_TYPE) != CardType.EFFECT) {
             return null;
         }
 
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         CardDefinition definition = card.definition(stack);
         Identifier texture = definition.largeFrontTexture(stack);
         return new CardEntry(itemId, definition, texture, stack, Math.max(1, count), creative);

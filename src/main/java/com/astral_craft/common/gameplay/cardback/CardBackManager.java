@@ -6,7 +6,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
-import org.jspecify.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
@@ -70,41 +69,6 @@ public class CardBackManager extends SimpleJsonResourceReloadListener<CardBackDe
         }
 
         return this.definitions.values().stream().findFirst().orElse(CardBackDefinition.builtinDefault());
-    }
-
-    public String encodeList() {
-        StringBuilder builder = new StringBuilder();
-        for (CardBackDefinition definition : this.values()) {
-            if (!builder.isEmpty()) builder.append('\n');
-            builder.append(definition.id()).append('|')
-                    .append(definition.nameKey()).append('|')
-                    .append(definition.texture());
-        }
-
-        return builder.toString();
-    }
-
-    public static List<CardBackDefinition> decodeList(@Nullable String encoded) {
-        List<CardBackDefinition> result = new ArrayList<>();
-        if (encoded == null || encoded.isBlank()) {
-            result.add(CardBackDefinition.builtinDefault());
-            return result;
-        }
-
-        for (String line : encoded.split("\\n")) {
-            String[] parts = line.split("\\|", 3);
-            if (parts.length == 3) {
-                try {
-                    result.add(new CardBackDefinition(Identifier.parse(parts[0]), parts[1], Identifier.parse(parts[2]), false));
-                } catch (Exception ignored) {}
-            }
-        }
-
-        if (result.isEmpty()) {
-            result.add(CardBackDefinition.builtinDefault());
-        }
-
-        return result;
     }
 
 }

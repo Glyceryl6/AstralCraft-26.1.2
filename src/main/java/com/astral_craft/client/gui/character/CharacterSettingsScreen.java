@@ -125,19 +125,18 @@ public class CharacterSettingsScreen extends Screen {
 
     public static void open(OpenCharacterSettingsPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            List<CharacterDefinition> definitions = CharacterCodecLines.decode(payload.encodedCharacters());
-            Identifier selected = definitions.stream().findFirst().map(CharacterDefinition::id).orElse(CharacterDefinition.builtinDefault().id());
-            Identifier active = null;
-            try {
-                selected = Identifier.parse(payload.selectedCharacterId());
-            } catch (Exception ignored) {}
-            try {
-                if (!payload.activeCharacterId().isBlank()) {
-                    active = Identifier.parse(payload.activeCharacterId());
-                }
-            } catch (Exception ignored) {}
-            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(definitions, selected, payload.selectedSkinId(), active, payload.activeSkinId(), payload.level(), payload.experience(), payload.friendship(),
-                    decodeIdentifierSet(payload.unlockedCharacterIds()), decodeStringSet(payload.unlockedSkinIds()), decodeProgressEntries(payload.encodedProgressEntries())));
+            Map<Identifier, CharacterProgressEntry> progressEntries = new HashMap<>();
+            for (OpenCharacterSettingsPayload.CharacterProgressView entry : payload.progressEntries()) {
+                progressEntries.put(entry.characterId(), entry.progress());
+            }
+
+            Identifier activeCharacterId = CharacterProgressManager.isInactiveCharacterId(payload.activeCharacterId())
+                    ? null : payload.activeCharacterId();
+            Minecraft.getInstance().setScreen(new CharacterSettingsScreen(
+                    payload.characters(), payload.selectedCharacterId(), payload.selectedSkinId(),
+                    activeCharacterId, payload.activeSkinId(), payload.level(), payload.experience(),
+                    payload.friendship(), new HashSet<>(payload.unlockedCharacterIds()),
+                    new HashSet<>(payload.unlockedSkinIds()), progressEntries));
         });
     }
 
@@ -897,60 +896,6 @@ public class CharacterSettingsScreen extends Screen {
             }
 
             this.progressEntries.put(definition.id(), entry);
-        }
-    }
-
-    protected static Set<Identifier> decodeIdentifierSet(String encoded) {
-        Set<Identifier> result = new HashSet<>();
-        if (encoded == null || encoded.isBlank()) return result;
-        for (String entry : encoded.split(",")) {
-            try {
-                result.add(Identifier.parse(entry));
-            } catch (Exception ignored) {}
-        }
-
-        return result;
-    }
-
-    protected static Set<String> decodeStringSet(String encoded) {
-        Set<String> result = new HashSet<>();
-        if (encoded == null || encoded.isBlank()) return result;
-        for (String entry : encoded.split(",")) {
-            if (!entry.isBlank()) {
-                result.add(entry);
-            }
-        }
-
-        return result;
-    }
-
-    protected static Map<Identifier, CharacterProgressEntry> decodeProgressEntries(String encoded) {
-        Map<Identifier, CharacterProgressEntry> result = new HashMap<>();
-        if (encoded == null || encoded.isBlank()) return result;
-        for (String entry : encoded.split(";")) {
-            String[] parts = entry.split("\\|", -1);
-            if (parts.length < 6) continue;
-            try {
-                Identifier id = Identifier.parse(parts[0]);
-                boolean unlocked = Boolean.parseBoolean(parts[1]);
-                String selectedSkin = parts[2].isBlank() ? "default" : parts[2];
-                int level = parseInt(parts[3], CharacterProgressEntry.MIN_PVE_LEVEL);
-                int experience = parseInt(parts[4], 0);
-                int friendship = parseInt(parts[5], CharacterProgressEntry.MIN_FRIENDSHIP_LEVEL);
-                Set<String> skins = parts.length > 6 ? decodeStringSet(parts[6]) : Set.of("default");
-                boolean potentialActivated = parts.length > 7 && Boolean.parseBoolean(parts[7]);
-                result.put(id, new CharacterProgressEntry(unlocked, selectedSkin, level, experience, friendship, skins, potentialActivated));
-            } catch (Exception ignored) {}
-        }
-
-        return result;
-    }
-
-    protected static int parseInt(String value, int fallback) {
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException exception) {
-            return fallback;
         }
     }
 

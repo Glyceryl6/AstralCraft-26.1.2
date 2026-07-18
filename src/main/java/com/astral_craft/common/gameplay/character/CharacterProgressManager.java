@@ -3,14 +3,15 @@ package com.astral_craft.common.gameplay.character;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.network.s2c.OpenCharacterSettingsPayload;
+import com.astral_craft.common.network.s2c.OpenCharacterSettingsPayload.CharacterProgressView;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.List;
 
 public class CharacterProgressManager {
 
@@ -71,18 +72,26 @@ public class CharacterProgressManager {
 
         save(player, progress);
         ActiveCharacterState activeState = activeState(player);
+        List<Identifier> unlockedCharacterIds = progress.unlockedCharacters().stream()
+                .sorted(Comparator.comparing(Identifier::toString)).toList();
+        List<String> unlockedSkinIds = progress.entries().entrySet().stream()
+                .flatMap(entry -> entry.getValue().unlockedSkins().stream()
+                        .map(skinId -> skinKey(entry.getKey(), skinId))).sorted().toList();
+        List<CharacterProgressView> progressEntries = progress.entries().entrySet().stream()
+                .map(entry -> new CharacterProgressView(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(entry -> entry.characterId().toString())).toList();
         PacketDistributor.sendToPlayer(player, new OpenCharacterSettingsPayload(
-                CharacterManager.INSTANCE.encodeList(),
-                progress.selectedCharacter().toString(),
+                CharacterManager.INSTANCE.values(),
+                progress.selectedCharacter(),
                 progress.selectedSkin(),
-                activeState.active() ? activeState.characterId().toString() : "",
-                activeState.active() ? activeState.skinId() : "",
+                activeState.active() ? activeState.characterId() : NONE_CHARACTER_ID,
+                activeState.active() ? activeState.skinId() : "default",
                 progress.level(),
                 progress.experience(),
                 progress.friendship(),
-                encodeIdentifiers(progress.unlockedCharacters()),
-                encodeSkinKeys(progress),
-                encodeProgressEntries(progress)));
+                unlockedCharacterIds,
+                unlockedSkinIds,
+                progressEntries));
     }
 
     public static void selectCharacter(ServerPlayer player, String rawId) {
@@ -300,37 +309,6 @@ public class CharacterProgressManager {
         } catch (Exception exception) {
             return fallback;
         }
-    }
-
-    public static String encodeIdentifiers(Set<Identifier> identifiers) {
-        return identifiers.stream().map(Identifier::toString).sorted().collect(Collectors.joining(","));
-    }
-
-    public static String encodeStrings(Set<String> values) {
-        return values.stream().sorted().collect(Collectors.joining(","));
-    }
-
-    public static String encodeSkinKeys(CharacterProgress progress) {
-        return progress.entries().entrySet().stream()
-                .flatMap(entry -> entry.getValue().unlockedSkins().stream().map(skin -> skinKey(entry.getKey(), skin)))
-                .sorted().collect(Collectors.joining(","));
-    }
-
-    public static String encodeProgressEntries(CharacterProgress progress) {
-        return progress.entries().entrySet().stream()
-                .map(entry -> encodeProgressEntry(entry.getKey(), entry.getValue()))
-                .sorted().collect(Collectors.joining(";"));
-    }
-
-    public static String encodeProgressEntry(Identifier characterId, CharacterProgressEntry entry) {
-        return characterId + "|"
-                + entry.unlocked() + "|"
-                + entry.selectedSkin() + "|"
-                + entry.level() + "|"
-                + entry.experience() + "|"
-                + entry.friendship() + "|"
-                + encodeStrings(entry.unlockedSkins()) + "|"
-                + entry.potentialActivated();
     }
 
     public static String skinKey(Identifier characterId, String skinId) {

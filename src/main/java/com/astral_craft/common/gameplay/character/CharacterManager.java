@@ -118,8 +118,4 @@ public class CharacterManager extends SimpleJsonResourceReloadListener<Character
         return this.definitions.values().stream().findFirst().orElse(CharacterDefinition.builtinDefault());
     }
 
-    public String encodeList() {
-        return CharacterCodecLines.encode(this.values());
-    }
-
 }
