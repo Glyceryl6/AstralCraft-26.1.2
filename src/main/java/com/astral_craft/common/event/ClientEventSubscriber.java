@@ -134,6 +134,11 @@ public class ClientEventSubscriber {
         BoardCharacterMarkerRenderer.submit(event);
     }
 
+    @SubscribeEvent
+    public static void renderFirstPersonArm(RenderArmEvent event) {
+        AstralPlayerCharacterRenderBridge.renderFirstPersonArm(event);
+    }
+
     @NullMarked
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static<T extends Avatar & ClientAvatarEntity> void beforePlayerRender(RenderPlayerEvent.Pre<T> event) {
