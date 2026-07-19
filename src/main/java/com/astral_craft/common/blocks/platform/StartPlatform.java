@@ -5,6 +5,7 @@ import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
 import com.astral_craft.common.network.s2c.OpenBoardStartChoicePayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -56,7 +57,7 @@ public class StartPlatform extends BasePlatform {
         if (participant != null) {
             BoardParticipant timedOut = participant.recordTimedOutDecision();
             if (timedOut != participant) BoardSessionManager.updateParticipant(level, session, timedOut);
-            this.resolve(level, session, timedOut, false);
+            this.resolve(level, session, timedOut, false, false);
         } else {
             this.choices.remove(session.id());
             this.deactivateBoardEffect(session.id());
@@ -68,7 +69,7 @@ public class StartPlatform extends BasePlatform {
         StartChoiceState state = this.choices.get(session.id());
         if (state == null || !state.slotId().equals(slotId)) return;
         BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant != null) this.resolve(level, session, participant, true);
+        if (participant != null) this.resolve(level, session, participant, true, true);
     }
 
     @Override
@@ -86,19 +87,19 @@ public class StartPlatform extends BasePlatform {
             BoardSessionManager.updateParticipant(player.level(), session, manual);
             participant = manual;
         }
-        this.resolve(player.level(), session, participant, stop);
+        this.resolve(player.level(), session, participant, stop, stop);
     }
 
     private void arrive(BoardPanelContext context) {
         BoardSession.MovementState movement = context.session().movement();
         if (movement == null) return;
         if (context.landing()) {
-            this.resolve(context.level(), context.session(), context.participant(), true);
+            this.resolve(context.level(), context.session(), context.participant(), true, false);
             return;
         }
         if (!context.session().canStopAtStart(context.participant(), context.participant().currentNodeKey())) return;
         if (BoardSessionManager.isAutomated(context.level(), context.participant())) {
-            this.resolve(context.level(), context.session(), context.participant(), true);
+            this.resolve(context.level(), context.session(), context.participant(), true, true);
         } else {
             this.open(context.level(), context.session(), context.participant());
         }
@@ -109,7 +110,7 @@ public class StartPlatform extends BasePlatform {
         ServerPlayer player = participant.controllerUuid()
                 .map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (player == null) {
-            this.resolve(level, session, participant, true);
+            this.resolve(level, session, participant, true, true);
             return;
         }
         int duration = participant.decisionDurationTicks(TIMEOUT_TICKS);
@@ -122,17 +123,28 @@ public class StartPlatform extends BasePlatform {
                 participant.characterId(), participant.skinId()));
     }
 
-    private void resolve(ServerLevel level, BoardSession session,
-                         BoardParticipant participant, boolean stop) {
+    private void resolve(ServerLevel level, BoardSession session, BoardParticipant participant, boolean stop, boolean settleArrival) {
         this.choices.remove(session.id());
         this.deactivateBoardEffect(session.id());
         BoardSession.MovementState movement = session.movement();
         if (movement == null || !movement.slotId().equals(participant.slotUuid())) return;
         if (stop) {
             session.setMovement(movement.stop());
-            BoardParticipant updated = this.applyBenefits(level, session, participant);
-            if (this.checkVictory(level, session, updated)) return;
+            if (settleArrival) {
+                BoardWorldObjectService.ArrivalResult result = BoardWorldObjectService.triggerArrival(level, session, participant, true);
+                participant = result.participant();
+                if (!participant.knockedDown()) {
+                    BoardWorldObjectService.pickupAtArrival(level, session, participant);
+                    participant = session.participant(participant.slotUuid()).orElse(participant);
+                }
+            }
+
+            if (!participant.knockedDown()) {
+                BoardParticipant updated = this.applyBenefits(level, session, participant);
+                if (this.checkVictory(level, session, updated)) return;
+            }
         }
+
         BoardSessionManager.resumeMovementAfterPanel(level, session);
     }
 

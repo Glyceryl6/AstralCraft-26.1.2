@@ -135,6 +135,7 @@ public class ShopPlatform extends BasePlatform {
         List<Identifier> offers = this.randomOffers(level, offerCount);
         if (offers.isEmpty()) return;
         if (BoardSessionManager.isAutomated(level, participant)) {
+            if (participant.hand().size() > participant.maxHandSize()) return;
             int purchaseCount = Math.min(offers.size(), participant.stats().starCoins() / CARD_PRICE);
             BoardParticipant updated = participant;
             for (int index = 0; index < purchaseCount; index++) {

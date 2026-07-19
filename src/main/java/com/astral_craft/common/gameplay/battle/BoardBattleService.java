@@ -345,7 +345,7 @@ public class BoardBattleService {
         BoardSessionManager.updateParticipant(level, session, nextAttacker);
         BoardSessionManager.updateParticipant(level, session, nextDefender);
         if (knockoutCoins > 0) {
-            BoardWorldObjectService.awardCoins(level, session, nextAttacker.slotUuid(), knockoutCoins);
+            BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
         int resultTicks = roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
         BattleState result = state.withPhase(BattlePhase.RESULT, level.getGameTime() + resultTicks, resultTicks);

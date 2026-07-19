@@ -1,15 +1,20 @@
 package com.astral_craft.common.entity;
 
 import com.astral_craft.common.registry.AstralEntities;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
@@ -22,6 +27,7 @@ public class BoardWorldObjectEntity extends Entity {
     private static final EntityDataAccessor<String> DATA_BOARD_ID = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> DATA_OBJECT_ID = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_KIND = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<String> DATA_BLOCK_ID = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_INDEX = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_COUNT = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_AMOUNT = SynchedEntityData.defineId(BoardWorldObjectEntity.class, EntityDataSerializers.INT);
@@ -47,6 +53,7 @@ public class BoardWorldObjectEntity extends Entity {
         builder.define(DATA_BOARD_ID, "");
         builder.define(DATA_OBJECT_ID, "");
         builder.define(DATA_KIND, Kind.ENTRAPMENT.ordinal());
+        builder.define(DATA_BLOCK_ID, BuiltInRegistries.BLOCK.getKey(Blocks.LODESTONE).toString());
         builder.define(DATA_INDEX, 0);
         builder.define(DATA_COUNT, 1);
         builder.define(DATA_AMOUNT, 1);
@@ -54,19 +61,21 @@ public class BoardWorldObjectEntity extends Entity {
         builder.define(DATA_LIFETIME, 0);
     }
 
-    public void configure(UUID boardId, UUID objectId, Kind kind, int index, int count, int amount) {
+    public void configure(UUID boardId, UUID objectId, Kind kind, Block block, int index, int count, int amount) {
         this.entityData.set(DATA_BOARD_ID, boardId.toString());
         this.entityData.set(DATA_OBJECT_ID, objectId.toString());
         this.entityData.set(DATA_KIND, kind.ordinal());
+        this.entityData.set(DATA_BLOCK_ID, BuiltInRegistries.BLOCK.getKey(block == null ? kind.defaultBlock() : block).toString());
         this.entityData.set(DATA_INDEX, Math.max(0, index));
         this.entityData.set(DATA_COUNT, Math.max(1, count));
         this.entityData.set(DATA_AMOUNT, Math.max(1, amount));
         this.entityData.set(DATA_TARGET, -1);
         this.entityData.set(DATA_LIFETIME, 0);
+        this.setGlowingTag(kind != Kind.COIN_PICKUP && kind != Kind.COIN_AWARD);
     }
 
     public void configurePickup(UUID boardId, UUID objectId, int targetEntityId, int amount, int lifetime) {
-        this.configure(boardId, objectId, Kind.COIN_PICKUP, 0, 1, amount);
+        this.configure(boardId, objectId, Kind.COIN_PICKUP, Blocks.AIR, 0, 1, amount);
         this.entityData.set(DATA_TARGET, targetEntityId);
         this.entityData.set(DATA_LIFETIME, Math.max(8, lifetime));
         this.startX = this.getX();
@@ -75,7 +84,7 @@ public class BoardWorldObjectEntity extends Entity {
     }
 
     public void configureAward(UUID boardId, UUID objectId, int targetEntityId, int amount, int lifetime) {
-        this.configure(boardId, objectId, Kind.COIN_AWARD, 0, 1, amount);
+        this.configure(boardId, objectId, Kind.COIN_AWARD, Blocks.AIR, 0, 1, amount);
         this.entityData.set(DATA_TARGET, targetEntityId);
         this.entityData.set(DATA_LIFETIME, Math.max(8, lifetime));
     }
@@ -123,6 +132,20 @@ public class BoardWorldObjectEntity extends Entity {
     public Kind kind() {
         int ordinal = this.entityData.get(DATA_KIND);
         return ordinal >= 0 && ordinal < Kind.values().length ? Kind.values()[ordinal] : Kind.ENTRAPMENT;
+    }
+
+    public Block block() {
+        String raw = this.entityData.get(DATA_BLOCK_ID);
+        try {
+            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(raw));
+            return block == null ? this.kind().defaultBlock() : block;
+        } catch (RuntimeException ignored) {
+            return this.kind().defaultBlock();
+        }
+    }
+
+    public BlockState blockState() {
+        return this.block().defaultBlockState();
     }
 
     public int stackIndex() {
@@ -180,7 +203,21 @@ public class BoardWorldObjectEntity extends Entity {
         TIME_BOMB,
         COIN_PILE,
         COIN_PICKUP,
-        COIN_AWARD
+        COIN_AWARD;
+
+        public boolean coin() {
+            return this == COIN_PILE || this == COIN_PICKUP || this == COIN_AWARD;
+        }
+
+        public Block defaultBlock() {
+            return switch (this) {
+                case ENTRAPMENT -> Blocks.LODESTONE;
+                case DEMOLITION, TIME_BOMB -> Blocks.TNT;
+                case BARRICADE -> Blocks.YELLOW_CONCRETE;
+                case ENHANCED_BARRICADE -> Blocks.ORANGE_CONCRETE;
+                case COIN_PILE, COIN_PICKUP, COIN_AWARD -> Blocks.AIR;
+            };
+        }
     }
 
 }
