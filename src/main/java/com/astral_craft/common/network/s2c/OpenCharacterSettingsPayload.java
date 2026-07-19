@@ -45,12 +45,12 @@ public record OpenCharacterSettingsPayload(
             OpenCharacterSettingsPayload::new);
 
     public OpenCharacterSettingsPayload {
-        characters = List.copyOf(characters == null ? List.of() : characters);
-        selectedSkinId = selectedSkinId == null || selectedSkinId.isBlank() ? "default" : selectedSkinId;
-        activeSkinId = activeSkinId == null || activeSkinId.isBlank() ? "default" : activeSkinId;
-        unlockedCharacterIds = List.copyOf(unlockedCharacterIds == null ? List.of() : unlockedCharacterIds);
-        unlockedSkinIds = List.copyOf(unlockedSkinIds == null ? List.of() : unlockedSkinIds);
-        progressEntries = List.copyOf(progressEntries == null ? List.of() : progressEntries);
+        characters = List.copyOf(characters);
+        selectedSkinId = selectedSkinId.isBlank() ? "default" : selectedSkinId;
+        activeSkinId = activeSkinId.isBlank() ? "default" : activeSkinId;
+        unlockedCharacterIds = List.copyOf(unlockedCharacterIds);
+        unlockedSkinIds = List.copyOf(unlockedSkinIds);
+        progressEntries = List.copyOf(progressEntries);
     }
 
     @Override

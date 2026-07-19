@@ -6,11 +6,13 @@ import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.items.cards.HandcardSmartDice;
+import com.astral_craft.common.items.cards.pve.HandcardFateGuidance;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,7 +36,11 @@ public class AstralServerPayloadHandlers {
     public static void handleCardNumberSelection(CardNumberSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                HandcardSmartDice.applyNumberSelection(player, payload);
+                if (payload.cardStack().getItem() instanceof HandcardFateGuidance) {
+                    HandcardFateGuidance.applyNumberSelection(player, payload);
+                } else {
+                    HandcardSmartDice.applyNumberSelection(player, payload);
+                }
             }
         });
     }
@@ -191,6 +197,14 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 ShopPlatform.handleAction(player, payload.boardId(), payload.offerIndexes(), payload.leave());
+            }
+        });
+    }
+
+    public static void handleBoardPanelSelection(BoardPanelSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardPanelSelectionService.submit(player, payload);
             }
         });
     }

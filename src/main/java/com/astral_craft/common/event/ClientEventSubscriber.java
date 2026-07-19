@@ -155,6 +155,7 @@ public class ClientEventSubscriber {
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
+        event.registerEntityRenderer(AstralEntities.BOARD_WORLD_OBJECT.get(), BoardWorldObjectRenderer::new);
         event.registerEntityRenderer(AstralEntities.LASER_STRIKE.get(), LaserStrikeRenderer::new);
         event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
         event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
@@ -179,6 +180,7 @@ public class ClientEventSubscriber {
         event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);
         event.register(OpenBoardStartChoicePayload.TYPE, BoardStartChoiceScreen::open);
         event.register(OpenBoardShopPayload.TYPE, BoardShopScreen::open);
+        event.register(OpenBoardPanelSelectionPayload.TYPE, BoardPanelSelectionScreen::open);
         event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);

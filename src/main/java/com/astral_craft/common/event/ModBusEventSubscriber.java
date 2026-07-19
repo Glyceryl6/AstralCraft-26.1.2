@@ -46,7 +46,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("12");
+        PayloadRegistrar registrar = event.registrar("13");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
         registrar.playToClient(OpenTargetSelectionPayload.TYPE, OpenTargetSelectionPayload.STREAM_CODEC);
@@ -60,6 +60,7 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenBoardBattlePayload.TYPE, OpenBoardBattlePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardStartChoicePayload.TYPE, OpenBoardStartChoicePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardShopPayload.TYPE, OpenBoardShopPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardPanelSelectionPayload.TYPE, OpenBoardPanelSelectionPayload.STREAM_CODEC);
         registrar.playToClient(BoardRouteStatePayload.TYPE, BoardRouteStatePayload.STREAM_CODEC);
         registrar.playToClient(OpenCardBackSelectionPayload.TYPE, OpenCardBackSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenCharacterSettingsPayload.TYPE, OpenCharacterSettingsPayload.STREAM_CODEC);
@@ -88,6 +89,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(BoardStartChoicePayload.TYPE, BoardStartChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardStartChoice);
         registrar.playToServer(BoardLeavePayload.TYPE, BoardLeavePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardLeave);
         registrar.playToServer(BoardShopActionPayload.TYPE, BoardShopActionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardShop);
+        registrar.playToServer(BoardPanelSelectionPayload.TYPE, BoardPanelSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardPanelSelection);
     }
 
 }

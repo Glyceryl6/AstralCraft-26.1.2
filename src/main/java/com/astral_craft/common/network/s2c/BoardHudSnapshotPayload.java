@@ -36,9 +36,8 @@ public record BoardHudSnapshotPayload(
             BoardHudSnapshotPayload::new);
 
     public BoardHudSnapshotPayload {
-        pawns = List.copyOf(pawns == null ? List.of() : pawns);
+        pawns = List.copyOf(pawns);
         round = Math.max(1, round);
-        currentSlotId = currentSlotId == null ? EMPTY_SLOT_ID : currentSlotId;
     }
 
     @Override
@@ -66,7 +65,6 @@ public record BoardHudSnapshotPayload(
                 PawnView::new);
 
         public PawnView {
-            controllerName = controllerName == null ? "" : controllerName;
             starCoins = Math.max(0, starCoins);
             health = Math.max(0, health);
             maximumHealth = Math.max(1, maximumHealth);
