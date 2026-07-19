@@ -897,7 +897,7 @@
   "key.astral_craft.character_settings": "打开角色设置",
   "key.astral_craft.character_skill": "释放角色技能",
   "key.astral_craft.quick_phrases": "打开快捷短语",
-  "key.category.astral_craft.category": "AstralCraft",
+  "key.category.astral_craft.category": "吉星工艺",
   "message.astral_craft.battle.started_attacker": "你向 %s 发起了挑战。",
   "message.astral_craft.battle.started_defender": "%s 向你发起了挑战。",
   "message.astral_craft.board.already_playing": "该棋盘已经开始对局。",
