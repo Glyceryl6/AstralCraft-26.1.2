@@ -1,15 +1,12 @@
 package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
+import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
+import com.astral_craft.common.items.*;
 import com.astral_craft.common.items.cards.*;
-import com.astral_craft.common.items.AstralDiceItem;
-import com.astral_craft.common.items.BoardProjectorItem;
-import com.astral_craft.common.items.BoardLobbyItem;
-import com.astral_craft.common.items.BoardDismantlerItem;
-import com.astral_craft.common.items.BoardStartMarkerItem;
 import com.astral_craft.common.items.cards.battle.*;
 import com.astral_craft.common.items.cards.pve.*;
 import com.astral_craft.common.items.cards.pvp.*;
@@ -63,12 +60,18 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new, () -> new Item.Properties().stacksTo(99));
 
     // Handcard
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCombatCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION, 1, 3);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_L = registerCombatCard("handcard_attack_l", HandcardAttackL::new, CardType.ATTACK, HandcardAttackL.DEFINITION, 1, 6);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_G = registerCombatCard("handcard_attack_g", HandcardAttackG::new, CardType.ATTACK, HandcardAttackG.DEFINITION, 1, 10);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_M = registerCombatCard("handcard_defense_m", HandcardDefenseM::new, CardType.DEFENSE, HandcardDefenseM.DEFINITION, 1, 3);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_L = registerCombatCard("handcard_defense_l", HandcardDefenseL::new, CardType.DEFENSE, HandcardDefenseL.DEFINITION, 1, 6);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_G = registerCombatCard("handcard_defense_g", HandcardDefenseG::new, CardType.DEFENSE, HandcardDefenseG.DEFINITION, 1, 10);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCombatCard("handcard_attack_m", BaseHandCard::new,
+            CardType.ATTACK, CardDefinition.create(CardType.ATTACK, CardTargetTypes.NONE, -1).withCombatCost(1), 1, 3);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_L = registerCombatCard("handcard_attack_l", BaseHandCard::new,
+            CardType.ATTACK, CardDefinition.create(CardType.ATTACK, CardTargetTypes.NONE, -1).withCombatCost(2), 1, 6);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_G = registerCombatCard("handcard_attack_g", BaseHandCard::new,
+            CardType.ATTACK, CardDefinition.create(CardType.ATTACK, CardTargetTypes.NONE, -1).withCombatCost(3), 1, 10);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_M = registerCombatCard("handcard_defense_m", BaseHandCard::new,
+            CardType.DEFENSE, CardDefinition.create(CardType.DEFENSE, CardTargetTypes.NONE, -1).withCombatCost(1), 1, 3);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_L = registerCombatCard("handcard_defense_l", BaseHandCard::new,
+            CardType.DEFENSE, CardDefinition.create(CardType.DEFENSE, CardTargetTypes.NONE, -1).withCombatCost(2), 1, 6);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_DEFENSE_G = registerCombatCard("handcard_defense_g", BaseHandCard::new,
+            CardType.DEFENSE, CardDefinition.create(CardType.DEFENSE, CardTargetTypes.NONE, -1).withCombatCost(3), 1, 10);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_CHOCOLATE_CAKE = registerCard("handcard_chocolate_cake", HandcardChocolateCake::new, CardType.EFFECT, HandcardChocolateCake.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_HAMBURGER = registerCard("handcard_hamburger", HandcardHamburger::new, CardType.EFFECT, HandcardHamburger.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_SMART_DICE = registerCard("handcard_smart_dice", HandcardSmartDice::new, CardType.EFFECT, HandcardSmartDice.DEFINITION);
