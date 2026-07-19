@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.network.s2c.BoardRouteStatePayload;
@@ -117,6 +118,8 @@ public class BoardRouteService {
     }
 
     private static List<List<String>> startOpportunityPaths(BoardSession session, BoardParticipant participant, List<List<String>> paths) {
+        int starCost = StartPlatform.nextStarCost(participant.stats().stars());
+        if (participant.stats().stars() < 3 && (starCost <= 0 || participant.stats().starCoins() < starCost)) return List.of();
         Set<String> startNodes = Set.copyOf(session.startNodes());
         return paths.stream().filter(path -> {
             if (path.size() < 2) return false;

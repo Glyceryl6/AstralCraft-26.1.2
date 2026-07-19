@@ -44,6 +44,7 @@ public class AstralCharacterEntity extends PathfinderMob {
     protected static final EntityDataAccessor<String> DATA_BOARD_SESSION_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<String> DATA_BOARD_PARTICIPANT_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<Integer> DATA_BOARD_DIRECTION = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> DATA_BOARD_DIRECTION_MASK = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     private int boardReactionTicks;
 
     public AstralCharacterEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
@@ -72,6 +73,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         builder.define(DATA_BOARD_SESSION_ID, "");
         builder.define(DATA_BOARD_PARTICIPANT_ID, "");
         builder.define(DATA_BOARD_DIRECTION, 0);
+        builder.define(DATA_BOARD_DIRECTION_MASK, 0);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -239,6 +241,8 @@ public class AstralCharacterEntity extends PathfinderMob {
     public void setBoardParticipantId(UUID id) { this.entityData.set(DATA_BOARD_PARTICIPANT_ID, id == null ? "" : id.toString()); }
     public Direction boardDirection() { return Direction.from2DDataValue(this.boardDirectionIndex()); }
     public int boardDirectionIndex() { return Math.floorMod(this.entityData.get(DATA_BOARD_DIRECTION), 4); }
+    public int boardDirectionMask() { return this.entityData.get(DATA_BOARD_DIRECTION_MASK) & 0xF; }
+    public void setBoardDirectionMask(int mask) { this.entityData.set(DATA_BOARD_DIRECTION_MASK, mask & 0xF); }
     public void setBoardDirection(int direction) {
         Direction boardDirection = Direction.from2DDataValue(Math.floorMod(direction, 4));
         this.entityData.set(DATA_BOARD_DIRECTION, boardDirection.get2DDataValue());
@@ -280,6 +284,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.entityData.set(DATA_BOARD_SESSION_ID, input.getStringOr("board_session_id", ""));
         this.entityData.set(DATA_BOARD_PARTICIPANT_ID, input.getStringOr("board_participant_id", ""));
         this.setBoardDirection(input.getIntOr("board_direction", 0));
+        this.setBoardDirectionMask(input.getIntOr("board_direction_mask", 0));
     }
 
     @Override
@@ -294,6 +299,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         output.putString("board_session_id", this.entityData.get(DATA_BOARD_SESSION_ID));
         output.putString("board_participant_id", this.entityData.get(DATA_BOARD_PARTICIPANT_ID));
         output.putInt("board_direction", this.boardDirectionIndex());
+        output.putInt("board_direction_mask", this.boardDirectionMask());
     }
 
     private static Identifier parseIdentifier(String raw) {

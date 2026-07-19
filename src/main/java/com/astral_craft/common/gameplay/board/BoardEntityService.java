@@ -4,6 +4,7 @@ import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
+import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -78,6 +79,7 @@ public class BoardEntityService {
             entity.setAnimationAction("idle");
         }
         AstralCharacterSkillEffects.synchronizeRoundEffects(entity, participant.roundStatusEffects());
+        entity.setBoardDirectionMask(directionMask(level, entity, participant));
     }
 
     public static void arrangeNode(ServerLevel level, BoardSession session, String nodeId) {
@@ -130,6 +132,20 @@ public class BoardEntityService {
     public static @Nullable AstralCharacterEntity entity(ServerLevel level, BoardParticipant participant) {
         return participant.entityUuid().map(level::getEntity).filter(AstralCharacterEntity.class::isInstance)
                 .map(AstralCharacterEntity.class::cast).orElse(null);
+    }
+
+    private static int directionMask(ServerLevel level, AstralCharacterEntity entity, BoardParticipant participant) {
+        if (!HandcardRedirection.hasFreeDirection(participant)) return 0;
+        BoardSession session = entity.boardSessionUuid().flatMap(id -> BoardSessionManager.session(level, id)).orElse(null);
+        BoardNode node = session == null ? null : session.nodes().get(participant.currentNodeKey());
+        BlockPos current = session == null ? null : session.positions().get(participant.currentNodeKey());
+        if (node == null || current == null) return 0;
+        int mask = 0;
+        for (String nextNode : node.next()) {
+            BlockPos target = session.positions().get(nextNode);
+            if (target != null) mask |= 1 << directionBetween(current, target).get2DDataValue();
+        }
+        return mask;
     }
 
     public static Direction directionBetween(BlockPos from, BlockPos to) {

@@ -12,6 +12,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 
+import java.util.List;
+
 /** Renders the directional shadow/arrow beneath board-controlled character entities. */
 public class BoardCharacterMarkerRenderer {
 
@@ -50,15 +52,33 @@ public class BoardCharacterMarkerRenderer {
             return;
         }
 
-        Direction direction = entity.boardDirection();
+        int directionMask = entity.boardDirectionMask();
+        if (directionMask == 0) {
+            submitDirectionArrow(event, poseStack, center, entity.boardDirection(), pulse, false);
+            return;
+        }
+
+        for (Direction direction : List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST)) {
+            if ((directionMask & 1 << direction.get2DDataValue()) != 0) {
+                submitDirectionArrow(event, poseStack, center, direction, pulse, true);
+            }
+        }
+    }
+
+    private static void submitDirectionArrow(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 center,
+                                             Direction direction, float pulse, boolean multiple) {
         Vec3 forward = new Vec3(direction.getStepX(), 0.0D, direction.getStepZ());
         if (forward.lengthSqr() < 0.5D) forward = new Vec3(0.0D, 0.0D, -1.0D);
         forward = forward.normalize();
         Vec3 side = new Vec3(-forward.z, 0.0D, forward.x);
+        double outlineLength = (multiple ? 0.55D : 0.70D) * pulse;
+        double outlineWidth = (multiple ? 0.17D : 0.24D) * pulse;
+        double fillLength = (multiple ? 0.46D : 0.58D) * pulse;
+        double fillWidth = (multiple ? 0.11D : 0.16D) * pulse;
         submitArrow(event, poseStack, center.add(0.0D, 0.012D, 0.0D), forward, side,
-                0.70D * pulse, 0.24D * pulse, ARROW_OUTLINE_COLOR);
+                outlineLength, outlineWidth, ARROW_OUTLINE_COLOR);
         submitArrow(event, poseStack, center.add(0.0D, 0.018D, 0.0D), forward, side,
-                0.58D * pulse, 0.16D * pulse, ARROW_COLOR);
+                fillLength, fillWidth, ARROW_COLOR);
     }
 
     private static void submitArrow(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 center,
