@@ -16,6 +16,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 
 import java.nio.charset.StandardCharsets;
@@ -60,16 +61,26 @@ public class BoardWorldObjectService {
         int amount = session.mechanics().removeDroppedCoins(participant.currentNodeKey());
         if (amount <= 0) return;
         spawnPickup(level, session, participant.currentNodeKey(), participant, amount);
-        awardCoins(level, session, participant.slotUuid(), amount);
+        awardCoinsNow(level, session, participant.slotUuid(), amount);
         BoardSessionManager.markChanged(level);
     }
 
     public static void awardCoins(ServerLevel level, BoardSession session, UUID slotId, int amount) {
+        scheduleCoinAward(level, session, slotId, amount, true);
+    }
+
+    public static void awardCoinsNow(ServerLevel level, BoardSession session, UUID slotId, int amount) {
+        BoardParticipant participant = session.participant(slotId).orElse(null);
+        if (amount <= 0 || participant == null) return;
+        BoardSessionManager.updateParticipant(level, session, participant.withStats(participant.stats().addCoins(amount)));
+        scheduleCoinAward(level, session, slotId, amount, false);
+    }
+
+    private static void scheduleCoinAward(ServerLevel level, BoardSession session, UUID slotId, int amount, boolean creditCoins) {
         if (amount <= 0 || session.participant(slotId).isEmpty()) return;
         int bursts = Math.min(MAX_AWARD_BURSTS, amount);
         PENDING_AWARDS.add(new PendingCoinAward(
-                UUID.randomUUID(), session.id(), slotId,
-                amount, bursts, level.getGameTime()));
+                UUID.randomUUID(), session.id(), slotId, amount, bursts, level.getGameTime(), creditCoins));
     }
 
     public static ArrivalResult triggerArrival(ServerLevel level, BoardSession session, BoardParticipant participant, boolean landing) {
@@ -144,14 +155,16 @@ public class BoardWorldObjectService {
             if (participant == null) continue;
             int chunk = Math.max(1, Mth.ceil(award.remaining() / (float) award.burstsLeft()));
             chunk = Math.min(chunk, award.remaining());
-            BoardSessionManager.updateParticipant(level, session,
-                    participant.withStats(participant.stats().addCoins(chunk)));
+            if (award.creditCoins()) {
+                BoardSessionManager.updateParticipant(level, session,
+                        participant.withStats(participant.stats().addCoins(chunk)));
+            }
             spawnAward(level, session, participant, chunk);
             int remaining = award.remaining() - chunk;
             int bursts = award.burstsLeft() - 1;
             if (remaining > 0 && bursts > 0) {
                 replacements.add(new PendingCoinAward(award.id(), award.boardId(), award.slotId(),
-                        remaining, bursts, level.getGameTime() + AWARD_INTERVAL_TICKS));
+                        remaining, bursts, level.getGameTime() + AWARD_INTERVAL_TICKS, award.creditCoins()));
             }
         }
 
@@ -195,12 +208,12 @@ public class BoardWorldObjectService {
             if (entity == null || entity.isRemoved()) {
                 entity = new BoardWorldObjectEntity(level);
                 ExpectedVisual visual = entry.getValue();
-                entity.configure(session.id(), entry.getKey(), visual.kind(), visual.index(), visual.count(), visual.amount());
+                entity.configure(session.id(), entry.getKey(), visual.kind(), visual.block(), visual.index(), visual.count(), visual.amount());
                 entity.setPos(visual.x(), visual.y(), visual.z());
                 level.addFreshEntity(entity);
             } else {
                 ExpectedVisual visual = entry.getValue();
-                entity.configure(session.id(), entry.getKey(), visual.kind(), visual.index(), visual.count(), visual.amount());
+                entity.configure(session.id(), entry.getKey(), visual.kind(), visual.block(), visual.index(), visual.count(), visual.amount());
                 entity.setPos(visual.x(), visual.y(), visual.z());
             }
         }
@@ -216,7 +229,8 @@ public class BoardWorldObjectService {
                 BlockPos pos = session.positions().get(trap.nodeId());
                 if (pos == null) continue;
                 UUID id = stableId(session.id(), "barricade:" + trap.nodeId());
-                result.put(id, new ExpectedVisual(kind(trap.type()), 0, 1, 1,
+                BoardWorldObjectEntity.Kind kind = kind(trap.type());
+                result.put(id, new ExpectedVisual(kind, kind.defaultBlock(), 0, 1, 1,
                         pos.getX() + 0.5D, surfaceY(level, pos) + 0.28D, pos.getZ() + 0.5D));
             } else {
                 stackableByNode.computeIfAbsent(trap.nodeId(), ignored -> new ArrayList<>()).add(trap);
@@ -232,7 +246,8 @@ public class BoardWorldObjectService {
                 double[] offset = stackOffset(index, count);
                 BoardTrap trap = traps.get(index);
                 float halfSize = count > 4 ? 0.12F : 0.15F;
-                result.put(trap.id(), new ExpectedVisual(kind(trap.type()), index, count, 1,
+                BoardWorldObjectEntity.Kind kind = kind(trap.type());
+                result.put(trap.id(), new ExpectedVisual(kind, kind.defaultBlock(), index, count, 1,
                         pos.getX() + 0.5D + offset[0], surfaceY(level, pos) + halfSize,
                         pos.getZ() + 0.5D + offset[1]));
             }
@@ -242,7 +257,8 @@ public class BoardWorldObjectService {
             BlockPos pos = session.positions().get(entry.getKey());
             if (pos == null || entry.getValue() <= 0) continue;
             UUID id = stableId(session.id(), "coin:" + entry.getKey());
-            result.put(id, new ExpectedVisual(BoardWorldObjectEntity.Kind.COIN_PILE, 0, 1, entry.getValue(),
+            BoardWorldObjectEntity.Kind kind = BoardWorldObjectEntity.Kind.COIN_PILE;
+            result.put(id, new ExpectedVisual(kind, kind.defaultBlock(), 0, 1, entry.getValue(),
                     pos.getX() + 0.5D, surfaceY(level, pos) + 0.11D, pos.getZ() + 0.5D));
         }
 
@@ -250,7 +266,8 @@ public class BoardWorldObjectService {
             AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
             if (entity != null) {
                 UUID id = stableId(session.id(), "time_bomb");
-                result.put(id, new ExpectedVisual(BoardWorldObjectEntity.Kind.TIME_BOMB, 0, 1, 1,
+                BoardWorldObjectEntity.Kind kind = BoardWorldObjectEntity.Kind.TIME_BOMB;
+                result.put(id, new ExpectedVisual(kind, kind.defaultBlock(), 0, 1, 1,
                         entity.getX(), entity.getY() + entity.getBbHeight() + 0.78D, entity.getZ()));
             }
         });
@@ -312,8 +329,8 @@ public class BoardWorldObjectService {
 
     public record ArrivalResult(BoardParticipant participant, boolean stopped, boolean triggered) {}
 
-    private record ExpectedVisual(BoardWorldObjectEntity.Kind kind, int index, int count, int amount, double x, double y, double z) {}
+    private record ExpectedVisual(BoardWorldObjectEntity.Kind kind, Block block, int index, int count, int amount, double x, double y, double z) {}
 
-    private record PendingCoinAward(UUID id, UUID boardId, UUID slotId, int remaining, int burstsLeft, long nextTick) {}
+    private record PendingCoinAward(UUID id, UUID boardId, UUID slotId, int remaining, int burstsLeft, long nextTick, boolean creditCoins) {}
 
 }
