@@ -2,15 +2,23 @@ package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
+import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
+import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
+import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
+import com.astral_craft.common.entity.visual.FallingBrickEntity;
+import com.astral_craft.common.entity.visual.LaserStrikeEntity;
 import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.gameplay.DamagePresentation;
-import com.astral_craft.common.gameplay.chip.ChipDefinition;
 import com.astral_craft.common.gameplay.KnockdownManager;
+import com.astral_craft.common.gameplay.board.BoardEntityService;
+import com.astral_craft.common.gameplay.chip.ChipDefinition;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
@@ -56,7 +64,9 @@ public class AstralCardEffects {
 
     /** Targeted effect damage: player targets receive a short counter-card response window. */
     public static void damage(ServerPlayer user, LivingEntity target, int amount) {
-        PendingCounterEffectManager.offerDirectDamage(user, target, amount);
+        LivingEntity visualSource = BoardEntityService.effectSourceEntity(user);
+        PendingCounterEffectManager.offer(user, target,
+                resolvedTarget -> damageNow(effectSource(user, visualSource), resolvedTarget, amount));
     }
 
     /** Final damage after counter resolution / visual impact. Do not call this at card selection time. */
@@ -120,7 +130,15 @@ public class AstralCardEffects {
 
     public static boolean laserStrike(ServerPlayer user, LivingEntity target, int amount, int argb, float radius) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerLaser(user, target, amount, argb, radius);
+        LivingEntity visualSource = BoardEntityService.effectSourceEntity(user);
+        PendingCounterEffectManager.offer(user, target, resolvedTarget -> {
+            LivingEntity source = effectSource(user, visualSource);
+            playSourceAttack(source);
+            source.level().playSound(null, resolvedTarget.blockPosition(), SoundEvents.BEACON_ACTIVATE,
+                    SoundSource.PLAYERS, 0.9F, 1.35F);
+            source.level().addFreshEntity(new LaserStrikeEntity(source.level(), source, resolvedTarget,
+                    amount, argb, radius));
+        });
         return true;
     }
 
@@ -130,7 +148,15 @@ public class AstralCardEffects {
 
     public static boolean firecrackerProjectile(ServerPlayer user, LivingEntity target, int amount, CardProjectileSettings settings) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerFirecracker(user, target, amount, settings);
+        LivingEntity visualSource = BoardEntityService.effectSourceEntity(user);
+        PendingCounterEffectManager.offer(user, target, resolvedTarget -> {
+            LivingEntity source = effectSource(user, visualSource);
+            playSourceAttack(source);
+            source.level().playSound(null, source.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH,
+                    SoundSource.PLAYERS, 0.9F, 1.15F);
+            source.level().addFreshEntity(new FirecrackersProjectileEntity(source.level(), source,
+                    resolvedTarget, amount, settings));
+        });
         return true;
     }
 
@@ -140,7 +166,15 @@ public class AstralCardEffects {
 
     public static boolean slingshotProjectile(ServerPlayer user, LivingEntity target, int amount, CardProjectileSettings settings) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerSlingshot(user, target, amount, settings);
+        LivingEntity visualSource = BoardEntityService.effectSourceEntity(user);
+        PendingCounterEffectManager.offer(user, target, resolvedTarget -> {
+            LivingEntity source = effectSource(user, visualSource);
+            playSourceAttack(source);
+            source.level().playSound(null, source.blockPosition(), SoundEvents.ARROW_SHOOT,
+                    SoundSource.PLAYERS, 0.9F, 1.8F);
+            source.level().addFreshEntity(new SlingshotProjectileEntity(source.level(), source,
+                    resolvedTarget, amount, settings));
+        });
         return true;
     }
 
@@ -150,14 +184,38 @@ public class AstralCardEffects {
 
     public static boolean snowballAttackProjectile(ServerPlayer user, LivingEntity target, int amount, CardProjectileSettings settings) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerSnowballAttack(user, target, amount, settings);
+        LivingEntity visualSource = BoardEntityService.effectSourceEntity(user);
+        PendingCounterEffectManager.offer(user, target, resolvedTarget -> {
+            LivingEntity source = effectSource(user, visualSource);
+            playSourceAttack(source);
+            source.level().playSound(null, source.blockPosition(), SoundEvents.SNOWBALL_THROW,
+                    SoundSource.PLAYERS, 0.8F, 1.2F);
+            source.level().addFreshEntity(new SnowballAttackProjectileEntity(source.level(), source,
+                    resolvedTarget, amount, settings));
+        });
         return true;
     }
 
     public static boolean fallingBrick(ServerPlayer user, LivingEntity target, int amount) {
         if (target == null || !target.isAlive()) return false;
-        PendingCounterEffectManager.offerFallingBrick(user, target, amount);
+        LivingEntity visualSource = BoardEntityService.effectSourceEntity(user);
+        PendingCounterEffectManager.offer(user, target, resolvedTarget -> {
+            LivingEntity source = effectSource(user, visualSource);
+            playSourceAttack(source);
+            source.level().playSound(null, resolvedTarget.blockPosition(), SoundEvents.ANVIL_LAND,
+                    SoundSource.PLAYERS, 0.55F, 1.55F);
+            source.level().addFreshEntity(new FallingBrickEntity(source.level(), source, resolvedTarget,
+                    amount, 10));
+        });
         return true;
+    }
+
+    private static LivingEntity effectSource(ServerPlayer user, LivingEntity captured) {
+        return captured != null && captured.isAlive() ? captured : user;
+    }
+
+    private static void playSourceAttack(LivingEntity source) {
+        if (source instanceof AstralCharacterEntity character) character.playBoardAttackAnimation(12);
     }
 
     public static void snatchCoins(ServerPlayer user, LivingEntity target, int amount) {

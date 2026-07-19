@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
@@ -35,17 +36,26 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     }
 
     @Override
+    public boolean canTarget(ServerPlayer user, LivingEntity target, ItemStack sourceStack) {
+        if (user == null || target == null || isUserControlledTarget(user, target)) return false;
+        if (!(target instanceof AstralCharacterEntity character) || !character.isBoardPawn()) return !isLinked(target);
+        BoardSession session = BoardSessionManager.findByController(user).orElse(null);
+        BoardParticipant participant = participantForPawn(session, character);
+        return session != null && participant != null && !participant.knockedDown()
+                && session.mechanics().soulLinkFor(participant.slotUuid()).isEmpty();
+    }
+
+    @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        if (targets.size() != 2 || targets.get(0) == targets.get(1)) return false;
+        if (targets.size() != 2 || targets.get(0) == targets.get(1)
+                || isUserControlledTarget(user, targets.get(0)) || isUserControlledTarget(user, targets.get(1))) return false;
         LivingEntity first = targets.get(0);
         LivingEntity second = targets.get(1);
         if (first instanceof AstralCharacterEntity firstPawn && second instanceof AstralCharacterEntity secondPawn) {
             BoardSession firstSession = BoardSessionManager.findByEntity(firstPawn).orElse(null);
             BoardSession secondSession = BoardSessionManager.findByEntity(secondPawn).orElse(null);
-            BoardParticipant firstParticipant = firstSession == null ? null
-                    : firstSession.participantByEntity(firstPawn.getUUID()).orElse(null);
-            BoardParticipant secondParticipant = secondSession == null ? null
-                    : secondSession.participantByEntity(secondPawn.getUUID()).orElse(null);
+            BoardParticipant firstParticipant = participantForPawn(firstSession, firstPawn);
+            BoardParticipant secondParticipant = participantForPawn(secondSession, secondPawn);
             if (firstSession == null || firstSession != secondSession
                     || firstParticipant == null || secondParticipant == null
                     || !addBoardLink(user.level(), firstSession,
@@ -71,6 +81,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     @Override
     public boolean canUseByBoardBot(BoardBotEffectContext context) {
         return context.session().participants().stream()
+                .filter(participant -> !participant.slotUuid().equals(context.userSlotId()))
                 .filter(participant -> !participant.knockedDown())
                 .filter(participant -> context.session().mechanics().soulLinkFor(participant.slotUuid()).isEmpty())
                 .count() >= 2;
@@ -79,6 +90,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     @Override
     public List<UUID> selectBoardBotTargets(BoardBotEffectContext context) {
         List<UUID> candidates = new ArrayList<>(context.session().participants().stream()
+                .filter(participant -> !participant.slotUuid().equals(context.userSlotId()))
                 .filter(participant -> !participant.knockedDown()).map(BoardParticipant::slotUuid)
                 .filter(slotId -> context.session().mechanics().soulLinkFor(slotId).isEmpty()).toList());
         Collections.shuffle(candidates, new Random(context.level().getRandom().nextLong()));
@@ -88,8 +100,25 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
         if (context.targetSlotIds().size() < 2) return 0;
-        addBoardLink(context.level(), context.session(), context.targetSlotIds().get(0), context.targetSlotIds().get(1), BOARD_DURATION_ROUNDS);
+        UUID first = context.targetSlotIds().get(0);
+        UUID second = context.targetSlotIds().get(1);
+        if (first.equals(second) || first.equals(context.userSlotId()) || second.equals(context.userSlotId())) return 0;
+        addBoardLink(context.level(), context.session(), first, second, BOARD_DURATION_ROUNDS);
         return 0;
+    }
+
+    private static boolean isUserControlledTarget(ServerPlayer user, LivingEntity target) {
+        if (target == user) return true;
+        if (!(target instanceof AstralCharacterEntity character) || !character.isBoardPawn()) return false;
+        BoardSession session = BoardSessionManager.findByController(user).orElse(null);
+        BoardParticipant source = session == null ? null
+                : session.participantByController(user.getUUID()).orElse(null);
+        BoardParticipant selected = participantForPawn(session, character);
+        return source != null && selected != null && source.slotUuid().equals(selected.slotUuid());
+    }
+
+    private static BoardParticipant participantForPawn(BoardSession session, AstralCharacterEntity character) {
+        return session == null ? null : session.participantFor(character).orElse(null);
     }
 
     public static boolean isLinked(LivingEntity entity) {

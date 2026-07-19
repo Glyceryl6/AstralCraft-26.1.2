@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
@@ -155,6 +156,13 @@ public class BoardSession {
     public Optional<BoardParticipant> participantByEntity(UUID entityId) {
         return this.participants.values().stream()
                 .filter(participant -> participant.entityUuid().filter(entityId::equals).isPresent()).findFirst();
+    }
+
+    public Optional<BoardParticipant> participantFor(AstralCharacterEntity entity) {
+        if (entity == null) return Optional.empty();
+        Optional<BoardParticipant> direct = this.participantByEntity(entity.getUUID());
+        if (direct.isPresent()) return direct;
+        return entity.boardParticipantUuid().flatMap(this::participant);
     }
 
     public void putParticipant(BoardParticipant participant) {

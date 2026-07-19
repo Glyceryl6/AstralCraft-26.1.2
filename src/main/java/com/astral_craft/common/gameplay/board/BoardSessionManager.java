@@ -96,7 +96,7 @@ public class BoardSessionManager {
         }
 
         return data(level).sessions().stream()
-                .filter(session -> session.participantByEntity(entity.getUUID()).isPresent())
+                .filter(session -> session.participantFor(entity).isPresent())
                 .findFirst();
     }
 
@@ -116,7 +116,7 @@ public class BoardSessionManager {
     }
 
     public static Optional<BoardParticipant> participantForEntity(AstralCharacterEntity entity) {
-        return findByEntity(entity).flatMap(session -> session.participantByEntity(entity.getUUID()));
+        return findByEntity(entity).flatMap(session -> session.participantFor(entity));
     }
 
     public static AstralPlayerStats statsForController(ServerPlayer player, AstralPlayerStats fallback) {
@@ -141,7 +141,7 @@ public class BoardSessionManager {
         Optional<BoardSession> maybeSession = findByEntity(entity);
         if (maybeSession.isEmpty() || !(entity.level() instanceof ServerLevel level)) return false;
         BoardSession session = maybeSession.get();
-        BoardParticipant participant = session.participantByEntity(entity.getUUID()).orElse(null);
+        BoardParticipant participant = session.participantFor(entity).orElse(null);
         if (participant == null) return false;
         applyStatsWithCoinAnimation(level, session, participant, stats);
         return true;
@@ -172,7 +172,7 @@ public class BoardSessionManager {
         Optional<BoardSession> maybeSession = findByEntity(entity);
         if (maybeSession.isEmpty()) return false;
         BoardSession session = maybeSession.get();
-        BoardParticipant participant = session.participantByEntity(entity.getUUID()).orElse(null);
+        BoardParticipant participant = session.participantFor(entity).orElse(null);
         if (participant == null) return false;
         updateParticipant(level, session, participant.withRoundStatusEffect(statusId, turns));
         return true;
@@ -202,7 +202,7 @@ public class BoardSessionManager {
         Optional<BoardSession> maybeSession = findByEntity(entity);
         if (maybeSession.isEmpty()) return false;
         BoardSession session = maybeSession.get();
-        BoardParticipant participant = session.participantByEntity(entity.getUUID()).orElse(null);
+        BoardParticipant participant = session.participantFor(entity).orElse(null);
         if (participant == null || !participant.controlledBy(player.getUUID())) return false;
         boolean currentTurn = session.currentParticipant().map(value -> value.slotUuid().equals(participant.slotUuid())).orElse(false);
         boolean canAct = currentTurn && session.movement() == null && session.encounter() == null
@@ -397,7 +397,8 @@ public class BoardSessionManager {
         return true;
     }
 
-    public static boolean consumeCounterCard(ServerLevel level, BoardSession session, BoardParticipant participant, int index) {
+    public static boolean consumeCounterCard(ServerLevel level, BoardSession session,
+                                             BoardParticipant participant, int index) {
         if (level == null || session == null || participant == null
                 || index < 0 || index >= participant.hand().size()) return false;
         Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
@@ -413,7 +414,8 @@ public class BoardSessionManager {
         if (entity == null) return;
         List<BoardCardView> counterCards = cardViews(participant.hand()).stream()
                 .filter(view -> view.stack().getItem() instanceof BaseHandCard card
-                        && card.definition(view.stack()).type() == CardType.COUNTER).toList();
+                        && card.definition(view.stack()).type() == CardType.COUNTER)
+                .toList();
         int duration = Math.max(1, responseTicks);
         PacketDistributor.sendToPlayer(player, new OpenBoardTurnPayload(session.id(), entity.getId(),
                 counterCards, participant.cardPlaysUsed(), participant.stats().cardPlaysPerTurn(),
@@ -479,7 +481,7 @@ public class BoardSessionManager {
         if (maybeSession.isEmpty()) return false;
         BoardSession session = maybeSession.get();
         BoardParticipant source = session.participantByController(user.getUUID()).orElse(null);
-        BoardParticipant selected = session.participantByEntity(character.getUUID()).orElse(null);
+        BoardParticipant selected = session.participantFor(character).orElse(null);
         if (source == null || selected == null || selected.stats().health() <= 0) return false;
         if (source.slotUuid().equals(selected.slotUuid()) && !card.allowsSelfTarget()) return false;
         if (!card.canTarget(user, character, stack)) return false;
@@ -507,7 +509,7 @@ public class BoardSessionManager {
         Optional<BoardSession> maybeSession = findByEntity(entity);
         if (maybeSession.isEmpty() || !(entity.level() instanceof ServerLevel level)) return;
         BoardSession session = maybeSession.get();
-        BoardParticipant participant = session.participantByEntity(entity.getUUID()).orElse(null);
+        BoardParticipant participant = session.participantFor(entity).orElse(null);
         if (participant == null || participant.knockedDownTurns() > 0) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
@@ -860,7 +862,6 @@ public class BoardSessionManager {
             BoardParticipant participant = session.participant(slotId).orElse(null);
             if (participant != null && participant.knockedDownTurns() <= 1) return Optional.of(slotId);
         }
-
         return Optional.empty();
     }
 
