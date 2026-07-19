@@ -284,10 +284,10 @@ public class PendingCounterEffectManager {
             broadcastEffectReveal(waiting, targetEntity, revealId, true);
         }
         ServerPlayer controller = target.controllerUuid()
-                .map(chain.source().server.getPlayerList()::getPlayer).orElse(null);
+                .map(controllerId -> chain.source().level().getServer().getPlayerList().getPlayer(controllerId)).orElse(null);
         if (controller != null) {
             BOARD_BY_CONTROLLER.put(controller.getUUID(), waiting);
-            BoardSessionManager.openCounterScreen(controller, chain.session(), target, DEFAULT_RESPONSE_TICKS);
+            openHumanCounter(waiting, target, controller);
             controller.sendSystemMessage(Component.translatable("message.astral_craft.board.counter.prompt",
                     chain.source().getDisplayName()).withStyle(ChatFormatting.AQUA), true);
             return;
@@ -296,6 +296,18 @@ public class PendingCounterEffectManager {
         int selectedIndex = counterIndexes.get(chain.source().level().getRandom().nextInt(counterIndexes.size()));
         PendingCardActionManager.schedule(chain.source(), 18,
                 () -> respondBoard(waiting, target, null, selectedIndex));
+    }
+
+    private static void openHumanCounter(PendingBoardCounter chain, BoardParticipant target, ServerPlayer controller) {
+        BoardSessionManager.openCounterScreen(controller, chain.session(), target,
+                remainingResponseTicks(chain));
+        PendingCardActionManager.schedule(chain.source(), 2, () -> {
+            PendingBoardCounter current = BOARD_BY_CONTROLLER.get(controller.getUUID());
+            if (current == chain && !controller.isRemoved()) {
+                BoardSessionManager.openCounterScreen(controller, chain.session(), target,
+                        remainingResponseTicks(chain));
+            }
+        });
     }
 
     private static boolean respondBoard(PendingBoardCounter chain, BoardParticipant target,
