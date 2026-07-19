@@ -1,8 +1,8 @@
 package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardDefinition;
+import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;

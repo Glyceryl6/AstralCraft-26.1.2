@@ -1,8 +1,8 @@
 package com.astral_craft.common.gameplay.event.conditions;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
+import com.astral_craft.common.gameplay.event.AstralEventGeneralCondition;
 import com.mojang.serialization.MapCodec;
 
 public record NoopEventCondition() implements AstralEventGeneralCondition {

@@ -2,9 +2,9 @@ package com.astral_craft.common.items.cards.pvp;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.board.BoardMechanicsState.BoardTrap;
 import com.astral_craft.common.gameplay.board.BoardMechanicsState.BoardTrapType;
-import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
 import net.minecraft.server.level.ServerLevel;

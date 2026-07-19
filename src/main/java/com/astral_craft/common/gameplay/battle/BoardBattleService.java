@@ -4,12 +4,8 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.board.BoardEntityService;
-import com.astral_craft.common.gameplay.board.BoardParticipant;
-import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.DamagePresentation;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
-import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
+import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardDecisionProgress;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload;
@@ -27,14 +23,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /** Server-authoritative board battle selection, dice presentation and result coordinator. */
 public class BoardBattleService {

@@ -1,16 +1,12 @@
 package com.astral_craft.client.gui.character;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
-import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterProfileSection;
-import com.astral_craft.common.gameplay.character.CharacterPotentialDefinition;
-import com.astral_craft.common.gameplay.character.CharacterPotentialMaterialRequirement;
-import com.astral_craft.common.gameplay.character.CharacterProgressEntry;
+import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;

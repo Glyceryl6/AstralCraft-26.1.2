@@ -2,13 +2,13 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.BuffKinds;
-import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
+import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;

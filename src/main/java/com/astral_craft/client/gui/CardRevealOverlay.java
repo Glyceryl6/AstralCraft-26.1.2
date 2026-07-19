@@ -2,15 +2,7 @@ package com.astral_craft.client.gui;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.board.BoardTurnScreen;
-import com.astral_craft.client.gui.reveal.ApproachCardRevealAnimation;
-import com.astral_craft.client.gui.reveal.CardReveal;
-import com.astral_craft.client.gui.reveal.CardRevealAnimation;
-import com.astral_craft.client.gui.reveal.CardRevealAnimations;
-import com.astral_craft.client.gui.reveal.CardRevealDebugSettings;
-import com.astral_craft.client.gui.reveal.CardRevealRenderContext;
-import com.astral_craft.client.gui.reveal.CardRevealRenderer;
-import com.astral_craft.client.gui.reveal.CardRevealSettings;
-import com.astral_craft.client.gui.reveal.FlipCardRevealAnimation;
+import com.astral_craft.client.gui.reveal.*;
 import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
@@ -20,11 +12,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class CardRevealOverlay {
 

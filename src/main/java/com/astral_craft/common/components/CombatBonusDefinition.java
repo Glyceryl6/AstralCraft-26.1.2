@@ -5,8 +5,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.util.RandomSource;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 
 /** Data-driven random bonus range for cards used by the board battle system. */
 public record CombatBonusDefinition(int minimum, int maximum, boolean standardPvp) {

@@ -1,9 +1,9 @@
 package com.astral_craft.common.network.s2c;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.network.BoardNetworkCodecs;
 import com.astral_craft.common.gameplay.character.CharacterCodecLines;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
+import com.astral_craft.common.network.BoardNetworkCodecs;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;

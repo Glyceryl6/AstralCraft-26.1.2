@@ -1,11 +1,7 @@
 package com.astral_craft.common.blocks.platform;
 
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.gameplay.board.BoardPanelContext;
-import com.astral_craft.common.gameplay.board.BoardParticipant;
-import com.astral_craft.common.gameplay.board.BoardSession;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
-import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
+import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.network.s2c.OpenBoardStartChoicePayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;

@@ -1,14 +1,9 @@
 package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterActiveSkill;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterPassiveSkill;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillSet;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillContext;
+import com.astral_craft.common.gameplay.character.skill.*;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;

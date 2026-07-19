@@ -13,12 +13,12 @@ import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.BattleView;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.CombatCardView;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.DefenseMode;
 import com.astral_craft.common.registry.AstralDataComponents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
@@ -31,11 +31,7 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /** In-world battle UI with irrevocable card selection and staged dice/result presentation. */
 public class BoardBattleScreen extends Screen {

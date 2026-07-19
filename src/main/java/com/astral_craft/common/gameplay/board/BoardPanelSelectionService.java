@@ -1,6 +1,8 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.gameplay.BoardNode;
+import com.astral_craft.common.gameplay.handcard.CardUseService;
+import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardPanelEdgeView;
 import com.astral_craft.common.network.BoardPanelNodeView;
@@ -8,8 +10,6 @@ import com.astral_craft.common.network.BoardPanelOccupantView;
 import com.astral_craft.common.network.c2s.BoardPanelSelectionPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.network.s2c.OpenBoardPanelSelectionPayload;
-import com.astral_craft.common.gameplay.handcard.CardUseService;
-import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;

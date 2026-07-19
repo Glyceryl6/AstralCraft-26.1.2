@@ -1,11 +1,7 @@
 package com.astral_craft.client.gui.phrase;
 
 import com.astral_craft.AstralCraft;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import net.minecraft.client.Minecraft;
 
 import java.io.IOException;

@@ -1,6 +1,5 @@
 package com.astral_craft;
 
-import com.astral_craft.common.registry.AstralChips;
 import com.astral_craft.common.registry.*;
 import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
