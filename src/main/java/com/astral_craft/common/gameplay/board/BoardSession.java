@@ -1,7 +1,9 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.gameplay.BoardNode;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -20,6 +22,7 @@ public class BoardSession {
     private final Map<String, BlockPos> positions;
     private final BoardArea protectedArea;
     private final List<String> startNodes;
+    private final BoardMechanicsState mechanics;
     private final LinkedHashMap<UUID, BoardParticipant> participants = new LinkedHashMap<>();
     private final LinkedHashMap<UUID, String> homeNodes = new LinkedHashMap<>();
     private final List<UUID> turnOrder = new ArrayList<>();
@@ -39,7 +42,8 @@ public class BoardSession {
 
     public BoardSession(UUID id, ResourceKey<Level> dimension, ScannedBoard board) {
         this(id, dimension, board.nodes(), board.positions(), board.area(), board.startNodes(),
-                BoardPhase.READY, List.of(), Map.of(), List.of(), 0, 0, false, true, true, 0);
+                BoardPhase.READY, List.of(), Map.of(), List.of(), 0, 0, false, true, true, 0,
+                BoardMechanicsState.Snapshot.EMPTY);
     }
 
     private BoardSession(UUID id, ResourceKey<Level> dimension,
@@ -47,7 +51,8 @@ public class BoardSession {
                          BoardArea protectedArea, List<String> startNodes,
                          BoardPhase phase, List<BoardParticipant> participants, Map<UUID, String> homeNodes,
                          List<UUID> turnOrder, int turnIndex, int round, boolean turnStarted,
-                         boolean protectionEnabled, boolean keepAfterGame, int arrivalSequence) {
+                         boolean protectionEnabled, boolean keepAfterGame, int arrivalSequence,
+                         BoardMechanicsState.Snapshot mechanicsSnapshot) {
         this.id = id;
         this.dimension = dimension;
         CanonicalNodes canonicalNodes = canonicalizeNodes(nodes, positions, startNodes);
@@ -55,6 +60,8 @@ public class BoardSession {
         this.positions = Collections.unmodifiableMap(canonicalNodes.positions());
         this.protectedArea = protectedArea;
         this.startNodes = canonicalNodes.startNodes();
+        this.mechanics = BoardMechanicsState.fromSnapshot(mechanicsSnapshot);
+        this.mechanics.retainCharacterStarts(this.startNodes);
         this.phase = phase == null ? BoardPhase.READY : phase;
         for (BoardParticipant participant : participants) {
             this.participants.put(participant.slotUuid(), canonicalNodes.remapParticipant(participant));
@@ -99,6 +106,10 @@ public class BoardSession {
 
     public List<String> startNodes() {
         return this.startNodes;
+    }
+
+    public BoardMechanicsState mechanics() {
+        return this.mechanics;
     }
 
     public BoardPhase phase() {
@@ -191,7 +202,7 @@ public class BoardSession {
         String canonical = canonicalNodeId(nodeId);
         if (!this.startNodes.contains(canonical)) return false;
         if (this.homeNode(participant.slotUuid()).filter(canonical::equals).isPresent()) return true;
-        return !this.homeNodes.containsValue(canonical);
+        return !this.mechanics.characterStartNodes().contains(canonical);
     }
 
     public void clearParticipants() {
@@ -204,6 +215,7 @@ public class BoardSession {
         this.movement = null;
         this.encounter = null;
         this.discard = null;
+        this.mechanics.clearRuntimeGameState();
     }
 
     public List<UUID> turnOrder() {
@@ -251,6 +263,7 @@ public class BoardSession {
             this.turnIndex = 0;
             this.round++;
         }
+
         this.movement = null;
         this.encounter = null;
         this.discard = null;
@@ -312,7 +325,8 @@ public class BoardSession {
         return new Snapshot(this.id.toString(), this.dimension.identifier(), this.nodes, this.positions,
                 this.protectedArea, this.startNodes, this.phase, this.participants(),
                 this.turnOrder.stream().map(UUID::toString).toList(), this.turnIndex, this.round, this.turnStarted,
-                this.protectionEnabled, this.keepAfterGame, this.arrivalSequence, this.snapshotHomeNodes());
+                this.protectionEnabled, this.keepAfterGame, this.arrivalSequence, this.snapshotHomeNodes(),
+                this.mechanics.snapshot());
     }
 
     public static BoardSession fromSnapshot(Snapshot snapshot) {
@@ -322,13 +336,13 @@ public class BoardSession {
         } catch (Exception exception) {
             id = UUID.randomUUID();
         }
+
         ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, snapshot.dimension());
         List<UUID> turnOrder = new ArrayList<>();
         for (String raw : snapshot.turnOrder()) {
             try {
                 turnOrder.add(UUID.fromString(raw));
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
 
         Map<UUID, String> homeNodes = new LinkedHashMap<>();
@@ -341,7 +355,7 @@ public class BoardSession {
         BoardSession session = new BoardSession(id, dimension, snapshot.nodes(), snapshot.positions(),
                 snapshot.protectedArea(), snapshot.startNodes(), snapshot.phase(), snapshot.participants(), homeNodes,
                 turnOrder, snapshot.turnIndex(), snapshot.round(), snapshot.turnStarted(), snapshot.protectionEnabled(),
-                snapshot.keepAfterGame(), snapshot.arrivalSequence());
+                snapshot.keepAfterGame(), snapshot.arrivalSequence(), snapshot.mechanics());
         if (session.phase == BoardPhase.PLAYING) {
             session.actionDeadlineTick = 0L;
         }
@@ -361,8 +375,7 @@ public class BoardSession {
             Map<String, BoardNode> nodes, Map<String, BlockPos> positions, List<String> startNodes) {
         Map<String, String> remap = new LinkedHashMap<>();
         positions.forEach((oldId, pos) -> remap.put(oldId, BoardScanner.id(pos)));
-        nodes.forEach((oldId, node) -> remap.putIfAbsent(oldId, canonicalNodeId(oldId)));
-
+        nodes.forEach((oldId, _) -> remap.putIfAbsent(oldId, canonicalNodeId(oldId)));
         Map<String, BlockPos> canonicalPositions = new LinkedHashMap<>();
         positions.forEach((oldId, pos) -> canonicalPositions.put(remap.get(oldId), pos));
         Map<String, BoardNode> canonicalNodes = new LinkedHashMap<>();
@@ -371,6 +384,7 @@ public class BoardSession {
             List<String> next = node.next().stream().map(value -> remap.getOrDefault(value, canonicalNodeId(value))).toList();
             canonicalNodes.put(nodeId, new BoardNode(nodeId, node.platformId(), next));
         });
+
         List<String> canonicalStarts = startNodes.stream()
                 .map(value -> remap.getOrDefault(value, canonicalNodeId(value))).toList();
         return new CanonicalNodes(new LinkedHashMap<>(canonicalNodes), new LinkedHashMap<>(canonicalPositions),
@@ -422,10 +436,14 @@ public class BoardSession {
             boolean protectionEnabled,
             boolean keepAfterGame,
             int arrivalSequence,
-            Map<String, String> homeNodes) {
+            Map<String, String> homeNodes,
+            BoardMechanicsState.Snapshot mechanics) {
 
         private static final Codec<Map<String, BoardNode>> NODE_MAP_CODEC = Codec.unboundedMap(Codec.STRING, BoardNode.CODEC);
         private static final Codec<Map<String, BlockPos>> POSITION_MAP_CODEC = Codec.unboundedMap(Codec.STRING, BlockPos.CODEC);
+        private static final MapCodec<Pair<Map<String, String>, BoardMechanicsState.Snapshot>> RUNTIME_STATE_CODEC =
+                Codec.mapPair(Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("home_nodes", Map.of()),
+                        BoardMechanicsState.Snapshot.CODEC.optionalFieldOf("mechanics", BoardMechanicsState.Snapshot.EMPTY));
 
         public static final Codec<Snapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.fieldOf("id").forGetter(Snapshot::id),
@@ -443,9 +461,13 @@ public class BoardSession {
                 Codec.BOOL.optionalFieldOf("protection_enabled", true).forGetter(Snapshot::protectionEnabled),
                 Codec.BOOL.optionalFieldOf("keep_after_game", true).forGetter(Snapshot::keepAfterGame),
                 Codec.INT.optionalFieldOf("arrival_sequence", 0).forGetter(Snapshot::arrivalSequence),
-                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("home_nodes", Map.of())
-                        .forGetter(Snapshot::homeNodes)
-        ).apply(instance, Snapshot::new));
+                RUNTIME_STATE_CODEC.forGetter(snapshot -> Pair.of(snapshot.homeNodes(), snapshot.mechanics()))
+        ).apply(instance, (id, dimension, nodes, positions, protectedArea, startNodes, phase, participants,
+                           turnOrder, turnIndex, round, turnStarted, protectionEnabled, keepAfterGame,
+                           arrivalSequence, runtimeState) -> new Snapshot(
+                id, dimension, nodes, positions, protectedArea, startNodes, phase, participants, turnOrder,
+                turnIndex, round, turnStarted, protectionEnabled, keepAfterGame, arrivalSequence,
+                runtimeState.getFirst(), runtimeState.getSecond())));
 
         public Snapshot {
             nodes = Map.copyOf(nodes);
@@ -454,6 +476,7 @@ public class BoardSession {
             participants = List.copyOf(participants);
             turnOrder = List.copyOf(turnOrder);
             homeNodes = Map.copyOf(homeNodes);
+            mechanics = mechanics == null ? BoardMechanicsState.Snapshot.EMPTY : mechanics;
         }
     }
 

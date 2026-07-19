@@ -190,6 +190,20 @@ public record BoardParticipant(
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes);
     }
 
+    public boolean hasRoundStatusEffect(Identifier statusId) {
+        return statusId != null && this.roundStatusEffects.getOrDefault(statusId, 0) > 0;
+    }
+
+    public BoardParticipant withoutRoundStatusEffect(Identifier statusId) {
+        if (statusId == null || !this.roundStatusEffects.containsKey(statusId)) return this;
+        Map<Identifier, Integer> next = new LinkedHashMap<>(this.roundStatusEffects);
+        next.remove(statusId);
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman,
+                this.characterId, this.skinId, this.currentNodeId, this.previousNodeId, this.entityId,
+                this.stats, this.hand, next, this.skillCooldownTurns, this.knockedDownTurns,
+                this.cardPlaysUsed, this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes);
+    }
+
     public BoardParticipant removeCard(int index) {
         if (index < 0 || index >= this.hand.size()) return this;
         List<Identifier> next = new ArrayList<>(this.hand);

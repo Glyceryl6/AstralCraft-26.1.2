@@ -66,6 +66,13 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
                 participant.withStats(operation.apply(participant.stats())));
     }
 
+    public void reduceUserSkillCooldown(int turns) {
+        if (turns <= 0) return;
+        BoardParticipant participant = this.user();
+        BoardSessionManager.updateParticipant(this.level, this.session, participant.withSkillCooldown(
+                Math.max(0, participant.skillCooldownTurns() - turns)));
+    }
+
     public void updateTarget(UUID slotId, UnaryOperator<AstralPlayerStats> operation) {
         this.target(slotId).ifPresent(participant -> BoardSessionManager.updateParticipant(this.level, this.session,
                 participant.withStats(operation.apply(participant.stats()))));
@@ -141,13 +148,9 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
 
         BoardParticipant damaged = target.withStats(target.stats().damage(resolvedDamage));
         if (damaged.stats().health() <= 0) {
-            int lostCoins = Math.max(0, (damaged.stats().starCoins() + 1) / 2);
+            int lostCoins = Math.max(0, (target.stats().starCoins() + 1) / 2);
             damaged = damaged.knockDown();
-            if (rewardKnockout && lostCoins > 0) {
-                BoardParticipant currentAttacker = this.session.participant(attacker.slotUuid()).orElse(attacker);
-                BoardSessionManager.updateParticipant(this.level, this.session,
-                        currentAttacker.withStats(currentAttacker.stats().addCoins(lostCoins)));
-            }
+            BoardWorldObjectService.dropCoins(this.level, this.session, target.currentNodeKey(), lostCoins);
         }
 
         BoardSessionManager.updateParticipant(this.level, this.session, damaged);
@@ -159,7 +162,7 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
         int taken = Math.min(amount, target.stats().starCoins());
         BoardSessionManager.updateParticipant(this.level, this.session,
                 target.withStats(target.stats().spendCoins(taken)));
-        this.updateUser(stats -> stats.addCoins(taken));
+        BoardWorldObjectService.awardCoins(this.level, this.session, this.userSlotId, taken);
     }
 
 }

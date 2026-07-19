@@ -4,6 +4,7 @@ import com.astral_craft.common.entity.SoulLinkEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 
 import java.util.HashMap;
@@ -73,6 +74,37 @@ public class SoulLinkManager {
         } finally {
             mirroringDamage = false;
         }
+    }
+
+    public static void ensureVisual(ServerLevel level, LivingEntity first, LivingEntity second, SoulLinkStyle style) {
+        if (level == null || first == null || second == null || first.level() != level || second.level() != level) return;
+        AABB bounds = visualBounds(first, second);
+        boolean present = level.getEntitiesOfClass(SoulLinkEntity.class, bounds, visual ->
+                visual.firstId() == first.getId() && visual.secondId() == second.getId()
+                        || visual.firstId() == second.getId() && visual.secondId() == first.getId()).stream().findAny().isPresent();
+        if (present) return;
+        SoulLinkEntity visual = new SoulLinkEntity(level, first, second, Integer.MAX_VALUE,
+                style == null ? SoulLinkStyle.DEFAULT : style);
+        level.addFreshEntity(visual);
+    }
+
+    public static void removeVisual(ServerLevel level, LivingEntity first, LivingEntity second) {
+        if (level == null || first == null || second == null) return;
+        for (SoulLinkEntity visual : level.getEntitiesOfClass(SoulLinkEntity.class, visualBounds(first, second), candidate ->
+                candidate.firstId() == first.getId() && candidate.secondId() == second.getId()
+                        || candidate.firstId() == second.getId() && candidate.secondId() == first.getId())) {
+            visual.discard();
+        }
+    }
+
+    private static AABB visualBounds(LivingEntity first, LivingEntity second) {
+        double minX = Math.min(first.getX(), second.getX());
+        double minY = Math.min(first.getY(), second.getY());
+        double minZ = Math.min(first.getZ(), second.getZ());
+        double maxX = Math.max(first.getX(), second.getX());
+        double maxY = Math.max(first.getY() + first.getBbHeight(), second.getY() + second.getBbHeight());
+        double maxZ = Math.max(first.getZ(), second.getZ());
+        return new AABB(minX, minY, minZ, maxX, maxY, maxZ).inflate(8.0D);
     }
 
     public static void mirrorLogicalDamage(ServerLevel level, LivingEntity damaged, int amount) {

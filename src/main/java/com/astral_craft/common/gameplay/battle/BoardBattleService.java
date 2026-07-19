@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardDecisionProgress;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload;
@@ -51,6 +52,7 @@ public class BoardBattleService {
     public static final int MAXIMUM_PVP_COST = 3;
     private static final int MAXIMUM_SELECTED_CARDS = 7;
     private static final Map<UUID, BattleState> ACTIVE = new HashMap<>();
+    private static final Set<UUID> DELAYED_ATTACKER_KNOCKOUT = new HashSet<>();
 
     public static void start(ServerLevel level, BoardSession session, BoardParticipant attacker, BoardParticipant defender) {
         if (ACTIVE.containsKey(session.id())) return;
@@ -172,6 +174,9 @@ public class BoardBattleService {
                 case DEFENDER_ROLL -> applyRoll(level, session, state);
                 default -> {
                     ACTIVE.remove(state.boardId());
+                    if (DELAYED_ATTACKER_KNOCKOUT.remove(state.boardId())) {
+                        BoardSessionManager.knockDownFromEffect(level, session, state.attackerSlot());
+                    }
                     BoardSessionManager.resumeAfterBattle(level, session);
                 }
             }
@@ -202,6 +207,7 @@ public class BoardBattleService {
 
     public static void cancel(UUID boardId) {
         ACTIVE.remove(boardId);
+        DELAYED_ATTACKER_KNOCKOUT.remove(boardId);
     }
 
     private static BattleState advanceBotAttacker(BattleState state, BoardParticipant participant, long now) {
@@ -262,12 +268,13 @@ public class BoardBattleService {
     }
 
     private static void beginDefenseChoice(ServerLevel level, BoardSession session, BattleState state) {
+        BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
         BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
         if (defender == null) {
             cancelAndResume(level, session);
             return;
         }
-        if (BoardSessionManager.isAutomated(level, defender)) {
+        if (BoardSessionManager.hasAllOrNothing(attacker) || BoardSessionManager.isAutomated(level, defender)) {
             beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
             return;
         }
@@ -316,13 +323,18 @@ public class BoardBattleService {
             cancelAndResume(level, session);
             return;
         }
+        boolean allOrNothing = BoardSessionManager.hasAllOrNothing(attacker);
         AstralPlayerStats nextStats = defender.stats().damage(roll.damage());
-        BoardParticipant nextAttacker = removeCards(attacker, roll.attackerCards());
+        BoardParticipant nextAttacker = removeCards(attacker, roll.attackerCards())
+                .withoutRoundStatusEffect(BoardSessionManager.ALL_OR_NOTHING_STATUS);
         BoardParticipant nextDefender = removeCards(defender.withStats(nextStats), roll.defenderCards());
+        int knockoutCoins = 0;
         if (nextStats.health() <= 0) {
-            int lostCoins = Math.max(0, (nextDefender.stats().starCoins() + 1) / 2);
+            knockoutCoins = Math.max(0, (nextDefender.stats().starCoins() + 1) / 2);
             nextDefender = nextDefender.knockDown();
-            nextAttacker = nextAttacker.withStats(nextAttacker.stats().addCoins(lostCoins));
+            DELAYED_ATTACKER_KNOCKOUT.remove(session.id());
+        } else if (allOrNothing) {
+            DELAYED_ATTACKER_KNOCKOUT.add(session.id());
         }
         playAttackAnimation(level, nextAttacker);
         playHurtAnimation(level, nextDefender, roll.damage());
@@ -332,6 +344,9 @@ public class BoardBattleService {
         }
         BoardSessionManager.updateParticipant(level, session, nextAttacker);
         BoardSessionManager.updateParticipant(level, session, nextDefender);
+        if (knockoutCoins > 0) {
+            BoardWorldObjectService.awardCoins(level, session, nextAttacker.slotUuid(), knockoutCoins);
+        }
         int resultTicks = roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
         BattleState result = state.withPhase(BattlePhase.RESULT, level.getGameTime() + resultTicks, resultTicks);
         ACTIVE.put(session.id(), result);

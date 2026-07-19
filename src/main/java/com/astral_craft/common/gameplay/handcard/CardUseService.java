@@ -8,6 +8,8 @@ import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardPanelPlacementCard;
+import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterManager;
@@ -123,7 +125,8 @@ public class CardUseService {
         if (level.isClientSide()) return CardUseResult.pass();
         if (stack.isEmpty() || stack.getItem() != card) return CardUseResult.consumed();
         if (PendingCardActionManager.isExclusiveBusy(serverPlayer)
-                || PendingCardActionManager.hasPendingSelection(serverPlayer)) {
+                || PendingCardActionManager.hasPendingSelection(serverPlayer)
+                || BoardPanelSelectionService.hasPending(serverPlayer)) {
             return CardUseResult.consumed();
         }
 
@@ -133,6 +136,7 @@ public class CardUseService {
         }
 
         CardDefinition definition = card.definition(stack);
+        if (!card.canUse(serverPlayer, stack)) return CardUseResult.consumed();
         Component restrictionMessage = useRestrictionMessage(serverPlayer, definition);
         if (restrictionMessage != null) {
             serverPlayer.sendSystemMessage(restrictionMessage, true);
@@ -141,6 +145,18 @@ public class CardUseService {
 
         if (definition.isCombatOnly()) {
             serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.card.combat_only"), true);
+            return CardUseResult.consumed();
+        }
+
+        if (card instanceof BoardPanelPlacementCard placementCard) {
+            if (!useContext.boardCard()) {
+                serverPlayer.sendSystemMessage(Component.translatable("message.astral_craft.board.card.board_only"), true);
+                return CardUseResult.consumed();
+            }
+            if (BoardPanelSelectionService.begin(serverPlayer, stack, useContext.targetSelectionHandIndex(), placementCard)) {
+                swingAcceptedUse(serverPlayer, hand, useContext);
+                return CardUseResult.accepted();
+            }
             return CardUseResult.consumed();
         }
 
@@ -217,6 +233,7 @@ public class CardUseService {
         }
 
         CardDefinition definition = card.definition(stack);
+        if (!card.canUse(player, stack)) return;
         Component restrictionMessage = useRestrictionMessage(player, definition);
         if (restrictionMessage != null) {
             player.sendSystemMessage(restrictionMessage, true);
