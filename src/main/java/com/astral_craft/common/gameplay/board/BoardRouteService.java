@@ -1,8 +1,8 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.gameplay.BoardNode;
+import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.network.s2c.BoardRouteStatePayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
@@ -27,7 +27,7 @@ public class BoardRouteService {
         String nodeId = session.positions().entrySet().stream().filter(entry -> entry.getValue().equals(clickedPos))
                 .map(Map.Entry::getKey).findFirst().orElse("");
         if (!movement.branchChoices().contains(nodeId)) return false;
-        BoardSessionManager.updateParticipant(player.level(), session, participant.recordManualDecision());
+        HandcardRedirection.consumeFreeDirection(player.level(), session, participant.recordManualDecision());
         session.setMovement(movement.beginStep(nodeId, player.level().getGameTime(), BoardSessionManager.MOVEMENT_STEP_TICKS));
         BoardSessionManager.markChanged(player.level());
         preview(player.level(), session);
@@ -38,6 +38,7 @@ public class BoardRouteService {
         BoardNode node = session.nodes().get(participant.currentNodeKey());
         if (node == null || node.next().isEmpty()) return List.of();
         List<String> choices = new ArrayList<>(node.next());
+        if (HandcardRedirection.hasFreeDirection(participant)) return List.copyOf(choices);
         if (!participant.hasPreviousNode() && choices.size() > 1) return List.of(choices.getFirst());
         if (participant.hasPreviousNode() && choices.size() > 1) choices.remove(participant.previousNodeKey());
         return choices.isEmpty() ? node.next() : List.copyOf(choices);
@@ -63,6 +64,7 @@ public class BoardRouteService {
                 queue.add(next);
             }
         }
+
         return -1;
     }
 
@@ -72,10 +74,11 @@ public class BoardRouteService {
             broadcastState(session, false, List.of(), List.of(), List.of());
             return;
         }
+
         BoardParticipant participant = session.participant(movement.slotId()).orElse(null);
         if (participant == null) return;
         List<List<String>> paths = possiblePaths(session, participant.currentNodeKey(), participant.previousNodeKey(),
-                movement.remainingSteps());
+                movement.remainingSteps(), HandcardRedirection.hasFreeDirection(participant));
         List<List<String>> highlightedPaths = startOpportunityPaths(session, participant, paths);
         broadcastState(session, true, routePositions(session, paths), routePositions(session, highlightedPaths),
                 nodePositions(session, movement.branchChoices()));
@@ -106,16 +109,14 @@ public class BoardRouteService {
         }
     }
 
-    private static List<List<String>> possiblePaths(BoardSession session, String start, String previous, int steps) {
+    private static List<List<String>> possiblePaths(BoardSession session, String start, String previous, int steps, boolean freeDirection) {
         List<List<String>> result = new ArrayList<>();
-        collectPaths(session, start, previous, steps, new ArrayList<>(List.of(start)), result);
+        collectPaths(session, start, previous, steps, freeDirection,
+                new ArrayList<>(List.of(start)), result);
         return result;
     }
 
-    private static List<List<String>> startOpportunityPaths(BoardSession session, BoardParticipant participant,
-                                                             List<List<String>> paths) {
-        int cost = StartPlatform.nextStarCost(participant.stats().stars());
-        if (participant.stats().stars() >= 3 || cost <= 0 || participant.stats().starCoins() < cost) return List.of();
+    private static List<List<String>> startOpportunityPaths(BoardSession session, BoardParticipant participant, List<List<String>> paths) {
         Set<String> startNodes = Set.copyOf(session.startNodes());
         return paths.stream().filter(path -> {
             if (path.size() < 2) return false;
@@ -125,26 +126,31 @@ public class BoardRouteService {
     }
 
     private static void collectPaths(BoardSession session, String current, String previous, int remaining,
-                                     List<String> path, List<List<String>> result) {
+                                     boolean freeDirection, List<String> path, List<List<String>> result) {
         if (result.size() >= BoardSessionManager.MAX_ROUTE_BRANCHES) return;
         if (remaining <= 0) {
             result.add(List.copyOf(path));
             return;
         }
+
         BoardNode node = session.nodes().get(current);
         if (node == null || node.next().isEmpty()) {
             result.add(List.copyOf(path));
             return;
         }
+
         List<String> choices = new ArrayList<>(node.next());
-        if ((previous == null || previous.isBlank()) && choices.size() > 1) {
-            choices = new ArrayList<>(List.of(choices.getFirst()));
-        } else if (previous != null && !previous.isBlank() && choices.size() > 1) {
-            choices.remove(previous);
+        if (!freeDirection) {
+            if ((previous == null || previous.isBlank()) && choices.size() > 1) {
+                choices = new ArrayList<>(List.of(choices.getFirst()));
+            } else if (previous != null && !previous.isBlank() && choices.size() > 1) {
+                choices.remove(previous);
+            }
         }
+
         for (String next : choices) {
             path.add(next);
-            collectPaths(session, next, current, remaining - 1, path, result);
+            collectPaths(session, next, current, remaining - 1, false, path, result);
             path.removeLast();
             if (result.size() >= BoardSessionManager.MAX_ROUTE_BRANCHES) break;
         }
@@ -156,14 +162,12 @@ public class BoardRouteService {
             List<BlockPos> positions = nodePositions(session, path);
             if (positions.size() >= 2) result.add(positions);
         }
+
         return List.copyOf(result);
     }
 
     private static List<BlockPos> nodePositions(BoardSession session, List<String> nodeIds) {
-        return nodeIds.stream()
-                .map(session.positions()::get)
-                .filter(Objects::nonNull)
-                .toList();
+        return nodeIds.stream().map(session.positions()::get).filter(Objects::nonNull).toList();
     }
 
 }
