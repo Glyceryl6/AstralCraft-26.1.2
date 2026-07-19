@@ -171,7 +171,7 @@ public class BoardRouteWorldRenderer {
 
         private static final UUID EMPTY_BOARD_ID = new UUID(0L, 0L);
         private static final RouteState EMPTY = new RouteState(EMPTY_BOARD_ID,
-                List.<List<Vec3>>of(), List.<List<Vec3>>of(), List.<Vec3>of(), 0.0D, false);
+                List.of(), List.of(), List.of(), 0.0D, false);
 
         private static RouteState from(BoardRouteStatePayload payload) {
             return new RouteState(payload.boardId(), toPaths(payload.routes()),

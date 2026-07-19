@@ -1,11 +1,6 @@
 package com.astral_craft.common.items;
 
-import com.astral_craft.common.gameplay.board.BoardPhase;
-import com.astral_craft.common.gameplay.board.BoardSavedData;
-import com.astral_craft.common.gameplay.board.BoardSession;
-import com.astral_craft.common.gameplay.board.BoardLobbyService;
-import com.astral_craft.common.gameplay.board.BoardProtectionService;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,6 +25,11 @@ public class BoardLobbyItem extends Item {
         }
         if (session.phase() == BoardPhase.PLAYING) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
+            return InteractionResult.FAIL;
+        }
+        if (!session.mechanics().hasCompleteCharacterStarts()) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.incomplete",
+                    session.mechanics().characterStartNodes().size(), 4), true);
             return InteractionResult.FAIL;
         }
 
