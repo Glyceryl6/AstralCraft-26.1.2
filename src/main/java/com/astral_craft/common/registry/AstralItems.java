@@ -60,8 +60,7 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_START_MARKER = register("board_start_marker", BoardStartMarkerItem::new, Item.Properties::new);
-    public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new,
-            () -> new Item.Properties().stacksTo(99));
+    public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new, () -> new Item.Properties().stacksTo(99));
 
     // Handcard
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCombatCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION, 1, 3);
@@ -136,7 +135,8 @@ public class AstralItems {
     }
 
     public static DeferredHolder<Item, ? extends Item> registerCard(
-            String name, Function<Item.Properties, Item> itemFactory, CardType cardType, CardDefinition definition) {
+            String name, Function<Item.Properties, Item> itemFactory,
+            CardType cardType, CardDefinition definition) {
         CardDefinition resolvedDefinition = definition.withType(cardType);
         DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
                 new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)

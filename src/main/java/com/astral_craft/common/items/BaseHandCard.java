@@ -53,6 +53,11 @@ public class BaseHandCard extends Item {
         return false;
     }
 
+    /** Keep the board hand closed until this card has actually damaged at least one target. */
+    public boolean waitForBoardDamageBeforeReopen() {
+        return false;
+    }
+
     public boolean allowsSelfTarget() {
         return false;
     }

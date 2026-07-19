@@ -16,6 +16,7 @@ import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealEntityPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.network.CardTargetCandidate;
@@ -36,13 +37,18 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.*;
+import java.util.UUID;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 public class CardUseService {
 
     /** Keep this in step with CardRevealOverlay.defaultFlipDurationTicks(). */
     public static final int CARD_REVEAL_DURATION_TICKS = 43;
     public static final int CARD_APPROACH_REVEAL_DURATION_TICKS = 28;
+    public static final int CARD_EFFECT_POST_REVEAL_DELAY_TICKS = 30;
     public static final int DECK_CARD_HAND_INDEX = -2;
     public static final int BOARD_CARD_HAND_INDEX_BASE = -1000;
 
@@ -179,8 +185,19 @@ public class CardUseService {
         List<ServerPlayer> revealViewers = revealViewers(card, serverPlayer, definition, List.of(), useContext);
         if (!revealViewers.isEmpty()) {
             ItemStack source = stack.copyWithCount(1);
-            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, revealLockTicks(CARD_REVEAL_DURATION_TICKS),
-                    () -> card.onRevealFinished(serverPlayer, hand, source, definition))) {
+            if (useContext.boardCard()) {
+                BoardSessionManager.findByController(serverPlayer).ifPresent(session ->
+                        PendingCardActionManager.beginBoardCardUi(serverPlayer, session.id(),
+                                card.waitForBoardDamageBeforeReopen()));
+            }
+            int delay = revealLockTicks(CARD_REVEAL_DURATION_TICKS) + CARD_EFFECT_POST_REVEAL_DELAY_TICKS;
+            if (!PendingCardActionManager.scheduleExclusive(serverPlayer, delay, () -> {
+                boolean applied = card.onRevealFinished(serverPlayer, hand, source, definition);
+                if (useContext.boardCard() && (!applied || !card.waitForBoardDamageBeforeReopen())) {
+                    PendingCardActionManager.completeBoardCardUi(serverPlayer);
+                }
+            })) {
+                if (useContext.boardCard()) PendingCardActionManager.completeBoardCardUi(serverPlayer);
                 return CardUseResult.consumed();
             }
 
@@ -217,7 +234,10 @@ public class CardUseService {
         if (boardCard) {
             card = requestedCard;
             stack = BoardSessionManager.boardCardStack(player, boardCardIndex(payload.handIndex()));
-            if (stack.isEmpty() || stack.getItem() != requestedItem) return;
+            if (stack.isEmpty() || stack.getItem() != requestedItem) {
+                reopenBoardTurn(player);
+                return;
+            }
         } else if (deckCard) {
             card = requestedCard;
             stack = AstralHandCardManager.firstInventoryCardStack(player, payload.cardStack());
@@ -233,18 +253,31 @@ public class CardUseService {
         }
 
         CardDefinition definition = card.definition(stack);
-        if (!card.canUse(player, stack)) return;
+        if (!card.canUse(player, stack)) {
+            if (boardCard) reopenBoardTurn(player);
+            return;
+        }
         Component restrictionMessage = useRestrictionMessage(player, definition);
         if (restrictionMessage != null) {
             player.sendSystemMessage(restrictionMessage, true);
+            if (boardCard) reopenBoardTurn(player);
             return;
         }
 
-        if (!definition.needsTarget()) return;
+        if (!definition.needsTarget()) {
+            if (boardCard) reopenBoardTurn(player);
+            return;
+        }
         if (payload.selectedEntityIds().size() < definition.minTargets()
-                || payload.selectedEntityIds().size() > definition.maxTargets()) return;
+                || payload.selectedEntityIds().size() > definition.maxTargets()) {
+            if (boardCard) reopenBoardTurn(player);
+            return;
+        }
         Set<Integer> uniqueEntityIds = new LinkedHashSet<>(payload.selectedEntityIds());
-        if (uniqueEntityIds.size() != payload.selectedEntityIds().size()) return;
+        if (uniqueEntityIds.size() != payload.selectedEntityIds().size()) {
+            if (boardCard) reopenBoardTurn(player);
+            return;
+        }
         int effectiveRange = CardRangeResolver.effectiveRange(player, stack, definition);
         List<LivingEntity> targets = new ArrayList<>(uniqueEntityIds.size());
         for (int entityId : uniqueEntityIds) {
@@ -253,6 +286,7 @@ public class CardUseService {
                     || !(boardCard
                     ? BoardSessionManager.isValidBoardTarget(player, living, stack, definition, card, effectiveRange)
                     : CardTargeting.isValidTarget(player, living, stack, definition, card))) {
+                if (boardCard) reopenBoardTurn(player);
                 return;
             }
 
@@ -264,12 +298,39 @@ public class CardUseService {
                 CardUseContext.fromHandIndex(payload.handIndex()));
         if (!revealViewers.isEmpty()) {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
-            if (!PendingCardActionManager.scheduleExclusive(player, revealLockTicks(CARD_REVEAL_DURATION_TICKS),
-                    () -> card.applyFromSelection(player, hand, capturedTargets))) {
+            ItemStack sourceStack = stack.copyWithCount(1);
+            UUID revealId = UUID.randomUUID();
+            boolean holdInitialReveal = boardCard && PendingCounterEffectManager.hasBoardCounter(player, capturedTargets);
+            if (boardCard) {
+                BoardSessionManager.findByController(player).ifPresent(session ->
+                        PendingCardActionManager.beginBoardCardUi(player, session.id(),
+                                card.waitForBoardDamageBeforeReopen()));
+            }
+            int delay = revealLockTicks(CARD_REVEAL_DURATION_TICKS)
+                    + (holdInitialReveal ? 0 : CARD_EFFECT_POST_REVEAL_DELAY_TICKS);
+            if (!PendingCardActionManager.scheduleExclusive(player, delay, () -> {
+                if (boardCard) {
+                    PendingCounterEffectManager.offerBoardCard(player, sourceStack, definition, capturedTargets,
+                            holdInitialReveal ? revealId : null,
+                            redirectedTargets -> card.applyFromSelection(player, hand, redirectedTargets));
+                } else {
+                    card.applyFromSelection(player, hand, capturedTargets);
+                }
+            })) {
+                if (boardCard) PendingCardActionManager.completeBoardCardUi(player);
                 return;
             }
 
-            sendReveal(player, stack, definition, revealViewers, targets,
+            CardRevealPayload revealPayload = cardRevealPayload(player, sourceStack, definition, targets,
+                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS, revealId);
+            for (ServerPlayer viewer : revealViewers) {
+                PacketDistributor.sendToPlayer(viewer, revealPayload);
+                if (holdInitialReveal) {
+                    PacketDistributor.sendToPlayer(viewer, new CardRevealControlPayload(revealId,
+                            CardRevealControlPayload.Action.HOLD));
+                }
+            }
+            sendEntityRevealAround(player, sourceStack, definition,
                     CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
         } else if (card.applyFromSelection(player, hand, targets)) {
@@ -324,9 +385,15 @@ public class CardUseService {
         sendEntityRevealAround(owner, stack, definition, animation, durationTicks);
     }
 
-    protected static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,
-                                                         List<? extends LivingEntity> targets, Identifier animation,
-                                                         int durationTicks) {
+    public static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,
+                                                      List<? extends LivingEntity> targets, Identifier animation,
+                                                      int durationTicks) {
+        return cardRevealPayload(owner, stack, definition, targets, animation, durationTicks, UUID.randomUUID());
+    }
+
+    public static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,
+                                                      List<? extends LivingEntity> targets, Identifier animation,
+                                                      int durationTicks, UUID revealId) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         int sourceEntityId = BoardEntityService.revealSourceEntityId(owner);
         List<Integer> targetEntityIds = targets == null || targets.isEmpty()
@@ -336,7 +403,7 @@ public class CardUseService {
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
                 definition.largeFrontTexture(stack),
                 definition.largeBackTextureOverride().orElseGet(() -> CardBackPreferenceManager.selectedTexture(owner)),
-                animation, durationTicks, sourceEntityId, targetEntityIds);
+                animation, durationTicks, sourceEntityId, targetEntityIds, revealId);
     }
 
     protected static ItemStack revealStack(ItemStack stack) {
@@ -418,6 +485,11 @@ public class CardUseService {
             return new CardUseContext(true, handIndex, true, false);
         }
 
+    }
+
+    private static void reopenBoardTurn(ServerPlayer player) {
+        BoardSessionManager.findByController(player)
+                .ifPresent(session -> BoardSessionManager.reopenTurnScreen(player, session.id()));
     }
 
     private static void consumeAfterAcceptedUse(ServerPlayer player, ItemStack stack, boolean consumeStack, int handIndex) {

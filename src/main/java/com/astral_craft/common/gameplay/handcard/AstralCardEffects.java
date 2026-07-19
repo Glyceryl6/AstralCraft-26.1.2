@@ -76,6 +76,7 @@ public class AstralCardEffects {
         }
         if (target instanceof AstralCharacterEntity character && character.isBoardPawn()) {
             character.applyBoardDamage(finalDamage);
+            PendingCardActionManager.notifyBoardDamage(source);
             return;
         }
         if (target instanceof ServerPlayer player) {

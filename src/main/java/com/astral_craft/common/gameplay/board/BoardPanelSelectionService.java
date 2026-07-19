@@ -27,7 +27,8 @@ public class BoardPanelSelectionService {
         return PENDING.containsKey(player.getUUID());
     }
 
-    public static boolean begin(ServerPlayer player, ItemStack cardStack, int handIndex, BoardPanelPlacementCard placementCard) {
+    public static boolean begin(ServerPlayer player, ItemStack cardStack, int handIndex,
+                                BoardPanelPlacementCard placementCard) {
         BoardSession session = BoardSessionManager.findByController(player).orElse(null);
         BoardParticipant source = session == null ? null : session.participantByController(player.getUUID()).orElse(null);
         if (session == null || source == null || !CardUseService.isBoardHandIndex(handIndex)) return false;
@@ -65,20 +66,31 @@ public class BoardPanelSelectionService {
                     || !validNodes(refreshed, refreshedSource, pending.range()).contains(nodeId)) return;
             BoardWorldObjectService.placeTrap(player.level(), refreshed, pending.type(), refreshedSource.slotUuid(), nodeId);
             BoardSessionManager.consumeBoardCard(player, cardIndex);
+            if (pending.revealWhenPlaced()) {
+                PendingCardActionManager.completeBoardCardUi(player);
+            } else {
+                BoardSessionManager.reopenTurnScreen(player, pending.boardId());
+            }
         };
         if (pending.revealWhenPlaced() && pending.cardStack().getItem() instanceof BaseHandCard card) {
+            PendingCardActionManager.beginBoardCardUi(player, pending.boardId(), false);
             var definition = card.definition(pending.cardStack());
             for (ServerPlayer viewer : BoardSessionManager.humanPlayers(player.level(), session)) {
                 CardUseService.sendReveal(viewer, pending.cardStack(), player, definition,
                         CardRevealPayload.ANIMATION_FLIP, CardUseService.CARD_REVEAL_DURATION_TICKS);
             }
-            PendingCardActionManager.scheduleExclusive(player, CardUseService.CARD_REVEAL_DURATION_TICKS, apply);
+            if (!PendingCardActionManager.scheduleExclusive(player,
+                    CardUseService.CARD_REVEAL_DURATION_TICKS + CardUseService.CARD_EFFECT_POST_REVEAL_DELAY_TICKS,
+                    apply)) {
+                PendingCardActionManager.completeBoardCardUi(player);
+            }
         } else {
             apply.run();
         }
     }
 
-    public static Optional<String> randomValidNode(BoardSession session, BoardParticipant source, int range, RandomSource random) {
+    public static Optional<String> randomValidNode(BoardSession session, BoardParticipant source,
+                                                   int range, RandomSource random) {
         List<String> nodes = validNodes(session, source, range);
         return nodes.isEmpty() ? Optional.empty() : Optional.of(nodes.get(random.nextInt(nodes.size())));
     }

@@ -31,4 +31,9 @@ public class HandcardSlingshot extends BaseHandCard implements BoardBotEffect {
         return context.targetSlotIds().isEmpty() ? 0 : context.slingshot(context.targetSlotIds().getFirst(), 2);
     }
 
+    @Override
+    public boolean waitForBoardDamageBeforeReopen() {
+        return true;
+    }
+
 }

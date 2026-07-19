@@ -31,4 +31,9 @@ public class HandcardSnowballAttack extends BaseHandCard implements BoardBotEffe
         return context.targetSlotIds().isEmpty() ? 0 : context.snowball(context.targetSlotIds().getFirst(), 1);
     }
 
+    @Override
+    public boolean waitForBoardDamageBeforeReopen() {
+        return true;
+    }
+
 }

@@ -1,7 +1,11 @@
 package com.astral_craft.common.gameplay.handcard;
 
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +28,9 @@ public class PendingCardActionManager {
     private static final Set<UUID> EXCLUSIVE_OWNERS = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, PendingTargetSelection> TARGET_SELECTIONS = new ConcurrentHashMap<>();
     private static final Map<UUID, PendingNumberSelection> NUMBER_SELECTIONS = new ConcurrentHashMap<>();
+    private static final Map<UUID, PendingBoardUi> BOARD_UI = new ConcurrentHashMap<>();
     private static final int SELECTION_TIMEOUT_TICKS = 20 * 30;
+    private static final int BOARD_UI_TIMEOUT_TICKS = 20 * 120;
 
     public static void schedule(ServerPlayer player, int delayTicks, Runnable action) {
         ACTIONS.add(new PendingAction(player.getUUID(), Math.max(0, delayTicks), action, false));
@@ -52,8 +58,43 @@ public class PendingCardActionManager {
         UUID owner = player.getUUID();
         TARGET_SELECTIONS.remove(owner);
         NUMBER_SELECTIONS.remove(owner);
+        BOARD_UI.remove(owner);
         EXCLUSIVE_OWNERS.remove(owner);
         ACTIONS.removeIf(action -> action.owner.equals(owner));
+    }
+
+
+    public static void beginBoardCardUi(ServerPlayer player, UUID boardId, boolean waitForDamage) {
+        if (player == null || boardId == null) return;
+        BOARD_UI.put(player.getUUID(), new PendingBoardUi(boardId, waitForDamage,
+                player.level().getGameTime(), BOARD_UI_TIMEOUT_TICKS));
+    }
+
+    public static void completeBoardCardUi(ServerPlayer player) {
+        if (player == null) return;
+        PendingBoardUi pending = BOARD_UI.remove(player.getUUID());
+        if (pending != null) {
+            BoardSessionManager.resumeAfterCardUi(player, pending.boardId(),
+                    Math.max(0L, player.level().getGameTime() - pending.startedAtTick()));
+        }
+    }
+
+    public static void notifyBoardDamage(LivingEntity source) {
+        ServerPlayer controller = source instanceof ServerPlayer player ? player
+                : source instanceof AstralCharacterEntity character
+                ? BoardSessionManager.controllerFor(character).orElse(null) : null;
+        if (controller == null) return;
+        PendingBoardUi pending = BOARD_UI.get(controller.getUUID());
+        if (pending != null && pending.waitForDamage()) completeBoardCardUi(controller);
+    }
+
+    public static boolean waitsForBoardDamage(ServerPlayer player) {
+        PendingBoardUi pending = player == null ? null : BOARD_UI.get(player.getUUID());
+        return pending != null && pending.waitForDamage();
+    }
+
+    public static boolean hasBoardCardUi(ServerPlayer player) {
+        return player != null && BOARD_UI.containsKey(player.getUUID());
     }
 
     public static void beginTargetSelection(ServerPlayer player, ItemStack cardStack, int handIndex) {
@@ -100,6 +141,18 @@ public class PendingCardActionManager {
         TARGET_SELECTIONS.entrySet().removeIf(entry -> entry.getValue().expired());
         NUMBER_SELECTIONS.replaceAll((_, selection) -> selection.tick());
         NUMBER_SELECTIONS.entrySet().removeIf(entry -> entry.getValue().expired());
+        BOARD_UI.replaceAll((_, pending) -> pending.tick());
+        for (Map.Entry<UUID, PendingBoardUi> entry : Set.copyOf(BOARD_UI.entrySet())) {
+            if (!entry.getValue().expired()) continue;
+            PendingBoardUi pending = BOARD_UI.remove(entry.getKey());
+            if (pending == null) continue;
+            ServerPlayer player = ServerLifecycleHooks.getCurrentServer() == null ? null
+                    : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(entry.getKey());
+            if (player != null) {
+                BoardSessionManager.resumeAfterCardUi(player, pending.boardId(),
+                        Math.max(0L, player.level().getGameTime() - pending.startedAtTick()));
+            }
+        }
     }
 
     public record PendingTargetSelection(ItemStack cardStack, int handIndex, int ticksLeft) {
@@ -115,6 +168,17 @@ public class PendingCardActionManager {
     public record PendingNumberSelection(ItemStack cardStack, int minValue, int maxValue, int ticksLeft) {
         private PendingNumberSelection tick() {
             return new PendingNumberSelection(this.cardStack, this.minValue, this.maxValue, this.ticksLeft - 1);
+        }
+
+        private boolean expired() {
+            return this.ticksLeft <= 0;
+        }
+    }
+
+
+    private record PendingBoardUi(UUID boardId, boolean waitForDamage, long startedAtTick, int ticksLeft) {
+        private PendingBoardUi tick() {
+            return new PendingBoardUi(this.boardId, this.waitForDamage, this.startedAtTick, this.ticksLeft - 1);
         }
 
         private boolean expired() {

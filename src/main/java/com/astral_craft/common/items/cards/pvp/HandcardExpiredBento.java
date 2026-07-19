@@ -32,4 +32,9 @@ public class HandcardExpiredBento extends BaseHandCard implements BoardBotEffect
         return 0;
     }
 
+    @Override
+    public boolean waitForBoardDamageBeforeReopen() {
+        return true;
+    }
+
 }
