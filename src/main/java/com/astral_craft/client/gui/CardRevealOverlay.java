@@ -1,6 +1,7 @@
 package com.astral_craft.client.gui;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gui.board.BoardTurnScreen;
 import com.astral_craft.client.gui.reveal.ApproachCardRevealAnimation;
 import com.astral_craft.client.gui.reveal.CardReveal;
 import com.astral_craft.client.gui.reveal.CardRevealAnimation;
@@ -77,6 +78,8 @@ public class CardRevealOverlay {
                 PENDING.addLast(reveal);
             }
         }
+
+        BoardTurnScreen.restorePendingCounterScreen();
     }
 
     public static void control(CardRevealControlPayload payload, IPayloadContext context) {
@@ -89,6 +92,7 @@ public class CardRevealOverlay {
         if (active != null && active.revealId().equals(payload.revealId())) {
             if (hold) {
                 active = active.withHeld(true);
+                BoardTurnScreen.restorePendingCounterScreen();
             } else {
                 active = pollNextReveal(ClientAnimationClock.nowTicks());
             }
@@ -99,6 +103,7 @@ public class CardRevealOverlay {
             PENDING_CONTROLS.put(payload.revealId(), payload.action());
             return;
         }
+
         boolean matched = false;
         Deque<CardReveal> replaced = new ArrayDeque<>();
         while (!PENDING.isEmpty()) {
@@ -110,8 +115,10 @@ public class CardRevealOverlay {
                 replaced.addLast(reveal);
             }
         }
+
         PENDING.addAll(replaced);
         if (!matched) PENDING_CONTROLS.put(payload.revealId(), payload.action());
+        if (hold) BoardTurnScreen.restorePendingCounterScreen();
     }
 
     public static boolean isActive() {

@@ -48,7 +48,7 @@ public class CardUseService {
     /** Keep this in step with CardRevealOverlay.defaultFlipDurationTicks(). */
     public static final int CARD_REVEAL_DURATION_TICKS = 43;
     public static final int CARD_APPROACH_REVEAL_DURATION_TICKS = 28;
-    public static final int CARD_EFFECT_POST_REVEAL_DELAY_TICKS = 30;
+    public static final int CARD_EFFECT_POST_REVEAL_DELAY_TICKS = 0;
     public static final int DECK_CARD_HAND_INDEX = -2;
     public static final int BOARD_CARD_HAND_INDEX_BASE = -1000;
 
@@ -105,6 +105,19 @@ public class CardUseService {
         }
         return tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack,
                 CardUseContext.board(cardIndex)).accept();
+    }
+
+    public static boolean canPreviewBoardCard(ServerPlayer player, ItemStack stack) {
+        if (player == null || stack.isEmpty() || !(stack.getItem() instanceof BaseHandCard card)) return false;
+        CardDefinition definition = card.definition(stack);
+        if (definition.type() != CardType.EFFECT || definition.isCombatOnly()
+                || !card.canUse(player, stack) || useRestrictionMessage(player, definition) != null) return false;
+        if (card instanceof BoardPanelPlacementCard placementCard) {
+            return BoardPanelSelectionService.hasValidNode(player, placementCard.boardPlacementRange());
+        }
+        if (!definition.needsTarget()) return true;
+        int effectiveRange = CardRangeResolver.effectiveRange(player, stack, definition);
+        return !BoardSessionManager.cardCandidates(player, stack, definition, card, effectiveRange).isEmpty();
     }
 
     public static int boardHandIndex(int cardIndex) {

@@ -220,7 +220,7 @@ public class BoardSessionManager {
         int remainingTicks = currentTurn ? (int) Math.clamp(
                 session.actionDeadlineTick() - player.level().getGameTime(), 0L, durationTicks) : 0;
         PacketDistributor.sendToPlayer(player, new OpenBoardTurnPayload(session.id(), entity.getId(),
-                cardViews(participant.hand()), participant.cardPlaysUsed(), participant.stats().cardPlaysPerTurn(),
+                turnCardViews(player, participant), participant.cardPlaysUsed(), participant.stats().cardPlaysPerTurn(),
                 participant.skillCooldownTurns(), remainingTicks, durationTicks,
                 participant.characterId(), participant.skinId(), currentTurn, false));
     }
@@ -397,8 +397,7 @@ public class BoardSessionManager {
         return true;
     }
 
-    public static boolean consumeCounterCard(ServerLevel level, BoardSession session,
-                                             BoardParticipant participant, int index) {
+    public static boolean consumeCounterCard(ServerLevel level, BoardSession session, BoardParticipant participant, int index) {
         if (level == null || session == null || participant == null
                 || index < 0 || index >= participant.hand().size()) return false;
         Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
@@ -414,8 +413,7 @@ public class BoardSessionManager {
         if (entity == null) return;
         List<BoardCardView> counterCards = cardViews(participant.hand()).stream()
                 .filter(view -> view.stack().getItem() instanceof BaseHandCard card
-                        && card.definition(view.stack()).type() == CardType.COUNTER)
-                .toList();
+                        && card.definition(view.stack()).type() == CardType.COUNTER).toList();
         int duration = Math.max(1, responseTicks);
         PacketDistributor.sendToPlayer(player, new OpenBoardTurnPayload(session.id(), entity.getId(),
                 counterCards, participant.cardPlaysUsed(), participant.stats().cardPlaysPerTurn(),
@@ -833,7 +831,8 @@ public class BoardSessionManager {
             return true;
         }
 
-        session.mechanics().setTimeBombSlot(nextActionSlot(session, participant.slotUuid()));
+        Optional<UUID> nextBombSlot = nextTimeBombSlot(session, participant.slotUuid());
+        session.mechanics().setTimeBombSlot(nextBombSlot.isPresent() ? nextBombSlot : Optional.of(participant.slotUuid()));
         markChanged(level);
         BoardParticipant refreshed = session.participant(participant.slotUuid()).orElse(participant);
         if (refreshed.knockedDown()) {
@@ -852,8 +851,21 @@ public class BoardSessionManager {
         return Optional.of(session.turnOrder().get((index + 1) % session.turnOrder().size()));
     }
 
+    private static Optional<UUID> nextTimeBombSlot(BoardSession session, UUID currentSlotId) {
+        if (session == null || session.turnOrder().isEmpty() || currentSlotId == null) return Optional.empty();
+        int currentIndex = session.turnOrder().indexOf(currentSlotId);
+        if (currentIndex < 0) currentIndex = session.turnOrder().size() - 1;
+        for (int offset = 1; offset < session.turnOrder().size(); offset++) {
+            UUID slotId = session.turnOrder().get((currentIndex + offset) % session.turnOrder().size());
+            BoardParticipant participant = session.participant(slotId).orElse(null);
+            if (participant != null && participant.knockedDownTurns() <= 1) return Optional.of(slotId);
+        }
+
+        return Optional.empty();
+    }
+
     public static boolean giveTimeBombToNext(ServerLevel level, BoardSession session, UUID sourceSlotId) {
-        Optional<UUID> next = nextActionSlot(session, sourceSlotId);
+        Optional<UUID> next = nextTimeBombSlot(session, sourceSlotId);
         if (next.isEmpty()) return false;
         session.mechanics().setTimeBombSlot(next);
         markChanged(level);
@@ -1094,6 +1106,7 @@ public class BoardSessionManager {
             boolean resolvesLanding = naturalLanding || trapResult.stopped();
             if (resolvesLanding && !participant.knockedDown()) {
                 BoardWorldObjectService.pickupAtArrival(level, session, participant);
+                participant = session.participant(movement.slotId()).orElse(participant);
             }
             movement = session.movement() == null ? movement : session.movement();
             if (movement == null) return;
@@ -1493,6 +1506,17 @@ public class BoardSessionManager {
 
         if (candidates.isEmpty()) return Optional.empty();
         return Optional.of(candidates.get(level.getRandom().nextInt(candidates.size())));
+    }
+
+    private static List<BoardCardView> turnCardViews(ServerPlayer player, BoardParticipant participant) {
+        List<BoardCardView> cards = new ArrayList<>();
+        for (int index = 0; index < participant.hand().size(); index++) {
+            Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
+            if (!(item instanceof BaseHandCard)) continue;
+            ItemStack stack = new ItemStack(item);
+            cards.add(new BoardCardView(index, stack, CardUseService.canPreviewBoardCard(player, stack)));
+        }
+        return List.copyOf(cards);
     }
 
     private static List<BoardCardView> cardViews(List<Identifier> hand) {

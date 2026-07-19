@@ -55,6 +55,7 @@ public class BoardTurnScreen extends Screen {
     private int dragOffsetX;
     private int dragOffsetY;
     private int requestLockTicks;
+    private static OpenBoardTurnPayload pendingCounterPayload;
 
     public BoardTurnScreen(OpenBoardTurnPayload payload) {
         super(Component.translatable("gui.astral_craft.board.turn"));
@@ -66,15 +67,30 @@ public class BoardTurnScreen extends Screen {
 
     public static void open(OpenBoardTurnPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            Screen current = Minecraft.getInstance().screen;
-            if (current instanceof BoardTurnScreen boardTurnScreen
-                    && boardTurnScreen.boardId.equals(payload.boardId())
-                    && boardTurnScreen.characterEntityId == payload.characterEntityId()) {
-                boardTurnScreen.refresh(payload);
-            } else {
-                Minecraft.getInstance().setScreen(new BoardTurnScreen(payload));
-            }
+            if (payload.counterResponse()) pendingCounterPayload = payload;
+            else pendingCounterPayload = null;
+            openNow(payload);
         });
+    }
+
+    public static void restorePendingCounterScreen() {
+        OpenBoardTurnPayload payload = pendingCounterPayload;
+        if (payload != null) openNow(payload);
+    }
+
+    private static void clearPendingCounterScreen() {
+        pendingCounterPayload = null;
+    }
+
+    private static void openNow(OpenBoardTurnPayload payload) {
+        Screen current = Minecraft.getInstance().screen;
+        if (current instanceof BoardTurnScreen boardTurnScreen
+                && boardTurnScreen.boardId.equals(payload.boardId())
+                && boardTurnScreen.characterEntityId == payload.characterEntityId()) {
+            boardTurnScreen.refresh(payload);
+        } else {
+            Minecraft.getInstance().setScreen(new BoardTurnScreen(payload));
+        }
     }
 
     private void refresh(OpenBoardTurnPayload payload) {
@@ -106,8 +122,10 @@ public class BoardTurnScreen extends Screen {
         super.tick();
         if (this.decisionTicks > 0) this.decisionTicks--;
         if (this.requestLockTicks > 0) this.requestLockTicks--;
-        if (this.counterResponse && this.decisionTicks <= 0
-                && Minecraft.getInstance().screen == this) this.onClose();
+        if (this.counterResponse && this.decisionTicks <= 0 && Minecraft.getInstance().screen == this) {
+            clearPendingCounterScreen();
+            this.onClose();
+        }
     }
 
     @Override
@@ -183,6 +201,7 @@ public class BoardTurnScreen extends Screen {
     }
 
     private boolean canPlayCard(BoardCard card) {
+        if (!card.playable()) return false;
         if (this.counterResponse) {
             return this.requestLockTicks <= 0 && card.definition().type() == CardType.COUNTER;
         }
@@ -196,6 +215,7 @@ public class BoardTurnScreen extends Screen {
         Layout layout = this.layout();
         if (inside(event.x(), event.y(), layout.leaveX(), layout.leaveY(), layout.leaveW(), 22)) {
             if (this.counterResponse) {
+                clearPendingCounterScreen();
                 ClientPacketDistributor.sendToServer(new BoardCounterResponsePayload(this.boardId, -1));
             } else {
                 ClientPacketDistributor.sendToServer(new BoardLeavePayload(this.boardId));
@@ -249,6 +269,7 @@ public class BoardTurnScreen extends Screen {
             if (event.y() < this.layout().top() - 6 && this.canPlayCard(this.cards.get(index))) {
                 this.requestLockTicks = 8;
                 if (this.counterResponse) {
+                    clearPendingCounterScreen();
                     ClientPacketDistributor.sendToServer(new BoardCounterResponsePayload(
                             this.boardId, this.cards.get(index).originalIndex()));
                 } else {
@@ -315,7 +336,7 @@ public class BoardTurnScreen extends Screen {
             if (definition == null && stack.getItem() instanceof BaseHandCard card) {
                 definition = card.definition(stack);
             }
-            if (definition != null) result.add(new BoardCard(view.handIndex(), stack, definition));
+            if (definition != null) result.add(new BoardCard(view.handIndex(), stack, definition, view.playable()));
         }
         return List.copyOf(result);
     }
@@ -324,7 +345,7 @@ public class BoardTurnScreen extends Screen {
         return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
-    private record BoardCard(int originalIndex, ItemStack stack, CardDefinition definition) {}
+    private record BoardCard(int originalIndex, ItemStack stack, CardDefinition definition, boolean playable) {}
 
     private record Layout(int top, int cardLeft, int cardTop, int cardRight, int cardBottom, int cardY,
                           int moveX, int moveY, int moveSize, int skillX, int skillY, int skillW,

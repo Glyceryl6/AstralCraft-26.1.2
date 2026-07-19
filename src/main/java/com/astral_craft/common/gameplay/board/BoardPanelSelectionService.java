@@ -26,6 +26,12 @@ public class BoardPanelSelectionService {
         return PENDING.containsKey(player.getUUID());
     }
 
+    public static boolean hasValidNode(ServerPlayer player, int range) {
+        BoardSession session = BoardSessionManager.findByController(player).orElse(null);
+        BoardParticipant source = session == null ? null : session.participantByController(player.getUUID()).orElse(null);
+        return session != null && source != null && !validNodes(session, source, range).isEmpty();
+    }
+
     public static boolean begin(ServerPlayer player, ItemStack cardStack, int handIndex, BoardPanelPlacementCard placementCard) {
         BoardSession session = BoardSessionManager.findByController(player).orElse(null);
         BoardParticipant source = session == null ? null : session.participantByController(player.getUUID()).orElse(null);
