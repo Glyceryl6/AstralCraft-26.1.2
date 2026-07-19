@@ -21,12 +21,14 @@ import java.util.UUID;
 public class BoardRouteWorldRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
+    private static final int ROUTE_GLOW_COLOR = 0x558BE8FF;
     private static final int ROUTE_COLOR = 0xF08BE8FF;
     private static final int STAR_ROUTE_GLOW_COLOR = 0x66FFF19A;
     private static final int STAR_ROUTE_COLOR = 0xFFFFFFB8;
     private static final int BRANCH_COLOR = 0xFFFFD875;
     private static final int STAR_BRANCH_COLOR = 0xFFFFFF8A;
     private static final float ROUTE_Y_OFFSET = 0.555F;
+    private static final float ROUTE_GLOW_HALF_WIDTH = 0.16F;
     private static final float ROUTE_HALF_WIDTH = 0.075F;
     private static final float STAR_ROUTE_GLOW_HALF_WIDTH = 0.19F;
     private static final float STAR_ROUTE_HALF_WIDTH = 0.095F;
@@ -59,9 +61,10 @@ public class BoardRouteWorldRenderer {
         normalEdges.removeAll(highlightedEdges);
 
         for (Edge edge : normalEdges) {
-            submitDashedEdge(event, poseStack, cameraPos, edge, cycle,
-                    ROUTE_COLOR, ROUTE_HALF_WIDTH);
+            submitDashedEdge(event, poseStack, cameraPos, edge, cycle, ROUTE_GLOW_COLOR, ROUTE_GLOW_HALF_WIDTH);
+            submitDashedEdge(event, poseStack, cameraPos, edge, cycle, ROUTE_COLOR, ROUTE_HALF_WIDTH);
         }
+
         for (Edge edge : highlightedEdges) {
             submitSolidEdge(event, poseStack, cameraPos, edge, STAR_ROUTE_GLOW_COLOR, STAR_ROUTE_GLOW_HALF_WIDTH);
             submitSolidEdge(event, poseStack, cameraPos, edge, STAR_ROUTE_COLOR, STAR_ROUTE_HALF_WIDTH);
@@ -73,6 +76,7 @@ public class BoardRouteWorldRenderer {
         for (List<Vec3> path : current.highlightedPaths()) {
             if (path.size() >= 2) highlightedBranches.add(path.get(1));
         }
+
         for (Vec3 branch : current.branches()) {
             boolean highlighted = highlightedBranches.contains(branch);
             submitBranchMarker(event, poseStack, cameraPos, branchOrigin, branch, cycle,

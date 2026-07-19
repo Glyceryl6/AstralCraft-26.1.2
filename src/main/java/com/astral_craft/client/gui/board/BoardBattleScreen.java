@@ -288,10 +288,10 @@ public class BoardBattleScreen extends Screen {
 
         float victoryProgress = Mth.clamp((age - VICTORY_MOVE_START_TICK) / VICTORY_MOVE_TICKS, 0.0F, 1.0F);
         float victory = easeOutCubic(victoryProgress);
-        int winnerLeft = layout.x() + 18;
-        int winnerRight = layout.x() + layout.width() - 18;
-        int winnerTop = layout.y() + 34;
-        int winnerBottom = Math.max(winnerTop + 110, layout.cardY() - 2);
+        int winnerLeft = layout.x() + 20;
+        int winnerRight = layout.x() + layout.width() - 20;
+        int winnerTop = layout.y() + 6;
+        int winnerBottom = layout.y() + layout.height() - 8;
         int renderLeft = Math.round(Mth.lerp(victory, attackerLeft, winnerLeft));
         int renderRight = Math.round(Mth.lerp(victory, attackerRight, winnerRight));
         int renderTop = Math.round(Mth.lerp(victory, layout.modelTop(), winnerTop));
@@ -299,7 +299,7 @@ public class BoardBattleScreen extends Screen {
         float attackerOffsetX = Mth.lerp(victory, approachOffset, 0.0F);
         float attackerOffsetY = -(float) Math.sin(Math.PI * victoryProgress) * 8.0F;
         BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight,
-                renderBottom, -225.0F, 1.0F + victory * 0.08F,
+                renderBottom, -225.0F, 1.0F,
                 attackerOffsetX, attackerOffsetY, 0.0F);
     }
 
@@ -531,7 +531,9 @@ public class BoardBattleScreen extends Screen {
         if (flash > 0.0F) {
             int radius = Math.round(42.0F * flash + 14.0F);
             int alpha = Math.round(155.0F * flash);
-            graphics.fill(Math.max(0, centerX - radius), 0, this.width, Math.min(this.height, centerY + radius),
+            graphics.fill(Math.max(layout.x(), centerX - radius), layout.y(),
+                    layout.x() + layout.width(),
+                    Math.min(layout.y() + layout.height(), centerY + radius),
                     alpha << 24 | 0x00FFF1BD);
         }
 
@@ -599,11 +601,13 @@ public class BoardBattleScreen extends Screen {
     }
 
     private float explosionCenterX(Layout layout) {
-        return this.width + Math.clamp(layout.width() / 44.0F, 8.0F, 16.0F);
+        return layout.x() + layout.width()
+                + Math.clamp(layout.width() / 44.0F, 8.0F, 16.0F);
     }
 
     private float explosionCenterY(Layout layout) {
-        return -Math.clamp((layout.modelBottom() - layout.modelTop()) / 36.0F, 6.0F, 14.0F);
+        return layout.y()
+                - Math.clamp((layout.modelBottom() - layout.modelTop()) / 36.0F, 6.0F, 14.0F);
     }
 
     private void renderStatus(GuiGraphicsExtractor graphics, Layout layout) {
