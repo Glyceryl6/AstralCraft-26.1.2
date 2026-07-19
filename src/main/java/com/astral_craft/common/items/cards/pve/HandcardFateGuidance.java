@@ -1,35 +1,65 @@
 package com.astral_craft.common.items.cards.pve;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.components.CardUseRestriction;
+import com.astral_craft.common.gameplay.board.BoardBotEffect;
+import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
+import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.c2s.CardNumberSelectionPayload;
+import com.astral_craft.common.network.s2c.OpenCardNumberSelectionPayload;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 
-public class HandcardFateGuidance extends BaseHandCard {
-    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 6);
+public class HandcardFateGuidance extends BaseHandCard implements BoardBotEffect {
+
+    public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 6)
+            .withRestrictions(new CardUseRestriction(List.of(AstralCraft.prefix("hai_qing")), Boolean.TRUE, Boolean.TRUE));
+    public static final int MIN_DICE_VALUE = 1;
+    public static final int MAX_DICE_VALUE = 6;
 
     public HandcardFateGuidance(Properties properties) {
         super(properties);
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        return super.use(level, player, hand);
+    public boolean onRevealFinished(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition) {
+        PendingCardActionManager.beginNumberSelection(user, itemStack, MIN_DICE_VALUE, MAX_DICE_VALUE);
+        PacketDistributor.sendToPlayer(user, new OpenCardNumberSelectionPayload(
+                itemStack.copyWithCount(1), MIN_DICE_VALUE, MAX_DICE_VALUE));
+        return true;
+    }
+
+    public static void applyNumberSelection(ServerPlayer user, CardNumberSelectionPayload payload) {
+        PendingCardActionManager.PendingNumberSelection selection = PendingCardActionManager.consumeNumberSelection(
+                user, payload.cardStack(), payload.value());
+        if (selection == null || !(selection.cardStack().getItem() instanceof HandcardFateGuidance)) return;
+        applyEffects(user, payload.value());
+    }
+
+    private static void applyEffects(ServerPlayer user, int value) {
+        AstralCardEffects.update(user, AstralStats.get(user)
+                .setNextMoveFixed(value)
+                .addCardPlaysThisTurn(1));
+        BoardSessionManager.reduceSkillCooldown(user, 1);
     }
 
     @Override
-    protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.update(user, AstralStats.get(user).setNextMoveFixed(6).addCardPlaysThisTurn(1));
-        return true;
+    public int applyByBoardBot(BoardBotEffectContext context) {
+        int value = context.level().getRandom().nextInt(MAX_DICE_VALUE - MIN_DICE_VALUE + 1) + MIN_DICE_VALUE;
+        context.updateUser(stats -> stats.setNextMoveFixed(value).addCardPlaysThisTurn(1));
+        context.reduceUserSkillCooldown(1);
+        return 0;
     }
+
 }

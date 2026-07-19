@@ -2,14 +2,12 @@ package com.astral_craft.common.items.cards.pve;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.board.*;
+import com.astral_craft.common.gameplay.board.BoardMechanicsState.BoardTrapType;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 
-public class HandcardEnhancedBarricade extends BaseHandCard {
+public class HandcardEnhancedBarricade extends BaseHandCard implements BoardPanelPlacementCard, BoardBotEffect {
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 10);
 
     public HandcardEnhancedBarricade(Properties properties) {
@@ -17,8 +15,32 @@ public class HandcardEnhancedBarricade extends BaseHandCard {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        return super.use(level, player, hand);
+    public BoardTrapType boardTrapType() {
+        return BoardTrapType.ENHANCED_BARRICADE;
     }
 
+    @Override
+    public int boardPlacementRange() {
+        return DEFINITION.range();
+    }
+
+    @Override
+    public boolean revealWhenPlaced() {
+        return false;
+    }
+
+    @Override
+    public boolean canUseByBoardBot(BoardBotEffectContext context) {
+        return BoardPanelSelectionService.randomValidNode(context.session(), context.user(),
+                this.boardPlacementRange(), context.level().getRandom()).isPresent();
+    }
+
+    @Override
+    public int applyByBoardBot(BoardBotEffectContext context) {
+        BoardPanelSelectionService.randomValidNode(context.session(), context.user(),
+                this.boardPlacementRange(), context.level().getRandom()).ifPresent(nodeId ->
+                BoardWorldObjectService.placeTrap(context.level(), context.session(), this.boardTrapType(),
+                        context.userSlotId(), nodeId));
+        return 0;
+    }
 }

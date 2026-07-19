@@ -43,7 +43,7 @@ public class CardTargeting {
         if (entity == user && (card == null || !card.allowsSelfTarget())) return false;
         int range = Math.max(0, CardRangeResolver.targetingRange(user, stack, definition));
         if (entity.distanceToSqr(user) > (double) range * range) return false;
-        return definition.acceptsTarget(entity);
+        return definition.acceptsTarget(entity) && (card == null || card.canTarget(user, entity, stack));
     }
 
 }

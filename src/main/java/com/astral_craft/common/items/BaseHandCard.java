@@ -37,6 +37,10 @@ public class BaseHandCard extends Item {
         return CardUseService.use(this, level, player, hand);
     }
 
+    public boolean canUse(ServerPlayer user, ItemStack sourceStack) {
+        return true;
+    }
+
     public boolean applyFromSelection(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         return this.apply(user, hand, targets);
     }
@@ -51,6 +55,10 @@ public class BaseHandCard extends Item {
 
     public boolean allowsSelfTarget() {
         return false;
+    }
+
+    public boolean canTarget(ServerPlayer user, LivingEntity target, ItemStack sourceStack) {
+        return true;
     }
 
     public List<ServerPlayer> revealViewers(ServerPlayer user, CardDefinition definition, List<LivingEntity> targets) {

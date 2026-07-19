@@ -4,12 +4,15 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.entity.LivingEntity;
 
+import java.util.List;
+
+/** A flavour-only PvE card. Playing it succeeds and consumes the card without applying a stat effect. */
 public class HandcardCheerUp extends BaseHandCard {
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, -1);
 
     public HandcardCheerUp(Properties properties) {
@@ -17,8 +20,7 @@ public class HandcardCheerUp extends BaseHandCard {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        return super.use(level, player, hand);
+    protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
+        return true;
     }
-
 }
