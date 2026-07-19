@@ -9,6 +9,7 @@ import com.astral_craft.common.items.AstralDiceItem;
 import com.astral_craft.common.items.BoardProjectorItem;
 import com.astral_craft.common.items.BoardLobbyItem;
 import com.astral_craft.common.items.BoardDismantlerItem;
+import com.astral_craft.common.items.BoardStartMarkerItem;
 import com.astral_craft.common.items.cards.battle.*;
 import com.astral_craft.common.items.cards.pve.*;
 import com.astral_craft.common.items.cards.pvp.*;
@@ -58,6 +59,9 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_START_MARKER = register("board_start_marker", BoardStartMarkerItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new,
+            () -> new Item.Properties().stacksTo(99));
 
     // Handcard
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCombatCard("handcard_attack_m", HandcardAttackM::new, CardType.ATTACK, HandcardAttackM.DEFINITION, 1, 3);
@@ -91,11 +95,11 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_EYE_FOR_AN_EYE = registerCard("handcard_eye_for_an_eye", HandcardEyeForAnEye::new, CardType.COUNTER, HandcardEyeForAnEye.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_RANDOM_SELECT = registerCard("handcard_random_select", HandcardRandomSelect::new, CardType.COUNTER, HandcardRandomSelect.DEFINITION);
 
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_GAWU_CUT = registerCard("handcard_gawu_cut", HandcardGawuCut::new, CardType.ATTACK, HandcardGawuCut.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_SHADOW_ATTACK = registerCard("handcard_shadow_attack", HandcardShadowAttack::new, CardType.ATTACK, HandcardShadowAttack.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_CHARGE = registerCard("handcard_charge", HandcardCharge::new, CardType.ATTACK, HandcardCharge.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_POWERFUL_ATTACK = registerCard("handcard_powerful_attack", HandcardPowerfulAttack::new, CardType.ATTACK, HandcardPowerfulAttack.DEFINITION);
-    public static final DeferredHolder<Item, ? extends Item> HANDCARD_POISON_FANG = registerCard("handcard_poison_fang", HandcardPoisonFang::new, CardType.ATTACK, HandcardPoisonFang.DEFINITION);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_GAWU_CUT = registerSpecialCombatCard("handcard_gawu_cut", HandcardGawuCut::new, CardType.ATTACK, HandcardGawuCut.DEFINITION, 4, 1, 20);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_SHADOW_ATTACK = registerSpecialCombatCard("handcard_shadow_attack", HandcardShadowAttack::new, CardType.ATTACK, HandcardShadowAttack.DEFINITION, 2, 3, 3);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_CHARGE = registerSpecialCombatCard("handcard_charge", HandcardCharge::new, CardType.ATTACK, HandcardCharge.DEFINITION, 5, 5, 5);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_POWERFUL_ATTACK = registerSpecialCombatCard("handcard_powerful_attack", HandcardPowerfulAttack::new, CardType.ATTACK, HandcardPowerfulAttack.DEFINITION, 3, 6, 6);
+    public static final DeferredHolder<Item, ? extends Item> HANDCARD_POISON_FANG = registerSpecialCombatCard("handcard_poison_fang", HandcardPoisonFang::new, CardType.ATTACK, HandcardPoisonFang.DEFINITION, 2, 0, 0);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_BITE = registerCard("handcard_bite", HandcardBite::new, CardType.ATTACK, HandcardBite.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_DRAGON_ROAR = registerCard("handcard_dragon_roar", HandcardDragonRoar::new, CardType.ATTACK, HandcardDragonRoar.DEFINITION);
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_FATE_GUIDANCE = registerCard("handcard_fate_guidance", HandcardFateGuidance::new, CardType.EFFECT, HandcardFateGuidance.DEFINITION);
@@ -146,6 +150,19 @@ public class AstralItems {
             CardDefinition definition, int minBonus, int maxBonus) {
         CardDefinition resolvedDefinition = definition.withType(cardType);
         CombatBonusDefinition combatBonus = new CombatBonusDefinition(minBonus, maxBonus, true);
+        DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
+                new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)
+                        .component(AstralDataComponents.CARD_DEFINITION, resolvedDefinition)
+                        .component(AstralDataComponents.COMBAT_BONUS, combatBonus));
+        MODELLED_CARD_ITEMS.add(new ModelledCardItem(register, cardType));
+        return register;
+    }
+
+    public static DeferredHolder<Item, ? extends Item> registerSpecialCombatCard(
+            String name, Function<Item.Properties, Item> itemFactory, CardType cardType,
+            CardDefinition definition, int combatCost, int minBonus, int maxBonus) {
+        CardDefinition resolvedDefinition = definition.withType(cardType).withCombatCost(combatCost);
+        CombatBonusDefinition combatBonus = new CombatBonusDefinition(minBonus, maxBonus, false);
         DeferredHolder<Item, ? extends Item> register = register(name, itemFactory, () ->
                 new Item.Properties().component(AstralDataComponents.CARD_TYPE, cardType)
                         .component(AstralDataComponents.CARD_DEFINITION, resolvedDefinition)
