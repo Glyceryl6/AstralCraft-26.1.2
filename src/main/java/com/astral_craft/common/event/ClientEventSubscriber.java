@@ -167,6 +167,7 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerClientPayloadHandlers(RegisterClientPayloadHandlersEvent event) {
         event.register(CardRevealPayload.TYPE, CardRevealOverlay::show);
+        event.register(CardRevealControlPayload.TYPE, CardRevealOverlay::control);
         event.register(CharacterSkillCutinPayload.TYPE, CharacterSkillCutinOverlay::show);
         event.register(CardRevealEntityPayload.TYPE, CardRevealEntityOverlay::show);
         event.register(OpenTargetSelectionPayload.TYPE, TargetSelectionScreen::open);

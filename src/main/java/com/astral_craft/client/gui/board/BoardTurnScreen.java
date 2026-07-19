@@ -8,6 +8,7 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardCardView;
+import com.astral_craft.common.network.c2s.BoardCounterResponsePayload;
 import com.astral_craft.common.network.c2s.BoardLeavePayload;
 import com.astral_craft.common.network.c2s.BoardMoveRequestPayload;
 import com.astral_craft.common.network.c2s.BoardSkillRequestPayload;
@@ -48,6 +49,7 @@ public class BoardTurnScreen extends Screen {
     private Identifier characterId;
     private Identifier skinId;
     private boolean currentTurn;
+    private boolean counterResponse;
     private float scroll;
     private int draggingIndex = -1;
     private int dragOffsetX;
@@ -85,6 +87,7 @@ public class BoardTurnScreen extends Screen {
         this.characterId = payload.characterId();
         this.skinId = payload.skinId();
         this.currentTurn = payload.currentTurn();
+        this.counterResponse = payload.counterResponse();
         this.draggingIndex = -1;
         this.requestLockTicks = 0;
         this.scroll = Math.clamp(this.scroll, 0.0F, this.maximumScroll(this.layout()));
@@ -94,10 +97,17 @@ public class BoardTurnScreen extends Screen {
     public boolean isPauseScreen() { return false; }
 
     @Override
+    public boolean shouldCloseOnEsc() {
+        return !this.counterResponse;
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (this.decisionTicks > 0) this.decisionTicks--;
         if (this.requestLockTicks > 0) this.requestLockTicks--;
+        if (this.counterResponse && this.decisionTicks <= 0
+                && Minecraft.getInstance().screen == this) this.onClose();
     }
 
     @Override
@@ -105,15 +115,18 @@ public class BoardTurnScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        if (CardRevealOverlay.isActive()) return;
+        if (CardRevealOverlay.isActive() && !this.counterResponse) return;
         Layout layout = this.layout();
         graphics.fill(0, layout.top(), this.width, this.height, 0xED090911);
         graphics.fill(0, layout.top(), this.width, layout.top() + 2, 0xB0FFFFFF);
         graphics.text(this.font, this.title, 12, layout.top() + 9, 0xFFFFFFFF, false);
         boolean leaveHover = inside(mouseX, mouseY, layout.leaveX(), layout.leaveY(), layout.leaveW(), 22);
-        AstralFancyButton.renderButton(graphics, this.font, Component.translatable("gui.astral_craft.board.leave"),
+        Component leaveText = this.counterResponse
+                ? Component.translatable("gui.astral_craft.board.counter_cancel")
+                : Component.translatable("gui.astral_craft.board.leave");
+        AstralFancyButton.renderButton(graphics, this.font, leaveText,
                 layout.leaveX(), layout.leaveY(), layout.leaveW(), 22, false, leaveHover,
-                ButtonStyle.button(0xFF8E3542));
+                ButtonStyle.button(this.counterResponse ? 0xFF5E566F : 0xFF8E3542));
         graphics.enableScissor(layout.cardLeft(), layout.cardTop(), layout.cardRight(), layout.cardBottom());
         int x = 12 - Math.round(this.scroll);
         int y = layout.cardY();
@@ -133,24 +146,29 @@ public class BoardTurnScreen extends Screen {
         }
 
         boolean busy = this.requestLockTicks > 0 || CardRevealOverlay.isActive();
-        boolean moveEnabled = this.currentTurn && !busy;
-        boolean moveHover = moveEnabled && inside(mouseX, mouseY, layout.moveX(), layout.moveY(),
-                layout.moveSize(), layout.moveSize());
-        Component move = Component.translatable("gui.astral_craft.board.move");
-        AstralFancyButton.renderButton(graphics, this.font, move, layout.moveX(), layout.moveY(),
-                layout.moveSize(), layout.moveSize(), false, moveHover,
-                ButtonStyle.button(moveEnabled ? 0xFFD84484 : 0xFF555560));
-        Component play = Component.translatable("gui.astral_craft.board.play_card");
-        Component count = Component.translatable("gui.astral_craft.board.card_count", this.cardPlaysUsed, this.maxCardPlays);
-        graphics.text(this.font, play, layout.infoX(), layout.infoY(), 0xFFFFFFFF, false);
-        graphics.text(this.font, count, layout.infoX(), layout.infoY() + 17, 0xFFFFC75C, false);
-        boolean skillEnabled = this.currentTurn && this.skillCooldown <= 0 && !busy;
-        boolean skillHover = skillEnabled && inside(mouseX, mouseY, layout.skillX(), layout.skillY(), layout.skillW(), 25);
-        Component skill = this.skillCooldown <= 0 ? Component.translatable("gui.astral_craft.board.skill")
-                : Component.translatable("gui.astral_craft.board.skill_cooldown", this.skillCooldown);
-        AstralFancyButton.renderButton(graphics, this.font, skill, layout.skillX(),
-                layout.skillY(), layout.skillW(), 25, false, skillHover,
-                ButtonStyle.button(skillEnabled ? 0xFF4D7AC7 : 0xFF555560));
+        if (this.counterResponse) {
+            graphics.text(this.font, Component.translatable("gui.astral_craft.board.counter_prompt"),
+                    layout.infoX(), layout.infoY(), 0xFFFFD87A, false);
+        } else {
+            boolean moveEnabled = this.currentTurn && !busy;
+            boolean moveHover = moveEnabled && inside(mouseX, mouseY, layout.moveX(), layout.moveY(),
+                    layout.moveSize(), layout.moveSize());
+            Component move = Component.translatable("gui.astral_craft.board.move");
+            AstralFancyButton.renderButton(graphics, this.font, move, layout.moveX(), layout.moveY(),
+                    layout.moveSize(), layout.moveSize(), false, moveHover,
+                    ButtonStyle.button(moveEnabled ? 0xFFD84484 : 0xFF555560));
+            Component play = Component.translatable("gui.astral_craft.board.play_card");
+            Component count = Component.translatable("gui.astral_craft.board.card_count", this.cardPlaysUsed, this.maxCardPlays);
+            graphics.text(this.font, play, layout.infoX(), layout.infoY(), 0xFFFFFFFF, false);
+            graphics.text(this.font, count, layout.infoX(), layout.infoY() + 17, 0xFFFFC75C, false);
+            boolean skillEnabled = this.currentTurn && this.skillCooldown <= 0 && !busy;
+            boolean skillHover = skillEnabled && inside(mouseX, mouseY, layout.skillX(), layout.skillY(), layout.skillW(), 25);
+            Component skill = this.skillCooldown <= 0 ? Component.translatable("gui.astral_craft.board.skill")
+                    : Component.translatable("gui.astral_craft.board.skill_cooldown", this.skillCooldown);
+            AstralFancyButton.renderButton(graphics, this.font, skill, layout.skillX(),
+                    layout.skillY(), layout.skillW(), 25, false, skillHover,
+                    ButtonStyle.button(skillEnabled ? 0xFF4D7AC7 : 0xFF555560));
+        }
         BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
                 this.decisionTicks, this.decisionDurationTicks, this.width / 2,
                 this.height - 17, Math.min(270, this.width - 44));
@@ -165,6 +183,9 @@ public class BoardTurnScreen extends Screen {
     }
 
     private boolean canPlayCard(BoardCard card) {
+        if (this.counterResponse) {
+            return this.requestLockTicks <= 0 && card.definition().type() == CardType.COUNTER;
+        }
         return this.currentTurn && this.requestLockTicks <= 0 && !CardRevealOverlay.isActive()
                 && this.cardPlaysUsed < this.maxCardPlays && card.definition().type() == CardType.EFFECT;
     }
@@ -174,13 +195,17 @@ public class BoardTurnScreen extends Screen {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
         Layout layout = this.layout();
         if (inside(event.x(), event.y(), layout.leaveX(), layout.leaveY(), layout.leaveW(), 22)) {
-            ClientPacketDistributor.sendToServer(new BoardLeavePayload(this.boardId));
+            if (this.counterResponse) {
+                ClientPacketDistributor.sendToServer(new BoardCounterResponsePayload(this.boardId, -1));
+            } else {
+                ClientPacketDistributor.sendToServer(new BoardLeavePayload(this.boardId));
+            }
             this.onClose();
             return true;
         }
 
         boolean busy = this.requestLockTicks > 0 || CardRevealOverlay.isActive();
-        if (inside(event.x(), event.y(), layout.moveX(), layout.moveY(),
+        if (!this.counterResponse && inside(event.x(), event.y(), layout.moveX(), layout.moveY(),
                 layout.moveSize(), layout.moveSize()) && this.currentTurn && !busy) {
             this.requestLockTicks = 8;
             ClientPacketDistributor.sendToServer(new BoardMoveRequestPayload(this.boardId));
@@ -188,7 +213,7 @@ public class BoardTurnScreen extends Screen {
             return true;
         }
 
-        if (inside(event.x(), event.y(), layout.skillX(), layout.skillY(), layout.skillW(), 25)
+        if (!this.counterResponse && inside(event.x(), event.y(), layout.skillX(), layout.skillY(), layout.skillW(), 25)
                 && this.currentTurn && this.skillCooldown <= 0 && !busy) {
             this.requestLockTicks = 8;
             ClientPacketDistributor.sendToServer(new BoardSkillRequestPayload(this.boardId));
@@ -223,8 +248,14 @@ public class BoardTurnScreen extends Screen {
             this.draggingIndex = -1;
             if (event.y() < this.layout().top() - 6 && this.canPlayCard(this.cards.get(index))) {
                 this.requestLockTicks = 8;
-                ClientPacketDistributor.sendToServer(new UseBoardCardPayload(
-                        this.boardId, this.cards.get(index).originalIndex()));
+                if (this.counterResponse) {
+                    ClientPacketDistributor.sendToServer(new BoardCounterResponsePayload(
+                            this.boardId, this.cards.get(index).originalIndex()));
+                } else {
+                    ClientPacketDistributor.sendToServer(new UseBoardCardPayload(
+                            this.boardId, this.cards.get(index).originalIndex()));
+                }
+                this.onClose();
             }
             return true;
         }

@@ -11,6 +11,7 @@ import com.astral_craft.client.gui.reveal.CardRevealRenderer;
 import com.astral_craft.client.gui.reveal.CardRevealSettings;
 import com.astral_craft.client.gui.reveal.FlipCardRevealAnimation;
 import com.astral_craft.client.util.ClientAnimationClock;
+import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -22,6 +23,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class CardRevealOverlay {
 
@@ -33,6 +35,7 @@ public class CardRevealOverlay {
     private static final Map<Identifier, CardRevealAnimation> ANIMATIONS = new HashMap<>();
     private static final CardRevealRenderer RENDERER = new CardRevealRenderer();
     private static final Deque<CardReveal> PENDING = new ArrayDeque<>();
+    private static final Map<UUID, CardRevealControlPayload.Action> PENDING_CONTROLS = new HashMap<>();
     private static CardReveal active;
 
     static {
@@ -53,11 +56,14 @@ public class CardRevealOverlay {
         CardRevealAnimation animation = ANIMATIONS.get(animationId);
         int defaultDuration = animation.defaultDuration(SETTINGS);
         int duration = payload.durationTicks() > 0 ? Math.max(payload.durationTicks(), defaultDuration) : defaultDuration;
+        CardRevealControlPayload.Action pendingControl = PENDING_CONTROLS.remove(payload.revealId());
+        if (pendingControl == CardRevealControlPayload.Action.RELEASE) return;
         CardReveal reveal = new CardReveal(payload.cardId(), payload.cardType(),
                 payload.title(), payload.body(), payload.stack(),
                 payload.largeFrontTexture(), payload.largeBackTexture(),
                 animationId, ClientAnimationClock.nowTicks(), duration,
-                payload.sourceEntityId(), payload.targetEntityIds());
+                payload.sourceEntityId(), payload.targetEntityIds(), payload.revealId(),
+                pendingControl == CardRevealControlPayload.Action.HOLD);
         if (active == null) {
             active = reveal;
         } else if (isActive()) {
@@ -73,16 +79,55 @@ public class CardRevealOverlay {
         }
     }
 
+    public static void control(CardRevealControlPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> control(payload));
+    }
+
+    public static void control(CardRevealControlPayload payload) {
+        if (payload == null) return;
+        boolean hold = payload.action() == CardRevealControlPayload.Action.HOLD;
+        if (active != null && active.revealId().equals(payload.revealId())) {
+            if (hold) {
+                active = active.withHeld(true);
+            } else {
+                active = pollNextReveal(ClientAnimationClock.nowTicks());
+            }
+            return;
+        }
+
+        if (PENDING.isEmpty()) {
+            PENDING_CONTROLS.put(payload.revealId(), payload.action());
+            return;
+        }
+        boolean matched = false;
+        Deque<CardReveal> replaced = new ArrayDeque<>();
+        while (!PENDING.isEmpty()) {
+            CardReveal reveal = PENDING.removeFirst();
+            if (reveal.revealId().equals(payload.revealId())) {
+                matched = true;
+                if (hold) replaced.addLast(reveal.withHeld(true));
+            } else {
+                replaced.addLast(reveal);
+            }
+        }
+        PENDING.addAll(replaced);
+        if (!matched) PENDING_CONTROLS.put(payload.revealId(), payload.action());
+    }
+
     public static boolean isActive() {
-        return active != null && ClientAnimationClock.elapsedTicks(active.startedAtTick()) < active.durationTicks();
+        return active != null && (active.held()
+                || ClientAnimationClock.elapsedTicks(active.startedAtTick()) < active.durationTicks());
     }
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (active == null) return;
         float ageTicks = ClientAnimationClock.elapsedTicks(active.startedAtTick());
-        if (ageTicks >= active.durationTicks()) {
+        if (!active.held() && ageTicks >= active.durationTicks()) {
             active = pollNextReveal(ClientAnimationClock.nowTicks());
             return;
+        }
+        if (active.held()) {
+            ageTicks = Math.min(ageTicks, SETTINGS.flipIntroHoldTicks + SETTINGS.flipRotateTicks + 5.0F);
         }
 
         DEBUG_SETTINGS.tick(SETTINGS);
@@ -91,6 +136,7 @@ public class CardRevealOverlay {
         if (minecraft.player == null) {
             active = null;
             PENDING.clear();
+            PENDING_CONTROLS.clear();
             return;
         }
 
@@ -106,9 +152,7 @@ public class CardRevealOverlay {
     private static CardReveal pollNextReveal(double startedAtTick) {
         CardReveal next = PENDING.pollFirst();
         if (next == null) return null;
-        return new CardReveal(next.cardId(), next.cardType(), next.title(), next.body(), next.stack(),
-                next.frontTexture(), next.backTexture(), next.animation(), startedAtTick, next.durationTicks(),
-                next.sourceEntityId(), next.targetEntityIds());
+        return next.withStartedAt(startedAtTick);
     }
 
     private static Identifier normalizeAnimation(Identifier animation) {

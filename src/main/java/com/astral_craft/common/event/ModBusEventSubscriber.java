@@ -46,8 +46,9 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("13");
+        PayloadRegistrar registrar = event.registrar("14");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
+        registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
         registrar.playToClient(OpenTargetSelectionPayload.TYPE, OpenTargetSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenCardNumberSelectionPayload.TYPE, OpenCardNumberSelectionPayload.STREAM_CODEC);
@@ -81,6 +82,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
         registrar.playToServer(BoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCharacterSelection);
         registrar.playToServer(UseBoardCardPayload.TYPE, UseBoardCardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseBoardCard);
+        registrar.playToServer(BoardCounterResponsePayload.TYPE, BoardCounterResponsePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCounterResponse);
         registrar.playToServer(BoardMoveRequestPayload.TYPE, BoardMoveRequestPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardMove);
         registrar.playToServer(BoardSkillRequestPayload.TYPE, BoardSkillRequestPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardSkill);
         registrar.playToServer(BoardDiscardPayload.TYPE, BoardDiscardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardDiscard);

@@ -11,6 +11,7 @@ import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
+import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.items.cards.HandcardSmartDice;
 import com.astral_craft.common.items.cards.pve.HandcardFateGuidance;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
@@ -143,8 +144,17 @@ public class AstralServerPayloadHandlers {
 
     public static void handleUseBoardCard(UseBoardCardPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player
+                    && !CardUseService.useBoardCard(player, payload.boardId(), payload.cardIndex())) {
+                BoardSessionManager.reopenTurnScreen(player, payload.boardId());
+            }
+        });
+    }
+
+    public static void handleBoardCounterResponse(BoardCounterResponsePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                CardUseService.useBoardCard(player, payload.boardId(), payload.cardIndex());
+                PendingCounterEffectManager.respondBoard(player, payload.boardId(), payload.handIndex());
             }
         });
     }
