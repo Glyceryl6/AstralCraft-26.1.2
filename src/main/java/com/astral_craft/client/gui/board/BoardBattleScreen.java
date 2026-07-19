@@ -527,23 +527,26 @@ public class BoardBattleScreen extends Screen {
         if (age < 0.0F || age >= KNOCKOUT_EXPLOSION_RENDER_TICKS) return;
         int centerX = Math.round(this.explosionCenterX(layout));
         int centerY = Math.round(this.explosionCenterY(layout));
-        float flash = 1.0F - Mth.clamp(age / 4.0F, 0.0F, 1.0F);
+        float flash = 1.0F - Mth.clamp(age / 3.5F, 0.0F, 1.0F);
         if (flash > 0.0F) {
-            int radius = Math.round(48.0F * flash + 18.0F);
-            int alpha = Math.round(190.0F * flash);
-            graphics.fill(centerX - radius, centerY - radius, centerX + radius, centerY + radius, alpha << 24 | 0x00FFF2C2);
+            int radius = Math.round(42.0F * flash + 14.0F);
+            int alpha = Math.round(155.0F * flash);
+            graphics.fill(Math.max(0, centerX - radius), 0, this.width, Math.min(this.height, centerY + radius),
+                    alpha << 24 | 0x00FFF1BD);
         }
 
-        this.renderExplosionParticle(graphics, centerX, centerY, age, 0, 0.0F, 0.0F, 1.65F);
-        for (int index = 0; index < 24; index++) {
-            float delay = (index % 8) * 0.55F;
+        this.renderExplosionParticle(graphics, centerX, centerY, age, 0, -12.0F, 11.0F, 1.4F);
+        for (int index = 0; index < 22; index++) {
+            float delay = (index % 7) * 0.48F;
             float particleAge = age - delay;
             if (particleAge < 0.0F || particleAge >= 15.0F) continue;
-            double angle = index * 2.399963229728653D;
-            float distance = 8.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F)) * (24.0F + index % 5 * 7.0F);
+            float spread = index / 21.0F;
+            double angle = Math.toRadians(102.0D + spread * 88.0D) + Math.sin(index * 1.71D) * 0.09D;
+            float distance = 10.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F))
+                    * (30.0F + index % 5 * 8.0F);
             float x = (float) Math.cos(angle) * distance;
-            float y = (float) Math.sin(angle) * distance * 0.72F - particleAge * 0.28F;
-            float scale = 0.62F + index % 4 * 0.13F;
+            float y = (float) Math.sin(angle) * distance - particleAge * 0.16F;
+            float scale = 0.54F + index % 4 * 0.12F;
             this.renderExplosionParticle(graphics, centerX, centerY, particleAge, index + 1, x, y, scale);
         }
         this.renderExplosionSparks(graphics, centerX, centerY, age);
@@ -551,13 +554,14 @@ public class BoardBattleScreen extends Screen {
 
     private void renderExplosionSparks(GuiGraphicsExtractor graphics, int centerX, int centerY, float age) {
         for (int index = 0; index < 20; index++) {
-            float particleAge = age - (index % 5) * 0.35F;
+            float particleAge = age - (index % 5) * 0.32F;
             if (particleAge < 0.0F || particleAge >= 13.0F) continue;
             float progress = Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F);
-            double angle = index * 2.399963229728653D + 0.45D;
-            float distance = 12.0F + smoothStep(progress) * (32.0F + index % 6 * 6.0F);
+            float spread = index / 19.0F;
+            double angle = Math.toRadians(98.0D + spread * 94.0D) + Math.cos(index * 1.37D) * 0.08D;
+            float distance = 14.0F + smoothStep(progress) * (38.0F + index % 6 * 7.0F);
             int x = Math.round(centerX + (float) Math.cos(angle) * distance);
-            int y = Math.round(centerY + (float) Math.sin(angle) * distance * 0.68F - progress * 9.0F);
+            int y = Math.round(centerY + (float) Math.sin(angle) * distance + progress * 3.0F);
             int alpha = Math.round(255.0F * (1.0F - progress));
             if ((index & 1) == 0) {
                 int size = Math.max(3, Math.round(8.0F * (1.0F - progress * 0.55F)));
@@ -595,11 +599,11 @@ public class BoardBattleScreen extends Screen {
     }
 
     private float explosionCenterX(Layout layout) {
-        return layout.x() + layout.width() - Math.clamp(layout.width() / 10.0F, 34.0F, 72.0F);
+        return this.width + Math.clamp(layout.width() / 44.0F, 8.0F, 16.0F);
     }
 
     private float explosionCenterY(Layout layout) {
-        return layout.modelTop() + Math.clamp((layout.modelBottom() - layout.modelTop()) / 7.0F, 16.0F, 38.0F);
+        return -Math.clamp((layout.modelBottom() - layout.modelTop()) / 36.0F, 6.0F, 14.0F);
     }
 
     private void renderStatus(GuiGraphicsExtractor graphics, Layout layout) {
