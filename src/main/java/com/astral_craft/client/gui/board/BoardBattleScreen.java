@@ -55,7 +55,7 @@ public class BoardBattleScreen extends Screen {
     private static final int KNOCKOUT_EXPLOSION_TICK = 18;
     private static final int KNOCKOUT_EXPLOSION_RENDER_TICKS = 24;
     private static final int VICTORY_MOVE_START_TICK = 27;
-    private static final int VICTORY_MOVE_TICKS = 24;
+    private static final int VICTORY_MOVE_TICKS = 34;
     private static final Identifier HEART_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full.png");
     private static final Identifier HEART_BLINKING_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full_blinking.png");
     private static final Identifier CRITICAL_HIT_TEXTURE = Identifier.withDefaultNamespace("textures/particle/critical_hit.png");
@@ -287,11 +287,15 @@ public class BoardBattleScreen extends Screen {
         }
 
         float victoryProgress = Mth.clamp((age - VICTORY_MOVE_START_TICK) / VICTORY_MOVE_TICKS, 0.0F, 1.0F);
-        float victory = easeOutCubic(victoryProgress);
-        int winnerLeft = layout.x() + 20;
-        int winnerRight = layout.x() + layout.width() - 20;
-        int winnerTop = layout.y() + 6;
-        int winnerBottom = layout.y() + layout.height() - 8;
+        float victory = smootherStep(victoryProgress);
+        int winnerWidth = Math.round(Math.min((attackerRight - attackerLeft) * 1.12F, layout.width() * 0.42F));
+        int winnerHeight = Math.round(Math.min((layout.modelBottom() - layout.modelTop()) * 1.08F, layout.height() * 0.70F));
+        int winnerCenterX = layout.x() + layout.width() / 2;
+        int winnerCenterY = layout.modelTop() + (layout.modelBottom() - layout.modelTop()) / 2;
+        int winnerLeft = winnerCenterX - winnerWidth / 2;
+        int winnerRight = winnerLeft + winnerWidth;
+        int winnerTop = winnerCenterY - winnerHeight / 2;
+        int winnerBottom = winnerTop + winnerHeight;
         int renderLeft = Math.round(Mth.lerp(victory, attackerLeft, winnerLeft));
         int renderRight = Math.round(Mth.lerp(victory, attackerRight, winnerRight));
         int renderTop = Math.round(Mth.lerp(victory, layout.modelTop(), winnerTop));
@@ -486,9 +490,8 @@ public class BoardBattleScreen extends Screen {
         return value * value * (3.0F - 2.0F * value);
     }
 
-    private static float easeOutCubic(float value) {
-        float inverse = 1.0F - value;
-        return 1.0F - inverse * inverse * inverse;
+    private static float smootherStep(float value) {
+        return value * value * value * (value * (value * 6.0F - 15.0F) + 10.0F);
     }
 
     private void renderDamagePopup(GuiGraphicsExtractor graphics, Layout layout) {
@@ -601,13 +604,11 @@ public class BoardBattleScreen extends Screen {
     }
 
     private float explosionCenterX(Layout layout) {
-        return layout.x() + layout.width()
-                + Math.clamp(layout.width() / 44.0F, 8.0F, 16.0F);
+        return layout.x() + layout.width() - Math.clamp(layout.width() / 12.0F, 28.0F, 46.0F);
     }
 
     private float explosionCenterY(Layout layout) {
-        return layout.y()
-                - Math.clamp((layout.modelBottom() - layout.modelTop()) / 36.0F, 6.0F, 14.0F);
+        return layout.y() + Math.clamp(layout.height() / 10.0F, 24.0F, 38.0F);
     }
 
     private void renderStatus(GuiGraphicsExtractor graphics, Layout layout) {
