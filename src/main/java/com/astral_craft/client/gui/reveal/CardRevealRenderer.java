@@ -79,12 +79,14 @@ public class CardRevealRenderer {
         }
 
         if (targets.isEmpty()) return;
+        boolean selfOnly = targets.size() == 1 && targets.getFirst().getId() == sourceLiving.getId();
         int cardWidth = Math.max(2, Math.round(modelSize * settings.cardFrameWidthRatio * widthScale));
         int boxSize = Mth.clamp(Math.round(modelSize * 0.17F), 24, 42);
         int gap = Math.max(5, boxSize / 5);
         int arrowWidth = Math.max(18, this.font.width("→") + 8);
         int targetColumns = targets.size();
-        int totalWidth = boxSize + gap + arrowWidth + gap + boxSize * targetColumns + gap * Math.max(0, targetColumns - 1);
+        int totalWidth = selfOnly ? boxSize
+                : boxSize + gap + arrowWidth + gap + boxSize * targetColumns + gap * Math.max(0, targetColumns - 1);
         int left = centerX + cardWidth / 2 + Math.max(10, modelSize / 18);
         if (left + totalWidth > this.minecraft.getWindow().getGuiScaledWidth() - 5) {
             left = centerX - cardWidth / 2 - Math.max(10, modelSize / 18) - totalWidth;
@@ -92,6 +94,7 @@ public class CardRevealRenderer {
 
         int top = centerY - boxSize / 2;
         this.renderRelationshipEntity(graphics, sourceLiving, left, top, boxSize, alpha);
+        if (selfOnly) return;
         int arrowX = left + boxSize + gap;
         int color = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xE5E5E5;
         graphics.text(this.font, Component.literal("→"), arrowX + (arrowWidth - this.font.width("→")) / 2,
