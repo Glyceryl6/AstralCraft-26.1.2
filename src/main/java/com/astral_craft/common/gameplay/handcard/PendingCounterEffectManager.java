@@ -111,17 +111,17 @@ public class PendingCounterEffectManager {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
         if (target == null || !target.controlledBy(responder.getUUID())) return false;
         if (handIndex >= 0 && !isUsableCounterIndex(target, handIndex)) {
-            BoardSessionManager.openCounterScreen(responder, chain.session(), target,
-                    remainingResponseTicks(chain));
+            BoardSessionManager.openCounterScreen(responder, chain.session(), target, remainingResponseTicks(chain));
             return false;
         }
+
         if (!BOARD_BY_CONTROLLER.remove(responder.getUUID(), chain)) return false;
         boolean handled = respondBoard(chain, target, responder, handIndex);
         if (!handled) {
             BOARD_BY_CONTROLLER.put(responder.getUUID(), chain);
-            BoardSessionManager.openCounterScreen(responder, chain.session(), target,
-                    remainingResponseTicks(chain));
+            BoardSessionManager.openCounterScreen(responder, chain.session(), target, remainingResponseTicks(chain));
         }
+
         return handled;
     }
 
@@ -150,8 +150,7 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage,
-                VisualKind.SLINGSHOT, settings));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.SLINGSHOT, settings));
     }
 
     public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage) {
@@ -159,13 +158,11 @@ public class PendingCounterEffectManager {
     }
 
     public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage,
-                VisualKind.SNOWBALL_ATTACK, settings));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.SNOWBALL_ATTACK, settings));
     }
 
     public static void offerFallingBrick(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage,
-                VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
+        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
     }
 
     private static void offer(PendingEffect effect) {
@@ -250,8 +247,7 @@ public class PendingCounterEffectManager {
 
     private static void presentBoardTarget(PendingBoardCounter chain, boolean redirected) {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
-        AstralCharacterEntity targetEntity = target == null ? null
-                : BoardEntityService.entity(chain.source().level(), target);
+        AstralCharacterEntity targetEntity = target == null ? null : BoardEntityService.entity(chain.source().level(), target);
         if (target == null || targetEntity == null || target.knockedDown()) {
             releaseReveal(chain);
             PendingCardActionManager.completeBoardCardUi(chain.source());
@@ -265,15 +261,14 @@ public class PendingCounterEffectManager {
                     finishBoardEffect(chain, targetEntity);
                 } else {
                     releaseReveal(chain);
-                    PendingCardActionManager.schedule(chain.source(), 20,
-                            () -> finishBoardEffect(chain, targetEntity));
+                    PendingCardActionManager.schedule(chain.source(), 20, () -> finishBoardEffect(chain, targetEntity));
                 }
                 return;
             }
+
             UUID revealId = UUID.randomUUID();
             broadcastEffectReveal(chain, targetEntity, revealId, false);
-            PendingCardActionManager.schedule(chain.source(), REDIRECT_REVEAL_DELAY_TICKS,
-                    () -> finishBoardEffect(chain, targetEntity));
+            PendingCardActionManager.schedule(chain.source(), REDIRECT_REVEAL_DELAY_TICKS, () -> finishBoardEffect(chain, targetEntity));
             return;
         }
 
@@ -283,8 +278,10 @@ public class PendingCounterEffectManager {
         if (chain.revealId() == null || redirected) {
             broadcastEffectReveal(waiting, targetEntity, revealId, true);
         }
-        ServerPlayer controller = target.controllerUuid()
-                .map(controllerId -> chain.source().level().getServer().getPlayerList().getPlayer(controllerId)).orElse(null);
+
+        ServerPlayer controller = target.controllerUuid().map(controllerId ->
+                chain.source().level().getServer().getPlayerList()
+                        .getPlayer(controllerId)).orElse(null);
         if (controller != null) {
             BOARD_BY_CONTROLLER.put(controller.getUUID(), waiting);
             openHumanCounter(waiting, target, controller);
@@ -294,18 +291,15 @@ public class PendingCounterEffectManager {
         }
 
         int selectedIndex = counterIndexes.get(chain.source().level().getRandom().nextInt(counterIndexes.size()));
-        PendingCardActionManager.schedule(chain.source(), 18,
-                () -> respondBoard(waiting, target, null, selectedIndex));
+        PendingCardActionManager.schedule(chain.source(), 18, () -> respondBoard(waiting, target, null, selectedIndex));
     }
 
     private static void openHumanCounter(PendingBoardCounter chain, BoardParticipant target, ServerPlayer controller) {
-        BoardSessionManager.openCounterScreen(controller, chain.session(), target,
-                remainingResponseTicks(chain));
+        BoardSessionManager.openCounterScreen(controller, chain.session(), target, remainingResponseTicks(chain));
         PendingCardActionManager.schedule(chain.source(), 2, () -> {
             PendingBoardCounter current = BOARD_BY_CONTROLLER.get(controller.getUUID());
             if (current == chain && !controller.isRemoved()) {
-                BoardSessionManager.openCounterScreen(controller, chain.session(), target,
-                        remainingResponseTicks(chain));
+                BoardSessionManager.openCounterScreen(controller, chain.session(), target, remainingResponseTicks(chain));
             }
         });
     }

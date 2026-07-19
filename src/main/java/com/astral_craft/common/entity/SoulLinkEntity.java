@@ -1,6 +1,5 @@
 package com.astral_craft.common.entity;
 
-import com.astral_craft.common.gameplay.SoulLinkStyle;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -32,7 +31,7 @@ public class SoulLinkEntity extends Entity {
         this.noPhysics = true;
     }
 
-    public SoulLinkEntity(Level level, LivingEntity first, LivingEntity second, int lifetimeTicks, SoulLinkStyle style) {
+    public SoulLinkEntity(Level level, LivingEntity first, LivingEntity second, int lifetimeTicks, VisualStyle style) {
         this(AstralEntities.SOUL_LINK.get(), level);
         this.setPos((first.getX() + second.getX()) * 0.5D,
                 (first.getY() + second.getY()) * 0.5D,
@@ -49,10 +48,10 @@ public class SoulLinkEntity extends Entity {
         builder.define(DATA_SECOND, -1);
         builder.define(DATA_AGE, 0);
         builder.define(DATA_LIFETIME, 20 * 60);
-        builder.define(DATA_ARC_HEIGHT, SoulLinkStyle.DEFAULT.arcHeight());
-        builder.define(DATA_THICKNESS, SoulLinkStyle.DEFAULT.thickness());
-        builder.define(DATA_COLOR, SoulLinkStyle.DEFAULT.color());
-        builder.define(DATA_RAINBOW, SoulLinkStyle.DEFAULT.rainbow());
+        builder.define(DATA_ARC_HEIGHT, VisualStyle.DEFAULT.arcHeight());
+        builder.define(DATA_THICKNESS, VisualStyle.DEFAULT.thickness());
+        builder.define(DATA_COLOR, VisualStyle.DEFAULT.color());
+        builder.define(DATA_RAINBOW, VisualStyle.DEFAULT.rainbow());
     }
 
     public void setEndpoints(int firstId, int secondId) {
@@ -60,7 +59,7 @@ public class SoulLinkEntity extends Entity {
         this.entityData.set(DATA_SECOND, secondId);
     }
 
-    public void setVisualStyle(SoulLinkStyle style) {
+    public void setVisualStyle(VisualStyle style) {
         this.entityData.set(DATA_ARC_HEIGHT, style.arcHeight());
         this.entityData.set(DATA_THICKNESS, style.thickness());
         this.entityData.set(DATA_COLOR, style.color());
@@ -137,10 +136,10 @@ public class SoulLinkEntity extends Entity {
         this.entityData.set(DATA_SECOND, input.getIntOr("second", -1));
         this.entityData.set(DATA_AGE, input.getIntOr("age", 0));
         this.entityData.set(DATA_LIFETIME, input.getIntOr("lifetime", 20 * 60));
-        this.entityData.set(DATA_ARC_HEIGHT, input.getFloatOr("arc_height", SoulLinkStyle.DEFAULT.arcHeight()));
-        this.entityData.set(DATA_THICKNESS, input.getFloatOr("thickness", SoulLinkStyle.DEFAULT.thickness()));
-        this.entityData.set(DATA_COLOR, input.getIntOr("color", SoulLinkStyle.DEFAULT.color()));
-        this.entityData.set(DATA_RAINBOW, input.getBooleanOr("rainbow", SoulLinkStyle.DEFAULT.rainbow()));
+        this.entityData.set(DATA_ARC_HEIGHT, input.getFloatOr("arc_height", VisualStyle.DEFAULT.arcHeight()));
+        this.entityData.set(DATA_THICKNESS, input.getFloatOr("thickness", VisualStyle.DEFAULT.thickness()));
+        this.entityData.set(DATA_COLOR, input.getIntOr("color", VisualStyle.DEFAULT.color()));
+        this.entityData.set(DATA_RAINBOW, input.getBooleanOr("rainbow", VisualStyle.DEFAULT.rainbow()));
     }
 
     @Override
@@ -158,6 +157,17 @@ public class SoulLinkEntity extends Entity {
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
         return false;
+    }
+
+    /** Visual parameters for the link beam. Color is ARGB. */
+    public record VisualStyle(float arcHeight, float thickness, int color, boolean rainbow) {
+
+        public static final VisualStyle DEFAULT = new VisualStyle(2.1F, 0.05F, 0xFF8F55FF, false);
+
+        public static VisualStyle rainbow(float arcHeight, float thickness) {
+            return new VisualStyle(arcHeight, Math.max(0.05F, thickness), 0xFFFFFFFF, true);
+        }
+
     }
 
 }

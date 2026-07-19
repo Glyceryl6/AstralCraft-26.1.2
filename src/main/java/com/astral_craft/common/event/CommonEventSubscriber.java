@@ -3,7 +3,7 @@ package com.astral_craft.common.event;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.KnockdownManager;
-import com.astral_craft.common.gameplay.SoulLinkManager;
+import com.astral_craft.common.items.cards.pvp.HandcardSoulLink;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardRouteService;
 import com.astral_craft.common.gameplay.board.BoardProtectionService;
@@ -165,7 +165,7 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
-        SoulLinkManager.onDamagePre(event);
+        HandcardSoulLink.onDamagePre(event);
         if (event.getEntity() instanceof ServerPlayer damagedPlayer) {
             AstralEventContext context = AstralEventContext.damage(damagedPlayer, damagedPlayer, event.getSource(), event.getNewDamage());
             AstralEventService.applyActiveTrigger(damagedPlayer, context);
