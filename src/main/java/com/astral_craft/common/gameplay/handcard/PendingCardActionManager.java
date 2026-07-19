@@ -33,7 +33,13 @@ public class PendingCardActionManager {
     private static final int BOARD_UI_TIMEOUT_TICKS = 20 * 120;
 
     public static void schedule(ServerPlayer player, int delayTicks, Runnable action) {
-        ACTIONS.add(new PendingAction(player.getUUID(), Math.max(0, delayTicks), action, false));
+        if (player == null) return;
+        schedule(player.getUUID(), delayTicks, action);
+    }
+
+    public static void schedule(UUID owner, int delayTicks, Runnable action) {
+        if (owner == null || action == null) return;
+        ACTIONS.add(new PendingAction(owner, Math.max(0, delayTicks), action, false));
     }
 
     public static boolean scheduleExclusive(ServerPlayer player, int delayTicks, Runnable action) {
@@ -204,7 +210,7 @@ public class PendingCardActionManager {
             try {
                 this.action.run();
             } catch (RuntimeException exception) {
-                LOGGER.error("Card reveal callback failed for player {}", this.owner, exception);
+                LOGGER.error("Card reveal callback failed for owner {}", this.owner, exception);
             } finally {
                 if (this.exclusive) EXCLUSIVE_OWNERS.remove(this.owner);
             }

@@ -15,6 +15,7 @@ import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillServ
 import com.astral_craft.common.gameplay.dice.AstralDiceRollService;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
+import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.items.cards.pvp.HandcardSoulLink;
@@ -67,6 +68,7 @@ public class BoardSessionManager {
     private static final Map<UUID, PendingBotEffect> PENDING_BOT_EFFECTS = new HashMap<>();
     private static final Map<UUID, PendingTimeBombRoll> PENDING_TIME_BOMB_ROLLS = new HashMap<>();
     private static final Map<UUID, Long> PENDING_BOT_MOVEMENT_TICKS = new HashMap<>();
+    private static final Set<UUID> PENDING_BOT_COUNTERS = new HashSet<>();
     private static final Map<UUID, Long> NO_HUMAN_SINCE_TICKS = new HashMap<>();
 
     public static List<BoardSession> sessions(ServerLevel level) {
@@ -526,6 +528,7 @@ public class BoardSessionManager {
         BoardPanelSelectionService.clear(session.id());
         PENDING_BOT_EFFECTS.remove(session.id());
         PENDING_BOT_MOVEMENT_TICKS.remove(session.id());
+        PENDING_BOT_COUNTERS.remove(session.id());
         PENDING_TIME_BOMB_ROLLS.remove(session.id());
         NO_HUMAN_SINCE_TICKS.remove(session.id());
         BasePlatform.clearActiveBoardEffect(session.id());
@@ -882,7 +885,7 @@ public class BoardSessionManager {
     }
 
     private static void beginBotTurn(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        if (BoardEntityService.entity(level, participant) == null) return;
+        if (BoardEntityService.entity(level, participant) == null || PENDING_BOT_COUNTERS.contains(session.id())) return;
         Long movementTick = PENDING_BOT_MOVEMENT_TICKS.get(session.id());
         if (movementTick != null) {
             if (level.getGameTime() < movementTick) return;
@@ -904,12 +907,17 @@ public class BoardSessionManager {
                 CardDefinition definition = card.definition(stack);
                 BoardBotEffectContext context = new BoardBotEffectContext(
                         level, session, current.slotUuid(), definition, pending.targetSlotIds());
+                boolean counterPending = PendingCounterEffectManager.offerBoardBotCard(level, session, current,
+                        stack, definition, pending.targetSlotIds(),
+                        targetSlotIds -> botEffect.applyByBoardBot(context.withTargets(targetSlotIds)),
+                        followUpDelay -> completeBotEffect(level, session, current.slotUuid(), followUpDelay));
+                if (counterPending) {
+                    PENDING_BOT_COUNTERS.add(session.id());
+                    return;
+                }
                 int followUpDelay = botEffect.applyByBoardBot(context);
                 if (followUpDelay > 0) {
-                    long followUpTick = level.getGameTime() + followUpDelay;
-                    PENDING_BOT_MOVEMENT_TICKS.put(session.id(), followUpTick);
-                    session.setActionDeadlineTick(followUpTick);
-                    markChanged(level);
+                    scheduleBotMovement(level, session, followUpDelay);
                     return;
                 }
             }
@@ -933,6 +941,31 @@ public class BoardSessionManager {
         }
 
         beginBotMovement(level, session, refreshed);
+    }
+
+    private static void completeBotEffect(ServerLevel level, BoardSession session, UUID sourceSlotId, int followUpDelay) {
+        PENDING_BOT_COUNTERS.remove(session.id());
+        BoardSession activeSession = data(level).get(session.id());
+        if (activeSession == null || activeSession.phase() != BoardPhase.PLAYING) return;
+        if (followUpDelay > 0) {
+            scheduleBotMovement(level, activeSession, followUpDelay);
+            return;
+        }
+        BoardParticipant refreshed = activeSession.participant(sourceSlotId).orElse(null);
+        if (refreshed == null) return;
+        if (refreshed.knockedDown()) {
+            if (refreshed.knockedDownTurns() <= 0) updateParticipant(level, activeSession, refreshed.knockDown());
+            finishTurn(level, activeSession);
+        } else {
+            beginBotMovement(level, activeSession, refreshed);
+        }
+    }
+
+    private static void scheduleBotMovement(ServerLevel level, BoardSession session, int delayTicks) {
+        long followUpTick = level.getGameTime() + Math.max(0, delayTicks);
+        PENDING_BOT_MOVEMENT_TICKS.put(session.id(), followUpTick);
+        session.setActionDeadlineTick(followUpTick);
+        markChanged(level);
     }
 
     private static BoardParticipant tryUseBotEffectCard(ServerLevel level, BoardSession session, BoardParticipant participant) {
@@ -1356,6 +1389,7 @@ public class BoardSessionManager {
         BoardPanelSelectionService.clear(session.id());
         PENDING_BOT_EFFECTS.remove(session.id());
         PENDING_BOT_MOVEMENT_TICKS.remove(session.id());
+        PENDING_BOT_COUNTERS.remove(session.id());
         PENDING_TIME_BOMB_ROLLS.remove(session.id());
         NO_HUMAN_SINCE_TICKS.remove(session.id());
         BasePlatform.clearActiveBoardEffect(session.id());

@@ -11,6 +11,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.items.cards.pvp.HandcardBarrier;
 import com.astral_craft.common.items.cards.pvp.HandcardEyeForAnEye;
 import com.astral_craft.common.items.cards.pvp.HandcardRandomSelect;
+import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
 import net.minecraft.ChatFormatting;
@@ -26,12 +27,14 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntConsumer;
 
 /**
  * Resolves effect-card counter windows. Board cards are intercepted before their effect callback is
@@ -88,22 +91,47 @@ public class PendingCounterEffectManager {
             return false;
         }
 
-        PendingBoardCounter chain = new PendingBoardCounter(session, source, sourceParticipant.slotUuid(),
-                targetParticipant.slotUuid(), targetParticipant.slotUuid(), sourceStack.copyWithCount(1),
-                definition, resolver, revealId, false,
+        PendingBoardCounter chain = new PendingBoardCounter(source.level(), session, source, source.getUUID(),
+                sourceParticipant.slotUuid(), targetParticipant.slotUuid(), targetParticipant.slotUuid(),
+                sourceStack.copyWithCount(1), definition, resolver, null, null, revealId, false,
                 source.level().getGameTime() + DEFAULT_RESPONSE_TICKS);
-        ServerPlayer controller = controllerFor(chain, targetParticipant);
+        presentInitialBoardTarget(chain, targetParticipant, counterIndexes);
+        return true;
+    }
+
+    public static boolean offerBoardBotCard(ServerLevel level, BoardSession session, BoardParticipant source,
+                                            ItemStack sourceStack, CardDefinition definition, List<UUID> targetSlotIds,
+                                            BoardBotCardResolver resolver, IntConsumer completion) {
+        if (level == null || session == null || source == null || sourceStack.isEmpty()
+                || definition == null || resolver == null || completion == null) return false;
+        List<UUID> targets = List.copyOf(targetSlotIds == null ? List.of() : targetSlotIds);
+        if (targets.size() != 1) return false;
+        BoardParticipant target = session.participant(targets.getFirst()).orElse(null);
+        if (target == null || target.knockedDown() || source.slotUuid().equals(target.slotUuid())) return false;
+        List<Integer> counterIndexes = counterIndexes(target);
+        if (counterIndexes.isEmpty()) return false;
+        long deadlineTick = level.getGameTime() + DEFAULT_RESPONSE_TICKS;
+        PendingBoardCounter chain = new PendingBoardCounter(level, session, null, source.slotUuid(),
+                source.slotUuid(), target.slotUuid(), target.slotUuid(), sourceStack.copyWithCount(1),
+                definition, null, resolver, completion, null, false, deadlineTick);
+        session.setActionDeadlineTick(deadlineTick);
+        BoardSessionManager.markChanged(level);
+        presentInitialBoardTarget(chain, target, counterIndexes);
+        return true;
+    }
+
+    private static void presentInitialBoardTarget(PendingBoardCounter chain, BoardParticipant target, List<Integer> counterIndexes) {
+        ServerPlayer controller = controllerFor(chain, target);
         if (controller != null) {
             BOARD_BY_CONTROLLER.put(controller.getUUID(), chain);
-            openHumanCounter(chain, targetParticipant, controller);
+            openHumanCounter(chain, target, controller);
             controller.sendSystemMessage(Component.translatable("message.astral_craft.board.counter.prompt",
-                    source.getDisplayName()).withStyle(ChatFormatting.AQUA), true);
-        } else {
-            int selectedIndex = counterIndexes.get(source.level().getRandom().nextInt(counterIndexes.size()));
-            PendingCardActionManager.schedule(source, delay + 18,
-                    () -> respondBoard(chain, targetParticipant, null, selectedIndex));
+                    sourceDisplayName(chain)).withStyle(ChatFormatting.AQUA), true);
+            return;
         }
-        return true;
+
+        int selectedIndex = counterIndexes.get(chain.level().getRandom().nextInt(counterIndexes.size()));
+        schedule(chain, 18, () -> respondBoard(chain, target, null, selectedIndex));
     }
 
     public static boolean respondBoard(ServerPlayer responder, UUID boardId, int handIndex) {
@@ -180,16 +208,13 @@ public class PendingCounterEffectManager {
 
         for (Map.Entry<UUID, PendingBoardCounter> entry : List.copyOf(BOARD_BY_CONTROLLER.entrySet())) {
             PendingBoardCounter chain = entry.getValue();
-            if (chain.source().level().getGameTime() < chain.deadlineTick()) continue;
+            if (chain.level().getGameTime() < chain.deadlineTick()) continue;
             if (!BOARD_BY_CONTROLLER.remove(entry.getKey(), chain)) continue;
             releaseReveal(chain);
             BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
-            LivingEntity entity = target == null ? null : BoardEntityService.entity(chain.source().level(), target);
-            if (entity == null) {
-                PendingCardActionManager.completeBoardCardUi(chain.source());
-            } else {
-                PendingCardActionManager.schedule(chain.source(), 20, () -> finishBoardEffect(chain, entity));
-            }
+            LivingEntity entity = target == null ? null : BoardEntityService.entity(chain.level(), target);
+            if (entity == null) completeBoardCard(chain);
+            else schedule(chain, 20, () -> finishBoardEffect(chain, entity));
         }
     }
 
@@ -209,10 +234,10 @@ public class PendingCounterEffectManager {
     private static void presentBoardTarget(PendingBoardCounter chain, boolean redirected) {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
         AstralCharacterEntity targetEntity = target == null ? null
-                : BoardEntityService.entity(chain.source().level(), target);
+                : BoardEntityService.entity(chain.level(), target);
         if (target == null || targetEntity == null || target.knockedDown()) {
             releaseReveal(chain);
-            PendingCardActionManager.completeBoardCardUi(chain.source());
+            completeBoardCard(chain);
             return;
         }
 
@@ -224,32 +249,32 @@ public class PendingCounterEffectManager {
             }
             UUID revealId = UUID.randomUUID();
             broadcastEffectReveal(chain, targetEntity, revealId, false);
-            PendingCardActionManager.schedule(chain.source(), REDIRECT_REVEAL_DELAY_TICKS,
+            schedule(chain, REDIRECT_REVEAL_DELAY_TICKS,
                     () -> finishBoardEffect(chain, targetEntity));
             return;
         }
 
         UUID revealId = UUID.randomUUID();
         PendingBoardCounter waiting = chain.withReveal(revealId,
-                chain.source().level().getGameTime() + DEFAULT_RESPONSE_TICKS);
+                chain.level().getGameTime() + DEFAULT_RESPONSE_TICKS);
         broadcastEffectReveal(waiting, targetEntity, revealId, true);
         ServerPlayer controller = controllerFor(waiting, target);
         if (controller != null) {
             BOARD_BY_CONTROLLER.put(controller.getUUID(), waiting);
             openHumanCounter(waiting, target, controller);
             controller.sendSystemMessage(Component.translatable("message.astral_craft.board.counter.prompt",
-                    chain.source().getDisplayName()).withStyle(ChatFormatting.AQUA), true);
+                    sourceDisplayName(chain)).withStyle(ChatFormatting.AQUA), true);
             return;
         }
 
-        int selectedIndex = counterIndexes.get(chain.source().level().getRandom().nextInt(counterIndexes.size()));
-        PendingCardActionManager.schedule(chain.source(), 18,
+        int selectedIndex = counterIndexes.get(chain.level().getRandom().nextInt(counterIndexes.size()));
+        schedule(chain, 18,
                 () -> respondBoard(waiting, target, null, selectedIndex));
     }
 
     private static void openHumanCounter(PendingBoardCounter chain, BoardParticipant target, ServerPlayer controller) {
         BoardSessionManager.openCounterScreen(controller, chain.session(), target, remainingResponseTicks(chain));
-        PendingCardActionManager.schedule(chain.source(), 2, () -> {
+        schedule(chain, 2, () -> {
             PendingBoardCounter current = BOARD_BY_CONTROLLER.get(controller.getUUID());
             if (chain.equals(current) && !controller.isRemoved()) {
                 BoardSessionManager.openCounterScreen(controller, chain.session(), target,
@@ -260,16 +285,16 @@ public class PendingCounterEffectManager {
 
     private static boolean respondBoard(PendingBoardCounter chain, BoardParticipant target,
                                         ServerPlayer responder, int handIndex) {
-        AstralCharacterEntity responderEntity = BoardEntityService.entity(chain.source().level(), target);
+        AstralCharacterEntity responderEntity = BoardEntityService.entity(chain.level(), target);
         if (responderEntity == null) {
             releaseReveal(chain);
-            PendingCardActionManager.completeBoardCardUi(chain.source());
+            completeBoardCard(chain);
             return true;
         }
 
         if (handIndex < 0) {
             releaseReveal(chain);
-            PendingCardActionManager.schedule(chain.source(), 20,
+            schedule(chain, 20,
                     () -> finishBoardEffect(chain, responderEntity));
             return true;
         }
@@ -280,7 +305,7 @@ public class PendingCounterEffectManager {
         CardDefinition counterDefinition = ((BaseHandCard) item).definition(counterStack);
         boolean consumed = responder != null
                 ? BoardSessionManager.consumeCounterCard(responder, chain.session().id(), handIndex)
-                : BoardSessionManager.consumeCounterCard(chain.source().level(), chain.session(), target, handIndex);
+                : BoardSessionManager.consumeCounterCard(chain.level(), chain.session(), target, handIndex);
         if (!consumed) return false;
         releaseReveal(chain);
 
@@ -290,23 +315,23 @@ public class PendingCounterEffectManager {
             case RANDOM_SELECT -> randomOtherBoardTarget(chain, target);
         };
         AstralCharacterEntity redirectedEntity = redirectedTarget == null ? null
-                : BoardEntityService.entity(chain.source().level(), redirectedTarget);
+                : BoardEntityService.entity(chain.level(), redirectedTarget);
         broadcastCounterReveal(chain, responder, responderEntity, counterStack, counterDefinition, redirectedEntity);
 
         switch (action) {
             case BARRIER -> {
-                chain.source().level().playSound(null, responderEntity.blockPosition(), SoundEvents.SHIELD_BLOCK.value(),
+                chain.level().playSound(null, responderEntity.blockPosition(), SoundEvents.SHIELD_BLOCK.value(),
                         SoundSource.PLAYERS, 0.95F, 1.2F);
-                PendingCardActionManager.schedule(chain.source(), CardUseService.CARD_REVEAL_DURATION_TICKS,
-                        () -> PendingCardActionManager.completeBoardCardUi(chain.source()));
+                schedule(chain, CardUseService.CARD_REVEAL_DURATION_TICKS,
+                        () -> completeBoardCard(chain));
             }
             case EYE_FOR_AN_EYE, RANDOM_SELECT -> {
                 if (redirectedTarget == null || redirectedEntity == null) {
-                    PendingCardActionManager.schedule(chain.source(), CardUseService.CARD_REVEAL_DURATION_TICKS,
-                            () -> PendingCardActionManager.completeBoardCardUi(chain.source()));
+                    schedule(chain, CardUseService.CARD_REVEAL_DURATION_TICKS,
+                            () -> completeBoardCard(chain));
                 } else {
                     PendingBoardCounter redirected = chain.withTarget(redirectedTarget.slotUuid(), true);
-                    PendingCardActionManager.schedule(chain.source(), CardUseService.CARD_REVEAL_DURATION_TICKS,
+                    schedule(chain, CardUseService.CARD_REVEAL_DURATION_TICKS,
                             () -> presentBoardTarget(redirected, true));
                 }
             }
@@ -314,14 +339,12 @@ public class PendingCounterEffectManager {
         return true;
     }
 
-    private static void scheduleBoardEffect(ServerPlayer source, List<LivingEntity> targets,
-                                            BoardCardResolver resolver, int delayTicks) {
+    private static void scheduleBoardEffect(ServerPlayer source, List<LivingEntity> targets, BoardCardResolver resolver, int delayTicks) {
         PendingCardActionManager.schedule(source, Math.max(0, delayTicks),
                 () -> finishUninterceptedBoardCard(source, targets, resolver));
     }
 
-    private static void finishUninterceptedBoardCard(ServerPlayer source, List<LivingEntity> targets,
-                                                     BoardCardResolver resolver) {
+    private static void finishUninterceptedBoardCard(ServerPlayer source, List<LivingEntity> targets, BoardCardResolver resolver) {
         boolean applied = resolveBoardCard(source, targets, resolver);
         if (!applied || !PendingCardActionManager.waitsForBoardDamage(source)) {
             PendingCardActionManager.completeBoardCardUi(source);
@@ -330,17 +353,37 @@ public class PendingCounterEffectManager {
 
     private static void finishBoardEffect(PendingBoardCounter chain, LivingEntity target) {
         if (target == null || !target.isAlive()) {
-            PendingCardActionManager.completeBoardCardUi(chain.source());
+            completeBoardCard(chain);
             return;
         }
-        boolean applied = resolveBoardCard(chain.source(), List.of(target), chain.resolver());
-        if (!applied || !PendingCardActionManager.waitsForBoardDamage(chain.source())) {
-            PendingCardActionManager.completeBoardCardUi(chain.source());
+        if (chain.source() != null && chain.resolver() != null) {
+            boolean applied = resolveBoardCard(chain.source(), List.of(target), chain.resolver());
+            if (!applied || !PendingCardActionManager.waitsForBoardDamage(chain.source())) completeBoardCard(chain);
+            return;
         }
+        if (!(target instanceof AstralCharacterEntity character) || chain.botResolver() == null) {
+            completeBoardCard(chain);
+            return;
+        }
+        BoardParticipant participant = chain.session().participantFor(character).orElse(null);
+        if (participant == null) {
+            completeBoardCard(chain);
+            return;
+        }
+        int followUpDelay = Math.max(0, chain.botResolver().apply(List.of(participant.slotUuid())));
+        if (chain.botCompletion() != null) chain.botCompletion().accept(followUpDelay);
     }
 
-    private static boolean resolveBoardCard(ServerPlayer source, List<LivingEntity> targets,
-                                            BoardCardResolver resolver) {
+    private static void completeBoardCard(PendingBoardCounter chain) {
+        if (chain.source() != null) PendingCardActionManager.completeBoardCardUi(chain.source());
+        else if (chain.botCompletion() != null) chain.botCompletion().accept(0);
+    }
+
+    private static void schedule(PendingBoardCounter chain, int delayTicks, Runnable action) {
+        PendingCardActionManager.schedule(chain.schedulerOwner(), Math.max(0, delayTicks), action);
+    }
+
+    private static boolean resolveBoardCard(ServerPlayer source, List<LivingEntity> targets, BoardCardResolver resolver) {
         boolean previous = RESOLVING_BOARD_CARD.get();
         RESOLVING_BOARD_CARD.set(true);
         try {
@@ -356,7 +399,7 @@ public class PendingCounterEffectManager {
 
     private static ServerPlayer controllerFor(PendingBoardCounter chain, BoardParticipant participant) {
         return participant.controllerUuid()
-                .map(controllerId -> chain.source().level().getServer().getPlayerList().getPlayer(controllerId))
+                .map(controllerId -> chain.level().getServer().getPlayerList().getPlayer(controllerId))
                 .orElse(null);
     }
 
@@ -369,7 +412,7 @@ public class PendingCounterEffectManager {
     }
 
     private static int remainingResponseTicks(PendingBoardCounter chain) {
-        return (int) Math.clamp(chain.deadlineTick() - chain.source().level().getGameTime(),
+        return (int) Math.clamp(chain.deadlineTick() - chain.level().getGameTime(),
                 1L, DEFAULT_RESPONSE_TICKS);
     }
 
@@ -381,6 +424,7 @@ public class PendingCounterEffectManager {
                     && card.definition(new ItemStack(item)).type() == CardType.COUNTER
                     && counterAction(item) != null) result.add(index);
         }
+
         return result;
     }
 
@@ -397,18 +441,16 @@ public class PendingCounterEffectManager {
                 .filter(participant -> !participant.slotUuid().equals(chain.sourceSlot()))
                 .filter(participant -> !participant.slotUuid().equals(chain.originalTargetSlot()))
                 .filter(participant -> !participant.slotUuid().equals(currentTarget.slotUuid()))
-                .filter(participant -> BoardEntityService.entity(chain.source().level(), participant) != null)
-                .toList();
-        return candidates.isEmpty() ? null
-                : candidates.get(chain.source().level().getRandom().nextInt(candidates.size()));
+                .filter(participant -> BoardEntityService.entity(chain.level(), participant) != null).toList();
+        return candidates.isEmpty() ? null : candidates.get(chain.level().getRandom().nextInt(candidates.size()));
     }
 
-    private static void broadcastEffectReveal(PendingBoardCounter chain, LivingEntity target,
-                                              UUID revealId, boolean held) {
-        CardRevealPayload payload = CardUseService.cardRevealPayload(chain.source(), chain.sourceStack(),
-                chain.definition(), List.of(target), CardRevealPayload.ANIMATION_FLIP,
-                CardUseService.CARD_REVEAL_DURATION_TICKS, revealId);
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.source().level(), chain.session())) {
+    private static void broadcastEffectReveal(PendingBoardCounter chain, LivingEntity target, UUID revealId, boolean held) {
+        AstralCharacterEntity sourceEntity = chain.session().participant(chain.sourceSlot())
+                .map(participant -> BoardEntityService.entity(chain.level(), participant)).orElse(null);
+        CardRevealPayload payload = boardRevealPayload(chain.source(), sourceEntity, chain.sourceStack(),
+                chain.definition(), List.of(target), revealId);
+        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.level(), chain.session())) {
             PacketDistributor.sendToPlayer(viewer, payload);
             if (held) PacketDistributor.sendToPlayer(viewer,
                     new CardRevealControlPayload(revealId, CardRevealControlPayload.Action.HOLD));
@@ -418,41 +460,52 @@ public class PendingCounterEffectManager {
     private static void broadcastCounterReveal(PendingBoardCounter chain, ServerPlayer responder,
                                                AstralCharacterEntity responderEntity, ItemStack stack,
                                                CardDefinition definition, LivingEntity redirectedTarget) {
-        ServerPlayer revealOwner = responder == null ? chain.source() : responder;
         List<LivingEntity> targets = redirectedTarget == null ? List.of(responderEntity) : List.of(redirectedTarget);
-        CardRevealPayload base = CardUseService.cardRevealPayload(revealOwner, stack, definition, targets,
-                CardRevealPayload.ANIMATION_FLIP, CardUseService.CARD_REVEAL_DURATION_TICKS, UUID.randomUUID());
-        CardRevealPayload payload = new CardRevealPayload(base.cardId(), base.stack(), base.cardType(), base.title(),
-                base.body(), base.largeFrontTexture(), base.largeBackTexture(), base.animation(), base.durationTicks(),
-                responderEntity.getId(), base.targetEntityIds(), base.revealId());
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.source().level(), chain.session())) {
+        CardRevealPayload payload = boardRevealPayload(responder, responderEntity, stack, definition,
+                targets, UUID.randomUUID());
+        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.level(), chain.session())) {
             PacketDistributor.sendToPlayer(viewer, payload);
         }
     }
 
-    private static void releaseReveal(ServerPlayer source, BoardSession session, UUID revealId) {
-        if (source == null || revealId == null) return;
-        CardRevealControlPayload payload = new CardRevealControlPayload(revealId,
-                CardRevealControlPayload.Action.RELEASE);
-        if (session == null) {
-            PacketDistributor.sendToPlayer(source, payload);
-            return;
+    private static CardRevealPayload boardRevealPayload(@Nullable ServerPlayer owner, @Nullable LivingEntity source,
+                                                        ItemStack stack, CardDefinition definition,
+                                                        List<? extends LivingEntity> targets, UUID revealId) {
+        List<Integer> targetIds = targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
+        if (owner != null) {
+            CardRevealPayload base = CardUseService.cardRevealPayload(owner, stack, definition, targets,
+                    CardRevealPayload.ANIMATION_FLIP, CardUseService.CARD_REVEAL_DURATION_TICKS, revealId);
+            return new CardRevealPayload(base.cardId(), base.stack(), base.cardType(), base.title(), base.body(),
+                    base.largeFrontTexture(), base.largeBackTexture(), base.animation(), base.durationTicks(),
+                    source == null ? base.sourceEntityId() : source.getId(), targetIds, base.revealId());
         }
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(source.level(), session)) {
-            PacketDistributor.sendToPlayer(viewer, payload);
-        }
+        CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
+        return new CardRevealPayload(definition.itemId(stack).toString(), stack.copyWithCount(1),
+                cardType.getSerializedName(), definition.displayName(stack),
+                definition.effectText(stack, definition.range()), definition.largeFrontTexture(stack),
+                definition.largeBackTexture(), CardRevealPayload.ANIMATION_FLIP,
+                CardUseService.CARD_REVEAL_DURATION_TICKS, source == null ? -1 : source.getId(), targetIds, revealId);
     }
 
     private static void releaseReveal(PendingBoardCounter chain) {
-        releaseReveal(chain.source(), chain.session(), chain.revealId());
+        if (chain.revealId() == null) return;
+        CardRevealControlPayload payload = new CardRevealControlPayload(chain.revealId(),
+                CardRevealControlPayload.Action.RELEASE);
+        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.level(), chain.session())) {
+            PacketDistributor.sendToPlayer(viewer, payload);
+        }
     }
 
-    private static LivingEntity randomOtherPlayer(PendingEffect effect, ServerLevel level,
-                                                  ServerPlayer originalTarget) {
-        List<ServerPlayer> candidates = level.players().stream()
-                .filter(ServerPlayer::isAlive)
-                .filter(player -> player != originalTarget && player != effect.source())
-                .toList();
+    private static Component sourceDisplayName(PendingBoardCounter chain) {
+        if (chain.source() != null) return chain.source().getDisplayName();
+        BoardParticipant source = chain.session().participant(chain.sourceSlot()).orElse(null);
+        AstralCharacterEntity entity = source == null ? null : BoardEntityService.entity(chain.level(), source);
+        return entity == null ? chain.definition().displayName(chain.sourceStack()) : entity.getDisplayName();
+    }
+
+    private static LivingEntity randomOtherPlayer(PendingEffect effect, ServerLevel level, ServerPlayer originalTarget) {
+        List<ServerPlayer> candidates = level.players().stream().filter(ServerPlayer::isAlive)
+                .filter(player -> player != originalTarget && player != effect.source()).toList();
         return candidates.isEmpty() ? null : candidates.get(level.getRandom().nextInt(candidates.size()));
     }
 
@@ -471,32 +524,42 @@ public class PendingCounterEffectManager {
         boolean apply(List<LivingEntity> targets);
     }
 
+    @FunctionalInterface
+    public interface BoardBotCardResolver {
+        int apply(List<UUID> targetSlotIds);
+    }
+
     public enum CounterAction {
         BARRIER,
         RANDOM_SELECT,
         EYE_FOR_AN_EYE
     }
 
-    private record PendingBoardCounter(BoardSession session, ServerPlayer source, UUID sourceSlot,
+    private record PendingBoardCounter(ServerLevel level, BoardSession session,
+                                       @Nullable ServerPlayer source, UUID schedulerOwner, UUID sourceSlot,
                                        UUID originalTargetSlot, UUID currentTargetSlot,
                                        ItemStack sourceStack, CardDefinition definition,
-                                       BoardCardResolver resolver, UUID revealId,
+                                       @Nullable BoardCardResolver resolver,
+                                       @Nullable BoardBotCardResolver botResolver,
+                                       @Nullable IntConsumer botCompletion, @Nullable UUID revealId,
                                        boolean redirected, long deadlineTick) {
         private PendingBoardCounter withReveal(UUID revealId, long deadlineTick) {
-            return new PendingBoardCounter(this.session, this.source, this.sourceSlot, this.originalTargetSlot,
-                    this.currentTargetSlot, this.sourceStack, this.definition, this.resolver,
+            return new PendingBoardCounter(this.level, this.session, this.source, this.schedulerOwner,
+                    this.sourceSlot, this.originalTargetSlot, this.currentTargetSlot, this.sourceStack,
+                    this.definition, this.resolver, this.botResolver, this.botCompletion,
                     revealId, this.redirected, deadlineTick);
         }
 
         private PendingBoardCounter withTarget(UUID targetSlot, boolean redirected) {
-            return new PendingBoardCounter(this.session, this.source, this.sourceSlot, this.originalTargetSlot,
-                    targetSlot, this.sourceStack, this.definition, this.resolver,
+            return new PendingBoardCounter(this.level, this.session, this.source, this.schedulerOwner,
+                    this.sourceSlot, this.originalTargetSlot, targetSlot, this.sourceStack,
+                    this.definition, this.resolver, this.botResolver, this.botCompletion,
                     null, redirected, 0L);
         }
     }
 
-    private record PendingEffect(ServerPlayer source, LivingEntity target,
-                                 EffectResolver resolver, int ticksLeft) {
+    private record PendingEffect(ServerPlayer source, LivingEntity target, EffectResolver resolver, int ticksLeft) {
+
         private PendingEffect withTarget(LivingEntity target) {
             return new PendingEffect(this.source, target, this.resolver, this.ticksLeft);
         }
@@ -508,5 +571,7 @@ public class PendingCounterEffectManager {
         private PendingEffect tickDown() {
             return this.withTicksLeft(this.ticksLeft - 1);
         }
+
     }
+
 }
