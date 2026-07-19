@@ -11,10 +11,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 
 import java.util.List;
 
@@ -24,11 +21,6 @@ public class HandcardLivingBook extends BaseHandCard {
 
     public HandcardLivingBook(Properties properties) {
         super(properties);
-    }
-
-    @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        return super.use(level, player, hand);
     }
 
     @Override

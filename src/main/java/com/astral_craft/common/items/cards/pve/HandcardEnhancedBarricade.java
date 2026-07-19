@@ -2,8 +2,11 @@ package com.astral_craft.common.items.cards.pve;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.board.*;
+import com.astral_craft.common.gameplay.board.BoardBotEffect;
+import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
 import com.astral_craft.common.gameplay.board.BoardMechanicsState.BoardTrapType;
+import com.astral_craft.common.gameplay.board.BoardPanelPlacementCard;
+import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
 
@@ -31,14 +34,12 @@ public class HandcardEnhancedBarricade extends BaseHandCard implements BoardPane
 
     @Override
     public boolean canUseByBoardBot(BoardBotEffectContext context) {
-        return BoardPanelSelectionService.randomValidNode(context.session(), context.user(),
-                this.boardPlacementRange(), context.level().getRandom()).isPresent();
+        return this.randomValidNode(context.session(), context.user(), context.level().getRandom()).isPresent();
     }
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
-        BoardPanelSelectionService.randomValidNode(context.session(), context.user(),
-                this.boardPlacementRange(), context.level().getRandom()).ifPresent(nodeId ->
+        this.randomValidNode(context.session(), context.user(), context.level().getRandom()).ifPresent(nodeId ->
                 BoardWorldObjectService.placeTrap(context.level(), context.session(), this.boardTrapType(),
                         context.userSlotId(), nodeId));
         return 0;

@@ -12,6 +12,7 @@ import net.minecraft.world.entity.LivingEntity;
 import java.util.List;
 
 public class HandcardSmartieGummy extends BaseHandCard {
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.PLAYERS_AND_MOBS, 32);
 
     public HandcardSmartieGummy(Properties properties) {
@@ -27,4 +28,5 @@ public class HandcardSmartieGummy extends BaseHandCard {
         });
         return true;
     }
+
 }

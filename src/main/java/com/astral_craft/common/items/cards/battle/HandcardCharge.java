@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 public class HandcardCharge extends BaseHandCard {
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.ATTACK, CardTargetTypes.NONE, -1);
 
     public HandcardCharge(Properties properties) {
@@ -27,4 +28,5 @@ public class HandcardCharge extends BaseHandCard {
         user.addItem(new ItemStack(AstralItems.HANDCARD_POWERFUL_ATTACK.get()));
         return true;
     }
+
 }

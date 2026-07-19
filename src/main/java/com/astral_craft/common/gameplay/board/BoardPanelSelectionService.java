@@ -12,7 +12,6 @@ import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.RandomSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -27,8 +26,7 @@ public class BoardPanelSelectionService {
         return PENDING.containsKey(player.getUUID());
     }
 
-    public static boolean begin(ServerPlayer player, ItemStack cardStack, int handIndex,
-                                BoardPanelPlacementCard placementCard) {
+    public static boolean begin(ServerPlayer player, ItemStack cardStack, int handIndex, BoardPanelPlacementCard placementCard) {
         BoardSession session = BoardSessionManager.findByController(player).orElse(null);
         BoardParticipant source = session == null ? null : session.participantByController(player.getUUID()).orElse(null);
         if (session == null || source == null || !CardUseService.isBoardHandIndex(handIndex)) return false;
@@ -52,12 +50,12 @@ public class BoardPanelSelectionService {
             reopenTurnScreen(player, source);
             return;
         }
+
         String nodeId = payload.nodeId().get().toString();
         if (!validNodes(session, source, pending.range()).contains(nodeId)) return;
         int cardIndex = CardUseService.boardCardIndex(pending.handIndex());
         ItemStack current = BoardSessionManager.boardCardStack(player, cardIndex);
         if (!ItemStack.isSameItemSameComponents(current, pending.cardStack())) return;
-
         Runnable apply = () -> {
             BoardSession refreshed = BoardSessionManager.session(player.level(), pending.boardId()).orElse(null);
             BoardParticipant refreshedSource = refreshed == null ? null
@@ -72,6 +70,7 @@ public class BoardPanelSelectionService {
                 BoardSessionManager.reopenTurnScreen(player, pending.boardId());
             }
         };
+
         if (pending.revealWhenPlaced() && pending.cardStack().getItem() instanceof BaseHandCard card) {
             PendingCardActionManager.beginBoardCardUi(player, pending.boardId(), false);
             var definition = card.definition(pending.cardStack());
@@ -89,29 +88,22 @@ public class BoardPanelSelectionService {
         }
     }
 
-    public static Optional<String> randomValidNode(BoardSession session, BoardParticipant source,
-                                                   int range, RandomSource random) {
-        List<String> nodes = validNodes(session, source, range);
-        return nodes.isEmpty() ? Optional.empty() : Optional.of(nodes.get(random.nextInt(nodes.size())));
-    }
-
     public static void clear(UUID boardId) {
         PENDING.entrySet().removeIf(entry -> entry.getValue().boardId().equals(boardId));
     }
 
-    private static OpenBoardPanelSelectionPayload createPayload(BoardSession session, ItemStack stack,
-                                                                 int handIndex, List<String> validNodes) {
+    private static OpenBoardPanelSelectionPayload createPayload(BoardSession session, ItemStack stack, int handIndex, List<String> validNodes) {
         Set<String> valid = Set.copyOf(validNodes);
         List<BoardPanelNodeView> nodes = new ArrayList<>();
         for (Map.Entry<String, BlockPos> entry : session.positions().entrySet()) {
             List<BoardPanelOccupantView> occupants = session.participants().stream()
                     .filter(participant -> participant.currentNodeKey().equals(entry.getKey()))
                     .sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder))
-                    .map(participant -> new BoardPanelOccupantView(participant.characterId(), participant.skinId()))
-                    .toList();
+                    .map(participant -> new BoardPanelOccupantView(participant.characterId(), participant.skinId())).toList();
             nodes.add(new BoardPanelNodeView(Identifier.parse(entry.getKey()), entry.getValue(),
                     valid.contains(entry.getKey()), occupants));
         }
+
         List<BoardPanelEdgeView> edges = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (BoardNode node : session.nodes().values()) {
@@ -120,17 +112,16 @@ public class BoardPanelSelectionService {
                 if (seen.add(key)) edges.add(new BoardPanelEdgeView(Identifier.parse(node.id()), Identifier.parse(next)));
             }
         }
+
         return new OpenBoardPanelSelectionPayload(session.id(), stack.copyWithCount(1), handIndex, nodes, edges);
     }
 
     private static List<String> validNodes(BoardSession session, BoardParticipant source, int range) {
         int maximum = Math.max(0, range);
-        return session.nodes().keySet().stream()
-                .filter(nodeId -> {
+        return session.nodes().keySet().stream().filter(nodeId -> {
                     int distance = BoardRouteService.graphDistance(session, source.currentNodeKey(), nodeId, maximum);
                     return distance >= 0 && distance <= maximum;
-                })
-                .sorted().toList();
+                }).sorted().toList();
     }
 
     private static void reopenTurnScreen(ServerPlayer player, BoardParticipant participant) {
