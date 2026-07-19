@@ -7,6 +7,7 @@ import com.astral_craft.common.components.CardUseRestriction;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
+import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardPanelPlacementCard;
 import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
@@ -313,24 +314,21 @@ public class CardUseService {
             List<LivingEntity> capturedTargets = List.copyOf(targets);
             ItemStack sourceStack = stack.copyWithCount(1);
             UUID revealId = UUID.randomUUID();
-            boolean holdInitialReveal = boardCard && PendingCounterEffectManager.hasBoardCounter(player, capturedTargets);
+            int delay = revealLockTicks(CARD_REVEAL_DURATION_TICKS) + CARD_EFFECT_POST_REVEAL_DELAY_TICKS;
+            boolean holdInitialReveal = false;
             if (boardCard) {
-                BoardSessionManager.findByController(player).ifPresent(session ->
-                        PendingCardActionManager.beginBoardCardUi(player, session.id(),
-                                card.waitForBoardDamageBeforeReopen()));
-            }
-            int delay = revealLockTicks(CARD_REVEAL_DURATION_TICKS)
-                    + (holdInitialReveal ? 0 : CARD_EFFECT_POST_REVEAL_DELAY_TICKS);
-            if (!PendingCardActionManager.scheduleExclusive(player, delay, () -> {
-                if (boardCard) {
-                    PendingCounterEffectManager.offerBoardCard(player, sourceStack, definition, capturedTargets,
-                            holdInitialReveal ? revealId : null,
-                            redirectedTargets -> card.applyFromSelection(player, hand, redirectedTargets));
-                } else {
-                    card.applyFromSelection(player, hand, capturedTargets);
+                BoardSession session = BoardSessionManager.findByController(player).orElse(null);
+                if (session == null) {
+                    reopenBoardTurn(player);
+                    return;
                 }
-            })) {
-                if (boardCard) PendingCardActionManager.completeBoardCardUi(player);
+                PendingCardActionManager.beginBoardCardUi(player, session.id(),
+                        card.waitForBoardDamageBeforeReopen());
+                holdInitialReveal = PendingCounterEffectManager.offerBoardCard(player, sourceStack, definition,
+                        capturedTargets, revealId, delay,
+                        redirectedTargets -> card.applyFromSelection(player, hand, redirectedTargets));
+            } else if (!PendingCardActionManager.scheduleExclusive(player, delay,
+                    () -> card.applyFromSelection(player, hand, capturedTargets))) {
                 return;
             }
 

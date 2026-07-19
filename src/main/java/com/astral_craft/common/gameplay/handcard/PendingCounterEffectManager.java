@@ -3,12 +3,6 @@ package com.astral_craft.common.gameplay.handcard;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.entity.projectile.CardProjectileSettings;
-import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
-import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
-import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
-import com.astral_craft.common.entity.visual.FallingBrickEntity;
-import com.astral_craft.common.entity.visual.LaserStrikeEntity;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -42,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Resolves effect-card counter windows. Board cards are intercepted before their effect callback is
  * executed, allowing Barrier, Eye for an Eye, and Random Select to form a redirectable counter chain.
- * The older world-player damage window is retained for cards used outside a board session.
+ * World effects use the same resolver callback instead of maintaining one offer method per visual.
  */
 public class PendingCounterEffectManager {
 
@@ -53,55 +47,63 @@ public class PendingCounterEffectManager {
     private static final Map<UUID, PendingBoardCounter> BOARD_BY_CONTROLLER = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> RESOLVING_BOARD_CARD = ThreadLocal.withInitial(() -> false);
 
-    public static boolean hasBoardCounter(ServerPlayer source, List<LivingEntity> targets) {
-        if (source == null || targets == null || targets.size() != 1
-                || !(targets.getFirst() instanceof AstralCharacterEntity target) || !target.isBoardPawn()) return false;
-        BoardSession session = BoardSessionManager.findByController(source).orElse(null);
-        BoardParticipant sourceParticipant = session == null ? null
-                : session.participantByController(source.getUUID()).orElse(null);
-        BoardParticipant targetParticipant = session == null ? null
-                : session.participantByEntity(target.getUUID()).orElse(null);
-        return sourceParticipant != null && targetParticipant != null
-                && !sourceParticipant.slotUuid().equals(targetParticipant.slotUuid())
-                && !counterIndexes(targetParticipant).isEmpty();
+    /**
+     * Offers one counterable world effect. The callback receives the final target after any reflection
+     * or random redirection, so projectile and direct-damage cards share this single entry point.
+     */
+    public static void offer(ServerPlayer source, LivingEntity target, EffectResolver resolver) {
+        if (source == null || target == null || resolver == null) return;
+        offer(new PendingEffect(source, target, resolver, DEFAULT_RESPONSE_TICKS));
     }
 
-    public static void offerBoardCard(ServerPlayer source, ItemStack sourceStack, CardDefinition definition,
-                                      List<LivingEntity> targets, BoardCardResolver resolver) {
-        offerBoardCard(source, sourceStack, definition, targets, null, resolver);
-    }
-
-    public static void offerBoardCard(ServerPlayer source, ItemStack sourceStack, CardDefinition definition,
-                                      List<LivingEntity> targets, UUID heldRevealId, BoardCardResolver resolver) {
-        if (source == null || sourceStack.isEmpty() || definition == null || resolver == null) return;
+    /**
+     * Registers a board counter window immediately after target validation. Returning {@code true}
+     * means the caller must hold the initial reveal until the target responds or times out.
+     */
+    public static boolean offerBoardCard(ServerPlayer source, ItemStack sourceStack, CardDefinition definition,
+                                         List<LivingEntity> targets, UUID revealId, int effectDelayTicks,
+                                         BoardCardResolver resolver) {
+        if (source == null || sourceStack.isEmpty() || definition == null || resolver == null) return false;
         List<LivingEntity> capturedTargets = List.copyOf(targets == null ? List.of() : targets);
+        int delay = Math.max(0, effectDelayTicks);
         if (capturedTargets.size() != 1 || !(capturedTargets.getFirst() instanceof AstralCharacterEntity target)
                 || !target.isBoardPawn()) {
-            finishUninterceptedBoardCard(source, capturedTargets, resolver);
-            return;
+            scheduleBoardEffect(source, capturedTargets, resolver, delay);
+            return false;
         }
 
         BoardSession session = BoardSessionManager.findByController(source).orElse(null);
         BoardParticipant sourceParticipant = session == null ? null
                 : session.participantByController(source.getUUID()).orElse(null);
-        BoardParticipant targetParticipant = session == null ? null
-                : session.participantByEntity(target.getUUID()).orElse(null);
+        BoardParticipant targetParticipant = participantForTarget(session, target);
         if (session == null || sourceParticipant == null || targetParticipant == null
                 || sourceParticipant.slotUuid().equals(targetParticipant.slotUuid())) {
-            if (heldRevealId == null) {
-                finishUninterceptedBoardCard(source, capturedTargets, resolver);
-            } else {
-                releaseReveal(source, session, heldRevealId);
-                PendingCardActionManager.schedule(source, 20,
-                        () -> finishUninterceptedBoardCard(source, capturedTargets, resolver));
-            }
-            return;
+            scheduleBoardEffect(source, capturedTargets, resolver, delay);
+            return false;
+        }
+
+        List<Integer> counterIndexes = counterIndexes(targetParticipant);
+        if (counterIndexes.isEmpty()) {
+            scheduleBoardEffect(source, capturedTargets, resolver, delay);
+            return false;
         }
 
         PendingBoardCounter chain = new PendingBoardCounter(session, source, sourceParticipant.slotUuid(),
                 targetParticipant.slotUuid(), targetParticipant.slotUuid(), sourceStack.copyWithCount(1),
-                definition, resolver, heldRevealId, false, 0L);
-        presentBoardTarget(chain, false);
+                definition, resolver, revealId, false,
+                source.level().getGameTime() + DEFAULT_RESPONSE_TICKS);
+        ServerPlayer controller = controllerFor(chain, targetParticipant);
+        if (controller != null) {
+            BOARD_BY_CONTROLLER.put(controller.getUUID(), chain);
+            openHumanCounter(chain, targetParticipant, controller);
+            controller.sendSystemMessage(Component.translatable("message.astral_craft.board.counter.prompt",
+                    source.getDisplayName()).withStyle(ChatFormatting.AQUA), true);
+        } else {
+            int selectedIndex = counterIndexes.get(source.level().getRandom().nextInt(counterIndexes.size()));
+            PendingCardActionManager.schedule(source, delay + 18,
+                    () -> respondBoard(chain, targetParticipant, null, selectedIndex));
+        }
+        return true;
     }
 
     public static boolean respondBoard(ServerPlayer responder, UUID boardId, int handIndex) {
@@ -111,71 +113,18 @@ public class PendingCounterEffectManager {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
         if (target == null || !target.controlledBy(responder.getUUID())) return false;
         if (handIndex >= 0 && !isUsableCounterIndex(target, handIndex)) {
-            BoardSessionManager.openCounterScreen(responder, chain.session(), target, remainingResponseTicks(chain));
+            BoardSessionManager.openCounterScreen(responder, chain.session(), target,
+                    remainingResponseTicks(chain));
             return false;
         }
-
         if (!BOARD_BY_CONTROLLER.remove(responder.getUUID(), chain)) return false;
         boolean handled = respondBoard(chain, target, responder, handIndex);
         if (!handled) {
             BOARD_BY_CONTROLLER.put(responder.getUUID(), chain);
-            BoardSessionManager.openCounterScreen(responder, chain.session(), target, remainingResponseTicks(chain));
+            BoardSessionManager.openCounterScreen(responder, chain.session(), target,
+                    remainingResponseTicks(chain));
         }
-
         return handled;
-    }
-
-    public static void offerDirectDamage(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.direct(source, BoardEntityService.effectSourceEntity(source), target, damage));
-    }
-
-    public static void offerLaser(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-        offer(PendingEffect.laser(source, BoardEntityService.effectSourceEntity(source), target, damage, argb, radius));
-    }
-
-    public static void offerRailgun(ServerPlayer source, LivingEntity target, int damage, int argb, float radius) {
-        offer(PendingEffect.laser(source, BoardEntityService.effectSourceEntity(source), target, damage, argb, radius));
-    }
-
-    public static void offerFirecracker(ServerPlayer source, LivingEntity target, int damage) {
-        offerFirecracker(source, target, damage, CardProjectileSettings.firecrackers());
-    }
-
-    public static void offerFirecracker(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.FIRECRACKERS, settings));
-    }
-
-    public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage) {
-        offerSlingshot(source, target, damage, CardProjectileSettings.slingshot());
-    }
-
-    public static void offerSlingshot(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.SLINGSHOT, settings));
-    }
-
-    public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage) {
-        offerSnowballAttack(source, target, damage, CardProjectileSettings.snowballAttack());
-    }
-
-    public static void offerSnowballAttack(ServerPlayer source, LivingEntity target, int damage, CardProjectileSettings settings) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.SNOWBALL_ATTACK, settings));
-    }
-
-    public static void offerFallingBrick(ServerPlayer source, LivingEntity target, int damage) {
-        offer(PendingEffect.projectile(source, BoardEntityService.effectSourceEntity(source), target, damage, VisualKind.FALLING_BRICK, CardProjectileSettings.slingshot()));
-    }
-
-    private static void offer(PendingEffect effect) {
-        if (RESOLVING_BOARD_CARD.get() || !(effect.target() instanceof ServerPlayer player)) {
-            resolve(effect, effect.target());
-            return;
-        }
-
-        BY_TARGET.put(player.getUUID(), effect.withTicksLeft(DEFAULT_RESPONSE_TICKS));
-        player.sendSystemMessage(Component.translatable("message.astral_craft.counter.prompt",
-                effect.source().getDisplayName()).withStyle(ChatFormatting.AQUA), true);
-        player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP,
-                SoundSource.PLAYERS, 0.7F, 1.35F);
     }
 
     public static boolean respond(ServerPlayer target, CounterAction action) {
@@ -216,8 +165,7 @@ public class PendingCounterEffectManager {
     }
 
     public static void serverTick(MinecraftServer server) {
-        List<UUID> keys = new ArrayList<>(BY_TARGET.keySet());
-        for (UUID key : keys) {
+        for (UUID key : List.copyOf(BY_TARGET.keySet())) {
             PendingEffect current = BY_TARGET.get(key);
             if (current == null) continue;
             PendingEffect next = current.tickDown();
@@ -225,7 +173,7 @@ public class PendingCounterEffectManager {
                 BY_TARGET.put(key, next);
                 continue;
             }
-            BY_TARGET.remove(key, current);
+            if (!BY_TARGET.remove(key, current)) continue;
             Entity target = next.source().level().getEntity(key);
             if (target instanceof LivingEntity living && living.isAlive()) resolve(next, living);
         }
@@ -245,9 +193,23 @@ public class PendingCounterEffectManager {
         }
     }
 
+    private static void offer(PendingEffect effect) {
+        if (RESOLVING_BOARD_CARD.get() || !(effect.target() instanceof ServerPlayer player)) {
+            resolve(effect, effect.target());
+            return;
+        }
+
+        BY_TARGET.put(player.getUUID(), effect.withTicksLeft(DEFAULT_RESPONSE_TICKS));
+        player.sendSystemMessage(Component.translatable("message.astral_craft.counter.prompt",
+                effect.source().getDisplayName()).withStyle(ChatFormatting.AQUA), true);
+        player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP,
+                SoundSource.PLAYERS, 0.7F, 1.35F);
+    }
+
     private static void presentBoardTarget(PendingBoardCounter chain, boolean redirected) {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
-        AstralCharacterEntity targetEntity = target == null ? null : BoardEntityService.entity(chain.source().level(), target);
+        AstralCharacterEntity targetEntity = target == null ? null
+                : BoardEntityService.entity(chain.source().level(), target);
         if (target == null || targetEntity == null || target.knockedDown()) {
             releaseReveal(chain);
             PendingCardActionManager.completeBoardCardUi(chain.source());
@@ -257,31 +219,21 @@ public class PendingCounterEffectManager {
         List<Integer> counterIndexes = counterIndexes(target);
         if (counterIndexes.isEmpty()) {
             if (!redirected) {
-                if (chain.revealId() == null) {
-                    finishBoardEffect(chain, targetEntity);
-                } else {
-                    releaseReveal(chain);
-                    PendingCardActionManager.schedule(chain.source(), 20, () -> finishBoardEffect(chain, targetEntity));
-                }
+                finishBoardEffect(chain, targetEntity);
                 return;
             }
-
             UUID revealId = UUID.randomUUID();
             broadcastEffectReveal(chain, targetEntity, revealId, false);
-            PendingCardActionManager.schedule(chain.source(), REDIRECT_REVEAL_DELAY_TICKS, () -> finishBoardEffect(chain, targetEntity));
+            PendingCardActionManager.schedule(chain.source(), REDIRECT_REVEAL_DELAY_TICKS,
+                    () -> finishBoardEffect(chain, targetEntity));
             return;
         }
 
-        UUID revealId = chain.revealId() == null ? UUID.randomUUID() : chain.revealId();
+        UUID revealId = UUID.randomUUID();
         PendingBoardCounter waiting = chain.withReveal(revealId,
                 chain.source().level().getGameTime() + DEFAULT_RESPONSE_TICKS);
-        if (chain.revealId() == null || redirected) {
-            broadcastEffectReveal(waiting, targetEntity, revealId, true);
-        }
-
-        ServerPlayer controller = target.controllerUuid().map(controllerId ->
-                chain.source().level().getServer().getPlayerList()
-                        .getPlayer(controllerId)).orElse(null);
+        broadcastEffectReveal(waiting, targetEntity, revealId, true);
+        ServerPlayer controller = controllerFor(waiting, target);
         if (controller != null) {
             BOARD_BY_CONTROLLER.put(controller.getUUID(), waiting);
             openHumanCounter(waiting, target, controller);
@@ -291,15 +243,17 @@ public class PendingCounterEffectManager {
         }
 
         int selectedIndex = counterIndexes.get(chain.source().level().getRandom().nextInt(counterIndexes.size()));
-        PendingCardActionManager.schedule(chain.source(), 18, () -> respondBoard(waiting, target, null, selectedIndex));
+        PendingCardActionManager.schedule(chain.source(), 18,
+                () -> respondBoard(waiting, target, null, selectedIndex));
     }
 
     private static void openHumanCounter(PendingBoardCounter chain, BoardParticipant target, ServerPlayer controller) {
         BoardSessionManager.openCounterScreen(controller, chain.session(), target, remainingResponseTicks(chain));
         PendingCardActionManager.schedule(chain.source(), 2, () -> {
             PendingBoardCounter current = BOARD_BY_CONTROLLER.get(controller.getUUID());
-            if (current == chain && !controller.isRemoved()) {
-                BoardSessionManager.openCounterScreen(controller, chain.session(), target, remainingResponseTicks(chain));
+            if (chain.equals(current) && !controller.isRemoved()) {
+                BoardSessionManager.openCounterScreen(controller, chain.session(), target,
+                        remainingResponseTicks(chain));
             }
         });
     }
@@ -341,10 +295,11 @@ public class PendingCounterEffectManager {
 
         switch (action) {
             case BARRIER -> {
-                chain.source().level().playSound(null, responderEntity.blockPosition(), SoundEvents.SHIELD_BLOCK.value(), SoundSource.PLAYERS, 0.95F, 1.2F);
-                PendingCardActionManager.schedule(chain.source(), CardUseService.CARD_REVEAL_DURATION_TICKS, () -> PendingCardActionManager.completeBoardCardUi(chain.source()));
+                chain.source().level().playSound(null, responderEntity.blockPosition(), SoundEvents.SHIELD_BLOCK.value(),
+                        SoundSource.PLAYERS, 0.95F, 1.2F);
+                PendingCardActionManager.schedule(chain.source(), CardUseService.CARD_REVEAL_DURATION_TICKS,
+                        () -> PendingCardActionManager.completeBoardCardUi(chain.source()));
             }
-
             case EYE_FOR_AN_EYE, RANDOM_SELECT -> {
                 if (redirectedTarget == null || redirectedEntity == null) {
                     PendingCardActionManager.schedule(chain.source(), CardUseService.CARD_REVEAL_DURATION_TICKS,
@@ -356,8 +311,13 @@ public class PendingCounterEffectManager {
                 }
             }
         }
-
         return true;
+    }
+
+    private static void scheduleBoardEffect(ServerPlayer source, List<LivingEntity> targets,
+                                            BoardCardResolver resolver, int delayTicks) {
+        PendingCardActionManager.schedule(source, Math.max(0, delayTicks),
+                () -> finishUninterceptedBoardCard(source, targets, resolver));
     }
 
     private static void finishUninterceptedBoardCard(ServerPlayer source, List<LivingEntity> targets,
@@ -388,6 +348,16 @@ public class PendingCounterEffectManager {
         } finally {
             RESOLVING_BOARD_CARD.set(previous);
         }
+    }
+
+    private static BoardParticipant participantForTarget(BoardSession session, AstralCharacterEntity target) {
+        return session == null ? null : session.participantFor(target).orElse(null);
+    }
+
+    private static ServerPlayer controllerFor(PendingBoardCounter chain, BoardParticipant participant) {
+        return participant.controllerUuid()
+                .map(controllerId -> chain.source().level().getServer().getPlayerList().getPlayer(controllerId))
+                .orElse(null);
     }
 
     private static boolean isUsableCounterIndex(BoardParticipant participant, int handIndex) {
@@ -477,7 +447,8 @@ public class PendingCounterEffectManager {
         releaseReveal(chain.source(), chain.session(), chain.revealId());
     }
 
-    private static LivingEntity randomOtherPlayer(PendingEffect effect, ServerLevel level, ServerPlayer originalTarget) {
+    private static LivingEntity randomOtherPlayer(PendingEffect effect, ServerLevel level,
+                                                  ServerPlayer originalTarget) {
         List<ServerPlayer> candidates = level.players().stream()
                 .filter(ServerPlayer::isAlive)
                 .filter(player -> player != originalTarget && player != effect.source())
@@ -486,66 +457,13 @@ public class PendingCounterEffectManager {
     }
 
     private static void resolve(PendingEffect effect, LivingEntity target) {
-        if (!target.isAlive() || !effect.source().isAlive()) return;
-        LivingEntity visualSource = effect.visualSource().isAlive() ? effect.visualSource() : effect.source();
-        switch (effect.kind()) {
-            case DIRECT -> AstralCardEffects.damageNow(visualSource, target, effect.damage());
-            case LASER -> spawnLaser(visualSource, target, effect.damage(), effect.argb(), effect.radius());
-            case FIRECRACKERS -> spawnFirecrackers(visualSource, target, effect.damage(), effect.projectileSettings());
-            case SLINGSHOT -> spawnSlingshot(visualSource, target, effect.damage(), effect.projectileSettings());
-            case SNOWBALL_ATTACK -> spawnSnowball(visualSource, target, effect.damage(), effect.projectileSettings());
-            case FALLING_BRICK -> spawnBrick(visualSource, target, effect.damage());
-        }
+        if (target == null || !target.isAlive() || !effect.source().isAlive()) return;
+        effect.resolver().apply(target);
     }
 
-    private static void spawnLaser(LivingEntity source, LivingEntity target, int damage, int argb, float radius) {
-        playSourceAttack(source);
-        LaserStrikeEntity entity = new LaserStrikeEntity(source.level(), source, target, damage, argb, radius);
-        source.level().playSound(null, target.blockPosition(), SoundEvents.BEACON_ACTIVATE,
-                SoundSource.PLAYERS, 0.9F, 1.35F);
-        source.level().addFreshEntity(entity);
-    }
-
-    private static void spawnFirecrackers(LivingEntity source, LivingEntity target, int damage,
-                                          CardProjectileSettings settings) {
-        playSourceAttack(source);
-        FirecrackersProjectileEntity entity = new FirecrackersProjectileEntity(source.level(), source, target,
-                damage, settings);
-        source.level().playSound(null, source.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH,
-                SoundSource.PLAYERS, 0.9F, 1.15F);
-        source.level().addFreshEntity(entity);
-    }
-
-    private static void spawnSlingshot(LivingEntity source, LivingEntity target, int damage,
-                                       CardProjectileSettings settings) {
-        playSourceAttack(source);
-        SlingshotProjectileEntity entity = new SlingshotProjectileEntity(source.level(), source, target,
-                damage, settings);
-        source.level().playSound(null, source.blockPosition(), SoundEvents.ARROW_SHOOT,
-                SoundSource.PLAYERS, 0.9F, 1.8F);
-        source.level().addFreshEntity(entity);
-    }
-
-    private static void spawnSnowball(LivingEntity source, LivingEntity target, int damage,
-                                      CardProjectileSettings settings) {
-        playSourceAttack(source);
-        SnowballAttackProjectileEntity entity = new SnowballAttackProjectileEntity(source.level(), source, target,
-                damage, settings);
-        source.level().playSound(null, source.blockPosition(), SoundEvents.SNOWBALL_THROW,
-                SoundSource.PLAYERS, 0.8F, 1.2F);
-        source.level().addFreshEntity(entity);
-    }
-
-    private static void spawnBrick(LivingEntity source, LivingEntity target, int damage) {
-        playSourceAttack(source);
-        FallingBrickEntity entity = new FallingBrickEntity(source.level(), source, target, damage, 10);
-        source.level().playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND,
-                SoundSource.PLAYERS, 0.55F, 1.55F);
-        source.level().addFreshEntity(entity);
-    }
-
-    private static void playSourceAttack(LivingEntity source) {
-        if (source instanceof AstralCharacterEntity character) character.playBoardAttackAnimation(12);
+    @FunctionalInterface
+    public interface EffectResolver {
+        void apply(LivingEntity target);
     }
 
     @FunctionalInterface
@@ -557,15 +475,6 @@ public class PendingCounterEffectManager {
         BARRIER,
         RANDOM_SELECT,
         EYE_FOR_AN_EYE
-    }
-
-    private enum VisualKind {
-        DIRECT,
-        LASER,
-        FIRECRACKERS,
-        SLINGSHOT,
-        SNOWBALL_ATTACK,
-        FALLING_BRICK
     }
 
     private record PendingBoardCounter(BoardSession session, ServerPlayer source, UUID sourceSlot,
@@ -586,37 +495,17 @@ public class PendingCounterEffectManager {
         }
     }
 
-    private record PendingEffect(ServerPlayer source, LivingEntity visualSource, LivingEntity target,
-                                 int damage, VisualKind kind, int argb, float radius,
-                                 CardProjectileSettings projectileSettings, int ticksLeft) {
-        static PendingEffect direct(ServerPlayer source, LivingEntity visualSource, LivingEntity target, int damage) {
-            return new PendingEffect(source, visualSource, target, damage, VisualKind.DIRECT,
-                    0xFFFFFFFF, 0.08F, CardProjectileSettings.slingshot(), DEFAULT_RESPONSE_TICKS);
+    private record PendingEffect(ServerPlayer source, LivingEntity target,
+                                 EffectResolver resolver, int ticksLeft) {
+        private PendingEffect withTarget(LivingEntity target) {
+            return new PendingEffect(this.source, target, this.resolver, this.ticksLeft);
         }
 
-        static PendingEffect laser(ServerPlayer source, LivingEntity visualSource, LivingEntity target,
-                                   int damage, int argb, float radius) {
-            return new PendingEffect(source, visualSource, target, damage, VisualKind.LASER,
-                    argb, radius, CardProjectileSettings.slingshot(), DEFAULT_RESPONSE_TICKS);
+        private PendingEffect withTicksLeft(int ticks) {
+            return new PendingEffect(this.source, this.target, this.resolver, ticks);
         }
 
-        static PendingEffect projectile(ServerPlayer source, LivingEntity visualSource, LivingEntity target,
-                                        int damage, VisualKind kind, CardProjectileSettings settings) {
-            return new PendingEffect(source, visualSource, target, damage, kind,
-                    0xFFFFFFFF, 0.08F, settings, DEFAULT_RESPONSE_TICKS);
-        }
-
-        PendingEffect withTarget(LivingEntity target) {
-            return new PendingEffect(this.source, this.visualSource, target, this.damage, this.kind,
-                    this.argb, this.radius, this.projectileSettings, this.ticksLeft);
-        }
-
-        PendingEffect withTicksLeft(int ticks) {
-            return new PendingEffect(this.source, this.visualSource, this.target, this.damage, this.kind,
-                    this.argb, this.radius, this.projectileSettings, ticks);
-        }
-
-        PendingEffect tickDown() {
+        private PendingEffect tickDown() {
             return this.withTicksLeft(this.ticksLeft - 1);
         }
     }
