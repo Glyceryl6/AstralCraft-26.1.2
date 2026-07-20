@@ -2,24 +2,25 @@ package com.astral_craft.common.entity;
 
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.registry.AstralEntities;
-import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
 import java.util.UUID;
 
-/** Item-physics based visual for logical board star coins. Logical pickup remains board-controlled. */
-public class StarCoinEntity extends ItemEntity {
+/** Lightweight board coin entity with only gravity, collision and board-owned visual movement. */
+public class StarCoinEntity extends Entity {
 
     private static final EntityDataAccessor<String> DATA_BOARD_ID = SynchedEntityData.defineId(StarCoinEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> DATA_OBJECT_ID = SynchedEntityData.defineId(StarCoinEntity.class, EntityDataSerializers.STRING);
@@ -27,7 +28,6 @@ public class StarCoinEntity extends ItemEntity {
     private static final EntityDataAccessor<Integer> DATA_AMOUNT = SynchedEntityData.defineId(StarCoinEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_TARGET = SynchedEntityData.defineId(StarCoinEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_LIFETIME = SynchedEntityData.defineId(StarCoinEntity.class, EntityDataSerializers.INT);
-
     private double startX;
     private double startY;
     private double startZ;
@@ -35,10 +35,6 @@ public class StarCoinEntity extends ItemEntity {
 
     public StarCoinEntity(EntityType<? extends StarCoinEntity> type, Level level) {
         super(type, level);
-        this.setItem(new ItemStack(AstralItems.STAR_COIN.get()));
-        this.setNeverPickUp();
-        this.setUnlimitedLifetime();
-        this.setInvulnerable(true);
     }
 
     public StarCoinEntity(Level level) {
@@ -47,7 +43,6 @@ public class StarCoinEntity extends ItemEntity {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
         builder.define(DATA_BOARD_ID, "");
         builder.define(DATA_OBJECT_ID, "");
         builder.define(DATA_KIND, Kind.PILE.ordinal());
@@ -65,10 +60,7 @@ public class StarCoinEntity extends ItemEntity {
 
     public void configurePickup(UUID boardId, UUID objectId, int targetEntityId, int amount, int lifetime) {
         this.configure(boardId, objectId, Kind.PICKUP, amount, targetEntityId, lifetime);
-        this.startX = this.getX();
-        this.startY = this.getY();
-        this.startZ = this.getZ();
-        this.capturedStart = true;
+        this.captureStart();
     }
 
     public void configureAward(UUID boardId, UUID objectId, int targetEntityId, int amount, int lifetime) {
@@ -82,11 +74,6 @@ public class StarCoinEntity extends ItemEntity {
         this.entityData.set(DATA_AMOUNT, Math.max(1, amount));
         this.entityData.set(DATA_TARGET, targetEntityId);
         this.entityData.set(DATA_LIFETIME, Math.max(0, lifetime));
-        this.setTarget(objectId);
-        ItemStack stack = new ItemStack(AstralItems.STAR_COIN.get(), Math.clamp(amount, 1, 99));
-        this.setItem(stack);
-        this.setNeverPickUp();
-        this.setUnlimitedLifetime();
         if (kind != Kind.PILE) {
             this.setNoGravity(true);
             this.noPhysics = true;
@@ -102,25 +89,38 @@ public class StarCoinEntity extends ItemEntity {
             this.discard();
             return;
         }
+        if (this.transientVisual()) {
+            this.tickVisualMovement();
+        } else {
+            this.tickPilePhysics();
+        }
+    }
 
-        if (!this.transientVisual()) return;
-        this.setDeltaMovement(0.0D, 0.0D, 0.0D);
+    private void tickPilePhysics() {
+        Vec3 motion = this.getDeltaMovement();
+        if (!this.isNoGravity()) motion = motion.add(0.0D, -0.04D, 0.0D);
+        this.move(MoverType.SELF, motion);
+        if (this.onGround()) {
+            double bounce = motion.y < -0.08D ? -motion.y * 0.28D : 0.0D;
+            motion = new Vec3(motion.x * 0.72D, bounce, motion.z * 0.72D);
+            if (motion.horizontalDistanceSqr() < 1.0E-5D && bounce == 0.0D) motion = Vec3.ZERO;
+        } else {
+            motion = motion.scale(0.98D);
+        }
+        this.setDeltaMovement(motion);
+    }
+
+    private void tickVisualMovement() {
+        this.setDeltaMovement(Vec3.ZERO);
         Entity target = this.level().getEntity(this.targetEntityId());
         if (target == null) {
             if (!this.level().isClientSide()) this.discard();
             return;
         }
-
         int lifetime = Math.max(1, this.lifetime());
         float progress = Mth.clamp(this.tickCount / (float) lifetime, 0.0F, 1.0F);
         if (this.kind() == Kind.PICKUP) {
-            if (!this.capturedStart) {
-                this.startX = this.getX();
-                this.startY = this.getY();
-                this.startZ = this.getZ();
-                this.capturedStart = true;
-            }
-
+            if (!this.capturedStart) this.captureStart();
             double eased = 1.0D - Math.pow(1.0D - progress, 3.0D);
             this.setPos(Mth.lerp(eased, this.startX, target.getX()),
                     Mth.lerp(eased, this.startY, target.getY() + target.getBbHeight() * 0.55D),
@@ -130,12 +130,15 @@ public class StarCoinEntity extends ItemEntity {
             double bottom = target.getY() + target.getBbHeight() + 0.18D;
             this.setPos(target.getX(), Mth.lerp(progress, top, bottom), target.getZ());
         }
-
         if (!this.level().isClientSide() && this.tickCount >= lifetime) this.discard();
     }
 
-    @Override
-    public void playerTouch(Player player) {}
+    private void captureStart() {
+        this.startX = this.getX();
+        this.startY = this.getY();
+        this.startZ = this.getZ();
+        this.capturedStart = true;
+    }
 
     public Optional<UUID> boardId() {
         return parseUuid(this.entityData.get(DATA_BOARD_ID));
@@ -166,6 +169,45 @@ public class StarCoinEntity extends ItemEntity {
         return this.kind() != Kind.PILE;
     }
 
+    public float visualAge(float partialTick) {
+        return this.tickCount + partialTick;
+    }
+
+    @Override
+    protected void readAdditionalSaveData(ValueInput input) {
+        this.entityData.set(DATA_BOARD_ID, input.getStringOr("board_id", ""));
+        this.entityData.set(DATA_OBJECT_ID, input.getStringOr("object_id", ""));
+        this.entityData.set(DATA_KIND, input.getIntOr("kind", Kind.PILE.ordinal()));
+        this.entityData.set(DATA_AMOUNT, Math.max(1, input.getIntOr("amount", 1)));
+        this.entityData.set(DATA_TARGET, input.getIntOr("target", -1));
+        this.entityData.set(DATA_LIFETIME, Math.max(0, input.getIntOr("lifetime", 0)));
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
+        output.putString("board_id", this.entityData.get(DATA_BOARD_ID));
+        output.putString("object_id", this.entityData.get(DATA_OBJECT_ID));
+        output.putInt("kind", this.entityData.get(DATA_KIND));
+        output.putInt("amount", this.amount());
+        output.putInt("target", this.targetEntityId());
+        output.putInt("lifetime", this.lifetime());
+    }
+
+    @Override
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+        return false;
+    }
+
+    @Override
+    public boolean isPickable() {
+        return false;
+    }
+
+    @Override
+    public boolean isPushable() {
+        return false;
+    }
+
     private static Optional<UUID> parseUuid(String value) {
         try {
             return Optional.of(UUID.fromString(value));
@@ -175,5 +217,4 @@ public class StarCoinEntity extends ItemEntity {
     }
 
     public enum Kind { PILE, PICKUP, AWARD }
-
 }
