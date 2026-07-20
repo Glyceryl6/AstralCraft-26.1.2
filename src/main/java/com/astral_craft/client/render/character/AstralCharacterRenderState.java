@@ -14,6 +14,7 @@ public class AstralCharacterRenderState extends AvatarRenderState {
     public Identifier animationSetKey = AstralCraft.prefix("humanoid");
     public String animationAction = "idle";
     public float animationTimeSeconds;
+    public boolean knockedDown;
     public AstralGeoPose rootPose = AstralGeoPose.IDENTITY;
 
 }

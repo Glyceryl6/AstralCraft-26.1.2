@@ -20,6 +20,7 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
 
     public AstralCharacterRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.25F);
+        this.addLayer(new BoardKnockoutLayer(this));
     }
 
     @Override
@@ -37,6 +38,7 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
         state.texture = skin.texture();
         state.modelKey = definition.modelKey();
         state.animationSetKey = definition.animationSetKey();
+        state.knockedDown = entity.isBoardPawn() && "knockdown".equals(entity.animationAction());
         state.animationAction = AstralCharacterAnimationRegistry.clipName(state.characterId, entity.animationAction());
         state.animationTimeSeconds = entity.animationAgeTicks(partialTick) / 20.0F;
         state.rootPose = AstralGeoAnimationManager.INSTANCE.sample(state.animationSetKey, state.animationAction, "root", state.animationTimeSeconds);

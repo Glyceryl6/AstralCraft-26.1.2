@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public record OpenBoardEncounterPayload(
         UUID boardId, int targetEntityId, String controllerName,
-        int timeoutTicks, int timeoutDurationTicks,
+        int timeoutTicks, int timeoutDurationTicks, boolean interactive,
         Identifier characterId, Identifier skinId) implements CustomPacketPayload {
 
     public static final Type<OpenBoardEncounterPayload> TYPE = new Type<>(AstralCraft.prefix("open_board_encounter"));
@@ -22,6 +22,7 @@ public record OpenBoardEncounterPayload(
             ByteBufCodecs.STRING_UTF8, OpenBoardEncounterPayload::controllerName,
             ByteBufCodecs.VAR_INT, OpenBoardEncounterPayload::timeoutTicks,
             ByteBufCodecs.VAR_INT, OpenBoardEncounterPayload::timeoutDurationTicks,
+            ByteBufCodecs.BOOL, OpenBoardEncounterPayload::interactive,
             Identifier.STREAM_CODEC, OpenBoardEncounterPayload::characterId,
             Identifier.STREAM_CODEC, OpenBoardEncounterPayload::skinId,
             OpenBoardEncounterPayload::new);

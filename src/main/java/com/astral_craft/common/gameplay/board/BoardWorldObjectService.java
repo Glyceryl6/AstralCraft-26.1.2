@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.entity.BoardWorldObjectEntity;
+import com.astral_craft.common.entity.StarCoinEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardMechanicsState.BoardTrap;
 import com.astral_craft.common.gameplay.board.BoardMechanicsState.BoardTrapType;
@@ -35,11 +36,13 @@ public class BoardWorldObjectService {
     public static void tick(ServerLevel level, BoardSession session) {
         if (session.phase() != BoardPhase.PLAYING) {
             discardStationaryVisuals(level, session.id());
+            discardCoinVisuals(level, session.id());
             return;
         }
 
         tickAwards(level, session);
         reconcile(level, session);
+        reconcileCoinPiles(level, session);
         HandcardSoulLink.reconcileBoardVisuals(level, session);
     }
 
@@ -48,6 +51,7 @@ public class BoardWorldObjectService {
         PENDING_AWARDS.removeIf(award -> award.boardId().equals(session.id()));
         HandcardSoulLink.clearBoardVisuals(level, session);
         discardStationaryVisuals(level, session.id());
+        discardCoinVisuals(level, session.id());
     }
 
     public static void dropCoins(ServerLevel level, BoardSession session, String nodeId, int amount) {
@@ -55,6 +59,7 @@ public class BoardWorldObjectService {
         session.mechanics().addDroppedCoins(nodeId, amount);
         BoardSessionManager.markChanged(level);
         reconcile(level, session);
+        reconcileCoinPiles(level, session);
     }
 
     public static void pickupAtArrival(ServerLevel level, BoardSession session, BoardParticipant participant) {
@@ -174,12 +179,11 @@ public class BoardWorldObjectService {
     private static void spawnAward(ServerLevel level, BoardSession session, BoardParticipant participant, int amount) {
         AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
         if (entity == null) return;
-        BoardWorldObjectEntity coin = new BoardWorldObjectEntity(level);
+        StarCoinEntity coin = new StarCoinEntity(level);
         coin.setPos(entity.getX(), entity.getY() + entity.getBbHeight() + 1.25D, entity.getZ());
         coin.configureAward(session.id(), UUID.randomUUID(), entity.getId(), amount, 16);
         level.addFreshEntity(coin);
-        level.playSound(null, entity.blockPosition(),
-                SoundEvents.EXPERIENCE_ORB_PICKUP,
+        level.playSound(null, entity.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP,
                 SoundSource.PLAYERS, 0.45F, 1.5F);
     }
 
@@ -187,8 +191,8 @@ public class BoardWorldObjectService {
         BlockPos pos = session.positions().get(nodeId);
         AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
         if (pos == null || entity == null) return;
-        BoardWorldObjectEntity coin = new BoardWorldObjectEntity(level);
-        coin.setPos(pos.getX() + 0.5D, surfaceY(level, pos) + 0.11D, pos.getZ() + 0.5D);
+        StarCoinEntity coin = new StarCoinEntity(level);
+        coin.setPos(pos.getX() + 0.5D, surfaceY(level, pos) + 0.22D, pos.getZ() + 0.5D);
         coin.configurePickup(session.id(), UUID.randomUUID(), entity.getId(), amount, 14);
         level.addFreshEntity(coin);
         level.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.8F, 1.15F);
@@ -253,15 +257,6 @@ public class BoardWorldObjectService {
             }
         }
 
-        for (Map.Entry<String, Integer> entry : session.mechanics().droppedCoins().entrySet()) {
-            BlockPos pos = session.positions().get(entry.getKey());
-            if (pos == null || entry.getValue() <= 0) continue;
-            UUID id = stableId(session.id(), "coin:" + entry.getKey());
-            BoardWorldObjectEntity.Kind kind = BoardWorldObjectEntity.Kind.COIN_PILE;
-            result.put(id, new ExpectedVisual(kind, kind.defaultBlock(), 0, 1, entry.getValue(),
-                    pos.getX() + 0.5D, surfaceY(level, pos) + 0.11D, pos.getZ() + 0.5D));
-        }
-
         session.mechanics().timeBombSlot().flatMap(session::participant).ifPresent(participant -> {
             AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
             if (entity != null) {
@@ -273,6 +268,38 @@ public class BoardWorldObjectService {
         });
 
         return result;
+    }
+
+    private static void reconcileCoinPiles(ServerLevel level, BoardSession session) {
+        AABB bounds = bounds(session).inflate(3.0D);
+        Map<UUID, StarCoinEntity> existing = new HashMap<>();
+        for (StarCoinEntity entity : level.getEntitiesOfClass(StarCoinEntity.class, bounds,
+                entity -> !entity.transientVisual() && entity.boardId().filter(session.id()::equals).isPresent())) {
+            entity.objectId().ifPresent(objectId -> existing.put(objectId, entity));
+        }
+
+        for (Map.Entry<String, Integer> entry : session.mechanics().droppedCoins().entrySet()) {
+            BlockPos pos = session.positions().get(entry.getKey());
+            if (pos == null || entry.getValue() <= 0) continue;
+            UUID id = stableId(session.id(), "coin:" + entry.getKey());
+            StarCoinEntity entity = existing.remove(id);
+            double x = pos.getX() + 0.5D;
+            double y = surfaceY(level, pos) + 0.28D;
+            double z = pos.getZ() + 0.5D;
+            if (entity == null || entity.isRemoved()) {
+                entity = new StarCoinEntity(level);
+                entity.setPos(x, y, z);
+                entity.configurePile(session.id(), id, entry.getValue());
+                entity.setDeltaMovement((level.getRandom().nextDouble() - 0.5D) * 0.06D, 0.08D,
+                        (level.getRandom().nextDouble() - 0.5D) * 0.06D);
+                level.addFreshEntity(entity);
+            } else {
+                entity.configurePile(session.id(), id, entry.getValue());
+                if (entity.distanceToSqr(x, y, z) > 6.25D) entity.setPos(x, y, z);
+            }
+        }
+
+        existing.values().forEach(Entity::discard);
     }
 
     private static BoardWorldObjectEntity.Kind kind(BoardTrapType type) {
@@ -323,6 +350,14 @@ public class BoardWorldObjectService {
         AABB all = new AABB(-3.0E7D, level.getMinY(), -3.0E7D, 3.0E7D, level.getMaxY(), 3.0E7D);
         for (BoardWorldObjectEntity entity : level.getEntitiesOfClass(BoardWorldObjectEntity.class, all,
                 entity -> !entity.transientVisual() && entity.boardId().filter(boardId::equals).isPresent())) {
+            entity.discard();
+        }
+    }
+
+    private static void discardCoinVisuals(ServerLevel level, UUID boardId) {
+        AABB all = new AABB(-3.0E7D, level.getMinY(), -3.0E7D, 3.0E7D, level.getMaxY(), 3.0E7D);
+        for (StarCoinEntity entity : level.getEntitiesOfClass(StarCoinEntity.class, all,
+                entity -> entity.boardId().filter(boardId::equals).isPresent())) {
             entity.discard();
         }
     }
