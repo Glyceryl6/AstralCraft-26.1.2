@@ -27,12 +27,6 @@ public class BoardLobbyItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
             return InteractionResult.FAIL;
         }
-        if (!session.mechanics().hasCompleteCharacterStarts()) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.incomplete",
-                    session.mechanics().characterStartNodes().size(), 4), true);
-            return InteractionResult.FAIL;
-        }
-
         ServerLevel level = player.level();
         if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(level, session);
         if (session.phase() == BoardPhase.READY) {

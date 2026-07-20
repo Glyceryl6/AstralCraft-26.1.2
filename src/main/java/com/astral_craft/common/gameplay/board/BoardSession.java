@@ -208,9 +208,7 @@ public class BoardSession {
     public boolean canStopAtStart(BoardParticipant participant, String nodeId) {
         if (participant == null || nodeId == null || nodeId.isBlank()) return false;
         String canonical = canonicalNodeId(nodeId);
-        if (!this.startNodes.contains(canonical)) return false;
-        if (this.homeNode(participant.slotUuid()).filter(canonical::equals).isPresent()) return true;
-        return !this.mechanics.characterStartNodes().contains(canonical);
+        return this.startNodes.contains(canonical);
     }
 
     public void clearParticipants() {

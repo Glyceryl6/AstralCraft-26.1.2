@@ -77,8 +77,8 @@ public class BoardScanner {
         }
 
         List<BlockPos> allStartPositions = visited.stream()
-                .filter(pos -> level.getBlockState(pos).getBlock() instanceof StartPlatform).toList();
-        if (allStartPositions.size() < REQUIRED_START_NODES) errors.add("need_4_start_panels");
+                .filter(pos -> level.getBlockState(pos).getBlock() instanceof StartPlatform start && start.characterStart()).toList();
+        if (allStartPositions.size() != REQUIRED_START_NODES) errors.add("need_4_start_panels");
         Set<BlockPos> startPositions = new HashSet<>(allStartPositions);
         Map<String, BoardNode> nodes = new LinkedHashMap<>();
         Map<String, BlockPos> positions = new LinkedHashMap<>();
