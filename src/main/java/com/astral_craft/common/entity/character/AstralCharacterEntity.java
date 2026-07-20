@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -22,7 +23,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.NonNull;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -86,9 +89,6 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     @Override
-    protected void registerGoals() {}
-
-    @Override
     public void tick() {
         super.tick();
         if (!this.isBoardPawn()) return;
@@ -109,7 +109,8 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     @Override
-    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+    @ParametersAreNonnullByDefault
+    protected @NonNull InteractionResult mobInteract(Player player, InteractionHand hand) {
         if (!this.level().isClientSide() && player instanceof ServerPlayer serverPlayer && this.isBoardPawn()) {
             return BoardSessionManager.openTurnScreen(serverPlayer, this)
                     ? InteractionResult.SUCCESS : InteractionResult.PASS;
@@ -118,21 +119,21 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     @Override
+    @ParametersAreNonnullByDefault
     public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
         if (this.isBoardPawn()) return false;
         return super.hurtServer(level, source, amount);
     }
 
-    public boolean applyBoardDamage(int amount) {
-        if (!this.isBoardPawn() || !(this.level() instanceof ServerLevel)) return false;
+    public void applyBoardDamage(int amount) {
+        if (!this.isBoardPawn() || !(this.level() instanceof ServerLevel)) return;
         int damage = Math.max(0, amount);
-        if (damage == 0) return false;
+        if (damage == 0) return;
         AstralPlayerStats current = BoardSessionManager.statsForEntity(this, AstralPlayerStats.DEFAULT);
         AstralPlayerStats next = current.damage(damage);
-        if (next.health() == current.health() || !BoardSessionManager.setStatsForEntity(this, next)) return false;
+        if (next.health() == current.health() || !BoardSessionManager.setStatsForEntity(this, next)) return;
         this.playBoardHurtAnimation(10);
         BoardSessionManager.onParticipantDamaged(this, next);
-        return true;
     }
 
     @Override
@@ -141,7 +142,7 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     @Override
-    protected void doPush(net.minecraft.world.entity.Entity entity) {
+    protected void doPush(Entity entity) {
         if (!this.isBoardPawn()) super.doPush(entity);
     }
 
@@ -179,6 +180,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         if (!safeAction.equals(this.animationAction())) {
             this.entityData.set(DATA_ANIMATION_STARTED_TICK, this.tickCount);
         }
+
         this.entityData.set(DATA_ANIMATION_ACTION, safeAction);
     }
 
@@ -243,6 +245,7 @@ public class AstralCharacterEntity extends PathfinderMob {
     public int boardDirectionIndex() { return Math.floorMod(this.entityData.get(DATA_BOARD_DIRECTION), 4); }
     public int boardDirectionMask() { return this.entityData.get(DATA_BOARD_DIRECTION_MASK) & 0xF; }
     public void setBoardDirectionMask(int mask) { this.entityData.set(DATA_BOARD_DIRECTION_MASK, mask & 0xF); }
+
     public void setBoardDirection(int direction) {
         Direction boardDirection = Direction.from2DDataValue(Math.floorMod(direction, 4));
         this.entityData.set(DATA_BOARD_DIRECTION, boardDirection.get2DDataValue());
@@ -267,7 +270,11 @@ public class AstralCharacterEntity extends PathfinderMob {
 
     private static Optional<UUID> parseUuid(String raw) {
         if (raw == null || raw.isBlank()) return Optional.empty();
-        try { return Optional.of(UUID.fromString(raw)); } catch (Exception ignored) { return Optional.empty(); }
+        try {
+            return Optional.of(UUID.fromString(raw));
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
     }
 
     @Override

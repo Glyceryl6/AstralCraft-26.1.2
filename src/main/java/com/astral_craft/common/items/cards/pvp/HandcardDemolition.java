@@ -9,6 +9,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import net.minecraft.server.level.ServerLevel;
 
 public class HandcardDemolition extends BaseHandCard implements BoardPanelPlacementCard, BoardBotEffect {
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 3);
 
     public HandcardDemolition(Properties properties) {
@@ -23,11 +24,6 @@ public class HandcardDemolition extends BaseHandCard implements BoardPanelPlacem
     @Override
     public int boardPlacementRange() {
         return DEFINITION.range();
-    }
-
-    @Override
-    public boolean revealWhenPlaced() {
-        return true;
     }
 
     @Override

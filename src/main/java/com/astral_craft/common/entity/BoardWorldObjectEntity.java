@@ -65,7 +65,7 @@ public class BoardWorldObjectEntity extends Entity {
         this.entityData.set(DATA_BOARD_ID, boardId.toString());
         this.entityData.set(DATA_OBJECT_ID, objectId.toString());
         this.entityData.set(DATA_KIND, kind.ordinal());
-        this.entityData.set(DATA_BLOCK_ID, BuiltInRegistries.BLOCK.getKey(block == null ? kind.defaultBlock() : block).toString());
+        this.entityData.set(DATA_BLOCK_ID, BuiltInRegistries.BLOCK.getKey(block).toString());
         this.entityData.set(DATA_INDEX, Math.max(0, index));
         this.entityData.set(DATA_COUNT, Math.max(1, count));
         this.entityData.set(DATA_AMOUNT, Math.max(1, amount));
@@ -135,10 +135,9 @@ public class BoardWorldObjectEntity extends Entity {
     }
 
     public Block block() {
-        String raw = this.entityData.get(DATA_BLOCK_ID);
         try {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(raw));
-            return block == null ? this.kind().defaultBlock() : block;
+            String raw = this.entityData.get(DATA_BLOCK_ID);
+            return BuiltInRegistries.BLOCK.getValue(Identifier.parse(raw));
         } catch (RuntimeException ignored) {
             return this.kind().defaultBlock();
         }

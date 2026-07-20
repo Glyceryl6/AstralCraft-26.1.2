@@ -28,10 +28,6 @@ public record CardRevealControlPayload(UUID revealId, Action action) implements 
         }
     };
 
-    public CardRevealControlPayload {
-        action = action == null ? Action.RELEASE : action;
-    }
-
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
@@ -45,4 +41,5 @@ public record CardRevealControlPayload(UUID revealId, Action action) implements 
             return ordinal >= 0 && ordinal < values().length ? values()[ordinal] : RELEASE;
         }
     }
+
 }

@@ -30,11 +30,6 @@ public class HandcardEntrapment extends BaseHandCard implements BoardPanelPlacem
     }
 
     @Override
-    public boolean revealWhenPlaced() {
-        return true;
-    }
-
-    @Override
     public boolean canUseByBoardBot(BoardBotEffectContext context) {
         return this.randomValidNode(context.session(), context.user(), context.level().getRandom()).isPresent();
     }

@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
+import javax.annotation.ParametersAreNullableByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +26,8 @@ public class HandcardScavenging extends BaseHandCard implements BoardBotEffect {
     @Override
     public boolean canUse(ServerPlayer user, ItemStack sourceStack) {
         BoardSession session = BoardSessionManager.findByController(user).orElse(null);
-        BoardParticipant participant = session == null ? null
-                : session.participantByController(user.getUUID()).orElse(null);
-        return session != null && participant != null
-                && hasDroppedCoinsInRange(session, participant, DEFINITION.range());
+        BoardParticipant participant = session == null ? null : session.participantByController(user.getUUID()).orElse(null);
+        return participant != null && hasDroppedCoinsInRange(session, participant, DEFINITION.range());
     }
 
     @Override
@@ -52,8 +51,9 @@ public class HandcardScavenging extends BaseHandCard implements BoardBotEffect {
                 context.user(), context.definition().range());
         return 0;
     }
-    private static boolean hasDroppedCoinsInRange(BoardSession session,
-                                                  BoardParticipant collector, int range) {
+
+    @ParametersAreNullableByDefault
+    private static boolean hasDroppedCoinsInRange(BoardSession session, BoardParticipant collector, int range) {
         if (session == null || collector == null) return false;
         int maximum = Math.max(0, range);
         return session.mechanics().droppedCoins().entrySet().stream()
@@ -62,8 +62,7 @@ public class HandcardScavenging extends BaseHandCard implements BoardBotEffect {
                         entry.getKey(), maximum) >= 0);
     }
 
-    private static int collectNearbyCoins(ServerLevel level,
-                                          BoardSession session, BoardParticipant collector, int range) {
+    private static int collectNearbyCoins(ServerLevel level, BoardSession session, BoardParticipant collector, int range) {
         int total = 0;
         List<String> collectedNodes = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : session.mechanics().droppedCoins().entrySet()) {
@@ -74,11 +73,13 @@ public class HandcardScavenging extends BaseHandCard implements BoardBotEffect {
             collectedNodes.add(entry.getKey());
             BoardWorldObjectService.spawnPickup(level, session, entry.getKey(), collector, entry.getValue());
         }
+
         for (String nodeId : collectedNodes) session.mechanics().removeDroppedCoins(nodeId);
         if (total > 0) {
             BoardWorldObjectService.awardCoins(level, session, collector.slotUuid(), total);
             BoardSessionManager.markChanged(level);
         }
+
         return total;
     }
 

@@ -19,7 +19,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import org.jspecify.annotations.Nullable;
 
+import javax.annotation.ParametersAreNullableByDefault;
 import java.util.*;
 
 public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
@@ -36,6 +38,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     }
 
     @Override
+    @ParametersAreNullableByDefault
     public boolean canTarget(ServerPlayer user, LivingEntity target, ItemStack sourceStack) {
         if (user == null || target == null || isUserControlledTarget(user, target)) return false;
         if (!(target instanceof AstralCharacterEntity character) || !character.isBoardPawn()) return !isLinked(target);
@@ -117,7 +120,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         return source != null && selected != null && source.slotUuid().equals(selected.slotUuid());
     }
 
-    private static BoardParticipant participantForPawn(BoardSession session, AstralCharacterEntity character) {
+    private static @Nullable BoardParticipant participantForPawn(@Nullable BoardSession session, AstralCharacterEntity character) {
         return session == null ? null : session.participantFor(character).orElse(null);
     }
 
@@ -168,6 +171,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         }
     }
 
+    @ParametersAreNullableByDefault
     public static void ensureVisual(ServerLevel level, LivingEntity first, LivingEntity second, SoulLinkEntity.VisualStyle style) {
         if (level == null || first == null || second == null || first.level() != level || second.level() != level) return;
         boolean present = !level.getEntitiesOfClass(SoulLinkEntity.class, visualBounds(first, second), visual ->
@@ -179,6 +183,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         level.addFreshEntity(visual);
     }
 
+    @ParametersAreNullableByDefault
     public static void removeVisual(ServerLevel level, LivingEntity first, LivingEntity second) {
         if (level == null || first == null || second == null) return;
         for (SoulLinkEntity visual : level.getEntitiesOfClass(SoulLinkEntity.class, visualBounds(first, second), candidate ->
@@ -198,6 +203,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         return new AABB(minX, minY, minZ, maxX, maxY, maxZ).inflate(8.0D);
     }
 
+    @ParametersAreNullableByDefault
     public static void mirrorLogicalDamage(ServerLevel level, LivingEntity damaged, int amount) {
         if (mirroringDamage || level == null || damaged == null || amount <= 0) return;
         Link link = LINKS.get(damaged.getUUID());
@@ -229,6 +235,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         LINKS.remove(link.second());
     }
 
+    @ParametersAreNullableByDefault
     public static boolean addBoardLink(ServerLevel level, BoardSession session, UUID firstSlotId, UUID secondSlotId, int rounds) {
         if (session == null || !session.mechanics().addSoulLink(firstSlotId, secondSlotId, rounds)) return false;
         BoardSessionManager.markChanged(level);
@@ -240,6 +247,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         for (BoardMechanicsState.BoardSoulLink link : expired) {
             removeBoardVisual(level, session, link);
         }
+
         if (!expired.isEmpty()) BoardSessionManager.markChanged(level);
     }
 

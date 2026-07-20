@@ -59,7 +59,7 @@ public record OpenBoardTurnPayload(
     };
 
     public OpenBoardTurnPayload {
-        cards = List.copyOf(cards == null ? List.of() : cards);
+        cards = List.copyOf(cards);
     }
 
     @Override

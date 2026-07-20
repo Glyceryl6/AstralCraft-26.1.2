@@ -14,6 +14,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
+import javax.annotation.ParametersAreNullableByDefault;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,6 +56,7 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
         return 0;
     }
 
+    @ParametersAreNullableByDefault
     private static boolean isSelfTarget(ServerPlayer user, LivingEntity target) {
         if (user == null || target == null) return false;
         if (target == user) return true;

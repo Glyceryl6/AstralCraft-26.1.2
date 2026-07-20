@@ -74,8 +74,7 @@ public class StartPlatform extends BasePlatform {
     protected void pendingParticipantBecameAutomated(ServerLevel level, BoardSession session, UUID slotId) {
         StartChoiceState state = this.choices.get(session.id());
         if (state == null || !state.slotId().equals(slotId)) return;
-        BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant != null) this.resolve(level, session, participant, true, true);
+        session.participant(slotId).ifPresent(participant -> this.resolve(level, session, participant, true, true));
     }
 
     @Override
