@@ -78,8 +78,7 @@ public class BoardStartChoiceScreen extends Screen {
                         layout.buttonWidth(), layout.buttonHeight()),
                 ButtonStyle.button(0xFF56A85B));
         AstralFancyButton.renderButton(graphics, this.font,
-                Component.translatable("gui.astral_craft.board.start_continue"),
-                layout.continueX(), layout.buttonY(),
+                Component.translatable("gui.astral_craft.board.start_continue"), layout.continueX(), layout.buttonY(),
                 layout.buttonWidth(), layout.buttonHeight(), this.submitted,
                 inside(mouseX, mouseY, layout.continueX(), layout.buttonY(),
                         layout.buttonWidth(), layout.buttonHeight()),
@@ -95,17 +94,18 @@ public class BoardStartChoiceScreen extends Screen {
             this.choose(true);
             return true;
         }
+
         if (inside(event.x(), event.y(), layout.continueX(), layout.buttonY(),
                 layout.buttonWidth(), layout.buttonHeight())) {
             this.choose(false);
             return true;
         }
+
         return super.mouseClicked(event, doubleClick);
     }
 
 
     private Component stopLabel() {
-        if (this.checkpoint) return Component.translatable("gui.astral_craft.board.checkpoint_stop");
         if (this.stars >= 3 || this.nextStarCost <= 0) {
             return Component.translatable("gui.astral_craft.board.start_stop");
         }

@@ -1,10 +1,15 @@
 package com.astral_craft.common.blocks.platform;
 
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.gameplay.board.*;
+import com.astral_craft.common.gameplay.board.BoardPanelContext;
+import com.astral_craft.common.gameplay.board.BoardParticipant;
+import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
 import com.astral_craft.common.network.s2c.OpenBoardStartChoicePayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Block;
@@ -40,15 +45,12 @@ public class StartPlatform extends BasePlatform {
     }
 
     public static void choose(ServerPlayer player, UUID boardId, boolean stop) {
-        BoardSessionManager.session(player.level(), boardId)
-                .ifPresent(session -> choose(player, session, stop));
+        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> choose(player, session, stop));
     }
 
     private static void choose(ServerPlayer player, BoardSession session, boolean stop) {
-        BasePlatform.activeBoardEffect(session.id())
-                .filter(StartPlatform.class::isInstance)
-                .map(StartPlatform.class::cast)
-                .ifPresent(platform -> platform.chooseInternal(player, session, stop));
+        BasePlatform.activeBoardEffect(session.id()).filter(StartPlatform.class::isInstance)
+                .map(StartPlatform.class::cast).ifPresent(platform -> platform.chooseInternal(player, session, stop));
     }
 
     @Override
@@ -58,6 +60,7 @@ public class StartPlatform extends BasePlatform {
             this.deactivateBoardEffect(session.id());
             return;
         }
+
         if (level.getGameTime() < state.deadlineTick()) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
         if (participant != null) {
@@ -92,6 +95,7 @@ public class StartPlatform extends BasePlatform {
             BoardSessionManager.updateParticipant(player.level(), session, manual);
             participant = manual;
         }
+
         this.resolve(player.level(), session, participant, stop, stop);
     }
 
@@ -99,13 +103,10 @@ public class StartPlatform extends BasePlatform {
         BoardSession.MovementState movement = context.session().movement();
         if (movement == null) return;
         if (context.landing()) {
-            if (this.checkpoint) {
-                BoardSessionManager.resumeMovementAfterPanel(context.level(), context.session());
-            } else {
-                this.resolve(context.level(), context.session(), context.participant(), true, false);
-            }
+            this.resolve(context.level(), context.session(), context.participant(), true, false);
             return;
         }
+
         if (!this.checkpoint && !context.session().canStopAtStart(context.participant(), context.participant().currentNodeKey())) return;
         if (BoardSessionManager.isAutomated(context.level(), context.participant())) {
             this.resolve(context.level(), context.session(), context.participant(), true, true);
@@ -122,6 +123,7 @@ public class StartPlatform extends BasePlatform {
             this.resolve(level, session, participant, true, true);
             return;
         }
+
         int duration = participant.decisionDurationTicks(TIMEOUT_TICKS);
         this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(),
                 level.getGameTime() + duration, duration));
@@ -148,7 +150,7 @@ public class StartPlatform extends BasePlatform {
                 }
             }
 
-            if (!this.checkpoint && !participant.knockedDown()) {
+            if (!participant.knockedDown()) {
                 BoardParticipant updated = this.applyBenefits(level, session, participant);
                 if (this.checkVictory(level, session, updated)) return;
             }
@@ -164,13 +166,11 @@ public class StartPlatform extends BasePlatform {
         if (leveled) stats = stats.spendCoins(cost).addStars(1);
         BoardParticipant updated = participant.withStats(stats);
         BoardSessionManager.updateParticipant(level, session, updated);
-        ServerPlayer player = updated.controllerUuid()
-                .map(level.getServer().getPlayerList()::getPlayer).orElse(null);
+        ServerPlayer player = updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (player != null) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_healed", 2), true);
             if (leveled) {
-                player.sendSystemMessage(Component.translatable("message.astral_craft.board.star_up_with_cost",
-                        stats.stars(), cost).withStyle(ChatFormatting.GOLD), true);
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.star_up_with_cost", stats.stars(), cost).withStyle(ChatFormatting.GOLD), true);
             }
         }
 
@@ -181,8 +181,8 @@ public class StartPlatform extends BasePlatform {
         if (participant.stats().stars() < 3) return false;
         String winner = BoardSessionManager.displayName(level, participant);
         for (ServerPlayer player : BoardSessionManager.humanPlayers(level, session)) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.victory", winner)
-                    .withStyle(ChatFormatting.GOLD), false);
+            MutableComponent component = Component.translatable("message.astral_craft.board.victory", winner);
+            player.sendSystemMessage(component.withStyle(ChatFormatting.GOLD), false);
         }
 
         BoardSessionManager.endGame(level, session, true);
