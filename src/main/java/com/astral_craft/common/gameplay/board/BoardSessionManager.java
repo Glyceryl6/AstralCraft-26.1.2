@@ -535,6 +535,7 @@ public class BoardSessionManager {
         PENDING_TIME_BOMB_ROLLS.remove(session.id());
         NO_HUMAN_SINCE_TICKS.remove(session.id());
         BasePlatform.clearActiveBoardEffect(session.id());
+        BoardLotteryService.clear(level, session);
         BoardSpectatorService.clearBoard(level, session.id());
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
         BoardWorldObjectService.clear(level, session);
@@ -601,6 +602,7 @@ public class BoardSessionManager {
             }
         }
 
+        if (BoardLotteryService.tick(level, session)) return;
         if (!session.turnStarted()) beginCurrentTurn(level, session);
         if (processTimeBombRoll(level, session)) return;
         BoardSession.DiscardState discard = session.discard();
@@ -1230,12 +1232,15 @@ public class BoardSessionManager {
         session.setActionDurationTicks(0);
         int previousRound = session.round();
         session.advanceTurn();
+        boolean lotteryStarted = false;
         if (session.round() != previousRound) {
+            int roundNumber = session.round() + 1;
             HandcardSoulLink.tickBoardLinks(level, session);
-            applyRoundRewards(level, session, session.round() + 1);
+            applyRoundRewards(level, session, roundNumber);
+            lotteryStarted = BoardLotteryService.begin(level, session, roundNumber);
         }
         markChanged(level);
-        beginCurrentTurn(level, session);
+        if (!lotteryStarted) beginCurrentTurn(level, session);
     }
 
     private static void applyRoundRewards(ServerLevel level, BoardSession session, int roundNumber) {
@@ -1271,7 +1276,7 @@ public class BoardSessionManager {
 
     private static void beginEncounter(ServerLevel level, BoardSession session, BoardParticipant mover, BoardParticipant target) {
         boolean automated = isAutomated(level, mover);
-        int durationTicks = automated ? 20 * 3 : mover.decisionDurationTicks(ENCOUNTER_TIMEOUT_TICKS);
+        int durationTicks = automated ? 20 : mover.decisionDurationTicks(ENCOUNTER_TIMEOUT_TICKS);
         session.setEncounter(new BoardSession.EncounterState(mover.slotUuid(), target.slotUuid(),
                 level.getGameTime() + durationTicks, durationTicks));
         AstralCharacterEntity targetEntity = BoardEntityService.entity(level, target);
@@ -1279,8 +1284,8 @@ public class BoardSessionManager {
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             boolean interactive = !automated && mover.controlledBy(viewer.getUUID());
             PacketDistributor.sendToPlayer(viewer, new OpenBoardEncounterPayload(session.id(),
-                    targetEntity == null ? -1 : targetEntity.getId(), name, durationTicks, durationTicks,
-                    interactive, mover.characterId(), mover.skinId()));
+                    targetEntity == null ? -1 : targetEntity.getId(), name, durationTicks,
+                    durationTicks, interactive, mover.characterId(), mover.skinId()));
         }
     }
 
@@ -1337,6 +1342,11 @@ public class BoardSessionManager {
     public static void resumeMovementAfterPanel(ServerLevel level, BoardSession session) {
         continueArrival(level, session);
         markChanged(level);
+    }
+
+    public static void resumeAfterLotteryDraw(ServerLevel level, BoardSession session) {
+        if (session.phase() != BoardPhase.PLAYING || session.turnStarted()) return;
+        beginCurrentTurn(level, session);
     }
 
     private static @Nullable BasePlatform platform(@Nullable BoardNode node) {

@@ -17,7 +17,9 @@ public class BoardMechanicsState {
     private final List<BoardTrap> traps = new ArrayList<>();
     private final Map<String, Integer> droppedCoins = new LinkedHashMap<>();
     private final List<BoardSoulLink> soulLinks = new ArrayList<>();
+    private final Map<UUID, LinkedHashSet<Integer>> lotteryNumbers = new LinkedHashMap<>();
     private Optional<UUID> timeBombSlot;
+    private int lotteryJackpot;
 
     private BoardMechanicsState(Snapshot snapshot) {
         this.characterStartNodes.addAll(snapshot.characterStartNodes());
@@ -30,6 +32,16 @@ public class BoardMechanicsState {
 
         this.timeBombSlot = snapshot.timeBombSlot();
         this.soulLinks.addAll(snapshot.soulLinks());
+        snapshot.lotteryNumbers().forEach((rawSlotId, numbers) -> {
+            try {
+                UUID slotId = UUID.fromString(rawSlotId);
+                LinkedHashSet<Integer> selected = new LinkedHashSet<>();
+                for (int number : numbers) if (number >= 1 && number <= 12) selected.add(number);
+                if (!selected.isEmpty()) this.lotteryNumbers.put(slotId, selected);
+            } catch (IllegalArgumentException ignored) {}
+        });
+
+        this.lotteryJackpot = Math.max(10, snapshot.lotteryJackpot());
     }
 
     public static BoardMechanicsState fromSnapshot(Snapshot snapshot) {
@@ -37,7 +49,10 @@ public class BoardMechanicsState {
     }
 
     public Snapshot snapshot() {
-        return new Snapshot(this.characterStartNodes(), this.traps(), this.droppedCoins(), this.timeBombSlot, this.soulLinks());
+        Map<String, List<Integer>> lottery = new LinkedHashMap<>();
+        this.lotteryNumbers.forEach((slotId, numbers) -> lottery.put(slotId.toString(), List.copyOf(numbers)));
+        return new Snapshot(this.characterStartNodes(), this.traps(), this.droppedCoins(), this.timeBombSlot,
+                this.soulLinks(), lottery, this.lotteryJackpot);
     }
 
     public List<String> characterStartNodes() {
@@ -135,12 +150,41 @@ public class BoardMechanicsState {
         return removed == null ? 0 : Math.max(0, removed);
     }
 
+
+    public List<Integer> lotteryNumbers(UUID slotId) {
+        if (slotId == null) return List.of();
+        return List.copyOf(this.lotteryNumbers.getOrDefault(slotId, new LinkedHashSet<>()));
+    }
+
+    public boolean selectLotteryNumber(UUID slotId, int number) {
+        if (slotId == null || number < 1 || number > 12) return false;
+        return this.lotteryNumbers.computeIfAbsent(slotId, ignored -> new LinkedHashSet<>()).add(number);
+    }
+
+    public List<UUID> lotteryWinners(int number) {
+        if (number < 1 || number > 12) return List.of();
+        return this.lotteryNumbers.entrySet().stream()
+                .filter(entry -> entry.getValue().contains(number)).map(Map.Entry::getKey).toList();
+    }
+
+    public int lotteryJackpot() {
+        return Math.max(10, this.lotteryJackpot);
+    }
+
+    public void increaseLotteryJackpot() {
+        this.lotteryJackpot = this.lotteryJackpot() + 10;
+    }
+
+    public void resetLotteryJackpot() {
+        this.lotteryJackpot = 10;
+    }
+
     public Optional<UUID> timeBombSlot() {
         return this.timeBombSlot;
     }
 
     public void setTimeBombSlot(Optional<UUID> slotId) {
-        this.timeBombSlot = slotId == null ? Optional.empty() : slotId;
+        this.timeBombSlot = slotId;
     }
 
     public List<BoardSoulLink> soulLinks() {
@@ -187,6 +231,8 @@ public class BoardMechanicsState {
         this.droppedCoins.clear();
         this.timeBombSlot = Optional.empty();
         this.soulLinks.clear();
+        this.lotteryNumbers.clear();
+        this.lotteryJackpot = 10;
     }
 
     public enum MarkerResult {
@@ -273,8 +319,10 @@ public class BoardMechanicsState {
 
     public record Snapshot(List<String> characterStartNodes, List<BoardTrap> traps,
                            Map<String, Integer> droppedCoins, Optional<UUID> timeBombSlot,
-                           List<BoardSoulLink> soulLinks) {
-        public static final Snapshot EMPTY = new Snapshot(List.of(), List.of(), Map.of(), Optional.empty(), List.of());
+                           List<BoardSoulLink> soulLinks, Map<String, List<Integer>> lotteryNumbers,
+                           int lotteryJackpot) {
+        public static final Snapshot EMPTY = new Snapshot(List.of(), List.of(), Map.of(), Optional.empty(),
+                List.of(), Map.of(), 10);
         public static final Codec<Snapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.listOf().optionalFieldOf("character_start_nodes", List.of())
                         .forGetter(Snapshot::characterStartNodes),
@@ -282,7 +330,10 @@ public class BoardMechanicsState {
                 Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("dropped_coins", Map.of())
                         .forGetter(Snapshot::droppedCoins),
                 UUID_CODEC.optionalFieldOf("time_bomb_slot").forGetter(Snapshot::timeBombSlot),
-                BoardSoulLink.CODEC.listOf().optionalFieldOf("soul_links", List.of()).forGetter(Snapshot::soulLinks)
+                BoardSoulLink.CODEC.listOf().optionalFieldOf("soul_links", List.of()).forGetter(Snapshot::soulLinks),
+                Codec.unboundedMap(Codec.STRING, Codec.INT.listOf()).optionalFieldOf("lottery_numbers", Map.of())
+                        .forGetter(Snapshot::lotteryNumbers),
+                Codec.INT.optionalFieldOf("lottery_jackpot", 10).forGetter(Snapshot::lotteryJackpot)
         ).apply(instance, Snapshot::new));
 
         public Snapshot {
@@ -291,6 +342,10 @@ public class BoardMechanicsState {
             droppedCoins = Map.copyOf(droppedCoins);
             timeBombSlot = timeBombSlot == null ? Optional.empty() : timeBombSlot;
             soulLinks = List.copyOf(soulLinks);
+            Map<String, List<Integer>> copied = new LinkedHashMap<>();
+            lotteryNumbers.forEach((slotId, numbers) -> copied.put(slotId, List.copyOf(numbers)));
+            lotteryNumbers = Map.copyOf(copied);
+            lotteryJackpot = Math.max(10, lotteryJackpot);
         }
     }
 

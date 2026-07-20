@@ -35,7 +35,6 @@ import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.entity.Avatar;
-import net.minecraft.client.renderer.entity.ItemEntityRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -162,7 +161,7 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
         event.registerEntityRenderer(AstralEntities.BOARD_WORLD_OBJECT.get(), BoardWorldObjectRenderer::new);
-        event.registerEntityRenderer(AstralEntities.STAR_COIN.get(), ItemEntityRenderer::new);
+        event.registerEntityRenderer(AstralEntities.STAR_COIN.get(), StarCoinRenderer::new);
         event.registerEntityRenderer(AstralEntities.LASER_STRIKE.get(), LaserStrikeRenderer::new);
         event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
         event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
@@ -189,10 +188,18 @@ public class ClientEventSubscriber {
         event.register(CloseBoardPresentationPayload.TYPE, (payload, context) -> context.enqueueWork(() -> {
             BoardEncounterScreen.closePresentation(payload.boardId());
             BoardBattleScreen.closePresentation(payload.boardId());
+            BoardGambleScreen.closePresentation(payload.boardId());
+            BoardLotteryDrawScreen.closePresentation(payload.boardId());
+            BoardLotteryNumberScreen.closePresentation(payload.boardId());
             CardRevealOverlay.clear();
         }));
         event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);
         event.register(OpenBoardStartChoicePayload.TYPE, BoardStartChoiceScreen::open);
+        event.register(OpenBoardLotteryNumberPayload.TYPE, BoardLotteryNumberScreen::open);
+        event.register(OpenBoardGamblePayload.TYPE, BoardGambleScreen::open);
+        event.register(CloseBoardGamblePayload.TYPE, BoardGambleScreen::close);
+        event.register(OpenBoardLotteryDrawPayload.TYPE, BoardLotteryDrawScreen::open);
+        event.register(CloseBoardLotteryDrawPayload.TYPE, BoardLotteryDrawScreen::close);
         event.register(OpenBoardShopPayload.TYPE, BoardShopScreen::open);
         event.register(OpenBoardPanelSelectionPayload.TYPE, BoardPanelSelectionScreen::open);
         event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
