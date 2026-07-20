@@ -1,21 +1,23 @@
 package com.astral_craft.common.network;
 
+import com.astral_craft.common.blocks.platform.GamblePlatform;
+import com.astral_craft.common.blocks.platform.LotteryPlatform;
 import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
-import com.astral_craft.common.gameplay.battle.BoardBattleService;
-import com.astral_craft.common.gameplay.board.BoardLobbyService;
-import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
-import com.astral_craft.common.gameplay.character.CharacterProgressManager;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import com.astral_craft.common.gameplay.board.BoardLobbyService;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
+import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.items.cards.HandcardSmartDice;
 import com.astral_craft.common.items.cards.pve.HandcardFateGuidance;
-import com.astral_craft.common.network.c2s.*;
+import com.astral_craft.common.gameplay.character.CharacterProgressManager;
+import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.slf4j.Logger;
@@ -199,6 +201,22 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 StartPlatform.choose(player, payload.boardId(), payload.stop());
+            }
+        });
+    }
+
+    public static void handleBoardLotteryNumber(BoardLotteryNumberPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                LotteryPlatform.choose(player, payload.boardId(), payload.number());
+            }
+        });
+    }
+
+    public static void handleBoardGambleChoice(BoardGambleChoicePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                GamblePlatform.choose(player, payload.boardId(), payload.odd());
             }
         });
     }
