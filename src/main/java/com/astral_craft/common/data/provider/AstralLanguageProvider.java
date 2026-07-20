@@ -12,8 +12,8 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.common.data.LanguageProvider;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -43,19 +43,20 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralBlocks.PLATFORM_DIVINE, "Divination", "占卜");
         this.addKey(AstralBlocks.PLATFORM_EVENT, "Event", "全员事件");
         this.addKey(AstralBlocks.PLATFORM_FIRE, "Cannon", "炮台");
-        this.addKey(AstralBlocks.PLATFORM_GAMBLE, "Guessing", "彩票");
+        this.addKey(AstralBlocks.PLATFORM_GAMBLE, "Guessing", "猜猜乐");
         this.addKey(AstralBlocks.PLATFORM_GIFT, "Gift", "礼物");
         this.addKey(AstralBlocks.PLATFORM_GIMMICK, "Gimmick", "机关控制台");
         this.addKey(AstralBlocks.PLATFORM_GOLD, "Windfall Hits", "天降横财");
         this.addKey(AstralBlocks.PLATFORM_HEAL, "Recover", "恢复");
         this.addKey(AstralBlocks.PLATFORM_HOSPITAL, "Hospital", "医院");
         this.addKey(AstralBlocks.PLATFORM_JUMP, "Jump", "跳跃");
-        this.addKey(AstralBlocks.PLATFORM_LOTTERY, "Lottery", "猜猜乐");
+        this.addKey(AstralBlocks.PLATFORM_LOTTERY, "Lottery", "彩票");
         this.addKey(AstralBlocks.PLATFORM_MONSTER, "Monster", "怪物");
         this.addKey(AstralBlocks.PLATFORM_MOVE_AGAIN, "Haste", "疾行");
         this.addKey(AstralBlocks.PLATFORM_RELIC, "Chip Shop", "筹码商店");
         this.addKey(AstralBlocks.PLATFORM_SHOP, "Shop", "商店");
-        this.addKey(AstralBlocks.PLATFORM_START, "Check Point", "起始点");
+        this.addKey(AstralBlocks.PLATFORM_START, "Start Point", "起始点");
+        this.addKey(AstralBlocks.PLATFORM_CHECK_POINT, "Check Point", "保障点");
         this.addKey(AstralBlocks.PLATFORM_TELEPORT, "Portal", "传送门");
         this.addKey(AstralBlocks.PLATFORM_TELEPORT_POINT, "Assault", "突击门");
         

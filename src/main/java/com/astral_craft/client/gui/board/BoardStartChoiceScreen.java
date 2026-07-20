@@ -21,6 +21,7 @@ public class BoardStartChoiceScreen extends Screen {
     private final UUID boardId;
     private int timeoutTicks;
     private final int timeoutDurationTicks;
+    private final boolean checkpoint;
     private final Identifier characterId;
     private final Identifier skinId;
     private final int stars;
@@ -29,10 +30,13 @@ public class BoardStartChoiceScreen extends Screen {
     private boolean submitted;
 
     public BoardStartChoiceScreen(OpenBoardStartChoicePayload payload) {
-        super(Component.translatable("gui.astral_craft.board.start_choice"));
+        super(Component.translatable(payload.checkpoint()
+                ? "gui.astral_craft.board.checkpoint_choice"
+                : "gui.astral_craft.board.start_choice"));
         this.boardId = payload.boardId();
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
         this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
+        this.checkpoint = payload.checkpoint();
         this.characterId = payload.characterId();
         this.skinId = payload.skinId();
         this.stars = Math.max(0, payload.stars());
@@ -74,7 +78,8 @@ public class BoardStartChoiceScreen extends Screen {
                         layout.buttonWidth(), layout.buttonHeight()),
                 ButtonStyle.button(0xFF56A85B));
         AstralFancyButton.renderButton(graphics, this.font,
-                Component.translatable("gui.astral_craft.board.start_continue"), layout.continueX(), layout.buttonY(),
+                Component.translatable("gui.astral_craft.board.start_continue"),
+                layout.continueX(), layout.buttonY(),
                 layout.buttonWidth(), layout.buttonHeight(), this.submitted,
                 inside(mouseX, mouseY, layout.continueX(), layout.buttonY(),
                         layout.buttonWidth(), layout.buttonHeight()),
@@ -100,6 +105,7 @@ public class BoardStartChoiceScreen extends Screen {
 
 
     private Component stopLabel() {
+        if (this.checkpoint) return Component.translatable("gui.astral_craft.board.checkpoint_stop");
         if (this.stars >= 3 || this.nextStarCost <= 0) {
             return Component.translatable("gui.astral_craft.board.start_stop");
         }

@@ -19,6 +19,7 @@ public record OpenBoardStartChoicePayload(
         int nextStarCost,
         int timeoutTicks,
         int timeoutDurationTicks,
+        boolean checkpoint,
         Identifier characterId,
         Identifier skinId) implements CustomPacketPayload {
 
@@ -32,6 +33,7 @@ public record OpenBoardStartChoicePayload(
             ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::nextStarCost,
             ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::timeoutTicks,
             ByteBufCodecs.VAR_INT, OpenBoardStartChoicePayload::timeoutDurationTicks,
+            ByteBufCodecs.BOOL, OpenBoardStartChoicePayload::checkpoint,
             Identifier.STREAM_CODEC, OpenBoardStartChoicePayload::characterId,
             Identifier.STREAM_CODEC, OpenBoardStartChoicePayload::skinId,
             OpenBoardStartChoicePayload::new);

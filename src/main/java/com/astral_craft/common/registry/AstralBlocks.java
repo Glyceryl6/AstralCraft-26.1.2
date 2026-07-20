@@ -29,6 +29,8 @@ public class AstralBlocks {
     public static final DeferredHolder<Block, ? extends Block> PLATFORM_RELIC = BLOCKS.registerBlock("platform_relic", RelicPlatform::new);
     public static final DeferredHolder<Block, ? extends Block> PLATFORM_SHOP = BLOCKS.registerBlock("platform_shop", ShopPlatform::new);
     public static final DeferredHolder<Block, ? extends Block> PLATFORM_START = BLOCKS.registerBlock("platform_start", StartPlatform::new);
+    public static final DeferredHolder<Block, ? extends Block> PLATFORM_CHECK_POINT = BLOCKS.registerBlock("platform_check_point", CheckPointPlatform::new);
     public static final DeferredHolder<Block, ? extends Block> PLATFORM_TELEPORT = BLOCKS.registerBlock("platform_teleport", TeleportPlatform::new);
     public static final DeferredHolder<Block, ? extends Block> PLATFORM_TELEPORT_POINT = BLOCKS.registerBlock("platform_teleport_point", TeleportPointPlatform::new);
+
 }

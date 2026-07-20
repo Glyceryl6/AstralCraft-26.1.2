@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "astral_craft:block/platform_check_point",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "astral_craft:block/platform_check_point",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "astral_craft:block/platform_check_point"
+    },
+    "facing=west": {
+      "model": "astral_craft:block/platform_check_point",
+      "y": 90
+    }
+  }
+}

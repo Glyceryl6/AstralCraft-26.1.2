@@ -48,6 +48,7 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> PLATFORM_RELIC = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_RELIC);
     public static final DeferredHolder<Item, ? extends Item> PLATFORM_SHOP = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_SHOP);
     public static final DeferredHolder<Item, ? extends Item> PLATFORM_START = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_START);
+    public static final DeferredHolder<Item, ? extends Item> PLATFORM_CHECK_POINT = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_CHECK_POINT);
     public static final DeferredHolder<Item, ? extends Item> PLATFORM_TELEPORT = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_TELEPORT);
     public static final DeferredHolder<Item, ? extends Item> PLATFORM_TELEPORT_POINT = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_TELEPORT_POINT);
 
@@ -57,6 +58,7 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_START_MARKER = register("board_start_marker", BoardStartMarkerItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_SPECTATOR = register("board_spectator", BoardSpectatorItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new, () -> new Item.Properties().stacksTo(99));
 
     // Handcard

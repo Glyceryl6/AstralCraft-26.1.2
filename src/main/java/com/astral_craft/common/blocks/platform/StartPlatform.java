@@ -19,9 +19,19 @@ public class StartPlatform extends BasePlatform {
     public static final int TIMEOUT_TICKS = 20 * 10;
     private static final int[] STAR_COSTS = {0, 15, 30, 50};
     private final Map<UUID, StartChoiceState> choices = new HashMap<>();
+    private final boolean checkpoint;
 
     public StartPlatform(Block.Properties properties) {
+        this(properties, false);
+    }
+
+    protected StartPlatform(Block.Properties properties, boolean checkpoint) {
         super(properties, Trigger.BOTH);
+        this.checkpoint = checkpoint;
+    }
+
+    public boolean characterStart() {
+        return !this.checkpoint;
     }
 
     @Override
@@ -90,10 +100,14 @@ public class StartPlatform extends BasePlatform {
         BoardSession.MovementState movement = context.session().movement();
         if (movement == null) return;
         if (context.landing()) {
-            this.resolve(context.level(), context.session(), context.participant(), true, false);
+            if (this.checkpoint) {
+                BoardSessionManager.resumeMovementAfterPanel(context.level(), context.session());
+            } else {
+                this.resolve(context.level(), context.session(), context.participant(), true, false);
+            }
             return;
         }
-        if (!context.session().canStopAtStart(context.participant(), context.participant().currentNodeKey())) return;
+        if (!this.checkpoint && !context.session().canStopAtStart(context.participant(), context.participant().currentNodeKey())) return;
         if (BoardSessionManager.isAutomated(context.level(), context.participant())) {
             this.resolve(context.level(), context.session(), context.participant(), true, true);
         } else {
@@ -116,7 +130,7 @@ public class StartPlatform extends BasePlatform {
         PacketDistributor.sendToPlayer(player, new OpenBoardStartChoicePayload(session.id(),
                 participant.stats().health(), participant.stats().maxHealth(), participant.stats().stars(),
                 participant.stats().starCoins(), nextStarCost(participant.stats().stars()), duration, duration,
-                participant.characterId(), participant.skinId()));
+                this.checkpoint, participant.characterId(), participant.skinId()));
     }
 
     private void resolve(ServerLevel level, BoardSession session, BoardParticipant participant, boolean stop, boolean settleArrival) {
@@ -135,7 +149,7 @@ public class StartPlatform extends BasePlatform {
                 }
             }
 
-            if (!participant.knockedDown()) {
+            if (!this.checkpoint && !participant.knockedDown()) {
                 BoardParticipant updated = this.applyBenefits(level, session, participant);
                 if (this.checkVictory(level, session, updated)) return;
             }
@@ -144,8 +158,7 @@ public class StartPlatform extends BasePlatform {
         BoardSessionManager.resumeMovementAfterPanel(level, session);
     }
 
-    private BoardParticipant applyBenefits(ServerLevel level, BoardSession session,
-                                            BoardParticipant participant) {
+    private BoardParticipant applyBenefits(ServerLevel level, BoardSession session, BoardParticipant participant) {
         var stats = participant.stats().heal(2);
         int cost = nextStarCost(stats.stars());
         boolean leveled = cost > 0 && stats.starCoins() >= cost && stats.stars() < 3;
@@ -161,6 +174,7 @@ public class StartPlatform extends BasePlatform {
                         stats.stars(), cost).withStyle(ChatFormatting.GOLD), true);
             }
         }
+
         return updated;
     }
 
@@ -171,6 +185,7 @@ public class StartPlatform extends BasePlatform {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.victory", winner)
                     .withStyle(ChatFormatting.GOLD), false);
         }
+
         BoardSessionManager.endGame(level, session, true);
         return true;
     }
@@ -181,4 +196,5 @@ public class StartPlatform extends BasePlatform {
     }
 
     private record StartChoiceState(UUID slotId, long deadlineTick, int durationTicks) {}
+
 }
