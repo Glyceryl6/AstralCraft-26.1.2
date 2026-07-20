@@ -476,7 +476,7 @@ public class BoardBattleService {
         if (attacker == null || defender == null) return;
         int attackerEntity = BoardEntityService.entityId(level, attacker);
         int defenderEntity = BoardEntityService.entityId(level, defender);
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(level, session)) {
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             BattleRole role = attacker.controlledBy(viewer.getUUID()) ? BattleRole.ATTACKER
                     : defender.controlledBy(viewer.getUUID()) ? BattleRole.DEFENDER : BattleRole.SPECTATOR;
             BoardParticipant own = role == BattleRole.ATTACKER ? attacker

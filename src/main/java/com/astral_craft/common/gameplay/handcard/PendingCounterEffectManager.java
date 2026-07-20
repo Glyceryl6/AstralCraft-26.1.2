@@ -3,10 +3,7 @@ package com.astral_craft.common.gameplay.handcard;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.board.BoardEntityService;
-import com.astral_craft.common.gameplay.board.BoardParticipant;
-import com.astral_craft.common.gameplay.board.BoardSession;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.items.cards.pvp.HandcardBarrier;
 import com.astral_craft.common.items.cards.pvp.HandcardEyeForAnEye;
@@ -450,7 +447,7 @@ public class PendingCounterEffectManager {
                 .map(participant -> BoardEntityService.entity(chain.level(), participant)).orElse(null);
         CardRevealPayload payload = boardRevealPayload(chain.source(), sourceEntity, chain.sourceStack(),
                 chain.definition(), List.of(target), revealId);
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.level(), chain.session())) {
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(chain.level(), chain.session())) {
             PacketDistributor.sendToPlayer(viewer, payload);
             if (held) PacketDistributor.sendToPlayer(viewer,
                     new CardRevealControlPayload(revealId, CardRevealControlPayload.Action.HOLD));
@@ -463,7 +460,7 @@ public class PendingCounterEffectManager {
         List<LivingEntity> targets = redirectedTarget == null ? List.of(responderEntity) : List.of(redirectedTarget);
         CardRevealPayload payload = boardRevealPayload(responder, responderEntity, stack, definition,
                 targets, UUID.randomUUID());
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.level(), chain.session())) {
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(chain.level(), chain.session())) {
             PacketDistributor.sendToPlayer(viewer, payload);
         }
     }
@@ -491,7 +488,7 @@ public class PendingCounterEffectManager {
         if (chain.revealId() == null) return;
         CardRevealControlPayload payload = new CardRevealControlPayload(chain.revealId(),
                 CardRevealControlPayload.Action.RELEASE);
-        for (ServerPlayer viewer : BoardSessionManager.humanPlayers(chain.level(), chain.session())) {
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(chain.level(), chain.session())) {
             PacketDistributor.sendToPlayer(viewer, payload);
         }
     }

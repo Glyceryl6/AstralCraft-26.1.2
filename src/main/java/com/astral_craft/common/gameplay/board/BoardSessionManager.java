@@ -196,7 +196,7 @@ public class BoardSessionManager {
 
     public static List<ServerPlayer> humanViewers(ServerPlayer controller) {
         Optional<BoardSession> maybeSession = findByController(controller);
-        return maybeSession.map(boardSession -> humanPlayers(controller.level(), boardSession)).orElseGet(() -> List.of(controller));
+        return maybeSession.map(boardSession -> BoardSpectatorService.presentationViewers(controller.level(), boardSession)).orElseGet(() -> List.of(controller));
     }
 
     public static boolean openTurnScreen(ServerPlayer player, AstralCharacterEntity entity) {
@@ -332,6 +332,9 @@ public class BoardSessionManager {
         mover = mover.recordManualDecision();
         updateParticipant(player.level(), session, mover);
         session.setEncounter(null);
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(player.level(), session)) {
+            PacketDistributor.sendToPlayer(viewer, new CloseBoardEncounterPayload(session.id()));
+        }
         if (challenge) {
             BoardBattleService.start(player.level(), session, mover, target);
         } else {
@@ -532,6 +535,7 @@ public class BoardSessionManager {
         PENDING_TIME_BOMB_ROLLS.remove(session.id());
         NO_HUMAN_SINCE_TICKS.remove(session.id());
         BasePlatform.clearActiveBoardEffect(session.id());
+        BoardSpectatorService.clearBoard(level, session.id());
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
         BoardWorldObjectService.clear(level, session);
         BoardEntityService.clearRuntimeEntities(level, session);
@@ -665,15 +669,13 @@ public class BoardSessionManager {
 
     static void startGame(ServerLevel level, BoardSession session) {
         if (session.phase() == BoardPhase.PLAYING || session.participantCount() == 0) return;
-        if (!session.mechanics().hasCompleteCharacterStarts()) {
+        if (session.startNodes().size() != REQUIRED_PLAYERS) {
             for (ServerPlayer player : humanPlayers(level, session)) {
-                player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.incomplete",
-                        session.mechanics().characterStartNodes().size(), REQUIRED_PLAYERS)
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.scan_error.need_4_start_panels")
                         .withStyle(ChatFormatting.RED), true);
             }
             return;
         }
-
         fillBots(level, session);
         List<BoardParticipant> participants = BoardLobbyService.orderedParticipants(session);
         if (participants.size() != REQUIRED_PLAYERS) {
@@ -684,11 +686,11 @@ public class BoardSessionManager {
             return;
         }
 
-        List<String> starts = session.mechanics().characterStartNodes();
+        List<String> starts = session.startNodes();
         List<UUID> order = new ArrayList<>();
         for (int index = 0; index < participants.size(); index++) {
             BoardParticipant participant = participants.get(index);
-            String startNode = starts.get(index % starts.size());
+            String startNode = starts.get(index);
             CharacterDefinition definition = CharacterManager.INSTANCE.get(participant.characterId());
             AstralPlayerStats stats = AstralPlayerStats.initial(definition.baseStats());
             stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
@@ -751,6 +753,13 @@ public class BoardSessionManager {
                 if (character != null) sendTurnScreen(controller, session, participant, character);
             }
         }
+    }
+
+    public static void beginAutomaticMoveAgain(ServerLevel level, BoardSession session, BoardParticipant participant) {
+        if (level == null || session == null || participant == null || participant.knockedDown()) return;
+        BoardSession.MovementState movement = session.movement();
+        if (movement == null || !movement.slotId().equals(participant.slotUuid()) || movement.remainingSteps() > 0) return;
+        beginMoveRoll(level, session, participant, null);
     }
 
     private static void beginMoveRoll(ServerLevel level, BoardSession session, BoardParticipant participant, @Nullable ServerPlayer controller) {
@@ -1010,7 +1019,7 @@ public class BoardSessionManager {
                     definition.effectText(stack, definition.range()), definition.largeFrontTexture(stack),
                     definition.largeBackTexture(), CardRevealPayload.ANIMATION_FLIP,
                     CardUseService.CARD_REVEAL_DURATION_TICKS, sourceEntityId, targetEntityIds);
-            for (ServerPlayer viewer : humanPlayers(level, session)) PacketDistributor.sendToPlayer(viewer, reveal);
+            for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) PacketDistributor.sendToPlayer(viewer, reveal);
             markChanged(level);
             return used;
         }
@@ -1261,22 +1270,18 @@ public class BoardSessionManager {
     }
 
     private static void beginEncounter(ServerLevel level, BoardSession session, BoardParticipant mover, BoardParticipant target) {
-        int durationTicks = mover.decisionDurationTicks(ENCOUNTER_TIMEOUT_TICKS);
+        boolean automated = isAutomated(level, mover);
+        int durationTicks = automated ? 20 * 3 : mover.decisionDurationTicks(ENCOUNTER_TIMEOUT_TICKS);
         session.setEncounter(new BoardSession.EncounterState(mover.slotUuid(), target.slotUuid(),
                 level.getGameTime() + durationTicks, durationTicks));
-        if (isAutomated(level, mover)) {
-            session.setEncounter(null);
-            BoardBattleService.start(level, session, mover, target);
-            return;
-        }
-
-        mover.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(player -> {
-            AstralCharacterEntity targetEntity = BoardEntityService.entity(level, target);
-            String name = displayName(level, target);
-            PacketDistributor.sendToPlayer(player, new OpenBoardEncounterPayload(session.id(),
+        AstralCharacterEntity targetEntity = BoardEntityService.entity(level, target);
+        String name = displayName(level, target);
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
+            boolean interactive = !automated && mover.controlledBy(viewer.getUUID());
+            PacketDistributor.sendToPlayer(viewer, new OpenBoardEncounterPayload(session.id(),
                     targetEntity == null ? -1 : targetEntity.getId(), name, durationTicks, durationTicks,
-                    mover.characterId(), mover.skinId()));
-        });
+                    interactive, mover.characterId(), mover.skinId()));
+        }
     }
 
     public static void resumeAfterBattle(ServerLevel level, BoardSession session) {

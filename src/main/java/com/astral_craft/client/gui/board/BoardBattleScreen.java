@@ -13,12 +13,12 @@ import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.BattleView;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.CombatCardView;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.DefenseMode;
 import com.astral_craft.common.registry.AstralDataComponents;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
@@ -104,6 +104,11 @@ public class BoardBattleScreen extends Screen {
                 Minecraft.getInstance().setScreen(new BoardBattleScreen(payload));
             }
         });
+    }
+
+    public static void closePresentation(UUID boardId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof BoardBattleScreen screen && screen.boardId.equals(boardId)) screen.onClose();
     }
 
     private void apply(OpenBoardBattlePayload payload) {

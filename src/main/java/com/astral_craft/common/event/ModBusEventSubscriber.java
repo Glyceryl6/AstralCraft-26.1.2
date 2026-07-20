@@ -13,9 +13,9 @@ import com.astral_craft.common.network.s2c.*;
 import com.astral_craft.common.registry.AstralAttributes;
 import com.astral_craft.common.registry.AstralEntities;
 import com.astral_craft.common.registry.bootstrap.*;
-import net.minecraft.world.entity.EntityType;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.minecraft.world.entity.EntityType;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -46,7 +46,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("15");
+        PayloadRegistrar registrar = event.registrar("17");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -58,6 +58,8 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenBoardTurnPayload.TYPE, OpenBoardTurnPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardDiscardPayload.TYPE, OpenBoardDiscardPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardEncounterPayload.TYPE, OpenBoardEncounterPayload.STREAM_CODEC);
+        registrar.playToClient(CloseBoardEncounterPayload.TYPE, CloseBoardEncounterPayload.STREAM_CODEC);
+        registrar.playToClient(CloseBoardPresentationPayload.TYPE, CloseBoardPresentationPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardBattlePayload.TYPE, OpenBoardBattlePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardStartChoicePayload.TYPE, OpenBoardStartChoicePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardShopPayload.TYPE, OpenBoardShopPayload.STREAM_CODEC);

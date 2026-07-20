@@ -13,11 +13,11 @@ import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.network.CardTargetCandidate;
-import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
 import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealEntityPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
+import com.astral_craft.common.network.CardTargetCandidate;
+import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
 import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -209,7 +209,7 @@ public class CardUseService {
 
             consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex());
             sendReveal(serverPlayer, source, definition, revealViewers, List.of(),
-                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
+                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS, !useContext.boardCard());
             return CardUseResult.accepted();
         }
 
@@ -333,8 +333,10 @@ public class CardUseService {
                             CardRevealControlPayload.Action.HOLD));
                 }
             }
-            sendEntityRevealAround(player, sourceStack, definition,
-                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
+            if (!boardCard) {
+                sendEntityRevealAround(player, sourceStack, definition,
+                        CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
+            }
             consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
         } else if (card.applyFromSelection(player, hand, targets)) {
             consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
@@ -379,13 +381,13 @@ public class CardUseService {
 
     protected static void sendReveal(ServerPlayer owner, ItemStack stack, CardDefinition definition,
                                      List<ServerPlayer> viewers, List<? extends LivingEntity> targets,
-                                     Identifier animation, int durationTicks) {
+                                     Identifier animation, int durationTicks, boolean entityReveal) {
         CardRevealPayload payload = cardRevealPayload(owner, stack, definition, targets, animation, durationTicks);
         for (ServerPlayer viewer : viewers) {
             PacketDistributor.sendToPlayer(viewer, payload);
         }
 
-        sendEntityRevealAround(owner, stack, definition, animation, durationTicks);
+        if (entityReveal) sendEntityRevealAround(owner, stack, definition, animation, durationTicks);
     }
 
     public static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,

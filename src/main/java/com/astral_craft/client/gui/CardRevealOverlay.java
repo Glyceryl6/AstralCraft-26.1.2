@@ -114,6 +114,12 @@ public class CardRevealOverlay {
                 || ClientAnimationClock.elapsedTicks(active.startedAtTick()) < active.durationTicks());
     }
 
+    public static void clear() {
+        active = null;
+        PENDING.clear();
+        PENDING_CONTROLS.clear();
+    }
+
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (active == null) return;
         float ageTicks = ClientAnimationClock.elapsedTicks(active.startedAtTick());
