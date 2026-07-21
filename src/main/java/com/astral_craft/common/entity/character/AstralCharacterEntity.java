@@ -126,7 +126,8 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     public void applyBoardDamage(int amount) {
-        if (!this.isBoardPawn() || !(this.level() instanceof ServerLevel)) return;
+        if (!this.isBoardPawn() || !(this.level() instanceof ServerLevel)
+                || BoardSessionManager.isHospitalProtected(this)) return;
         int damage = Math.max(0, amount);
         if (damage == 0) return;
         AstralPlayerStats current = BoardSessionManager.statsForEntity(this, AstralPlayerStats.DEFAULT);

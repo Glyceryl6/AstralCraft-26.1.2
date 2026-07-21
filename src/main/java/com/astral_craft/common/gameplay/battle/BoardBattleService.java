@@ -44,7 +44,7 @@ public class BoardBattleService {
     private static final Set<UUID> DELAYED_ATTACKER_KNOCKOUT = new HashSet<>();
 
     public static void start(ServerLevel level, BoardSession session, BoardParticipant attacker, BoardParticipant defender) {
-        if (ACTIVE.containsKey(session.id())) return;
+        if (ACTIVE.containsKey(session.id()) || BoardSessionManager.isHospitalProtected(session, defender)) return;
         boolean attackerAutomated = BoardSessionManager.isAutomated(level, attacker);
         boolean defenderAutomated = BoardSessionManager.isAutomated(level, defender);
         long now = level.getGameTime();

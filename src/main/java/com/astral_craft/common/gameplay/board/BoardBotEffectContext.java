@@ -139,6 +139,7 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
     }
 
     private void applyDamage(BoardParticipant attacker, BoardParticipant target, int damage, boolean rewardKnockout) {
+        if (BoardSessionManager.isHospitalProtected(this.session, target)) return;
         int resolvedDamage = Math.max(0, damage + target.stats().incomingDamageBonus()
                 + Math.min(1, target.stats().buff(BuffKinds.MARK)));
         if (resolvedDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {

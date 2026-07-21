@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
+import com.astral_craft.common.blocks.platform.HospitalPlatform;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
@@ -150,8 +151,11 @@ public class BoardSessionManager {
     }
 
     private static void applyStatsWithCoinAnimation(ServerLevel level, BoardSession session, BoardParticipant participant, AstralPlayerStats stats) {
-        int gainedCoins = Math.max(0, stats.starCoins() - participant.stats().starCoins());
-        AstralPlayerStats immediateStats = gainedCoins > 0 ? stats.spendCoins(gainedCoins) : stats;
+        AstralPlayerStats resolved = isHospitalProtected(session, participant)
+                && stats.health() < participant.stats().health()
+                ? stats.withHealth(participant.stats().health()) : stats;
+        int gainedCoins = Math.max(0, resolved.starCoins() - participant.stats().starCoins());
+        AstralPlayerStats immediateStats = gainedCoins > 0 ? resolved.spendCoins(gainedCoins) : resolved;
         updateParticipant(level, session, participant.withStats(immediateStats));
         if (gainedCoins > 0) {
             BoardWorldObjectService.awardCoins(level, session, participant.slotUuid(), gainedCoins);
@@ -335,7 +339,7 @@ public class BoardSessionManager {
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(player.level(), session)) {
             PacketDistributor.sendToPlayer(viewer, new CloseBoardEncounterPayload(session.id()));
         }
-        if (challenge) {
+        if (challenge && !isHospitalProtected(session, target)) {
             BoardBattleService.start(player.level(), session, mover, target);
         } else {
             resumeAfterEncounter(player.level(), session);
@@ -497,7 +501,8 @@ public class BoardSessionManager {
 
     public static boolean damageFromEffect(ServerLevel level, BoardSession session, UUID slotId, int damage) {
         BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant == null || participant.knockedDown() || damage <= 0) return false;
+        if (participant == null || participant.knockedDown() || damage <= 0
+                || isHospitalProtected(session, participant)) return false;
         AstralPlayerStats damagedStats = participant.stats().damage(damage);
         BoardParticipant updated = participant.withStats(damagedStats);
         if (damagedStats.health() <= 0) {
@@ -628,7 +633,8 @@ public class BoardSessionManager {
                     mover = mover.recordTimedOutDecision();
                     updateParticipant(level, session, mover);
                 }
-                if (mover != null && target != null && isAutomated(level, mover)) {
+                if (mover != null && target != null && isAutomated(level, mover)
+                        && !isHospitalProtected(session, target)) {
                     BoardBattleService.start(level, session, mover, target);
                 } else {
                     resumeAfterEncounter(level, session);
@@ -671,6 +677,14 @@ public class BoardSessionManager {
 
     static void startGame(ServerLevel level, BoardSession session) {
         if (session.phase() == BoardPhase.PLAYING || session.participantCount() == 0) return;
+        if (!session.mechanics().hasCompleteCharacterStarts()) {
+            for (ServerPlayer player : humanPlayers(level, session)) {
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.required",
+                        session.mechanics().characterStartNodes().size(), REQUIRED_PLAYERS)
+                        .withStyle(ChatFormatting.RED), true);
+            }
+            return;
+        }
         if (session.startNodes().size() != REQUIRED_PLAYERS) {
             for (ServerPlayer player : humanPlayers(level, session)) {
                 player.sendSystemMessage(Component.translatable("message.astral_craft.board.scan_error.need_4_start_panels")
@@ -688,7 +702,7 @@ public class BoardSessionManager {
             return;
         }
 
-        List<String> starts = session.startNodes();
+        List<String> starts = session.mechanics().characterStartNodes();
         List<UUID> order = new ArrayList<>();
         for (int index = 0; index < participants.size(); index++) {
             BoardParticipant participant = participants.get(index);
@@ -726,6 +740,7 @@ public class BoardSessionManager {
         BoardParticipant current = session.currentParticipant().orElse(null);
         if (current == null) return;
         boolean wasKnockedDown = current.knockedDown();
+        boolean hospitalized = current.hasRoundStatusEffect(HospitalPlatform.HOSPITALIZED_STATUS);
         BoardParticipant next = current.beginTurn();
         boolean stillKnockedDown = next.knockedDown();
         updateParticipant(level, session, next);
@@ -733,6 +748,12 @@ public class BoardSessionManager {
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         markChanged(level);
+        if (hospitalized) {
+            next.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(player ->
+                    player.sendSystemMessage(Component.translatable("message.astral_craft.board.hospital.turn_skipped"), true));
+            finishTurn(level, session);
+            return;
+        }
         prepareCurrentTurnAction(level, session, next, stillKnockedDown);
         if (wasKnockedDown && stillKnockedDown) finishTurn(level, session);
     }
@@ -896,7 +917,9 @@ public class BoardSessionManager {
     }
 
     private static void beginBotTurn(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        if (BoardEntityService.entity(level, participant) == null || PENDING_BOT_COUNTERS.contains(session.id())) return;
+        if (BoardEntityService.entity(level, participant) == null || PENDING_BOT_COUNTERS.contains(session.id())
+                || BasePlatform.hasActiveBoardEffect(session.id()) || BoardLotteryService.active(session.id())
+                || session.encounter() != null || session.discard() != null || BoardBattleService.active(session.id())) return;
         Long movementTick = PENDING_BOT_MOVEMENT_TICKS.get(session.id());
         if (movementTick != null) {
             if (level.getGameTime() < movementTick) return;
@@ -980,7 +1003,9 @@ public class BoardSessionManager {
     }
 
     private static BoardParticipant tryUseBotEffectCard(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        if (participant.cardPlaysUsed() > 0 || participant.cardPlaysUsed() >= participant.stats().cardPlaysPerTurn()) return participant;
+        if (BasePlatform.hasActiveBoardEffect(session.id()) || BoardLotteryService.active(session.id())
+                || session.encounter() != null || session.discard() != null || BoardBattleService.active(session.id())
+                || participant.cardPlaysUsed() > 0 || participant.cardPlaysUsed() >= participant.stats().cardPlaysPerTurn()) return participant;
         List<Integer> candidates = new ArrayList<>();
         for (int index = 0; index < participant.hand().size(); index++) {
             Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
@@ -1274,6 +1299,17 @@ public class BoardSessionManager {
         }
     }
 
+    public static void beginPanelEncounter(ServerLevel level, BoardSession session,
+                                           BoardParticipant mover, BoardParticipant target) {
+        if (level == null || session == null || mover == null || target == null || target.knockedDown()
+                || isHospitalProtected(session, target)) {
+            if (level != null && session != null) resumeMovementAfterPanel(level, session);
+            return;
+        }
+        beginEncounter(level, session, mover, target);
+        markChanged(level);
+    }
+
     private static void beginEncounter(ServerLevel level, BoardSession session, BoardParticipant mover, BoardParticipant target) {
         boolean automated = isAutomated(level, mover);
         int durationTicks = automated ? 20 : mover.decisionDurationTicks(ENCOUNTER_TIMEOUT_TICKS);
@@ -1384,7 +1420,20 @@ public class BoardSessionManager {
                 .filter(participant -> !resolvedSlots.contains(participant.slotUuid()))
                 .filter(participant -> participant.currentNodeKey().equals(mover.currentNodeKey()))
                 .filter(participant -> !participant.knockedDown())
+                .filter(participant -> !isHospitalProtected(session, participant))
                 .min(Comparator.comparingInt(BoardParticipant::arrivalOrder)).orElse(null);
+    }
+
+    public static boolean isHospitalProtected(BoardSession session, BoardParticipant participant) {
+        if (session == null || participant == null) return false;
+        return platform(session.nodes().get(participant.currentNodeKey())) instanceof HospitalPlatform;
+    }
+
+    public static boolean isHospitalProtected(AstralCharacterEntity entity) {
+        if (entity == null) return false;
+        BoardSession session = findByEntity(entity).orElse(null);
+        BoardParticipant participant = session == null ? null : session.participantFor(entity).orElse(null);
+        return session != null && participant != null && isHospitalProtected(session, participant);
     }
 
     public static void syncBoardSnapshot(ServerLevel level, BoardSession session) {
@@ -1443,7 +1492,7 @@ public class BoardSessionManager {
 
     public static void knockDownFromEffect(ServerLevel level, BoardSession session, UUID slotId) {
         BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant == null || participant.knockedDown()) return;
+        if (participant == null || participant.knockedDown() || isHospitalProtected(session, participant)) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);

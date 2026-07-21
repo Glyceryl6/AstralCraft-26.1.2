@@ -1,7 +1,10 @@
 package com.astral_craft.client.gui;
 
 import com.astral_craft.common.network.CardTargetCandidate;
+import com.astral_craft.common.network.c2s.BoardPlatformTargetPayload;
 import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
+import com.astral_craft.common.network.s2c.CloseBoardPlatformTargetPayload;
+import com.astral_craft.common.network.s2c.OpenBoardPlatformTargetPayload;
 import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -20,6 +23,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class TargetSelectionScreen extends Screen {
 
@@ -32,6 +36,7 @@ public class TargetSelectionScreen extends Screen {
     private static final int SCROLLBAR_HEIGHT = 6;
 
     private final OpenTargetSelectionPayload payload;
+    private final OpenBoardPlatformTargetPayload boardPayload;
     private final List<CardTargetCandidate> candidates;
     private final Set<Integer> selected = new LinkedHashSet<>();
 
@@ -41,15 +46,50 @@ public class TargetSelectionScreen extends Screen {
     private double dragStartMouseX;
     private float dragStartScrollX;
     private boolean submitted;
+    private int timeoutTicks;
 
     public TargetSelectionScreen(OpenTargetSelectionPayload payload) {
         super(Component.translatable("gui.astral_craft.target_selection.title"));
         this.payload = payload;
+        this.boardPayload = null;
         this.candidates = List.copyOf(payload.candidates());
+    }
+
+    public TargetSelectionScreen(OpenBoardPlatformTargetPayload payload) {
+        super(Component.translatable(payload.action() == OpenBoardPlatformTargetPayload.Action.FIRE
+                ? "gui.astral_craft.board.fire.select_target" : "gui.astral_craft.board.assault.select_target"));
+        this.payload = null;
+        this.boardPayload = payload;
+        this.candidates = List.copyOf(payload.candidates());
+        this.timeoutTicks = payload.timeoutTicks();
     }
 
     public static void open(OpenTargetSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> Minecraft.getInstance().setScreen(new TargetSelectionScreen(payload)));
+    }
+
+    public static void open(OpenBoardPlatformTargetPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new TargetSelectionScreen(payload)));
+    }
+
+    public static void close(CloseBoardPlatformTargetPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.screen instanceof TargetSelectionScreen screen && screen.boardPayload != null
+                    && screen.boardPayload.boardId().equals(payload.boardId())) {
+                screen.submitted = true;
+                screen.onClose();
+            }
+        });
+    }
+
+    public static void closePresentation(UUID boardId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof TargetSelectionScreen screen && screen.boardPayload != null
+                && screen.boardPayload.boardId().equals(boardId)) {
+            screen.submitted = true;
+            screen.onClose();
+        }
     }
 
     @Override
@@ -61,6 +101,12 @@ public class TargetSelectionScreen extends Screen {
                 .bounds(this.width / 2 + 10, bottom, 96, 20).build();
         this.confirmButton.active = false;
         this.addRenderableWidget(this.confirmButton);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (this.boardPayload != null && this.timeoutTicks > 0 && --this.timeoutTicks <= 0) this.onClose();
     }
 
     @Override
@@ -91,7 +137,9 @@ public class TargetSelectionScreen extends Screen {
         graphics.fill(panelX, panelY, panelX + 1, panelBottom, 0x60FFFFFF);
         graphics.fill(panelRight - 1, panelY, panelRight, panelBottom, 0x60000000);
         graphics.text(this.font, this.title, this.width / 2 - this.font.width(this.title) / 2, panelY + 9, 0xFFFFFFFF, true);
-        Component hint = Component.translatable("gui.astral_craft.target_selection.hint", this.payload.minTargets(), this.payload.maxTargets(), this.payload.range());
+        Component hint = this.boardPayload == null
+                ? Component.translatable("gui.astral_craft.target_selection.hint", this.minTargets(), this.maxTargets(), this.range())
+                : Component.translatable("gui.astral_craft.board.platform_target.hint");
         graphics.text(this.font, hint, this.width / 2 - this.font.width(hint) / 2, panelY + 24, 0xFFE0E0E0, false);
         graphics.enableScissor(viewX, viewY - 2, viewRight, viewY + CARD_HEIGHT + 2);
         for (int i = 0; i < this.candidates.size(); i++) {
@@ -217,7 +265,7 @@ public class TargetSelectionScreen extends Screen {
             return;
         }
 
-        if (this.selected.size() >= this.payload.maxTargets()) {
+        if (this.selected.size() >= this.maxTargets()) {
             Integer first = this.selected.iterator().next();
             this.selected.remove(first);
         }
@@ -227,26 +275,46 @@ public class TargetSelectionScreen extends Screen {
     }
 
     private void confirm() {
-        if (this.selected.size() < this.payload.minTargets()) return;
+        if (this.selected.size() < this.minTargets()) return;
         this.submitted = true;
-        ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(
-                this.payload.cardStack(), this.payload.handIndex(), List.copyOf(this.selected)));
+        if (this.boardPayload != null) {
+            ClientPacketDistributor.sendToServer(new BoardPlatformTargetPayload(this.boardPayload.boardId(),
+                    this.boardPayload.action(), this.selected.iterator().next()));
+        } else {
+            ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(
+                    this.payload.cardStack(), this.payload.handIndex(), List.copyOf(this.selected)));
+        }
         this.onClose();
     }
 
     @Override
     public void onClose() {
         if (!this.submitted) {
-            ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(
-                    this.payload.cardStack(), this.payload.handIndex(), List.of()));
+            if (this.boardPayload != null) {
+                ClientPacketDistributor.sendToServer(new BoardPlatformTargetPayload(this.boardPayload.boardId(),
+                        this.boardPayload.action(), -1));
+            } else {
+                ClientPacketDistributor.sendToServer(new CardTargetSelectionPayload(
+                        this.payload.cardStack(), this.payload.handIndex(), List.of()));
+            }
         }
         super.onClose();
     }
 
     private void updateConfirmButton() {
-        if (this.confirmButton != null) {
-            this.confirmButton.active = this.selected.size() >= this.payload.minTargets();
-        }
+        if (this.confirmButton != null) this.confirmButton.active = this.selected.size() >= this.minTargets();
+    }
+
+    private int minTargets() {
+        return this.boardPayload == null ? this.payload.minTargets() : 1;
+    }
+
+    private int maxTargets() {
+        return this.boardPayload == null ? this.payload.maxTargets() : 1;
+    }
+
+    private int range() {
+        return this.boardPayload == null ? this.payload.range() : 0;
     }
 
     private void clampScroll() {
