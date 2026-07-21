@@ -1,0 +1,20 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.it_is_war.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:give_item",
+          "id": "astral_craft:handcard_attack_g"
+        }
+      ]
+    }
+  ],
+  "id": "astral_craft:it_is_war",
+  "kind": "astral_craft:good",
+  "name_key": "event.astral_craft.it_is_war.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "triggers": false
+}

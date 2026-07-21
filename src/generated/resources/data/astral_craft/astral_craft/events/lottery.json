@@ -1,0 +1,14 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.lottery.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_shared_lottery"
+    }
+  ],
+  "id": "astral_craft:lottery",
+  "kind": "astral_craft:good",
+  "name_key": "event.astral_craft.lottery.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "triggers": false
+}

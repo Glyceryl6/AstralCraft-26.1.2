@@ -1,0 +1,21 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.broken_pocket.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:board_status",
+          "status": "astral_craft:event_leaking_pocket",
+          "turns": 2147483647
+        }
+      ]
+    }
+  ],
+  "id": "astral_craft:broken_pocket",
+  "kind": "astral_craft:bad",
+  "name_key": "event.astral_craft.broken_pocket.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "triggers": false
+}

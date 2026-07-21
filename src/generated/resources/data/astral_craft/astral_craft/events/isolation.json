@@ -1,0 +1,24 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.isolation.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_teleport_participants",
+      "mode": "hospital"
+    },
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:board_status",
+          "status": "astral_craft:hospitalized"
+        }
+      ]
+    }
+  ],
+  "id": "astral_craft:isolation",
+  "kind": "astral_craft:bad",
+  "name_key": "event.astral_craft.isolation.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "triggers": false
+}

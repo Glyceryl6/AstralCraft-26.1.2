@@ -2,6 +2,7 @@ package com.astral_craft.common.blocks.platform;
 
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
+import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
@@ -35,7 +36,7 @@ public class ShopPlatform extends BasePlatform {
     }
 
     protected int offerCount(BoardPanelContext context) {
-        return DEFAULT_OFFER_COUNT;
+        return DEFAULT_OFFER_COUNT + BoardEventService.shopOfferBonus(context.session());
     }
 
     public static void handleAction(ServerPlayer player, UUID boardId, List<Integer> offerIndexes, boolean leave) {

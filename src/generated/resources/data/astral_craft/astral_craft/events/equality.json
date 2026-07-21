@@ -1,0 +1,24 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.equality.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:board_set_health",
+          "health": 1
+        },
+        {
+          "type": "astral_craft:board_status",
+          "status": "astral_craft:event_equality_guard",
+          "turns": 2147483647
+        }
+      ]
+    }
+  ],
+  "id": "astral_craft:equality",
+  "name_key": "event.astral_craft.equality.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "triggers": false
+}

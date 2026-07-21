@@ -9,6 +9,7 @@ import com.astral_craft.common.blocks.platform.TeleportPointPlatform;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
+import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
@@ -209,7 +210,8 @@ public class AstralServerPayloadHandlers {
 
     public static void handleBoardLotteryNumber(BoardLotteryNumberPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
+            if (context.player() instanceof ServerPlayer player
+                    && !BoardEventService.chooseLotteryNumber(player, payload.boardId(), payload.number())) {
                 LotteryPlatform.choose(player, payload.boardId(), payload.number());
             }
         });

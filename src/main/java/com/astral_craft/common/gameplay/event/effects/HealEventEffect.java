@@ -3,6 +3,8 @@ package com.astral_craft.common.gameplay.event.effects;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
+import com.astral_craft.common.stats.AstralStats;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -27,9 +29,8 @@ public record HealEventEffect(float amount) implements AstralEventEffect {
     @Override
     public void apply(AstralEventContext context) {
         LivingEntity target = context.targetLiving();
-        if (target != null && this.amount > 0.0F) {
-            target.heal(this.amount);
-        }
+        if (target == null || this.amount <= 0.0F) return;
+        AstralCardEffects.update(target, AstralStats.getOrDefault(target).heal(Math.max(1, Math.round(this.amount))));
     }
 
 }

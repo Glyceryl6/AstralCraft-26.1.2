@@ -1,0 +1,15 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.big_sales.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_activate_round_event",
+      "turns": 3
+    }
+  ],
+  "id": "astral_craft:big_sales",
+  "kind": "astral_craft:good",
+  "name_key": "event.astral_craft.big_sales.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "triggers": false
+}

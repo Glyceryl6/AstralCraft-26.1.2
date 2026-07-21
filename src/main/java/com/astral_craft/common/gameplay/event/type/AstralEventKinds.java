@@ -24,7 +24,7 @@ public class AstralEventKinds {
     }
 
     public static Identifier texture(Identifier id) {
-        return AstralCraft.prefix("textures/gui/cards/event_" + suffix(id) + ".png");
+        return AstralCraft.prefix("textures/gui/cards/event/event_" + id.getPath() + ".png");
     }
 
 }

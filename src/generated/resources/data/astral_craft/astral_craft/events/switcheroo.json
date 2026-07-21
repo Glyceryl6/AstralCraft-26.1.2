@@ -1,0 +1,13 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.switcheroo.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_transfer_hands"
+    }
+  ],
+  "id": "astral_craft:switcheroo",
+  "name_key": "event.astral_craft.switcheroo.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "triggers": false
+}

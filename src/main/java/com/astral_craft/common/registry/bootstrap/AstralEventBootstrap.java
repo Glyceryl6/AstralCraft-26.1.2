@@ -1,22 +1,20 @@
 package com.astral_craft.common.registry.bootstrap;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.blocks.platform.HospitalPlatform;
+import com.astral_craft.common.gameplay.board.BoardEventService;
+import com.astral_craft.common.gameplay.board.BoardMechanicsState;
 import com.astral_craft.common.gameplay.event.*;
-import com.astral_craft.common.gameplay.event.conditions.*;
 import com.astral_craft.common.gameplay.event.effects.*;
 import com.astral_craft.common.gameplay.event.type.AstralEventKinds;
 import com.astral_craft.common.gameplay.event.type.AstralEventLocalizationKeys;
-import com.astral_craft.common.gameplay.event.type.AstralEventRepeatModes;
 import com.astral_craft.common.gameplay.event.type.AstralEventTimings;
-import net.minecraft.core.HolderSet;
+import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.item.Items;
 
 import java.util.List;
 
@@ -24,74 +22,78 @@ import java.util.List;
 public class AstralEventBootstrap {
 
     public static final ResourceKey<Registry<AstralEventDefinition>> EVENTS = ResourceKey.createRegistryKey(AstralCraft.prefix("events"));
-    public static final ResourceKey<AstralEventDefinition> LUCKY_FIND = key("lucky_find");
-    public static final ResourceKey<AstralEventDefinition> AMBUSH = key("ambush");
-    public static final ResourceKey<AstralEventDefinition> ASTRAL_BLESSING = key("astral_blessing");
-    public static final ResourceKey<AstralEventDefinition> LOW_HEALTH_AID = key("low_health_aid");
-    public static final ResourceKey<AstralEventDefinition> NIGHT_AMBUSH = key("night_ambush");
-    public static final ResourceKey<AstralEventDefinition> CAVE_CACHE = key("cave_cache");
+    public static final ResourceKey<AstralEventDefinition> REDISTRIBUTION = key("redistribution");
+    public static final ResourceKey<AstralEventDefinition> HASTE = key("haste");
+    public static final ResourceKey<AstralEventDefinition> PHILANTHROPY = key("philanthropy");
+    public static final ResourceKey<AstralEventDefinition> SERVER_BUG = key("server_bug");
+    public static final ResourceKey<AstralEventDefinition> FOOD_SAFETY = key("food_safety");
+    public static final ResourceKey<AstralEventDefinition> LOTTERY = key("lottery");
+    public static final ResourceKey<AstralEventDefinition> MY_GODDESS = key("my_goddess");
+    public static final ResourceKey<AstralEventDefinition> DEAFENING_NOISE = key("deafening_noise");
+    public static final ResourceKey<AstralEventDefinition> CARD_DESTRUCTION = key("card_destruction");
+    public static final ResourceKey<AstralEventDefinition> BIG_SALES = key("big_sales");
+    public static final ResourceKey<AstralEventDefinition> CROWD = key("crowd");
+    public static final ResourceKey<AstralEventDefinition> FALLING_GIFTS = key("falling_gifts");
+    public static final ResourceKey<AstralEventDefinition> ISOLATION = key("isolation");
+    public static final ResourceKey<AstralEventDefinition> OVERSPENDING = key("overspending");
+    public static final ResourceKey<AstralEventDefinition> BROKEN_POCKET = key("leaking_pocket");
+    public static final ResourceKey<AstralEventDefinition> IT_IS_WAR = key("it_is_war");
+    public static final ResourceKey<AstralEventDefinition> EQUALITY = key("equality");
+    public static final ResourceKey<AstralEventDefinition> SWITCHEROO = key("switcheroo");
+    public static final List<ResourceKey<AstralEventDefinition>> BOARD_EVENTS = List.of(
+            REDISTRIBUTION, HASTE, PHILANTHROPY, SERVER_BUG, FOOD_SAFETY, LOTTERY,
+            MY_GODDESS, DEAFENING_NOISE, CARD_DESTRUCTION, BIG_SALES, CROWD,
+            FALLING_GIFTS, ISOLATION, OVERSPENDING, BROKEN_POCKET, IT_IS_WAR, EQUALITY, SWITCHEROO);
 
     public static void bootstrap(BootstrapContext<AstralEventDefinition> context) {
-        context.register(LUCKY_FIND, luckyFind());
-        context.register(AMBUSH, ambush());
-        context.register(ASTRAL_BLESSING, astralBlessing());
-        context.register(LOW_HEALTH_AID, lowHealthAid());
-        context.register(NIGHT_AMBUSH, nightAmbush());
-        context.register(CAVE_CACHE, caveCache());
+        context.register(REDISTRIBUTION, boardEvent("redistribution", AstralEventKinds.NEUTRAL, List.of(new BoardBalanceCoinsEventEffect()), List.of()));
+        context.register(HASTE, boardEvent("haste", AstralEventKinds.GOOD, List.of(all(new BoardMoveDiceEventEffect(1))), List.of()));
+        context.register(PHILANTHROPY, boardEvent("philanthropy", AstralEventKinds.BAD,
+                List.of(selected(BoardForEachParticipantEventEffect.Selection.RICHEST, new BoardCoinEventEffect(-5))), List.of()));
+        context.register(SERVER_BUG, boardEvent("server_bug", AstralEventKinds.NEUTRAL,
+                List.of(new BoardTeleportParticipantsEventEffect(BoardTeleportParticipantsEventEffect.Mode.ROTATE_CURRENT)), List.of()));
+        context.register(FOOD_SAFETY, boardEvent("food_safety", AstralEventKinds.BAD,
+                List.of(all(new DamageEventEffect(1.0F)), new BoardActivateRoundEventEffect(3)),
+                List.of(all(new DamageEventEffect(1.0F)))));
+        context.register(LOTTERY, boardEvent("lottery", AstralEventKinds.GOOD, List.of(new BoardSharedLotteryEventEffect()), List.of()));
+        context.register(MY_GODDESS, boardEvent("my_goddess", AstralEventKinds.GOOD, List.of(all(new HealEventEffect(2.0F))), List.of()));
+        context.register(DEAFENING_NOISE, boardEvent("deafening_noise", AstralEventKinds.BAD, List.of(all(new DamageEventEffect(2.0F))), List.of()));
+        context.register(CARD_DESTRUCTION, boardEvent("card_destruction", AstralEventKinds.BAD,
+                List.of(all(new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 1))), List.of()));
+        context.register(BIG_SALES, boardEvent("big_sales", AstralEventKinds.GOOD, List.of(new BoardActivateRoundEventEffect(3)), List.of()));
+        context.register(CROWD, boardEvent("crowd", AstralEventKinds.NEUTRAL,
+                List.of(new BoardTeleportParticipantsEventEffect(BoardTeleportParticipantsEventEffect.Mode.CONNECTED_RANDOM)), List.of()));
+        context.register(FALLING_GIFTS, boardEvent("falling_gifts", AstralEventKinds.GOOD,
+                List.of(all(new BoardCoinEventEffect(3), new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 1))), List.of()));
+        context.register(ISOLATION, boardEvent("isolation", AstralEventKinds.BAD,
+                List.of(new BoardTeleportParticipantsEventEffect(BoardTeleportParticipantsEventEffect.Mode.HOSPITAL),
+                        all(new BoardStatusEventEffect(HospitalPlatform.HOSPITALIZED_STATUS, 1))), List.of()));
+        context.register(OVERSPENDING, boardEvent("overspending", AstralEventKinds.BAD,
+                List.of(all(new BoardTrapEventEffect(BoardMechanicsState.BoardTrapType.DEMOLITION))), List.of()));
+        context.register(BROKEN_POCKET, boardEvent("broken_pocket", AstralEventKinds.BAD,
+                List.of(all(new BoardStatusEventEffect(BoardEventService.LEAKING_POCKET_STATUS, Integer.MAX_VALUE))), List.of()));
+        context.register(IT_IS_WAR, boardEvent("it_is_war", AstralEventKinds.GOOD,
+                List.of(all(new GiveItemEventEffect(AstralItems.HANDCARD_ATTACK_G.get().builtInRegistryHolder(), 1))), List.of()));
+        context.register(EQUALITY, boardEvent("equality", AstralEventKinds.NEUTRAL,
+                List.of(all(new BoardSetHealthEventEffect(1), new BoardStatusEventEffect(BoardEventService.EQUALITY_GUARD_STATUS, Integer.MAX_VALUE))), List.of()));
+        context.register(SWITCHEROO, boardEvent("switcheroo", AstralEventKinds.NEUTRAL, List.of(new BoardTransferHandsEventEffect()), List.of()));
     }
 
     public static ResourceKey<AstralEventDefinition> key(String path) {
         return ResourceKey.create(EVENTS, AstralCraft.prefix(path));
     }
 
-    public static AstralEventDefinition luckyFind() {
-        return event("lucky_find", AstralEventKinds.GOOD, false, List.of(),
-                AstralEventTargetDefinition.DEFAULT, AstralEventTriggerSettings.DEFAULT,
-                List.of(), List.of(), List.of(new BlockBreakEventCondition()),
-                List.of(new GiveItemEventEffect(Items.EMERALD.builtInRegistryHolder(), 1)),
-                600, 0.2D, AstralEventTimings.DURATION, 1200, 20);
+    private static BoardForEachParticipantEventEffect all(AstralEventEffect... effects) {
+        return new BoardForEachParticipantEventEffect(List.of(effects));
     }
 
-    public static AstralEventDefinition ambush() {
-        return event("ambush", AstralEventKinds.BAD, false, List.of(),
-                List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD), AstralEventTargetDefinition.DEFAULT,
-                new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 2400, 0, true),
-                List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.ZOMBIE.builtInRegistryHolder()), 1)),
-                List.of(), List.of(), List.of(), 2400, 0.004D, AstralEventTimings.INSTANT, 0, 20);
+    private static BoardForEachParticipantEventEffect selected(BoardForEachParticipantEventEffect.Selection selection, AstralEventEffect... effects) {
+        return new BoardForEachParticipantEventEffect(selection, List.of(effects));
     }
 
-    public static AstralEventDefinition astralBlessing() {
-        AstralEventEffect bonusMining = new ChanceEventEffect(0.25D, new GiveItemEventEffect(Items.LAPIS_LAZULI.builtInRegistryHolder(), 1));
-        return event("astral_blessing", AstralEventKinds.GOOD, false, List.of(), AstralEventTargetDefinition.DEFAULT,
-                new AstralEventTriggerSettings(AstralEventRepeatModes.WHILE_INACTIVE, "", 2400, 0, true),
-                List.of(new MobEffectEventEffect(MobEffects.REGENERATION, 200, 0)), List.of(), List.of(new BlockBreakEventCondition()), List.of(bonusMining),
-                2400, 0.004D, AstralEventTimings.DURATION, 200, 40);
-    }
-
-    public static AstralEventDefinition lowHealthAid() {
-        return event("low_health_aid", AstralEventKinds.GOOD, false, List.of(), AstralEventTargetDefinition.DEFAULT,
-                new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 3600, 0, true),
-                List.of(), List.of(),
-                List.of(new ActiveAnyOfEventCondition(List.of(new PlayerHurtEventCondition(), new EntityHurtPlayerEventCondition())),
-                        new HealthEventCondition(0.0F, Float.MAX_VALUE, 0.35F)),
-                List.of(new HealEventEffect(4.0F), new MobEffectEventEffect(MobEffects.ABSORPTION, 200, 0)),
-                3600, 0.35D, AstralEventTimings.DURATION, 1200, 20);
-    }
-
-    public static AstralEventDefinition nightAmbush() {
-        return event("night_ambush", AstralEventKinds.BAD, false, List.of(new TimeOfDayEventCondition(13000L, 23000L)),
-                List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD), AstralEventTargetDefinition.DEFAULT,
-                new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 3600, 0, true),
-                List.of(new SummonEntityEventEffect(HolderSet.direct(EntityType.SKELETON.builtInRegistryHolder()), 2, 4.0D)),
-                List.of(), List.of(), List.of(), 3600, 0.002D, AstralEventTimings.INSTANT, 0, 20);
-    }
-
-    public static AstralEventDefinition caveCache() {
-        return event("cave_cache", AstralEventKinds.GOOD, false, List.of(),
-                AstralEventTargetDefinition.DEFAULT, new AstralEventTriggerSettings(AstralEventRepeatModes.COOLDOWN, "", 1200, 0, true),
-                List.of(), List.of(), List.of(new BlockBreakEventCondition(), new PositionEventCondition(Integer.MIN_VALUE, 40, 0, 0, -1)),
-                List.of(new AddExperienceEventEffect(5), new ChanceEventEffect(0.5D, new GiveItemEventEffect(Items.IRON_NUGGET.builtInRegistryHolder(), 3))),
-                1200, 0.08D, AstralEventTimings.DURATION, 1200, 20);
+    private static AstralEventDefinition boardEvent(String id, Identifier kind, List<AstralEventEffect> effects, List<AstralEventEffect> intervalEffects) {
+        return event(id, kind, false, List.of(), AstralEventTargetDefinition.DEFAULT, AstralEventTriggerSettings.DEFAULT, effects,
+                intervalEffects, List.of(), List.of(), 0, 1.0D, AstralEventTimings.INSTANT, 0, 20);
     }
 
     public static AstralEventDefinition event(
@@ -119,12 +121,15 @@ public class AstralEventBootstrap {
         Identifier eventId = AstralCraft.prefix(id);
         return new AstralEventDefinition(eventId,
                 AstralEventLocalizationKeys.name(eventId),
-                AstralEventLocalizationKeys.description(eventId), kind,
-                AstralEventKinds.texture(kind),
+                AstralEventLocalizationKeys.description(eventId), kind, texture(kind),
                 triggers, conditions, difficulties, target, triggerSettings,
                 effects, intervalEffects, activeConditions, activeEffects,
                 List.of(), cooldownTicks, chance, false, timing,
                 durationTicks, intervalTicks);
+    }
+
+    public static Identifier texture(Identifier id) {
+        return AstralCraft.prefix("textures/gui/cards/event/event_" + id.getPath() + ".png");
     }
 
 }

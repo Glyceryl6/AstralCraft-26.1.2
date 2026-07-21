@@ -1,0 +1,14 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.server_bug.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_teleport_participants",
+      "mode": "rotate_current"
+    }
+  ],
+  "id": "astral_craft:server_bug",
+  "name_key": "event.astral_craft.server_bug.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "triggers": false
+}

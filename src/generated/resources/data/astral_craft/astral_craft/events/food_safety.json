@@ -1,0 +1,33 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.food_safety.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:damage"
+        }
+      ]
+    },
+    {
+      "type": "astral_craft:board_activate_round_event",
+      "turns": 3
+    }
+  ],
+  "id": "astral_craft:food_safety",
+  "interval_effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:damage"
+        }
+      ]
+    }
+  ],
+  "kind": "astral_craft:bad",
+  "name_key": "event.astral_craft.food_safety.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "triggers": false
+}

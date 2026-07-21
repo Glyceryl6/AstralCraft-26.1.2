@@ -1,0 +1,20 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.overspending.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:board_trap",
+          "trap_type": "demolition"
+        }
+      ]
+    }
+  ],
+  "id": "astral_craft:overspending",
+  "kind": "astral_craft:bad",
+  "name_key": "event.astral_craft.overspending.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "triggers": false
+}

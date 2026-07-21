@@ -1,0 +1,217 @@
+package com.astral_craft.common.gameplay.board;
+
+import com.astral_craft.AstralCraft;
+import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
+import com.astral_craft.common.gameplay.event.AstralEventDefinition;
+import com.astral_craft.common.gameplay.event.AstralEventEffect;
+import com.astral_craft.common.gameplay.event.AstralEventManager;
+import com.astral_craft.common.gameplay.event.AstralEventService;
+import com.astral_craft.common.gameplay.event.effects.BoardEventEffect;
+import com.astral_craft.common.network.s2c.CardRevealPayload;
+import com.astral_craft.common.registry.bootstrap.AstralEventBootstrap;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Selects one board event, owns its reveal lock and runs its data-generated task sequence. */
+public class BoardEventService {
+
+    public static final Identifier EQUALITY_GUARD_STATUS = AstralCraft.prefix("event_equality_guard");
+    public static final Identifier LEAKING_POCKET_STATUS = AstralCraft.prefix("event_leaking_pocket");
+    private static final Map<UUID, EventExecution> PANEL_EVENTS = new HashMap<>();
+    private static final Map<UUID, EventExecution> ROUND_EVENTS = new HashMap<>();
+
+    public static boolean trigger(ServerLevel level, BoardSession session, BoardParticipant source) {
+        if (level == null || session == null || source == null || PANEL_EVENTS.containsKey(session.id())) return false;
+        List<AstralEventDefinition> candidates = AstralEventBootstrap.BOARD_EVENTS.stream()
+                .map(ResourceKey::identifier).map(AstralEventManager.INSTANCE::get)
+                .filter(Objects::nonNull).toList();
+        if (candidates.isEmpty()) return false;
+        AstralEventDefinition definition = candidates.get(level.getRandom().nextInt(candidates.size()));
+        int revealTicks = AstralEventService.DEFAULT_EVENT_REVEAL_DURATION_TICKS;
+        BoardEventContext context = new BoardEventContext(level, session, source, definition);
+        PANEL_EVENTS.put(session.id(), EventExecution.revealed(context, level.getGameTime() + revealTicks + 2L));
+        broadcastReveal(context, revealTicks);
+        return true;
+    }
+
+    public static boolean tick(ServerLevel level, BoardSession session) {
+        EventExecution execution = PANEL_EVENTS.get(session.id());
+        if (execution == null) return false;
+        if (execution.tick()) return true;
+        PANEL_EVENTS.remove(session.id());
+        BoardSessionManager.markChanged(level);
+        return false;
+    }
+
+    public static boolean beginRoundEffects(ServerLevel level, BoardSession session) {
+        if (ROUND_EVENTS.containsKey(session.id())) return true;
+        BoardParticipant source = session.currentParticipant()
+                .orElse(session.participants().isEmpty()
+                        ? null : session.participants().getFirst());
+        if (source == null) return false;
+        Deque<BoardEventTask> tasks = new ArrayDeque<>();
+        for (Map.Entry<Identifier, Integer> entry : new ArrayList<>(session.mechanics().timedEvents().entrySet())) {
+            AstralEventDefinition definition = AstralEventManager.INSTANCE.get(entry.getKey());
+            if (definition != null && !definition.intervalEffects().isEmpty()) {
+                enqueueEffects(new BoardEventContext(level, session, source, definition), definition.intervalEffects(), tasks);
+            }
+
+            session.mechanics().tickTimedEvent(entry.getKey());
+        }
+
+        BoardSessionManager.markChanged(level);
+        if (tasks.isEmpty()) return false;
+        ROUND_EVENTS.put(session.id(), EventExecution.immediate(tasks));
+        return true;
+    }
+
+    public static boolean hasRoundExecution(UUID boardId) {
+        return ROUND_EVENTS.containsKey(boardId);
+    }
+
+    public static boolean active(UUID boardId) {
+        return boardId != null && (PANEL_EVENTS.containsKey(boardId) || ROUND_EVENTS.containsKey(boardId));
+    }
+
+    public static boolean tickRoundEffects(ServerLevel level, BoardSession session) {
+        EventExecution execution = ROUND_EVENTS.get(session.id());
+        if (execution == null) return false;
+        if (execution.tick()) return true;
+        ROUND_EVENTS.remove(session.id());
+        BoardSessionManager.markChanged(level);
+        return false;
+    }
+
+    public static void participantBecameAutomated(ServerLevel level, BoardSession session, UUID slotId) {
+        EventExecution execution = PANEL_EVENTS.get(session.id());
+        if (execution != null) execution.participantBecameAutomated(slotId);
+    }
+
+    public static boolean chooseLotteryNumber(ServerPlayer player, UUID boardId, int number) {
+        EventExecution execution = PANEL_EVENTS.get(boardId);
+        return execution != null && execution.chooseLotteryNumber(player, number);
+    }
+
+    public static void clear(UUID boardId) {
+        EventExecution panel = PANEL_EVENTS.remove(boardId);
+        if (panel != null) panel.close();
+        EventExecution round = ROUND_EVENTS.remove(boardId);
+        if (round != null) round.close();
+    }
+
+    public static int shopOfferBonus(BoardSession session) {
+        return session != null && session.mechanics().timedEventTurns(AstralEventBootstrap.BIG_SALES.identifier()) > 0 ? 2 : 0;
+    }
+
+    public static void consumeEqualityGuard(ServerLevel level, BoardSession session, BoardParticipant participant) {
+        if (participant == null || !participant.hasRoundStatusEffect(EQUALITY_GUARD_STATUS)) return;
+        BoardParticipant updated = participant.withoutRoundStatusEffect(EQUALITY_GUARD_STATUS);
+        BoardSessionManager.updateParticipant(level, session, updated);
+    }
+
+    public static void applyLeakingPocket(ServerLevel level, BoardSession session, BoardSession.MovementState movement,
+                                          BoardParticipant participant) {
+        if (participant == null || !participant.hasRoundStatusEffect(LEAKING_POCKET_STATUS)) return;
+        int amount = Math.min(participant.stats().starCoins(), movement.route().size());
+        BoardParticipant updated = participant.withoutRoundStatusEffect(LEAKING_POCKET_STATUS);
+        BoardSessionManager.updateParticipant(level, session, updated);
+        if (amount > 0) {
+            BoardWorldObjectService.changeCoins(level, session, participant.slotUuid(), -amount);
+            BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), amount);
+        }
+    }
+
+    private static void enqueueEffects(BoardEventContext context, List<AstralEventEffect> effects,
+                                       Deque<BoardEventTask> tasks) {
+        for (AstralEventEffect effect : effects) {
+            if (effect instanceof BoardEventEffect boardEffect) {
+                boardEffect.enqueue(context, tasks);
+            } else if (effect != null) {
+                tasks.addLast(BoardEventTask.action(() -> effect.apply(context.astralContext(context.source())), 0));
+            }
+        }
+    }
+
+    private static void broadcastReveal(BoardEventContext context, int duration) {
+        BoardParticipant source = context.source();
+        int sourceEntityId = source.entityUuid().map(context.level()::getEntity).map(Entity::getId).orElse(-1);
+        List<Integer> targets = context.session().participants().stream().map(BoardParticipant::entityUuid)
+                .flatMap(Optional::stream).map(context.level()::getEntity).filter(Objects::nonNull).map(Entity::getId).toList();
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(context.level(), context.session())) {
+            AstralEventDefinition definition = context.definition();
+            PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id().toString(), ItemStack.EMPTY,
+                    CardType.EVENT.getSerializedName(), Component.translatable(definition.nameKey()),
+                    Component.translatable(definition.descriptionKey()), definition.texture(),
+                    CardBackPreferenceManager.selectedTexture(viewer), CardRevealPayload.ANIMATION_APPROACH,
+                    duration, sourceEntityId, targets));
+        }
+    }
+
+    private static class EventExecution {
+        private final BoardEventContext context;
+        private final Deque<BoardEventTask> tasks;
+        private final long revealUntil;
+        private boolean prepared;
+
+        private EventExecution(BoardEventContext context, Deque<BoardEventTask> tasks, long revealUntil, boolean prepared) {
+            this.context = context;
+            this.tasks = tasks;
+            this.revealUntil = revealUntil;
+            this.prepared = prepared;
+        }
+
+        private static EventExecution revealed(BoardEventContext context, long revealUntil) {
+            return new EventExecution(context, new ArrayDeque<>(), revealUntil, false);
+        }
+
+        private static EventExecution immediate(Deque<BoardEventTask> tasks) {
+            return new EventExecution(null, tasks, 0L, true);
+        }
+
+        private boolean tick() {
+            if (!this.prepared) {
+                if (this.context.level().getGameTime() < this.revealUntil) return true;
+                enqueueEffects(this.context, this.context.definition().effects(), this.tasks);
+                this.prepared = true;
+            }
+            BoardEventTask task = this.tasks.peekFirst();
+            if (task == null) return false;
+            if (task.tick()) return true;
+            task.close();
+            this.tasks.removeFirst();
+            return !this.tasks.isEmpty();
+        }
+
+        private void participantBecameAutomated(UUID slotId) {
+            BoardEventTask task = this.tasks.peekFirst();
+            if (task != null) task.participantBecameAutomated(slotId);
+        }
+
+        private boolean chooseLotteryNumber(ServerPlayer player, int number) {
+            BoardEventTask task = this.tasks.peekFirst();
+            return task != null && task.chooseLotteryNumber(player, number);
+        }
+
+        private void close() {
+            for (BoardEventTask task : this.tasks) task.close();
+            this.tasks.clear();
+        }
+    }
+}

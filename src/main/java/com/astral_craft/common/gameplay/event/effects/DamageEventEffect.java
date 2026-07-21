@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.event.effects;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
@@ -28,9 +29,14 @@ public record DamageEventEffect(float amount) implements AstralEventEffect {
     @Override
     public void apply(AstralEventContext context) {
         LivingEntity target = context.targetLiving();
-        if (target == null) return;
+        if (target == null || this.amount <= 0.0F) return;
+        if (target instanceof AstralCharacterEntity pawn && pawn.isBoardPawn()) {
+            pawn.applyBoardDamage(Math.max(1, Math.round(this.amount)));
+            return;
+        }
+
         ServerLevel level = context.level();
-        target.hurtServer(level, target.damageSources().generic(), Math.max(0.0F, this.amount));
+        target.hurtServer(level, target.damageSources().generic(), this.amount);
     }
 
 }

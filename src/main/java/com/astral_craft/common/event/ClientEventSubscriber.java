@@ -198,6 +198,7 @@ public class ClientEventSubscriber {
         event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);
         event.register(OpenBoardStartChoicePayload.TYPE, BoardStartChoiceScreen::open);
         event.register(OpenBoardLotteryNumberPayload.TYPE, BoardLotteryNumberScreen::open);
+        event.register(CloseBoardLotteryNumberPayload.TYPE, BoardLotteryNumberScreen::close);
         event.register(OpenBoardGamblePayload.TYPE, BoardGambleScreen::open);
         event.register(CloseBoardGamblePayload.TYPE, BoardGambleScreen::close);
         event.register(OpenBoardLotteryDrawPayload.TYPE, BoardLotteryDrawScreen::open);

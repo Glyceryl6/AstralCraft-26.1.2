@@ -1,0 +1,24 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.falling_gifts.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:board_coins",
+          "amount": 3
+        },
+        {
+          "type": "astral_craft:board_hand",
+          "action": "give_random"
+        }
+      ]
+    }
+  ],
+  "id": "astral_craft:falling_gifts",
+  "kind": "astral_craft:good",
+  "name_key": "event.astral_craft.falling_gifts.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "triggers": false
+}

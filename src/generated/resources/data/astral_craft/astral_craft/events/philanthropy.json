@@ -1,0 +1,21 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.philanthropy.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_for_each_participant",
+      "effects": [
+        {
+          "type": "astral_craft:board_coins",
+          "amount": -5
+        }
+      ],
+      "selection": "richest"
+    }
+  ],
+  "id": "astral_craft:philanthropy",
+  "kind": "astral_craft:bad",
+  "name_key": "event.astral_craft.philanthropy.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "triggers": false
+}

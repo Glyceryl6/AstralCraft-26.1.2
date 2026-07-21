@@ -1,0 +1,13 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.redistribution.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_balance_coins"
+    }
+  ],
+  "id": "astral_craft:redistribution",
+  "name_key": "event.astral_craft.redistribution.name",
+  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "triggers": false
+}
