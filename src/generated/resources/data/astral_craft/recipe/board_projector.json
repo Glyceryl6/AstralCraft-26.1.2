@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "G": "minecraft:glass",
+    "I": "minecraft:iron_ingot",
+    "M": "minecraft:map",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "GAG",
+    "RMR",
+    "IRI"
+  ],
+  "result": {
+    "id": "astral_craft:board_projector"
+  }
+}

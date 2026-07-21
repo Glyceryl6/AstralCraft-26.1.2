@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "R": "minecraft:redstone_torch",
+    "S": "minecraft:shears"
+  },
+  "pattern": [
+    "ISI",
+    "IRI",
+    " I "
+  ],
+  "result": {
+    "id": "astral_craft:board_dismantler"
+  }
+}

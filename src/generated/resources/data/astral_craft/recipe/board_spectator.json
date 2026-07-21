@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "E": "minecraft:ender_eye",
+    "G": "minecraft:glass",
+    "P": "minecraft:paper",
+    "S": "minecraft:spyglass"
+  },
+  "pattern": [
+    " GE",
+    " SG",
+    "P  "
+  ],
+  "result": {
+    "id": "astral_craft:board_spectator"
+  }
+}

@@ -4,10 +4,13 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
+import com.astral_craft.common.network.BoardNetworkCodecs;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+
+import java.util.UUID;
 
 public class AstralDataComponents {
 
@@ -18,5 +21,7 @@ public class AstralDataComponents {
             () -> DataComponentType.<CardDefinition>builder().persistent(CardDefinition.CODEC).networkSynchronized(CardDefinition.STREAM_CODEC).cacheEncoding().build());
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CombatBonusDefinition>> COMBAT_BONUS = DATA_COMPONENT_TYPE.register("combat_bonus",
             () -> DataComponentType.<CombatBonusDefinition>builder().persistent(CombatBonusDefinition.CODEC).networkSynchronized(CombatBonusDefinition.STREAM_CODEC).cacheEncoding().build());
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<UUID>> BOARD_SPECTATOR_BINDING = DATA_COMPONENT_TYPE.register("board_spectator_binding",
+            () -> DataComponentType.<UUID>builder().networkSynchronized(BoardNetworkCodecs.UUID_STREAM_CODEC).build());
 
 }

@@ -13,6 +13,7 @@ import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.*;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
+import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.astral_craft.common.items.BaseHandCard;
@@ -88,7 +89,9 @@ public class CommonEventSubscriber {
                                 })))
                 .then(Commands.literal("presentation")
                         .then(Commands.argument("mode", StringArgumentType.word())
-                                .suggests((_, builder) -> SharedSuggestionProvider.suggest(List.of(AstralEventPreferences.PRESENTATION_ANIMATION, AstralEventPreferences.PRESENTATION_CHAT), builder))
+                                .suggests((_, builder) -> SharedSuggestionProvider.suggest(List.of(
+                                        AstralEventPreferences.PRESENTATION_ANIMATION,
+                                        AstralEventPreferences.PRESENTATION_CHAT), builder))
                                 .executes(context -> {
                                     String mode = StringArgumentType.getString(context, "mode");
                                     var player = context.getSource().getPlayerOrException();
@@ -142,6 +145,10 @@ public class CommonEventSubscriber {
         Item item = itemStack.getItem();
         if (item instanceof BaseHandCard handCard) {
             handCard.appendHoverText(itemStack, event.getContext(), event.getToolTip()::add, event.getFlags(), event.getEntity());
+        }
+
+        if (itemStack.has(AstralDataComponents.BOARD_SPECTATOR_BINDING.get())) {
+            event.getToolTip().add(Component.translatable("tooltips.astral_craft.board_spectator.bound").withStyle(ChatFormatting.AQUA));
         }
 
         if (item instanceof BlockItem blockItem) {

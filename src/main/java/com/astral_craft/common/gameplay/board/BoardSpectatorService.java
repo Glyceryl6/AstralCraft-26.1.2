@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.network.s2c.CloseBoardPresentationPayload;
+import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -23,8 +24,9 @@ public class BoardSpectatorService {
 
     private static final Map<UUID, UUID> WATCHED_BOARDS = new LinkedHashMap<>();
 
-    public static boolean toggle(ServerPlayer player, BoardSession session) {
-        if (player == null || session == null || session.phase() != BoardPhase.PLAYING) return false;
+    public static boolean toggle(ServerPlayer player, BoardSession session, ItemStack tool) {
+        if (player == null || session == null || tool == null || !tool.is(AstralItems.BOARD_SPECTATOR.get())
+                || session.phase() != BoardPhase.PLAYING) return false;
         UUID previous = WATCHED_BOARDS.get(player.getUUID());
         if (session.id().equals(previous)) {
             removeBinding(player, previous);
@@ -32,6 +34,8 @@ public class BoardSpectatorService {
         }
 
         if (previous != null) closePresentation(player, previous);
+        clearToolBindings(player);
+        tool.set(AstralDataComponents.BOARD_SPECTATOR_BINDING.get(), session.id());
         WATCHED_BOARDS.put(player.getUUID(), session.id());
         return true;
     }
@@ -70,7 +74,10 @@ public class BoardSpectatorService {
             Map.Entry<UUID, UUID> entry = iterator.next();
             if (!boardId.equals(entry.getValue())) continue;
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
-            if (player != null) closePresentation(player, boardId);
+            if (player != null) {
+                clearToolBindings(player);
+                closePresentation(player, boardId);
+            }
             iterator.remove();
         }
     }
@@ -93,13 +100,17 @@ public class BoardSpectatorService {
             }
 
             if (!remove) continue;
-            if (player != null) closePresentation(player, entry.getValue());
+            if (player != null) {
+                clearToolBindings(player);
+                closePresentation(player, entry.getValue());
+            }
             iterator.remove();
         }
     }
 
     private static void removeBinding(ServerPlayer player, UUID boardId) {
         WATCHED_BOARDS.remove(player.getUUID());
+        clearToolBindings(player);
         closePresentation(player, boardId);
     }
 
@@ -117,10 +128,21 @@ public class BoardSpectatorService {
     }
 
     private static boolean hasSpectatorTool(ServerPlayer player) {
+        UUID boardId = WATCHED_BOARDS.get(player.getUUID());
+        if (boardId == null) return false;
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (stack.is(AstralItems.BOARD_SPECTATOR.get())) return true;
+            if (stack.is(AstralItems.BOARD_SPECTATOR.get())
+                    && boardId.equals(stack.get(AstralDataComponents.BOARD_SPECTATOR_BINDING.get()))) return true;
         }
         return false;
+    }
+
+    private static void clearToolBindings(ServerPlayer player) {
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (stack.is(AstralItems.BOARD_SPECTATOR.get())) {
+                stack.remove(AstralDataComponents.BOARD_SPECTATOR_BINDING.get());
+            }
+        }
     }
 
 }

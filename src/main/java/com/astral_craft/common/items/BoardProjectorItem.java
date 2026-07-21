@@ -60,6 +60,8 @@ public class BoardProjectorItem extends Item {
                         session.hologramCenter().getX() + ", " + session.hologramCenter().getY() + ", "
                                 + session.hologramCenter().getZ())
                 .withStyle(ChatFormatting.GREEN), false);
+        player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.projector_hint",
+                BoardSessionManager.REQUIRED_PLAYERS).withStyle(ChatFormatting.YELLOW), false);
         return InteractionResult.SUCCESS;
     }
 

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "B": "minecraft:bell",
+    "C": "minecraft:compass",
+    "E": "minecraft:emerald",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    " E ",
+    "BCB",
+    " R "
+  ],
+  "result": {
+    "id": "astral_craft:board_lobby"
+  }
+}
