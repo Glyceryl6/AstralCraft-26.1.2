@@ -9,6 +9,7 @@ import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
 import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.gameplay.DamagePresentation;
+import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -64,6 +65,16 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
         BoardParticipant participant = this.user();
         BoardSessionManager.updateParticipant(this.level, this.session,
                 participant.withStats(operation.apply(participant.stats())));
+    }
+
+    public void healUser(int amount) {
+        if (amount <= 0) return;
+        BoardParticipant participant = this.user();
+        AstralPlayerStats healed = participant.stats().heal(amount);
+        BoardSessionManager.updateParticipant(this.level, this.session, participant.withStats(healed));
+        if (healed.health() > participant.stats().health()) {
+            AstralCardEffects.playHealingEffect(BoardEntityService.entity(this.level, participant));
+        }
     }
 
     public void reduceUserSkillCooldown(int turns) {
@@ -140,8 +151,10 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
 
     private void applyDamage(BoardParticipant attacker, BoardParticipant target, int damage, boolean rewardKnockout) {
         if (BoardSessionManager.isHospitalProtected(this.session, target)) return;
-        int resolvedDamage = Math.max(0, damage + target.stats().incomingDamageBonus()
+        int rawDamage = Math.max(0, damage + target.stats().incomingDamageBonus()
                 + Math.min(1, target.stats().buff(BuffKinds.MARK)));
+        int resolvedDamage = BoardSessionManager.resolveIncomingDamage(this.level, this.session, target, rawDamage);
+        target = this.session.participant(target.slotUuid()).orElse(target);
         if (resolvedDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
             AstralCharacterEntity targetEntity = BoardEntityService.entity(this.level, target);
             if (targetEntity != null) DamagePresentation.playCriticalImpact(this.level, targetEntity);

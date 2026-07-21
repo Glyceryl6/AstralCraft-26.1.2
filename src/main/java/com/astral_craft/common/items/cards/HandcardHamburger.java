@@ -28,7 +28,7 @@ public class HandcardHamburger extends BaseHandCard implements BoardBotEffect {
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
-        context.updateUser(stats -> stats.heal(4));
+        context.healUser(4);
         return 0;
     }
 

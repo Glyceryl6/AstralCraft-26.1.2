@@ -28,7 +28,7 @@ public class HandcardChocolateCake extends BaseHandCard implements BoardBotEffec
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
-        context.updateUser(stats -> stats.heal(2));
+        context.healUser(2);
         return 0;
     }
 
