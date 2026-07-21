@@ -27,6 +27,10 @@ public class BoardLotteryService {
         return true;
     }
 
+    public static boolean active(UUID boardId) {
+        return ACTIVE_DRAWS.containsKey(boardId);
+    }
+
     public static boolean tick(ServerLevel level, BoardSession session) {
         DrawState state = ACTIVE_DRAWS.get(session.id());
         if (state == null) return false;
@@ -87,8 +91,12 @@ public class BoardLotteryService {
 
     private static void broadcast(ServerLevel level, BoardSession session, DrawState state) {
         int remaining = (int) Math.max(0L, state.deadlineTick() - level.getGameTime());
+        List<OpenBoardLotteryDrawPayload.Entry> entries = session.turnOrder().stream().map(session::participant)
+                .flatMap(Optional::stream).map(participant -> new OpenBoardLotteryDrawPayload.Entry(
+                        BoardSessionManager.displayName(level, participant),
+                        session.mechanics().lotteryNumbers(participant.slotUuid()))).toList();
         OpenBoardLotteryDrawPayload payload = new OpenBoardLotteryDrawPayload(session.id(), state.phase(), state.finalNumber(),
-                state.jackpot(), state.winnerNames(), state.awardEach(), remaining, state.durationTicks());
+                state.jackpot(), entries, state.winnerNames(), state.awardEach(), remaining, state.durationTicks());
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             PacketDistributor.sendToPlayer(viewer, payload);
         }

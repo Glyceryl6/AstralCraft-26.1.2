@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNumber, int jackpot,
-                                          List<String> winnerNames, int awardEach,
+                                          List<Entry> entries, List<String> winnerNames, int awardEach,
                                           int timeoutTicks, int timeoutDurationTicks) implements CustomPacketPayload {
 
     public static final Type<OpenBoardLotteryDrawPayload> TYPE = new Type<>(AstralCraft.prefix("open_board_lottery_draw"));
@@ -20,6 +20,7 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
             Phase.STREAM_CODEC, OpenBoardLotteryDrawPayload::phase,
             ByteBufCodecs.VAR_INT, OpenBoardLotteryDrawPayload::finalNumber,
             ByteBufCodecs.VAR_INT, OpenBoardLotteryDrawPayload::jackpot,
+            Entry.STREAM_CODEC.apply(ByteBufCodecs.list(4)), OpenBoardLotteryDrawPayload::entries,
             ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(4)), OpenBoardLotteryDrawPayload::winnerNames,
             ByteBufCodecs.VAR_INT, OpenBoardLotteryDrawPayload::awardEach,
             ByteBufCodecs.VAR_INT, OpenBoardLotteryDrawPayload::timeoutTicks,
@@ -29,6 +30,7 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
     public OpenBoardLotteryDrawPayload {
         finalNumber = Math.clamp(finalNumber, 1, 12);
         jackpot = Math.max(10, jackpot);
+        entries = List.copyOf(entries);
         winnerNames = List.copyOf(winnerNames);
         awardEach = Math.max(0, awardEach);
         timeoutTicks = Math.max(0, timeoutTicks);
@@ -38,6 +40,18 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
+    }
+
+    public record Entry(String name, List<Integer> numbers) {
+        public static final StreamCodec<ByteBuf, Entry> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8, Entry::name,
+                ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(12)), Entry::numbers,
+                Entry::new);
+
+        public Entry {
+            name = name == null ? "" : name;
+            numbers = List.copyOf(numbers);
+        }
     }
 
     public enum Phase {
@@ -57,5 +71,4 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
             }
         };
     }
-
 }

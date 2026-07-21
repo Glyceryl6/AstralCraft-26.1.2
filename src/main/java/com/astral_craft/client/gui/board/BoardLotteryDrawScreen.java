@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
 
@@ -18,6 +19,7 @@ public class BoardLotteryDrawScreen extends Screen {
     private OpenBoardLotteryDrawPayload.Phase phase;
     private int finalNumber;
     private int jackpot;
+    private List<OpenBoardLotteryDrawPayload.Entry> entries;
     private List<String> winnerNames;
     private int awardEach;
     private int timeoutTicks;
@@ -58,6 +60,7 @@ public class BoardLotteryDrawScreen extends Screen {
         this.phase = payload.phase();
         this.finalNumber = payload.finalNumber();
         this.jackpot = payload.jackpot();
+        this.entries = payload.entries();
         this.winnerNames = payload.winnerNames();
         this.awardEach = payload.awardEach();
         this.timeoutTicks = payload.timeoutTicks();
@@ -66,6 +69,11 @@ public class BoardLotteryDrawScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldCloseOnEsc() {
         return false;
     }
 
@@ -86,6 +94,21 @@ public class BoardLotteryDrawScreen extends Screen {
         graphics.centeredText(this.font, this.title, this.width / 2, layout.y() + 14, 0xFFFFFFFF);
         graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.lottery_draw.jackpot", this.jackpot),
                 this.width / 2, layout.y() + 34, 0xFFFFD76A);
+        int listX = layout.x() + 14;
+        graphics.text(this.font, Component.translatable("gui.astral_craft.board.lottery_draw.selected_numbers"),
+                listX, layout.y() + 62, 0xFFFFD76A, true);
+        for (int index = 0; index < this.entries.size(); index++) {
+            OpenBoardLotteryDrawPayload.Entry entry = this.entries.get(index);
+            int rowY = layout.y() + 82 + index * 48;
+            graphics.text(this.font, Component.literal(entry.name()), listX, rowY, 0xFFFFFFFF, true);
+            String numbers = entry.numbers().isEmpty() ? "-" : entry.numbers().stream()
+                    .map(String::valueOf).reduce((left, right) -> left + ", " + right).orElse("-");
+            List<FormattedCharSequence> lines = this.font.split(Component.literal(numbers), layout.boardX() - listX - 10);
+            for (int line = 0; line < Math.min(2, lines.size()); line++) {
+                graphics.text(this.font, lines.get(line), listX, rowY + 15 + line * 10, 0xFFBFC7D5, false);
+            }
+        }
+
         int active = this.phase == OpenBoardLotteryDrawPayload.Phase.RESULT ? this.finalNumber : this.animatedNumber();
         for (int number = 1; number <= 12; number++) {
             Cell cell = layout.cell(number);
@@ -97,10 +120,8 @@ public class BoardLotteryDrawScreen extends Screen {
             graphics.centeredText(this.font, Component.literal(Integer.toString(number)),
                     cell.x() + cell.width() / 2, cell.y() + 10, highlighted ? 0xFF1C1D24 : 0xFFFFFFFF);
         }
-        int centerX = this.width / 2;
+        int centerX = layout.boardX() + layout.boardWidth() / 2;
         int centerY = layout.y() + layout.height() / 2 + 6;
-//        graphics.fill(centerX - 48, centerY - 34, centerX + 48, centerY + 34, 0xFF20232E);
-//        graphics.centeredText(this.font, Component.literal(Integer.toString(active)), centerX, centerY - 12, 0xFFFFD76A);
         if (this.phase == OpenBoardLotteryDrawPayload.Phase.RESULT) {
             Component result = this.winnerNames.isEmpty()
                     ? Component.translatable("gui.astral_craft.board.lottery_draw.no_winner")
@@ -108,7 +129,7 @@ public class BoardLotteryDrawScreen extends Screen {
             graphics.centeredText(this.font, result, centerX, centerY + 10,
                     this.winnerNames.isEmpty() ? 0xFFBFC2D0 : 0xFF72D27B);
             if (!this.winnerNames.isEmpty()) {
-                graphics.centeredText(this.font, Component.literal(String.join("、", this.winnerNames)),
+                graphics.centeredText(this.font, Component.literal(String.join(", ", this.winnerNames)),
                         centerX, centerY + 24, 0xFFFFFFFF);
             }
         }
@@ -125,7 +146,7 @@ public class BoardLotteryDrawScreen extends Screen {
     }
 
     private Layout layout() {
-        int width = Math.min(500, this.width - 24);
+        int width = Math.min(700, this.width - 24);
         int height = Math.min(360, this.height - 24);
         return new Layout((this.width - width) / 2, (this.height - height) / 2, width, height);
     }
@@ -133,20 +154,30 @@ public class BoardLotteryDrawScreen extends Screen {
     private record Cell(int x, int y, int width, int height) {}
 
     private record Layout(int x, int y, int width, int height) {
+        private int boardX() {
+            return this.x + Math.min(190, Math.max(150, this.width / 3));
+        }
+
+        private int boardWidth() {
+            return this.x + this.width - this.boardX();
+        }
+
         private Cell cell(int number) {
             int w = 58;
             int h = 32;
             int gap = 8;
-            int left = this.x + 34;
-            int right = this.x + this.width - 34 - w;
+            int boardX = this.boardX();
+            int boardWidth = this.boardWidth();
+            int left = boardX + 28;
+            int right = boardX + boardWidth - 28 - w;
             int top = this.y + 62;
             int bottom = this.y + this.height - 54 - h;
             return switch (number) {
-                case 1, 2, 3 -> new Cell(this.x + this.width / 2 - (w * 3 + gap * 2) / 2
+                case 1, 2, 3 -> new Cell(boardX + boardWidth / 2 - (w * 3 + gap * 2) / 2
                         + (number - 1) * (w + gap), top, w, h);
                 case 4, 5, 6 -> new Cell(right, this.y + this.height / 2 - (h * 3 + gap * 2) / 2
                         + (number - 4) * (h + gap), w, h);
-                case 7, 8, 9 -> new Cell(this.x + this.width / 2 + (w * 3 + gap * 2) / 2 - w
+                case 7, 8, 9 -> new Cell(boardX + boardWidth / 2 + (w * 3 + gap * 2) / 2 - w
                         - (number - 7) * (w + gap), bottom, w, h);
                 default -> new Cell(left, this.y + this.height / 2 + (h * 3 + gap * 2) / 2 - h
                         - (number - 10) * (h + gap), w, h);
