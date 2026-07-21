@@ -265,6 +265,13 @@ public record BoardParticipant(
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes);
     }
 
+    public BoardParticipant withKnockedDownTurns(int turns) {
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
+                this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
+                this.roundStatusEffects, this.skillCooldownTurns, Math.max(0, turns), this.cardPlaysUsed,
+                this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes);
+    }
+
     public BoardParticipant knockDown() {
         int lost = Math.max(0, (this.stats.starCoins() + 1) / 2);
         AstralPlayerStats next = this.stats.spendCoins(lost).withHealth(0);

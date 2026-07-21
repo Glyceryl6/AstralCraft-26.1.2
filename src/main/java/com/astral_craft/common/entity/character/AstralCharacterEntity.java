@@ -96,13 +96,16 @@ public class AstralCharacterEntity extends PathfinderMob {
             this.discard();
             return;
         }
+
         if (!this.level().isClientSide() && this.boardReactionTicks > 0) {
             this.boardReactionTicks--;
             if (this.boardReactionTicks == 0
-                    && ("hurt".equals(this.animationAction()) || "attack".equals(this.animationAction()))) {
+                    && ("hurt".equals(this.animationAction())
+                    || "attack".equals(this.animationAction()))) {
                 this.setAnimationAction("idle");
             }
         }
+
         this.getNavigation().stop();
         this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
         this.applyBoardRotation(this.boardDirection());
@@ -112,9 +115,9 @@ public class AstralCharacterEntity extends PathfinderMob {
     @ParametersAreNonnullByDefault
     protected @NonNull InteractionResult mobInteract(Player player, InteractionHand hand) {
         if (!this.level().isClientSide() && player instanceof ServerPlayer serverPlayer && this.isBoardPawn()) {
-            return BoardSessionManager.openTurnScreen(serverPlayer, this)
-                    ? InteractionResult.SUCCESS : InteractionResult.PASS;
+            return BoardSessionManager.openTurnScreen(serverPlayer, this) ? InteractionResult.SUCCESS : InteractionResult.PASS;
         }
+
         return this.isBoardPawn() ? InteractionResult.SUCCESS : super.mobInteract(player, hand);
     }
 
@@ -206,7 +209,9 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.hurtDuration = duration;
         this.hurtTime = duration;
         this.restartAnimationAction("hurt");
-        if (!this.level().isClientSide()) this.level().broadcastEntityEvent(this, (byte) 2);
+        if (!this.level().isClientSide()) {
+            this.level().broadcastEntityEvent(this, (byte) 2);
+        }
     }
 
     public void flashBoardDamage(int ticks) {
@@ -214,7 +219,9 @@ public class AstralCharacterEntity extends PathfinderMob {
         int duration = Math.max(1, ticks);
         this.hurtDuration = duration;
         this.hurtTime = duration;
-        if (!this.level().isClientSide()) this.level().broadcastEntityEvent(this, BOARD_DAMAGE_FLASH_EVENT);
+        if (!this.level().isClientSide()) {
+            this.level().broadcastEntityEvent(this, BOARD_DAMAGE_FLASH_EVENT);
+        }
     }
 
     public void playBoardAttackAnimation(int ticks) {
@@ -311,7 +318,11 @@ public class AstralCharacterEntity extends PathfinderMob {
     }
 
     private static Identifier parseIdentifier(String raw) {
-        try { return Identifier.parse(raw); } catch (Exception ignored) { return CharacterManager.INSTANCE.defaultCharacter().id(); }
+        try {
+            return Identifier.parse(raw);
+        } catch (Exception ignored) {
+            return CharacterManager.INSTANCE.defaultCharacter().id();
+        }
     }
 
 }

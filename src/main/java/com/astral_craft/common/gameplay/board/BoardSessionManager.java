@@ -161,9 +161,11 @@ public class BoardSessionManager {
             participant = session.participant(participant.slotUuid()).orElse(participant);
             resolved = resolved.withHealth(Math.max(0, participant.stats().health() - damage));
         }
+
         if (isHospitalProtected(session, participant) && resolved.health() < participant.stats().health()) {
             resolved = resolved.withHealth(participant.stats().health());
         }
+
         updateParticipant(level, session, participant.withStats(resolved));
     }
 
@@ -214,11 +216,10 @@ public class BoardSessionManager {
         if (maybeSession.isEmpty()) return false;
         BoardSession session = maybeSession.get();
         BoardParticipant participant = session.participantFor(entity).orElse(null);
-        if (participant == null || !participant.controlledBy(player.getUUID())) return false;
+        if (participant == null || !participant.controlledBy(player.getUUID()) || participant.knockedDown()) return false;
         boolean currentTurn = session.currentParticipant().map(value -> value.slotUuid().equals(participant.slotUuid())).orElse(false);
-        boolean canAct = currentTurn && session.movement() == null && session.encounter() == null
-                && session.discard() == null && !BoardBattleService.active(session.id())
-                && !BoardEventService.active(session.id());
+        boolean canAct = currentTurn && session.movement() == null && session.encounter() == null && session.discard() == null
+                && !BoardBattleService.active(session.id()) && !BoardEventService.active(session.id());
         sendTurnScreen(player, session, participant, entity, canAct);
         return true;
     }

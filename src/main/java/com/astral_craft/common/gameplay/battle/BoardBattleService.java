@@ -288,9 +288,11 @@ public class BoardBattleService {
         boolean evading = state.defenseMode() == DefenseMode.EVADE;
         int defenseTotal = evading ? defenderDie : preliminary.defenseBase() + defenderDie + defenseBonus;
         boolean evaded = evading && (defenderDie > preliminary.attackerDie() || defenderDie == 6);
-        int damage = state.defenseMode() == DefenseMode.EVADE
+        int rawDamage = state.defenseMode() == DefenseMode.EVADE
                 ? (evaded ? 0 : Math.max(0, attackTotal + defender.stats().incomingDamageBonus()))
                 : Math.max(1, attackTotal - defenseTotal);
+        int damage = BoardSessionManager.resolveIncomingDamage(level, session, defender, rawDamage);
+        defender = session.participant(defender.slotUuid()).orElse(defender);
         int remainingHealth = Math.max(0, defender.stats().health() - damage);
         BattleRoll roll = new BattleRoll(preliminary.attackerCards(), preliminary.defenderCards(),
                 preliminary.attackBase(), preliminary.defenseBase(),
