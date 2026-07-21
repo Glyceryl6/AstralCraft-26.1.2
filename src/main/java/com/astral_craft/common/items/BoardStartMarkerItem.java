@@ -30,8 +30,8 @@ public class BoardStartMarkerItem extends Item {
             return InteractionResult.FAIL;
         }
 
-        if (session.phase() == BoardPhase.PLAYING) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.playing"), true);
+        if (session.phase() != BoardPhase.READY) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.locked"), true);
             return InteractionResult.FAIL;
         }
 

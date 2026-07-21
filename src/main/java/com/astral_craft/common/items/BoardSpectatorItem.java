@@ -31,7 +31,7 @@ public class BoardSpectatorItem extends Item {
             return InteractionResult.FAIL;
         }
 
-        boolean watching = BoardSpectatorService.toggle(player, session);
+        boolean watching = BoardSpectatorService.toggle(player, session, context.getItemInHand());
         player.sendSystemMessage(Component.translatable(watching
                 ? "message.astral_craft.board.spectator.bound"
                 : "message.astral_craft.board.spectator.unbound"), true);
