@@ -1,9 +1,11 @@
 package com.astral_craft.common.network;
 
+import com.astral_craft.common.blocks.platform.FirePlatform;
 import com.astral_craft.common.blocks.platform.GamblePlatform;
 import com.astral_craft.common.blocks.platform.LotteryPlatform;
 import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
+import com.astral_craft.common.blocks.platform.TeleportPointPlatform;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
@@ -217,6 +219,16 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 GamblePlatform.choose(player, payload.boardId(), payload.odd());
+            }
+        });
+    }
+
+    public static void handleBoardPlatformTarget(BoardPlatformTargetPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            switch (payload.action()) {
+                case FIRE -> FirePlatform.choose(player, payload.boardId(), payload.entityId());
+                case ASSAULT -> TeleportPointPlatform.choose(player, payload.boardId(), payload.entityId());
             }
         });
     }

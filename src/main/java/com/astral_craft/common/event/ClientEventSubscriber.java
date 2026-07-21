@@ -190,6 +190,8 @@ public class ClientEventSubscriber {
             BoardBattleScreen.closePresentation(payload.boardId());
             BoardGambleScreen.closePresentation(payload.boardId());
             BoardLotteryDrawScreen.closePresentation(payload.boardId());
+            BoardHospitalScreen.closePresentation(payload.boardId());
+            TargetSelectionScreen.closePresentation(payload.boardId());
             BoardLotteryNumberScreen.closePresentation(payload.boardId());
             CardRevealOverlay.clear();
         }));
@@ -199,6 +201,10 @@ public class ClientEventSubscriber {
         event.register(OpenBoardGamblePayload.TYPE, BoardGambleScreen::open);
         event.register(CloseBoardGamblePayload.TYPE, BoardGambleScreen::close);
         event.register(OpenBoardLotteryDrawPayload.TYPE, BoardLotteryDrawScreen::open);
+        event.register(OpenBoardHospitalPayload.TYPE, BoardHospitalScreen::open);
+        event.register(CloseBoardHospitalPayload.TYPE, BoardHospitalScreen::close);
+        event.register(OpenBoardPlatformTargetPayload.TYPE, TargetSelectionScreen::open);
+        event.register(CloseBoardPlatformTargetPayload.TYPE, TargetSelectionScreen::close);
         event.register(CloseBoardLotteryDrawPayload.TYPE, BoardLotteryDrawScreen::close);
         event.register(OpenBoardShopPayload.TYPE, BoardShopScreen::open);
         event.register(OpenBoardPanelSelectionPayload.TYPE, BoardPanelSelectionScreen::open);

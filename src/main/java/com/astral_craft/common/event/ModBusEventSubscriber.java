@@ -46,7 +46,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("18");
+        PayloadRegistrar registrar = event.registrar("19");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -66,6 +66,10 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenBoardGamblePayload.TYPE, OpenBoardGamblePayload.STREAM_CODEC);
         registrar.playToClient(CloseBoardGamblePayload.TYPE, CloseBoardGamblePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardLotteryDrawPayload.TYPE, OpenBoardLotteryDrawPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardHospitalPayload.TYPE, OpenBoardHospitalPayload.STREAM_CODEC);
+        registrar.playToClient(CloseBoardHospitalPayload.TYPE, CloseBoardHospitalPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardPlatformTargetPayload.TYPE, OpenBoardPlatformTargetPayload.STREAM_CODEC);
+        registrar.playToClient(CloseBoardPlatformTargetPayload.TYPE, CloseBoardPlatformTargetPayload.STREAM_CODEC);
         registrar.playToClient(CloseBoardLotteryDrawPayload.TYPE, CloseBoardLotteryDrawPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardShopPayload.TYPE, OpenBoardShopPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardPanelSelectionPayload.TYPE, OpenBoardPanelSelectionPayload.STREAM_CODEC);
@@ -98,6 +102,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(BoardStartChoicePayload.TYPE, BoardStartChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardStartChoice);
         registrar.playToServer(BoardLotteryNumberPayload.TYPE, BoardLotteryNumberPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardLotteryNumber);
         registrar.playToServer(BoardGambleChoicePayload.TYPE, BoardGambleChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardGambleChoice);
+        registrar.playToServer(BoardPlatformTargetPayload.TYPE, BoardPlatformTargetPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardPlatformTarget);
         registrar.playToServer(BoardLeavePayload.TYPE, BoardLeavePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardLeave);
         registrar.playToServer(BoardShopActionPayload.TYPE, BoardShopActionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardShop);
         registrar.playToServer(BoardPanelSelectionPayload.TYPE, BoardPanelSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardPanelSelection);
