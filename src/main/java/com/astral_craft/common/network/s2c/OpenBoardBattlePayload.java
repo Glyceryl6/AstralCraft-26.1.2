@@ -9,10 +9,12 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ByIdMap;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 public record OpenBoardBattlePayload(
         UUID boardId, int attackerEntityId, int defenderEntityId,
@@ -69,7 +71,9 @@ public record OpenBoardBattlePayload(
         DEFENDER,
         SPECTATOR;
 
-        public static final StreamCodec<ByteBuf, BattleRole> STREAM_CODEC = enumCodec(values(), SPECTATOR);
+        public static final StreamCodec<ByteBuf, BattleRole> STREAM_CODEC = ByteBufCodecs.idMapper(
+                index -> index >= 0 && index < values().length ? values()[index] : SPECTATOR,
+                BattleRole::ordinal);
     }
 
     public enum BattlePhase {
@@ -80,14 +84,18 @@ public record OpenBoardBattlePayload(
         DEFENDER_ROLL,
         RESULT;
 
-        public static final StreamCodec<ByteBuf, BattlePhase> STREAM_CODEC = enumCodec(values(), SELECT);
+        private static final IntFunction<BattlePhase> BY_ID = ByIdMap.continuous(
+                BattlePhase::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, BattlePhase> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, BattlePhase::ordinal);
     }
 
     public enum DefenseMode {
         DEFEND,
         EVADE;
 
-        public static final StreamCodec<ByteBuf, DefenseMode> STREAM_CODEC = enumCodec(values(), DEFEND);
+        private static final IntFunction<DefenseMode> BY_ID = ByIdMap.continuous(
+                DefenseMode::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, DefenseMode> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, DefenseMode::ordinal);
     }
 
     public record CombatCardView(int handIndex, ItemStack stack, int cost, int minimumBonus, int maximumBonus) {
@@ -115,48 +123,46 @@ public record OpenBoardBattlePayload(
             int damage, boolean evaded, boolean knockout,
             boolean attackerReady, boolean defenderReady, DefenseMode defenseMode) {
 
-        public static final StreamCodec<ByteBuf, BattleView> STREAM_CODEC = new StreamCodec<>() {
-            @Override
-            public BattleView decode(ByteBuf buffer) {
-                return new BattleView(
-                        BattlePhase.STREAM_CODEC.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
-                        ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
-                        ByteBufCodecs.BOOL.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
-                        ByteBufCodecs.BOOL.decode(buffer), DefenseMode.STREAM_CODEC.decode(buffer));
-            }
+        public static final StreamCodec<ByteBuf, BattleView> STREAM_CODEC = StreamCodec.ofMember(
+                BattleView::encode, BattleView::new);
 
-            @Override
-            public void encode(ByteBuf buffer, BattleView value) {
-                BattlePhase.STREAM_CODEC.encode(buffer, value.phase());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackerHealth());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenderHealth());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackBase());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenseBase());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackMinimum());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackMaximum());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenseMinimum());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenseMaximum());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackerDie());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenderDie());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackBonus());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenseBonus());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.attackTotal());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.defenseTotal());
-                ByteBufCodecs.VAR_INT.encode(buffer, value.damage());
-                ByteBufCodecs.BOOL.encode(buffer, value.evaded());
-                ByteBufCodecs.BOOL.encode(buffer, value.knockout());
-                ByteBufCodecs.BOOL.encode(buffer, value.attackerReady());
-                ByteBufCodecs.BOOL.encode(buffer, value.defenderReady());
-                DefenseMode.STREAM_CODEC.encode(buffer, value.defenseMode());
-            }
-        };
+        private BattleView(ByteBuf buffer) {
+            this(BattlePhase.STREAM_CODEC.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
+                    ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
+                    ByteBufCodecs.BOOL.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
+                    ByteBufCodecs.BOOL.decode(buffer), DefenseMode.STREAM_CODEC.decode(buffer));
+        }
+
+        private void encode(ByteBuf buffer) {
+            BattlePhase.STREAM_CODEC.encode(buffer, this.phase);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackerHealth);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenderHealth);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackBase);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenseBase);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackMinimum);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackMaximum);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenseMinimum);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenseMaximum);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackerDie);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenderDie);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackBonus);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenseBonus);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.attackTotal);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.defenseTotal);
+            ByteBufCodecs.VAR_INT.encode(buffer, this.damage);
+            ByteBufCodecs.BOOL.encode(buffer, this.evaded);
+            ByteBufCodecs.BOOL.encode(buffer, this.knockout);
+            ByteBufCodecs.BOOL.encode(buffer, this.attackerReady);
+            ByteBufCodecs.BOOL.encode(buffer, this.defenderReady);
+            DefenseMode.STREAM_CODEC.encode(buffer, this.defenseMode);
+        }
 
         public BattleView {
             attackerHealth = Math.max(0, attackerHealth);
@@ -196,21 +202,6 @@ public record OpenBoardBattlePayload(
         public boolean result() {
             return this.phase == BattlePhase.RESULT;
         }
-    }
-
-    private static <E extends Enum<E>> StreamCodec<ByteBuf, E> enumCodec(E[] values, E fallback) {
-        return new StreamCodec<>() {
-            @Override
-            public E decode(ByteBuf buffer) {
-                int index = ByteBufCodecs.VAR_INT.decode(buffer);
-                return index >= 0 && index < values.length ? values[index] : fallback;
-            }
-
-            @Override
-            public void encode(ByteBuf buffer, E value) {
-                ByteBufCodecs.VAR_INT.encode(buffer, value.ordinal());
-            }
-        };
     }
 
 }

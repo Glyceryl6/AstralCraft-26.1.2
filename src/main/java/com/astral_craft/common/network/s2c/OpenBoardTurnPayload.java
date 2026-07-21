@@ -23,40 +23,20 @@ public record OpenBoardTurnPayload(
     private static final StreamCodec<RegistryFriendlyByteBuf, List<BoardCardView>> CARD_LIST_CODEC =
             BoardCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_CARDS));
     public static final Type<OpenBoardTurnPayload> TYPE = new Type<>(AstralCraft.prefix("open_board_turn"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, OpenBoardTurnPayload> STREAM_CODEC = new StreamCodec<>() {
-        @Override
-        public OpenBoardTurnPayload decode(RegistryFriendlyByteBuf buffer) {
-            return new OpenBoardTurnPayload(
-                    BoardNetworkCodecs.UUID_STREAM_CODEC.decode(buffer),
-                    ByteBufCodecs.VAR_INT.decode(buffer),
-                    CARD_LIST_CODEC.decode(buffer),
-                    ByteBufCodecs.VAR_INT.decode(buffer),
-                    ByteBufCodecs.VAR_INT.decode(buffer),
-                    ByteBufCodecs.VAR_INT.decode(buffer),
-                    ByteBufCodecs.VAR_INT.decode(buffer),
-                    ByteBufCodecs.VAR_INT.decode(buffer),
-                    Identifier.STREAM_CODEC.decode(buffer),
-                    Identifier.STREAM_CODEC.decode(buffer),
-                    ByteBufCodecs.BOOL.decode(buffer),
-                    ByteBufCodecs.BOOL.decode(buffer));
-        }
-
-        @Override
-        public void encode(RegistryFriendlyByteBuf buffer, OpenBoardTurnPayload value) {
-            BoardNetworkCodecs.UUID_STREAM_CODEC.encode(buffer, value.boardId());
-            ByteBufCodecs.VAR_INT.encode(buffer, value.characterEntityId());
-            CARD_LIST_CODEC.encode(buffer, value.cards());
-            ByteBufCodecs.VAR_INT.encode(buffer, value.cardPlaysUsed());
-            ByteBufCodecs.VAR_INT.encode(buffer, value.maxCardPlays());
-            ByteBufCodecs.VAR_INT.encode(buffer, value.skillCooldownTurns());
-            ByteBufCodecs.VAR_INT.encode(buffer, value.decisionTicks());
-            ByteBufCodecs.VAR_INT.encode(buffer, value.decisionDurationTicks());
-            Identifier.STREAM_CODEC.encode(buffer, value.characterId());
-            Identifier.STREAM_CODEC.encode(buffer, value.skinId());
-            ByteBufCodecs.BOOL.encode(buffer, value.currentTurn());
-            ByteBufCodecs.BOOL.encode(buffer, value.counterResponse());
-        }
-    };
+    public static final StreamCodec<RegistryFriendlyByteBuf, OpenBoardTurnPayload> STREAM_CODEC = StreamCodec.composite(
+            BoardNetworkCodecs.UUID_STREAM_CODEC, OpenBoardTurnPayload::boardId,
+            ByteBufCodecs.VAR_INT, OpenBoardTurnPayload::characterEntityId,
+            CARD_LIST_CODEC, OpenBoardTurnPayload::cards,
+            ByteBufCodecs.VAR_INT, OpenBoardTurnPayload::cardPlaysUsed,
+            ByteBufCodecs.VAR_INT, OpenBoardTurnPayload::maxCardPlays,
+            ByteBufCodecs.VAR_INT, OpenBoardTurnPayload::skillCooldownTurns,
+            ByteBufCodecs.VAR_INT, OpenBoardTurnPayload::decisionTicks,
+            ByteBufCodecs.VAR_INT, OpenBoardTurnPayload::decisionDurationTicks,
+            Identifier.STREAM_CODEC, OpenBoardTurnPayload::characterId,
+            Identifier.STREAM_CODEC, OpenBoardTurnPayload::skinId,
+            ByteBufCodecs.BOOL, OpenBoardTurnPayload::currentTurn,
+            ByteBufCodecs.BOOL, OpenBoardTurnPayload::counterResponse,
+            OpenBoardTurnPayload::new);
 
     public OpenBoardTurnPayload {
         cards = List.copyOf(cards);

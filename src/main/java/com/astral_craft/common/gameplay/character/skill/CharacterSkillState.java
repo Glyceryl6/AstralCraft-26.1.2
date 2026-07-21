@@ -17,35 +17,11 @@ public class CharacterSkillState {
             COOLDOWN_CODEC.optionalFieldOf("cooldowns", Map.of()).forGetter(CharacterSkillState::cooldowns)
     ).apply(instance, CharacterSkillState::new));
 
-    public static final StreamCodec<ByteBuf, CharacterSkillState> STREAM_CODEC = new StreamCodec<>() {
+    private static final StreamCodec<ByteBuf, Map<String, Integer>> MAP_STREAM_CODEC = ByteBufCodecs.map(
+            LinkedHashMap::new, ByteBufCodecs.STRING_UTF8, ByteBufCodecs.VAR_INT, 256);
 
-        @Override
-        public CharacterSkillState decode(ByteBuf buffer) {
-            int size = ByteBufCodecs.VAR_INT.decode(buffer);
-            Map<String, Integer> cooldowns = new LinkedHashMap<>();
-            for (int i = 0; i < size; i++) {
-                String key = ByteBufCodecs.STRING_UTF8.decode(buffer);
-                int ticks = ByteBufCodecs.VAR_INT.decode(buffer);
-                if (ticks > 0) {
-                    cooldowns.put(key, ticks);
-                }
-            }
-
-            return new CharacterSkillState(cooldowns);
-
-        }
-
-        @Override
-        public void encode(ByteBuf buffer, CharacterSkillState value) {
-            Map<String, Integer> cooldowns = value == null ? Map.of() : value.cooldowns();
-            ByteBufCodecs.VAR_INT.encode(buffer, cooldowns.size());
-            for (Map.Entry<String, Integer> entry : cooldowns.entrySet()) {
-                ByteBufCodecs.STRING_UTF8.encode(buffer, entry.getKey());
-                ByteBufCodecs.VAR_INT.encode(buffer, entry.getValue());
-            }
-        }
-
-    };
+    public static final StreamCodec<ByteBuf, CharacterSkillState> STREAM_CODEC = MAP_STREAM_CODEC.map(
+            CharacterSkillState::new, CharacterSkillState::cooldowns);
 
     protected Map<String, Integer> cooldowns = new LinkedHashMap<>();
 

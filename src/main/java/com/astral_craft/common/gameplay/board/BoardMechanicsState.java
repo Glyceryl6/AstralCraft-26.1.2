@@ -2,6 +2,8 @@ package com.astral_craft.common.gameplay.board;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.StringRepresentable;
 
 import java.util.*;
 
@@ -18,6 +20,7 @@ public class BoardMechanicsState {
     private final Map<String, Integer> droppedCoins = new LinkedHashMap<>();
     private final List<BoardSoulLink> soulLinks = new ArrayList<>();
     private final Map<UUID, LinkedHashSet<Integer>> lotteryNumbers = new LinkedHashMap<>();
+    private final Map<Identifier, Integer> timedEvents = new LinkedHashMap<>();
     private Optional<UUID> timeBombSlot;
     private int lotteryJackpot;
 
@@ -41,6 +44,9 @@ public class BoardMechanicsState {
             } catch (IllegalArgumentException ignored) {}
         });
 
+        snapshot.timedEvents().forEach((eventId, turns) -> {
+            if (eventId != null && turns != null && turns > 0) this.timedEvents.put(eventId, turns);
+        });
         this.lotteryJackpot = Math.max(10, snapshot.lotteryJackpot());
     }
 
@@ -52,7 +58,7 @@ public class BoardMechanicsState {
         Map<String, List<Integer>> lottery = new LinkedHashMap<>();
         this.lotteryNumbers.forEach((slotId, numbers) -> lottery.put(slotId.toString(), List.copyOf(numbers)));
         return new Snapshot(this.characterStartNodes(), this.traps(), this.droppedCoins(), this.timeBombSlot,
-                this.soulLinks(), lottery, this.lotteryJackpot);
+                this.soulLinks(), lottery, this.lotteryJackpot, this.timedEvents());
     }
 
     public List<String> characterStartNodes() {
@@ -179,6 +185,30 @@ public class BoardMechanicsState {
         this.lotteryJackpot = 10;
     }
 
+    public Map<Identifier, Integer> timedEvents() {
+        return Map.copyOf(this.timedEvents);
+    }
+
+    public int timedEventTurns(Identifier eventId) {
+        return eventId == null ? 0 : Math.max(0, this.timedEvents.getOrDefault(eventId, 0));
+    }
+
+    public void setTimedEvent(Identifier eventId, int turns) {
+        if (eventId == null) return;
+        if (turns <= 0) this.timedEvents.remove(eventId);
+        else this.timedEvents.put(eventId, turns);
+    }
+
+    public int tickTimedEvent(Identifier eventId) {
+        int remaining = this.timedEventTurns(eventId);
+        if (remaining <= 1) {
+            this.timedEvents.remove(eventId);
+            return 0;
+        }
+        this.timedEvents.put(eventId, remaining - 1);
+        return remaining - 1;
+    }
+
     public Optional<UUID> timeBombSlot() {
         return this.timeBombSlot;
     }
@@ -232,6 +262,7 @@ public class BoardMechanicsState {
         this.timeBombSlot = Optional.empty();
         this.soulLinks.clear();
         this.lotteryNumbers.clear();
+        this.timedEvents.clear();
         this.lotteryJackpot = 10;
     }
 
@@ -242,13 +273,13 @@ public class BoardMechanicsState {
         INVALID
     }
 
-    public enum BoardTrapType {
+    public enum BoardTrapType implements StringRepresentable {
         ENTRAPMENT("entrapment", false, false),
         DEMOLITION("demolition", false, false),
         BARRICADE("barricade", true, true),
         ENHANCED_BARRICADE("enhanced_barricade", true, true);
 
-        public static final Codec<BoardTrapType> CODEC = Codec.STRING.xmap(BoardTrapType::byName, BoardTrapType::serializedName);
+        public static final Codec<BoardTrapType> CODEC = StringRepresentable.fromEnum(BoardTrapType::values);
 
         private final String serializedName;
         private final boolean barricade;
@@ -260,7 +291,8 @@ public class BoardMechanicsState {
             this.singlePerNode = singlePerNode;
         }
 
-        public String serializedName() {
+        @Override
+        public String getSerializedName() {
             return this.serializedName;
         }
 
@@ -272,12 +304,6 @@ public class BoardMechanicsState {
             return this.singlePerNode;
         }
 
-        private static BoardTrapType byName(String value) {
-            for (BoardTrapType type : values()) {
-                if (type.serializedName.equals(value)) return type;
-            }
-            return ENTRAPMENT;
-        }
     }
 
     public record BoardTrap(UUID id, BoardTrapType type, UUID ownerSlotId, String nodeId) {
@@ -320,9 +346,9 @@ public class BoardMechanicsState {
     public record Snapshot(List<String> characterStartNodes, List<BoardTrap> traps,
                            Map<String, Integer> droppedCoins, Optional<UUID> timeBombSlot,
                            List<BoardSoulLink> soulLinks, Map<String, List<Integer>> lotteryNumbers,
-                           int lotteryJackpot) {
+                           int lotteryJackpot, Map<Identifier, Integer> timedEvents) {
         public static final Snapshot EMPTY = new Snapshot(List.of(), List.of(), Map.of(), Optional.empty(),
-                List.of(), Map.of(), 10);
+                List.of(), Map.of(), 10, Map.of());
         public static final Codec<Snapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.listOf().optionalFieldOf("character_start_nodes", List.of())
                         .forGetter(Snapshot::characterStartNodes),
@@ -333,7 +359,9 @@ public class BoardMechanicsState {
                 BoardSoulLink.CODEC.listOf().optionalFieldOf("soul_links", List.of()).forGetter(Snapshot::soulLinks),
                 Codec.unboundedMap(Codec.STRING, Codec.INT.listOf()).optionalFieldOf("lottery_numbers", Map.of())
                         .forGetter(Snapshot::lotteryNumbers),
-                Codec.INT.optionalFieldOf("lottery_jackpot", 10).forGetter(Snapshot::lotteryJackpot)
+                Codec.INT.optionalFieldOf("lottery_jackpot", 10).forGetter(Snapshot::lotteryJackpot),
+                Codec.unboundedMap(Identifier.CODEC, Codec.INT)
+                        .optionalFieldOf("timed_events", Map.of()).forGetter(Snapshot::timedEvents)
         ).apply(instance, Snapshot::new));
 
         public Snapshot {
@@ -346,6 +374,7 @@ public class BoardMechanicsState {
             lotteryNumbers.forEach((slotId, numbers) -> copied.put(slotId, List.copyOf(numbers)));
             lotteryNumbers = Map.copyOf(copied);
             lotteryJackpot = Math.max(10, lotteryJackpot);
+            timedEvents = Map.copyOf(timedEvents == null ? Map.of() : timedEvents);
         }
     }
 

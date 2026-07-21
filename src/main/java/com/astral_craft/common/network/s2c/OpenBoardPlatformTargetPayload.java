@@ -3,13 +3,16 @@ package com.astral_craft.common.network.s2c;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.network.BoardNetworkCodecs;
 import com.astral_craft.common.network.CardTargetCandidate;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.util.ByIdMap;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 public record OpenBoardPlatformTargetPayload(UUID boardId, Action action, List<CardTargetCandidate> candidates,
                                              int timeoutTicks, int timeoutDurationTicks) implements CustomPacketPayload {
@@ -38,17 +41,8 @@ public record OpenBoardPlatformTargetPayload(UUID boardId, Action action, List<C
         FIRE,
         ASSAULT;
 
-        public static final StreamCodec<RegistryFriendlyByteBuf, Action> STREAM_CODEC = new StreamCodec<>() {
-            @Override
-            public Action decode(RegistryFriendlyByteBuf buffer) {
-                int ordinal = ByteBufCodecs.VAR_INT.decode(buffer);
-                return ordinal >= 0 && ordinal < values().length ? values()[ordinal] : FIRE;
-            }
-
-            @Override
-            public void encode(RegistryFriendlyByteBuf buffer, Action value) {
-                ByteBufCodecs.VAR_INT.encode(buffer, value.ordinal());
-            }
-        };
+        private static final IntFunction<Action> BY_ID = ByIdMap.continuous(
+                Action::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, Action> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, Action::ordinal);
     }
 }

@@ -6,8 +6,10 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.util.ByIdMap;
 
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 public record OpenBoardHospitalPayload(UUID boardId, Phase phase, Result result,
                                        int timeoutTicks, int timeoutDurationTicks) implements CustomPacketPayload {
@@ -35,28 +37,17 @@ public record OpenBoardHospitalPayload(UUID boardId, Phase phase, Result result,
         CHECKING,
         RESULT;
 
-        private static final StreamCodec<ByteBuf, Phase> STREAM_CODEC = enumCodec(values(), CHECKING);
+        private static final IntFunction<Phase> BY_ID = ByIdMap.continuous(
+                Phase::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        private static final StreamCodec<ByteBuf, Phase> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, Phase::ordinal);
     }
 
     public enum Result {
         INJECTION,
         HOSPITALIZED;
 
-        private static final StreamCodec<ByteBuf, Result> STREAM_CODEC = enumCodec(values(), INJECTION);
-    }
-
-    private static <T> StreamCodec<ByteBuf, T> enumCodec(T[] values, T fallback) {
-        return new StreamCodec<>() {
-            @Override
-            public T decode(ByteBuf buffer) {
-                int ordinal = ByteBufCodecs.VAR_INT.decode(buffer);
-                return ordinal >= 0 && ordinal < values.length ? values[ordinal] : fallback;
-            }
-
-            @Override
-            public void encode(ByteBuf buffer, T value) {
-                ByteBufCodecs.VAR_INT.encode(buffer, ((Enum<?>) value).ordinal());
-            }
-        };
+        private static final IntFunction<Result> BY_ID = ByIdMap.continuous(
+                Result::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        private static final StreamCodec<ByteBuf, Result> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, Result::ordinal);
     }
 }

@@ -1,15 +1,16 @@
 package com.astral_craft.common.gameplay.character.skill;
 
 import com.mojang.serialization.Codec;
+import net.minecraft.util.StringRepresentable;
 
 import java.util.Locale;
 
-public enum CharacterSkillType {
+public enum CharacterSkillType implements StringRepresentable {
 
     ACTIVE("active"),
     PASSIVE("passive");
 
-    public static final Codec<CharacterSkillType> CODEC = Codec.STRING.xmap(CharacterSkillType::byName, CharacterSkillType::serializedName);
+    public static final Codec<CharacterSkillType> CODEC = StringRepresentable.fromEnum(CharacterSkillType::values);
 
     private final String id;
 
@@ -17,8 +18,13 @@ public enum CharacterSkillType {
         this.id = id;
     }
 
-    public String serializedName() {
+    @Override
+    public String getSerializedName() {
         return this.id;
+    }
+
+    public String serializedName() {
+        return this.getSerializedName();
     }
 
     public boolean isActive() {

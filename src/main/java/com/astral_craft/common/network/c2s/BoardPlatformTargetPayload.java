@@ -16,19 +16,7 @@ public record BoardPlatformTargetPayload(UUID boardId, OpenBoardPlatformTargetPa
     public static final Type<BoardPlatformTargetPayload> TYPE = new Type<>(AstralCraft.prefix("board_platform_target"));
     public static final StreamCodec<ByteBuf, BoardPlatformTargetPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, BoardPlatformTargetPayload::boardId,
-            new StreamCodec<>() {
-                @Override
-                public OpenBoardPlatformTargetPayload.Action decode(ByteBuf buffer) {
-                    int ordinal = ByteBufCodecs.VAR_INT.decode(buffer);
-                    OpenBoardPlatformTargetPayload.Action[] values = OpenBoardPlatformTargetPayload.Action.values();
-                    return ordinal >= 0 && ordinal < values.length ? values[ordinal] : OpenBoardPlatformTargetPayload.Action.FIRE;
-                }
-
-                @Override
-                public void encode(ByteBuf buffer, OpenBoardPlatformTargetPayload.Action value) {
-                    ByteBufCodecs.VAR_INT.encode(buffer, value.ordinal());
-                }
-            }, BoardPlatformTargetPayload::action,
+            OpenBoardPlatformTargetPayload.Action.STREAM_CODEC, BoardPlatformTargetPayload::action,
             ByteBufCodecs.VAR_INT, BoardPlatformTargetPayload::entityId,
             BoardPlatformTargetPayload::new);
 

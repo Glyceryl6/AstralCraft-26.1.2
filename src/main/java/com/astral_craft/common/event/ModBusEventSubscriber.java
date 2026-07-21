@@ -46,7 +46,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("19");
+        PayloadRegistrar registrar = event.registrar("20");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -63,6 +63,7 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenBoardBattlePayload.TYPE, OpenBoardBattlePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardStartChoicePayload.TYPE, OpenBoardStartChoicePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardLotteryNumberPayload.TYPE, OpenBoardLotteryNumberPayload.STREAM_CODEC);
+        registrar.playToClient(CloseBoardLotteryNumberPayload.TYPE, CloseBoardLotteryNumberPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardGamblePayload.TYPE, OpenBoardGamblePayload.STREAM_CODEC);
         registrar.playToClient(CloseBoardGamblePayload.TYPE, CloseBoardGamblePayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardLotteryDrawPayload.TYPE, OpenBoardLotteryDrawPayload.STREAM_CODEC);

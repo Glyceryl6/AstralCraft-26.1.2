@@ -7,9 +7,11 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ByIdMap;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 public record OpenBoardGamblePayload(UUID boardId, Phase phase, List<Entry> entries,
                                      boolean localCanChoose, int dieResult, int totalReward,
@@ -45,18 +47,9 @@ public record OpenBoardGamblePayload(UUID boardId, Phase phase, List<Entry> entr
         ROLLING,
         RESULT;
 
-        public static final StreamCodec<ByteBuf, Phase> STREAM_CODEC = new StreamCodec<>() {
-            @Override
-            public Phase decode(ByteBuf buffer) {
-                int ordinal = ByteBufCodecs.VAR_INT.decode(buffer);
-                return ordinal >= 0 && ordinal < values().length ? values()[ordinal] : CHOOSING;
-            }
-
-            @Override
-            public void encode(ByteBuf buffer, Phase value) {
-                ByteBufCodecs.VAR_INT.encode(buffer, value.ordinal());
-            }
-        };
+        private static final IntFunction<Phase> BY_ID = ByIdMap.continuous(
+                Phase::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, Phase> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, Phase::ordinal);
     }
 
     public record Entry(UUID slotId, String name, Identifier characterId, Identifier skinId,
