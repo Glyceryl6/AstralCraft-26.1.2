@@ -23,11 +23,6 @@ public class BoardLobbyItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_registered"), true);
             return InteractionResult.FAIL;
         }
-        if (!session.mechanics().hasCompleteCharacterStarts()) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_marker.required",
-                    session.mechanics().characterStartNodes().size(), BoardSessionManager.REQUIRED_PLAYERS), true);
-            return InteractionResult.FAIL;
-        }
         if (session.phase() == BoardPhase.PLAYING) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
             return InteractionResult.FAIL;

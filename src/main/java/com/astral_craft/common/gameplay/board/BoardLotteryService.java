@@ -93,7 +93,7 @@ public class BoardLotteryService {
         int remaining = (int) Math.max(0L, state.deadlineTick() - level.getGameTime());
         List<OpenBoardLotteryDrawPayload.Entry> entries = session.turnOrder().stream().map(session::participant)
                 .flatMap(Optional::stream).map(participant -> new OpenBoardLotteryDrawPayload.Entry(
-                        BoardSessionManager.displayName(level, participant),
+                        BoardSessionManager.displayName(level, participant), participant.characterId(), participant.skinId(),
                         session.mechanics().lotteryNumbers(participant.slotUuid()))).toList();
         OpenBoardLotteryDrawPayload payload = new OpenBoardLotteryDrawPayload(session.id(), state.phase(), state.finalNumber(),
                 state.jackpot(), entries, state.winnerNames(), state.awardEach(), remaining, state.durationTicks());

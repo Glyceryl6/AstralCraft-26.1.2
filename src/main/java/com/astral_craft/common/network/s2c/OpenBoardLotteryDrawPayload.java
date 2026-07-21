@@ -6,9 +6,12 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ByIdMap;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNumber, int jackpot,
                                           List<Entry> entries, List<String> winnerNames, int awardEach,
@@ -42,9 +45,11 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
         return TYPE;
     }
 
-    public record Entry(String name, List<Integer> numbers) {
+    public record Entry(String name, Identifier characterId, Identifier skinId, List<Integer> numbers) {
         public static final StreamCodec<ByteBuf, Entry> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.STRING_UTF8, Entry::name,
+                Identifier.STREAM_CODEC, Entry::characterId,
+                Identifier.STREAM_CODEC, Entry::skinId,
                 ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(12)), Entry::numbers,
                 Entry::new);
 
@@ -58,17 +63,8 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
         ROLLING,
         RESULT;
 
-        public static final StreamCodec<ByteBuf, Phase> STREAM_CODEC = new StreamCodec<>() {
-            @Override
-            public Phase decode(ByteBuf buffer) {
-                int ordinal = ByteBufCodecs.VAR_INT.decode(buffer);
-                return ordinal >= 0 && ordinal < values().length ? values()[ordinal] : ROLLING;
-            }
-
-            @Override
-            public void encode(ByteBuf buffer, Phase value) {
-                ByteBufCodecs.VAR_INT.encode(buffer, value.ordinal());
-            }
-        };
+        private static final IntFunction<Phase> BY_ID = ByIdMap.continuous(
+                Phase::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, Phase> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, Phase::ordinal);
     }
 }
