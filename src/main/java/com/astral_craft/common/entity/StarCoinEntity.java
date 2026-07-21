@@ -65,6 +65,12 @@ public class StarCoinEntity extends Entity {
 
     public void configureAward(UUID boardId, UUID objectId, int targetEntityId, int amount, int lifetime) {
         this.configure(boardId, objectId, Kind.AWARD, amount, targetEntityId, lifetime);
+        this.captureStart();
+    }
+
+    public void configureLoss(UUID boardId, UUID objectId, int targetEntityId, int amount, int lifetime) {
+        this.configure(boardId, objectId, Kind.LOSS, amount, targetEntityId, lifetime);
+        this.captureStart();
     }
 
     private void configure(UUID boardId, UUID objectId, Kind kind, int amount, int targetEntityId, int lifetime) {
@@ -98,14 +104,14 @@ public class StarCoinEntity extends Entity {
 
     private void tickPilePhysics() {
         Vec3 motion = this.getDeltaMovement();
-        if (!this.isNoGravity()) motion = motion.add(0.0D, -0.04D, 0.0D);
+        if (!this.isNoGravity()) motion = motion.add(0.0D, -0.08D, 0.0D);
         this.move(MoverType.SELF, motion);
         if (this.onGround()) {
-            double bounce = motion.y < -0.08D ? -motion.y * 0.28D : 0.0D;
+            double bounce = motion.y < -0.10D ? -motion.y * 0.22D : 0.0D;
             motion = new Vec3(motion.x * 0.72D, bounce, motion.z * 0.72D);
             if (motion.horizontalDistanceSqr() < 1.0E-5D && bounce == 0.0D) motion = Vec3.ZERO;
         } else {
-            motion = motion.scale(0.98D);
+            motion = motion.scale(0.99D);
         }
         this.setDeltaMovement(motion);
     }
@@ -125,10 +131,15 @@ public class StarCoinEntity extends Entity {
             this.setPos(Mth.lerp(eased, this.startX, target.getX()),
                     Mth.lerp(eased, this.startY, target.getY() + target.getBbHeight() * 0.55D),
                     Mth.lerp(eased, this.startZ, target.getZ()));
+        } else if (this.kind() == Kind.LOSS) {
+            if (!this.capturedStart) this.captureStart();
+            double eased = 1.0D - Math.pow(1.0D - progress, 2.0D);
+            this.setPos(this.startX, this.startY + eased * 1.35D, this.startZ);
         } else {
             double top = target.getY() + target.getBbHeight() + 1.25D;
             double bottom = target.getY() + target.getBbHeight() + 0.18D;
-            this.setPos(target.getX(), Mth.lerp(progress, top, bottom), target.getZ());
+            double falling = progress * progress;
+            this.setPos(target.getX(), Mth.lerp(falling, top, bottom), target.getZ());
         }
         if (!this.level().isClientSide() && this.tickCount >= lifetime) this.discard();
     }
@@ -171,6 +182,10 @@ public class StarCoinEntity extends Entity {
 
     public float visualAge(float partialTick) {
         return this.tickCount + partialTick;
+    }
+
+    public float visualProgress(float partialTick) {
+        return this.transientVisual() ? Mth.clamp((this.tickCount + partialTick) / Math.max(1.0F, this.lifetime()), 0.0F, 1.0F) : 0.0F;
     }
 
     @Override
@@ -216,5 +231,5 @@ public class StarCoinEntity extends Entity {
         }
     }
 
-    public enum Kind { PILE, PICKUP, AWARD }
+    public enum Kind { PILE, PICKUP, AWARD, LOSS }
 }

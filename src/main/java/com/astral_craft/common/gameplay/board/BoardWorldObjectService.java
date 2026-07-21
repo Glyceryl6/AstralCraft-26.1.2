@@ -29,9 +29,11 @@ import java.util.*;
  */
 public class BoardWorldObjectService {
 
-    private static final int MAX_AWARD_BURSTS = 6;
-    private static final int AWARD_INTERVAL_TICKS = 4;
-    private static final List<PendingCoinAward> PENDING_AWARDS = new ArrayList<>();
+    private static final int MAX_COIN_BURSTS = 6;
+    private static final int COIN_INTERVAL_TICKS = 4;
+    private static final int COIN_AWARD_LIFETIME_TICKS = 12;
+    private static final int COIN_LOSS_LIFETIME_TICKS = 14;
+    private static final Map<CoinAnimationKey, Deque<PendingCoinAnimation>> PENDING_COIN_ANIMATIONS = new LinkedHashMap<>();
 
     public static void tick(ServerLevel level, BoardSession session) {
         if (session.phase() != BoardPhase.PLAYING) {
@@ -40,7 +42,7 @@ public class BoardWorldObjectService {
             return;
         }
 
-        tickAwards(level, session);
+        tickCoinAnimations(level, session);
         reconcile(level, session);
         reconcileCoinPiles(level, session);
         HandcardSoulLink.reconcileBoardVisuals(level, session);
@@ -48,7 +50,7 @@ public class BoardWorldObjectService {
 
     public static void clear(ServerLevel level, BoardSession session) {
         if (session == null) return;
-        PENDING_AWARDS.removeIf(award -> award.boardId().equals(session.id()));
+        PENDING_COIN_ANIMATIONS.keySet().removeIf(key -> key.boardId().equals(session.id()));
         HandcardSoulLink.clearBoardVisuals(level, session);
         discardStationaryVisuals(level, session.id());
         discardCoinVisuals(level, session.id());
@@ -66,26 +68,56 @@ public class BoardWorldObjectService {
         int amount = session.mechanics().removeDroppedCoins(participant.currentNodeKey());
         if (amount <= 0) return;
         spawnPickup(level, session, participant.currentNodeKey(), participant, amount);
-        awardCoinsNow(level, session, participant.slotUuid(), amount);
+        changeCoinsWithoutAnimation(level, session, participant.slotUuid(), amount);
         BoardSessionManager.markChanged(level);
     }
 
     public static void awardCoins(ServerLevel level, BoardSession session, UUID slotId, int amount) {
-        scheduleCoinAward(level, session, slotId, amount, true);
+        changeCoins(level, session, slotId, Math.max(0, amount));
     }
 
     public static void awardCoinsNow(ServerLevel level, BoardSession session, UUID slotId, int amount) {
-        BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (amount <= 0 || participant == null) return;
-        BoardSessionManager.updateParticipant(level, session, participant.withStats(participant.stats().addCoins(amount)));
-        scheduleCoinAward(level, session, slotId, amount, false);
+        awardCoins(level, session, slotId, amount);
     }
 
-    private static void scheduleCoinAward(ServerLevel level, BoardSession session, UUID slotId, int amount, boolean creditCoins) {
+    public static int changeCoins(ServerLevel level, BoardSession session, UUID slotId, int delta) {
+        BoardParticipant participant = session.participant(slotId).orElse(null);
+        if (participant == null || delta == 0) return 0;
+        int resolved = delta > 0 ? delta : -Math.min(participant.stats().starCoins(), -delta);
+        if (resolved == 0) return 0;
+        BoardSessionManager.updateParticipant(level, session, participant.withStats(
+                resolved > 0 ? participant.stats().addCoins(resolved) : participant.stats().spendCoins(-resolved)));
+        return resolved;
+    }
+
+    private static int changeCoinsWithoutAnimation(ServerLevel level, BoardSession session, UUID slotId, int delta) {
+        BoardParticipant participant = session.participant(slotId).orElse(null);
+        if (participant == null || delta == 0) return 0;
+        int resolved = delta > 0 ? delta : -Math.min(participant.stats().starCoins(), -delta);
+        if (resolved == 0) return 0;
+        BoardSessionManager.updateParticipantWithoutCoinAnimation(level, session, participant.withStats(
+                resolved > 0 ? participant.stats().addCoins(resolved) : participant.stats().spendCoins(-resolved)));
+        return resolved;
+    }
+
+    public static void animateCoinLoss(ServerLevel level, BoardSession session, UUID slotId, int amount) {
+        scheduleCoinAnimation(level, session, slotId, amount, CoinAnimationKind.LOSS);
+    }
+
+    public static void animateCoinAward(ServerLevel level, BoardSession session, UUID slotId, int amount) {
+        scheduleCoinAnimation(level, session, slotId, amount, CoinAnimationKind.AWARD);
+    }
+
+    private static void scheduleCoinAnimation(ServerLevel level, BoardSession session, UUID slotId, int amount,
+                                              CoinAnimationKind kind) {
         if (amount <= 0 || session.participant(slotId).isEmpty()) return;
-        int bursts = Math.min(MAX_AWARD_BURSTS, amount);
-        PENDING_AWARDS.add(new PendingCoinAward(
-                UUID.randomUUID(), session.id(), slotId, amount, bursts, level.getGameTime(), creditCoins));
+        int bursts = Math.min(MAX_COIN_BURSTS, amount);
+        CoinAnimationKey key = new CoinAnimationKey(session.id(), slotId);
+        Deque<PendingCoinAnimation> queue = PENDING_COIN_ANIMATIONS.computeIfAbsent(key, ignored -> new ArrayDeque<>());
+        PendingCoinAnimation animation = new PendingCoinAnimation(UUID.randomUUID(), amount, bursts,
+                level.getGameTime(), kind);
+        if (kind == CoinAnimationKind.LOSS) queue.addFirst(animation);
+        else queue.addLast(animation);
     }
 
     public static ArrivalResult triggerArrival(ServerLevel level, BoardSession session, BoardParticipant participant, boolean landing) {
@@ -150,30 +182,42 @@ public class BoardWorldObjectService {
         level.playSound(null, x, y, z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.0F, 0.92F + level.getRandom().nextFloat() * 0.16F);
     }
 
-    private static void tickAwards(ServerLevel level, BoardSession session) {
-        List<PendingCoinAward> replacements = new ArrayList<>();
-        for (int index = PENDING_AWARDS.size() - 1; index >= 0; index--) {
-            PendingCoinAward award = PENDING_AWARDS.get(index);
-            if (!award.boardId().equals(session.id()) || level.getGameTime() < award.nextTick()) continue;
-            PENDING_AWARDS.remove(index);
-            BoardParticipant participant = session.participant(award.slotId()).orElse(null);
-            if (participant == null) continue;
-            int chunk = Math.max(1, Mth.ceil(award.remaining() / (float) award.burstsLeft()));
-            chunk = Math.min(chunk, award.remaining());
-            if (award.creditCoins()) {
-                BoardSessionManager.updateParticipant(level, session,
-                        participant.withStats(participant.stats().addCoins(chunk)));
+    private static void tickCoinAnimations(ServerLevel level, BoardSession session) {
+        List<CoinAnimationKey> completed = new ArrayList<>();
+        for (Map.Entry<CoinAnimationKey, Deque<PendingCoinAnimation>> entry : PENDING_COIN_ANIMATIONS.entrySet()) {
+            CoinAnimationKey key = entry.getKey();
+            if (!key.boardId().equals(session.id())) continue;
+            Deque<PendingCoinAnimation> queue = entry.getValue();
+            PendingCoinAnimation animation = queue.peekFirst();
+            if (animation == null) {
+                completed.add(key);
+                continue;
             }
-            spawnAward(level, session, participant, chunk);
-            int remaining = award.remaining() - chunk;
-            int bursts = award.burstsLeft() - 1;
+            if (level.getGameTime() < animation.nextTick()) continue;
+            BoardParticipant participant = session.participant(key.slotId()).orElse(null);
+            if (participant == null) {
+                queue.clear();
+                completed.add(key);
+                continue;
+            }
+            int chunk = Math.max(1, Mth.ceil(animation.remaining() / (float) animation.burstsLeft()));
+            chunk = Math.min(chunk, animation.remaining());
+            if (animation.kind() == CoinAnimationKind.LOSS) spawnLoss(level, session, participant, chunk);
+            else spawnAward(level, session, participant, chunk);
+            int remaining = animation.remaining() - chunk;
+            int bursts = animation.burstsLeft() - 1;
+            queue.removeFirst();
             if (remaining > 0 && bursts > 0) {
-                replacements.add(new PendingCoinAward(award.id(), award.boardId(), award.slotId(),
-                        remaining, bursts, level.getGameTime() + AWARD_INTERVAL_TICKS, award.creditCoins()));
+                queue.addFirst(new PendingCoinAnimation(animation.id(), remaining, bursts,
+                        level.getGameTime() + COIN_INTERVAL_TICKS, animation.kind()));
+            } else if (animation.kind() == CoinAnimationKind.LOSS && !queue.isEmpty()) {
+                PendingCoinAnimation next = queue.removeFirst();
+                queue.addFirst(new PendingCoinAnimation(next.id(), next.remaining(), next.burstsLeft(),
+                        Math.max(next.nextTick(), level.getGameTime() + COIN_LOSS_LIFETIME_TICKS), next.kind()));
             }
+            if (queue.isEmpty()) completed.add(key);
         }
-
-        PENDING_AWARDS.addAll(replacements);
+        completed.forEach(PENDING_COIN_ANIMATIONS::remove);
     }
 
     private static void spawnAward(ServerLevel level, BoardSession session, BoardParticipant participant, int amount) {
@@ -181,10 +225,21 @@ public class BoardWorldObjectService {
         if (entity == null) return;
         StarCoinEntity coin = new StarCoinEntity(level);
         coin.setPos(entity.getX(), entity.getY() + entity.getBbHeight() + 1.25D, entity.getZ());
-        coin.configureAward(session.id(), UUID.randomUUID(), entity.getId(), amount, 16);
+        coin.configureAward(session.id(), UUID.randomUUID(), entity.getId(), amount, COIN_AWARD_LIFETIME_TICKS);
         level.addFreshEntity(coin);
         level.playSound(null, entity.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP,
                 SoundSource.PLAYERS, 0.45F, 1.5F);
+    }
+
+    private static void spawnLoss(ServerLevel level, BoardSession session, BoardParticipant participant, int amount) {
+        AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
+        if (entity == null) return;
+        StarCoinEntity coin = new StarCoinEntity(level);
+        coin.setPos(entity.getX(), entity.getY() + entity.getBbHeight() + 0.28D, entity.getZ());
+        coin.configureLoss(session.id(), UUID.randomUUID(), entity.getId(), amount, COIN_LOSS_LIFETIME_TICKS);
+        level.addFreshEntity(coin);
+        level.playSound(null, entity.blockPosition(), SoundEvents.ITEM_PICKUP,
+                SoundSource.PLAYERS, 0.42F, 0.72F);
     }
 
     public static void spawnPickup(ServerLevel level, BoardSession session, String nodeId, BoardParticipant participant, int amount) {
@@ -366,6 +421,11 @@ public class BoardWorldObjectService {
 
     private record ExpectedVisual(BoardWorldObjectEntity.Kind kind, Block block, int index, int count, int amount, double x, double y, double z) {}
 
-    private record PendingCoinAward(UUID id, UUID boardId, UUID slotId, int remaining, int burstsLeft, long nextTick, boolean creditCoins) {}
+    private enum CoinAnimationKind { AWARD, LOSS }
+
+    private record CoinAnimationKey(UUID boardId, UUID slotId) {}
+
+    private record PendingCoinAnimation(UUID id, int remaining, int burstsLeft, long nextTick,
+                                        CoinAnimationKind kind) {}
 
 }

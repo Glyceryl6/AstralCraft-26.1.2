@@ -32,12 +32,16 @@ public class StarCoinRenderer extends EntityRenderer<StarCoinEntity, StarCoinRen
         state.kind = entity.kind();
         state.age = entity.visualAge(partialTick);
         state.amount = entity.amount();
+        state.progress = entity.visualProgress(partialTick);
     }
 
     @Override
     public void submit(StarCoinRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState cameraState) {
         int layers = state.kind == StarCoinEntity.Kind.PILE ? Math.clamp(state.amount, 1, 6) : 1;
         float size = state.kind == StarCoinEntity.Kind.PILE ? Math.min(0.18F, 0.11F + Math.max(0, state.amount - 1) * 0.008F) : 0.12F;
+        int alpha = state.kind == StarCoinEntity.Kind.LOSS
+                ? Math.clamp(Math.round((1.0F - state.progress) * 255.0F), 0, 255) : 255;
+        if (state.kind == StarCoinEntity.Kind.LOSS) size *= 1.0F - state.progress * 0.4F;
         for (int layer = 0; layer < layers; layer++) {
             poseStack.pushPose();
             double bob = state.kind == StarCoinEntity.Kind.PILE
@@ -45,23 +49,23 @@ public class StarCoinRenderer extends EntityRenderer<StarCoinEntity, StarCoinRen
                     : Math.sin(state.age * 0.16F) * 0.045D;
             poseStack.translate(0.0D, layer * 0.034D + bob, 0.0D);
             poseStack.mulPose(Axis.YP.rotationDegrees(state.age * (state.kind == StarCoinEntity.Kind.PILE ? 2.0F : 7.0F) + layer * 23.0F));
-            submitCoin(poseStack, collector, size);
+            submitCoin(poseStack, collector, size, alpha);
             poseStack.popPose();
         }
 
         super.submit(state, poseStack, collector, cameraState);
     }
 
-    private static void submitCoin(PoseStack poseStack, SubmitNodeCollector collector, float halfSize) {
+    private static void submitCoin(PoseStack poseStack, SubmitNodeCollector collector, float halfSize, int alpha) {
         collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(TEXTURE), (pose, consumer) -> {
             EffectRenderGeometry.quad(consumer, pose,
                     -halfSize, -halfSize, 0.008F, halfSize, -halfSize, 0.008F,
                     halfSize, halfSize, 0.008F, -halfSize, halfSize, 0.008F,
-                    0xFFFFFFFF, 0.0F, 0.0F, 1.0F);
+                    alpha << 24 | 0xFFFFFF, 0.0F, 0.0F, 1.0F);
             EffectRenderGeometry.quad(consumer, pose,
                     halfSize, -halfSize, -0.008F, -halfSize, -halfSize, -0.008F,
                     -halfSize, halfSize, -0.008F, halfSize, halfSize, -0.008F,
-                    0xFFFFFFFF, 0.0F, 0.0F, -1.0F);
+                    alpha << 24 | 0xFFFFFF, 0.0F, 0.0F, -1.0F);
         });
     }
 
