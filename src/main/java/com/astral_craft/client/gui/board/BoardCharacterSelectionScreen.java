@@ -79,11 +79,13 @@ public class BoardCharacterSelectionScreen extends Screen {
                         && screen.boardId.equals(payload.boardId())) minecraft.setScreen(null);
                 return;
             }
+
             if (payload.refresh() && minecraft.screen instanceof BoardCharacterSelectionScreen screen
                     && screen.boardId.equals(payload.boardId())) {
                 screen.refresh(payload);
                 return;
             }
+
             minecraft.setScreen(new BoardCharacterSelectionScreen(payload));
         });
     }
@@ -189,18 +191,14 @@ public class BoardCharacterSelectionScreen extends Screen {
             boolean occupiedCard = this.occupied.contains(definition.id());
             boolean unavailable = this.selectionLocked || this.submitted || occupiedCard;
             boolean hovered = inside(mouseX, mouseY, position.x(), position.y(), CHARACTER_W, CHARACTER_H);
-            AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H,
-                    selectedCard, hovered && !unavailable);
+            AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H, selectedCard, hovered && !unavailable);
             if (occupiedCard) {
                 int frameColor = selectedCard && this.selectionLocked ? 0xFF63F08A : 0xFFFFC65C;
                 graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W, position.y() + 2, frameColor);
-                graphics.fill(position.x(), position.y() + CHARACTER_H - 2, position.x() + CHARACTER_W,
-                        position.y() + CHARACTER_H, frameColor);
+                graphics.fill(position.x(), position.y() + CHARACTER_H - 2, position.x() + CHARACTER_W, position.y() + CHARACTER_H, frameColor);
                 graphics.fill(position.x(), position.y(), position.x() + 2, position.y() + CHARACTER_H, frameColor);
-                graphics.fill(position.x() + CHARACTER_W - 2, position.y(), position.x() + CHARACTER_W,
-                        position.y() + CHARACTER_H, frameColor);
-                if (!selectedCard) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W,
-                        position.y() + CHARACTER_H, 0x882A2026);
+                graphics.fill(position.x() + CHARACTER_W - 2, position.y(), position.x() + CHARACTER_W, position.y() + CHARACTER_H, frameColor);
+                if (!selectedCard) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W, position.y() + CHARACTER_H, 0x882A2026);
             }
 
             String skinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
@@ -215,8 +213,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private void renderSkinGrid(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
-        graphics.text(this.font, Component.translatable("gui.astral_craft.board.skins"),
-                layout.gridX(), layout.skinTitleY(), 0xFFBFC8FF, false);
+        graphics.text(this.font, Component.translatable("gui.astral_craft.board.skins"), layout.gridX(), layout.skinTitleY(), 0xFFBFC8FF, false);
         graphics.enableScissor(layout.gridX(), layout.skinY(), layout.skinRight(), layout.skinBottom());
         List<CharacterSkinDefinition> skins = this.selected().skins();
         for (int index = 0; index < skins.size(); index++) {
@@ -296,12 +293,13 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private void sendSelection(boolean confirmed) {
-        ClientPacketDistributor.sendToServer(new BoardCharacterSelectionPayload(this.boardId,
-                this.selectedCharacter, BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin), confirmed));
+        ClientPacketDistributor.sendToServer(new BoardCharacterSelectionPayload(this.boardId, this.selectedCharacter,
+                BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin), confirmed));
     }
 
     private CharacterDefinition selected() {
-        return this.characters.stream().filter(value -> value.id().equals(this.selectedCharacter))
+        return this.characters.stream()
+                .filter(value -> value.id().equals(this.selectedCharacter))
                 .findFirst().orElse(this.characters.getFirst());
     }
 
@@ -376,9 +374,9 @@ public class BoardCharacterSelectionScreen extends Screen {
         int skinRight = Math.max(gridX + 1, buttonX - 6);
         int gridBottom = Math.max(gridTop + 1, skinTitleY - 5);
         int columns = Math.max(1, (gridRight - gridX + GAP) / (CHARACTER_W + GAP));
-        return new Layout(panelX, panelY, panelRight, panelBottom, slotsX, slotY, slotW, slotH, slotGap,
-                gridX, gridRight, gridTitleY, gridTop, gridBottom, skinTitleY, skinY, skinBottom, skinRight,
-                columns, buttonX, buttonY, buttonW, buttonH);
+        return new Layout(panelX, panelY, panelRight, panelBottom, slotsX, slotY, slotW, slotH,
+                slotGap, gridX, gridRight, gridTitleY, gridTop, gridBottom, skinTitleY, skinY,
+                skinBottom, skinRight, columns, buttonX, buttonY, buttonW, buttonH);
     }
 
     private static boolean inside(double mouseX, double mouseY, int x, int y, int width, int height) {
@@ -392,6 +390,7 @@ public class BoardCharacterSelectionScreen extends Screen {
                           int gridX, int gridRight, int gridTitleY, int gridTop, int gridBottom,
                           int skinTitleY, int skinY, int skinBottom, int skinRight, int columns,
                           int buttonX, int buttonY, int buttonW, int buttonH) {
+
         int slotX(int slot) {
             return this.slotsX + slot * (this.slotW + this.slotGap);
         }
@@ -400,6 +399,7 @@ public class BoardCharacterSelectionScreen extends Screen {
             return new CardPosition(this.gridX + index % this.columns * (CHARACTER_W + GAP),
                     this.gridTop + index / this.columns * (CHARACTER_H + GAP) - Math.round(scroll));
         }
+
     }
 
 }

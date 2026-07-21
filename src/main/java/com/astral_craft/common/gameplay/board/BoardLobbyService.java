@@ -21,8 +21,7 @@ public class BoardLobbyService {
     private static final Map<UUID, Set<UUID>> VIEWERS = new HashMap<>();
     private static final Map<UUID, LobbyState> LOBBIES = new HashMap<>();
 
-    public static void updateSelection(ServerPlayer player, UUID boardId, Identifier characterId,
-                                       Identifier skinId, boolean confirmed) {
+    public static void updateSelection(ServerPlayer player, UUID boardId, Identifier characterId, Identifier skinId, boolean confirmed) {
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (session == null || session.phase() != BoardPhase.CHARACTER_SELECTION) return;
         if (!CharacterManager.INSTANCE.contains(characterId)) return;
@@ -37,6 +36,7 @@ public class BoardLobbyService {
             if (confirmed) {
                 player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_taken"), true);
             }
+
             sendSelection(player, session, true);
             return;
         }
@@ -76,6 +76,7 @@ public class BoardLobbyService {
         if (participant != null) {
             lobby.put(selection.withChoice(participant.characterId(), participant.skinId(), true, true));
         }
+
         refreshScreens(player.level(), session);
     }
 
@@ -98,6 +99,7 @@ public class BoardLobbyService {
             lobby.put(selection.withChoice(characterId, skinId, true, true));
             changed = true;
         }
+
         if (changed) BoardSessionManager.markChanged(level);
     }
 
@@ -130,6 +132,7 @@ public class BoardLobbyService {
                 lobby.remove(viewerId);
                 return true;
             }
+
             return false;
         });
 
@@ -144,12 +147,10 @@ public class BoardLobbyService {
         }
     }
 
-
     public static List<BoardParticipant> orderedParticipants(BoardSession session) {
         LobbyState lobby = LOBBIES.get(session.id());
         if (lobby == null) {
-            return session.participants().stream()
-                    .sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder)).toList();
+            return session.participants().stream().sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder)).toList();
         }
 
         Map<Integer, BoardParticipant> bySlot = new HashMap<>();
@@ -173,6 +174,7 @@ public class BoardLobbyService {
             BoardParticipant participant = bySlot.get(slot);
             if (participant != null) ordered.add(participant);
         }
+
         return List.copyOf(ordered);
     }
 
@@ -197,10 +199,9 @@ public class BoardLobbyService {
     }
 
     private static BoardParticipant createParticipant(BoardSession session, ServerPlayer player, Identifier characterId, Identifier skinId) {
-        return new BoardParticipant(UUID.randomUUID(), Optional.of(player.getUUID()), false,
-                characterId, skinId, BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID,
-                Optional.empty(), AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7,
-                session.nextArrivalOrder());
+        return new BoardParticipant(UUID.randomUUID(), Optional.of(player.getUUID()), false, characterId, skinId,
+                BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID, Optional.empty(), AstralPlayerStats.DEFAULT,
+                List.of(), Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
     }
 
     private static Identifier firstAvailableCharacter(BoardSession session) {
@@ -213,21 +214,23 @@ public class BoardLobbyService {
     }
 
     private static boolean isSoloIntegratedServer(ServerPlayer player) {
-        return player.server.isSingleplayer() && player.server.getPlayerList().getPlayerCount() <= 1;
+        return player.server.isSingleplayer() || player.server.getPlayerList().getPlayerCount() <= 1;
     }
 
     private static class LobbyState {
+
         private final Map<UUID, LobbySelection> selections = new HashMap<>();
 
         private LobbySelection selection(ServerPlayer player, Identifier fallbackCharacter, Identifier fallbackSkin) {
             LobbySelection existing = this.selections.get(player.getUUID());
             if (existing != null) return existing;
-            Set<Integer> used = this.selections.values().stream().map(LobbySelection::slot)
-                    .collect(Collectors.toSet());
+            Set<Integer> used = this.selections.values().stream()
+                    .map(LobbySelection::slot).collect(Collectors.toSet());
             List<Integer> available = new ArrayList<>();
             for (int slot = 0; slot < BoardSessionManager.REQUIRED_PLAYERS; slot++) {
                 if (!used.contains(slot)) available.add(slot);
             }
+
             int slot = available.isEmpty() ? this.selections.size() % BoardSessionManager.REQUIRED_PLAYERS
                     : available.get(player.getRandom().nextInt(available.size()));
             LobbySelection created = new LobbySelection(player.getUUID(), slot, player.getScoreboardName(),
@@ -249,19 +252,19 @@ public class BoardLobbyService {
         }
 
         private List<BoardCharacterSelectionEntry> entries() {
-            return this.ordered().stream().map(selection -> new BoardCharacterSelectionEntry(selection.slot(),
-                    selection.playerName(), selection.characterId(), selection.skinId(),
-                    selection.selected(), selection.confirmed())).toList();
+            return this.ordered().stream().map(selection -> new BoardCharacterSelectionEntry(
+                    selection.slot(), selection.playerName(), selection.characterId(),
+                    selection.skinId(), selection.selected(), selection.confirmed())).toList();
         }
+
     }
 
-    private record LobbySelection(UUID playerId, int slot, String playerName, Identifier characterId,
-                                  Identifier skinId, boolean selected, boolean confirmed) {
-        private LobbySelection withChoice(Identifier characterId, Identifier skinId,
-                                          boolean selected, boolean confirmed) {
-            return new LobbySelection(this.playerId, this.slot, this.playerName, characterId, skinId,
-                    selected, confirmed);
+    private record LobbySelection(UUID playerId, int slot, String playerName, Identifier characterId, Identifier skinId, boolean selected, boolean confirmed) {
+
+        private LobbySelection withChoice(Identifier characterId, Identifier skinId, boolean selected, boolean confirmed) {
+            return new LobbySelection(this.playerId, this.slot, this.playerName, characterId, skinId, selected, confirmed);
         }
+
     }
 
 }

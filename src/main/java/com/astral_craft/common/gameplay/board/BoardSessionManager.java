@@ -33,6 +33,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -49,6 +50,7 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -416,8 +418,7 @@ public class BoardSessionManager {
     }
 
     public static boolean consumeCounterCard(ServerLevel level, BoardSession session, BoardParticipant participant, int index) {
-        if (level == null || session == null || participant == null
-                || index < 0 || index >= participant.hand().size()) return false;
+        if (level == null || session == null || participant == null || index < 0 || index >= participant.hand().size()) return false;
         Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
         if (!(item instanceof BaseHandCard card)) return false;
         ItemStack stack = new ItemStack(item);
@@ -444,8 +445,8 @@ public class BoardSessionManager {
         if (session == null || session.phase() != BoardPhase.PLAYING) return;
         BoardParticipant participant = session.participantByController(player.getUUID()).orElse(null);
         if (participant == null) return;
-        if (pausedTicks > 0L && session.actionDeadlineTick() > 0L
-                && session.currentParticipant().map(value -> value.slotUuid().equals(participant.slotUuid())).orElse(false)) {
+        Function<BoardParticipant, Boolean> function = value -> value.slotUuid().equals(participant.slotUuid());
+        if (pausedTicks > 0L && session.actionDeadlineTick() > 0L && session.currentParticipant().map(function).orElse(false)) {
             session.setActionDeadlineTick(session.actionDeadlineTick() + pausedTicks);
             markChanged(player.level());
         }
@@ -600,10 +601,14 @@ public class BoardSessionManager {
             if (session.lobbyDeadlineTick() <= 0L) {
                 session.setLobbyDeadlineTick(level.getGameTime() + LOBBY_TIMEOUT_TICKS);
             }
+
             if (level.getGameTime() >= session.lobbyDeadlineTick()) {
                 BoardLobbyService.finalizeTimedOutSelections(level, session);
-                if (session.participantCount() > 0) startGame(level, session);
+                if (session.participantCount() > 0) {
+                    startGame(level, session);
+                }
             }
+
             return;
         }
 
@@ -624,6 +629,7 @@ public class BoardSessionManager {
             continueRoundStart(level, session, session.round() + 1);
             return;
         }
+
         BoardParticipant current = session.currentParticipant().orElse(null);
         if (current == null) return;
         if (current.stats().health() <= 0 && current.knockedDownTurns() <= 0) {
@@ -645,8 +651,10 @@ public class BoardSessionManager {
                 if (timedOut != null && !isAutomated(level, timedOut)) {
                     updateParticipant(level, session, timedOut.recordTimedOutDecision());
                 }
+
                 randomDiscard(level, session);
             }
+
             return;
         }
 
@@ -661,8 +669,8 @@ public class BoardSessionManager {
                     mover = mover.recordTimedOutDecision();
                     updateParticipant(level, session, mover);
                 }
-                if (mover != null && target != null && isAutomated(level, mover)
-                        && !isHospitalProtected(session, target)) {
+
+                if (mover != null && target != null && isAutomated(level, mover) && !isHospitalProtected(session, target)) {
                     BoardBattleService.start(level, session, mover, target);
                 } else {
                     resumeAfterEncounter(level, session);
@@ -679,18 +687,17 @@ public class BoardSessionManager {
         }
 
         current = session.currentParticipant().orElse(current);
-        ServerPlayer controller = current.controllerUuid()
-                .map(level.getServer().getPlayerList()::getPlayer)
-                .orElse(null);
+        ServerPlayer controller = current.controllerUuid().map(level.getServer()
+                .getPlayerList()::getPlayer).orElse(null);
         boolean automated = current.bot() || controller == null;
         if (!automated && PendingCardActionManager.hasBoardCardUi(controller)) return;
         if (session.actionDeadlineTick() <= 0L) {
             int durationTicks = automated ? 1 : current.decisionDurationTicks(TURN_TIMEOUT_TICKS);
             session.setActionDurationTicks(durationTicks);
-            session.setActionDeadlineTick(automated ? level.getGameTime()
-                    : level.getGameTime() + durationTicks);
+            session.setActionDeadlineTick(automated ? level.getGameTime() : level.getGameTime() + durationTicks);
             markChanged(level);
         }
+
         if (automated) {
             if (level.getGameTime() >= session.actionDeadlineTick()) {
                 beginBotTurn(level, session, current);
@@ -706,12 +713,14 @@ public class BoardSessionManager {
     static void startGame(ServerLevel level, BoardSession session) {
         if (session.phase() == BoardPhase.PLAYING || session.participantCount() == 0) return;
         if (session.startNodes().size() != REQUIRED_PLAYERS) {
+            MutableComponent component = Component.translatable("message.astral_craft.board.scan_error.need_4_start_panels");
             for (ServerPlayer player : humanPlayers(level, session)) {
-                player.sendSystemMessage(Component.translatable("message.astral_craft.board.scan_error.need_4_start_panels")
-                        .withStyle(ChatFormatting.RED), true);
+                player.sendSystemMessage(component.withStyle(ChatFormatting.RED), true);
             }
+
             return;
         }
+
         fillBots(level, session);
         List<BoardParticipant> participants = BoardLobbyService.orderedParticipants(session);
         if (participants.size() != REQUIRED_PLAYERS) {
@@ -719,6 +728,7 @@ public class BoardSessionManager {
                 player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_enough_characters",
                         participants.size(), REQUIRED_PLAYERS).withStyle(ChatFormatting.RED), true);
             }
+
             return;
         }
 
@@ -767,6 +777,7 @@ public class BoardSessionManager {
         if (current.stats().buff(BuffKinds.HEAL) > 0 && next.stats().health() > current.stats().health()) {
             AstralCardEffects.playHealingEffect(BoardEntityService.entity(level, next));
         }
+
         session.setTurnStarted(true);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
@@ -777,18 +788,17 @@ public class BoardSessionManager {
             finishTurn(level, session);
             return;
         }
+
         prepareCurrentTurnAction(level, session, next, stillKnockedDown);
         if (wasKnockedDown && stillKnockedDown) finishTurn(level, session);
     }
 
     private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session, BoardParticipant participant, boolean stillKnockedDown) {
-        ServerPlayer controller = participant.controllerUuid()
-                .map(level.getServer().getPlayerList()::getPlayer).orElse(null);
+        ServerPlayer controller = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         boolean automated = participant.bot() || controller == null;
         int durationTicks = stillKnockedDown || automated ? 1 : participant.decisionDurationTicks(TURN_TIMEOUT_TICKS);
         session.setActionDurationTicks(durationTicks);
-        session.setActionDeadlineTick(stillKnockedDown ? 0L
-                : automated ? level.getGameTime() : level.getGameTime() + durationTicks);
+        session.setActionDeadlineTick(stillKnockedDown ? 0L : automated ? level.getGameTime() : level.getGameTime() + durationTicks);
         markChanged(level);
         if (controller != null) {
             controller.sendSystemMessage(Component.translatable(stillKnockedDown
@@ -920,6 +930,7 @@ public class BoardSessionManager {
             BoardParticipant participant = session.participant(slotId).orElse(null);
             if (participant != null && participant.knockedDownTurns() <= 1) return Optional.of(slotId);
         }
+
         return Optional.empty();
     }
 
@@ -972,6 +983,7 @@ public class BoardSessionManager {
                     PENDING_BOT_COUNTERS.add(session.id());
                     return;
                 }
+
                 int followUpDelay = botEffect.applyByBoardBot(context);
                 if (followUpDelay > 0) {
                     scheduleBotMovement(level, session, followUpDelay);
@@ -981,18 +993,25 @@ public class BoardSessionManager {
 
             BoardParticipant refreshed = session.participant(participant.slotUuid()).orElse(participant);
             if (refreshed.knockedDown()) {
-                if (refreshed.knockedDownTurns() <= 0) updateParticipant(level, session, refreshed.knockDown());
+                if (refreshed.knockedDownTurns() <= 0) {
+                    updateParticipant(level, session, refreshed.knockDown());
+                }
+
                 finishTurn(level, session);
             } else {
                 beginBotMovement(level, session, refreshed);
             }
+
             return;
         }
 
         BoardParticipant refreshed = tryUseBotEffectCard(level, session, participant);
         if (PENDING_BOT_EFFECTS.containsKey(session.id())) return;
         if (refreshed.knockedDown()) {
-            if (refreshed.knockedDownTurns() <= 0) updateParticipant(level, session, refreshed.knockDown());
+            if (refreshed.knockedDownTurns() <= 0) {
+                updateParticipant(level, session, refreshed.knockDown());
+            }
+
             finishTurn(level, session);
             return;
         }
@@ -1008,6 +1027,7 @@ public class BoardSessionManager {
             scheduleBotMovement(level, activeSession, followUpDelay);
             return;
         }
+
         BoardParticipant refreshed = activeSession.participant(sourceSlotId).orElse(null);
         if (refreshed == null) return;
         if (refreshed.knockedDown()) {
@@ -1035,8 +1055,7 @@ public class BoardSessionManager {
             if (!(item instanceof BaseHandCard card) || !(item instanceof BoardBotEffect botEffect)) continue;
             ItemStack stack = new ItemStack(item);
             CardDefinition definition = card.definition(stack);
-            BoardBotEffectContext context = new BoardBotEffectContext(level, session,
-                    participant.slotUuid(), definition, List.of());
+            BoardBotEffectContext context = new BoardBotEffectContext(level, session, participant.slotUuid(), definition, List.of());
             if (definition.type() == CardType.EFFECT && botEffect.canUseByBoardBot(context)) {
                 candidates.add(index);
             }
@@ -1126,12 +1145,14 @@ public class BoardSessionManager {
                     participant = participant.recordTimedOutDecision();
                     updateParticipant(level, session, participant);
                 }
+
                 String choice = movement.branchChoices().get(level.getRandom().nextInt(movement.branchChoices().size()));
                 HandcardRedirection.consumeFreeDirection(level, session, participant);
                 session.setMovement(movement.beginStep(choice, level.getGameTime(), MOVEMENT_STEP_TICKS));
                 BoardRouteService.preview(level, session);
                 markChanged(level);
             }
+
             return;
         }
 
@@ -1169,6 +1190,7 @@ public class BoardSessionManager {
             finishMovement(level, session);
             return;
         }
+
         if (participant.stats().health() <= 0 || participant.knockedDownTurns() > 0) {
             finishMovement(level, session);
             return;
@@ -1182,8 +1204,7 @@ public class BoardSessionManager {
         }
 
         if (!movement.panelResolved()) {
-            BoardParticipant encounterTarget = firstEncounterTarget(session, participant,
-                    movement.resolvedEncounterSlots());
+            BoardParticipant encounterTarget = firstEncounterTarget(session, participant, movement.resolvedEncounterSlots());
             if (encounterTarget != null) {
                 movement = movement.withResolvedEncounter(encounterTarget.slotUuid());
                 session.setMovement(movement);
@@ -1201,6 +1222,7 @@ public class BoardSessionManager {
                 BoardWorldObjectService.pickupAtArrival(level, session, participant);
                 participant = session.participant(movement.slotId()).orElse(participant);
             }
+
             movement = session.movement() == null ? movement : session.movement();
             if (movement == null) return;
             movement = movement.withPanelResolved();
@@ -1208,15 +1230,16 @@ public class BoardSessionManager {
             if (!participant.knockedDown()) {
                 applyPanel(level, session, participant, resolvesLanding);
             }
+
             if (session.phase() != BoardPhase.PLAYING
                     || BasePlatform.hasActiveBoardEffect(session.id())
                     || session.movement() != movement) return;
-
             participant = session.participant(movement.slotId()).orElse(participant);
             if (participant.stats().health() <= 0 || participant.knockedDownTurns() > 0) {
                 finishMovement(level, session);
                 return;
             }
+
             if (!participant.currentNodeKey().equals(arrivedNodeId)) {
                 continueMovement(level, session, movement);
                 return;
@@ -1243,6 +1266,7 @@ public class BoardSessionManager {
             BoardEventService.applyLeakingPocket(level, session, movement, participant);
             participant = session.participant(movement.slotId()).orElse(participant);
         }
+
         session.setMovement(null);
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
         if (participant == null) {
@@ -1292,9 +1316,11 @@ public class BoardSessionManager {
                 markChanged(level);
                 return;
             }
+
             continueRoundStart(level, session, roundNumber);
             return;
         }
+
         markChanged(level);
         beginCurrentTurn(level, session);
     }
@@ -1337,13 +1363,12 @@ public class BoardSessionManager {
         }
     }
 
-    public static void beginPanelEncounter(ServerLevel level, BoardSession session,
-                                           BoardParticipant mover, BoardParticipant target) {
-        if (level == null || session == null || mover == null || target == null || target.knockedDown()
-                || isHospitalProtected(session, target)) {
+    public static void beginPanelEncounter(ServerLevel level, BoardSession session, BoardParticipant mover, BoardParticipant target) {
+        if (level == null || session == null || mover == null || target == null || target.knockedDown() || isHospitalProtected(session, target)) {
             if (level != null && session != null) resumeMovementAfterPanel(level, session);
             return;
         }
+
         beginEncounter(level, session, mover, target);
         markChanged(level);
     }
@@ -1382,17 +1407,18 @@ public class BoardSessionManager {
             finishTurn(level, session);
             return;
         }
+
         List<Identifier> next = new ArrayList<>(participant.hand());
         for (int i = 0; i < discard.requiredCount() && !next.isEmpty(); i++) {
             next.remove(level.getRandom().nextInt(next.size()));
         }
+
         updateParticipant(level, session, participant.withHand(next));
         session.setDiscard(null);
         finishTurn(level, session);
     }
 
-    private static void applyPanel(ServerLevel level, BoardSession session,
-                                   BoardParticipant participant, boolean landing) {
+    private static void applyPanel(ServerLevel level, BoardSession session, BoardParticipant participant, boolean landing) {
         BoardNode node = session.nodes().get(participant.currentNodeKey());
         BasePlatform platform = platform(node);
         if (platform == null || !platform.triggers(landing)) return;
@@ -1402,8 +1428,7 @@ public class BoardSessionManager {
         if (entity != null && updated.stats().health() <= 0) onParticipantDamaged(entity, updated.stats());
     }
 
-    public static void relocateParticipant(ServerLevel level, BoardSession session,
-                                           BoardParticipant participant, String destinationNodeId) {
+    public static void relocateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant, String destinationNodeId) {
         if (!session.nodes().containsKey(destinationNodeId)) return;
         String previousNodeId = participant.currentNodeKey();
         BoardParticipant relocated = participant.withNode(participant.currentNodeId(),
@@ -1425,13 +1450,11 @@ public class BoardSessionManager {
 
     private static @Nullable BasePlatform platform(@Nullable BoardNode node) {
         if (node == null) return null;
-        return BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof BasePlatform platform
-                ? platform : null;
+        return BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof BasePlatform platform ? platform : null;
     }
 
     public static boolean isAutomated(ServerLevel level, BoardParticipant participant) {
-        return participant.bot() || participant.controllerUuid()
-                .map(level.getServer().getPlayerList()::getPlayer).orElse(null) == null;
+        return participant.bot() || participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null) == null;
     }
 
     private static void fillBots(ServerLevel level, BoardSession session) {
@@ -1451,8 +1474,7 @@ public class BoardSessionManager {
         }
     }
 
-    private static BoardParticipant firstEncounterTarget(BoardSession session, BoardParticipant mover,
-                                                           Set<UUID> resolvedSlots) {
+    private static BoardParticipant firstEncounterTarget(BoardSession session, BoardParticipant mover, Set<UUID> resolvedSlots) {
         return session.participants().stream()
                 .filter(participant -> !participant.slotUuid().equals(mover.slotUuid()))
                 .filter(participant -> !resolvedSlots.contains(participant.slotUuid()))
@@ -1471,7 +1493,7 @@ public class BoardSessionManager {
         if (entity == null) return false;
         BoardSession session = findByEntity(entity).orElse(null);
         BoardParticipant participant = session == null ? null : session.participantFor(entity).orElse(null);
-        return session != null && participant != null && isHospitalProtected(session, participant);
+        return participant != null && isHospitalProtected(session, participant);
     }
 
     public static void syncBoardSnapshot(ServerLevel level, BoardSession session) {
