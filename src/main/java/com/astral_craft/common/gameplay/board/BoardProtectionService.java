@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -45,7 +46,7 @@ public class BoardProtectionService {
         if (!protectedSource) return false;
         PENDING_RESTORES.computeIfAbsent(level.dimension(), ignored -> new LinkedHashMap<>())
                 .putIfAbsent(source.immutable(), new PendingGravityRestore(fallingBlock.getBlockState(),
-                        level.getGameTime() + 1L));
+                        AstralServerTickClock.now(level) + 1L));
         return true;
     }
 
@@ -59,7 +60,7 @@ public class BoardProtectionService {
     public static void tickLevel(ServerLevel level, BoardSavedData savedData) {
         refreshProtectedAreas(level, savedData);
         restoreGravityBlocks(level);
-        if (level.getGameTime() % GRAVITY_GUARD_SCAN_INTERVAL == 0L) guardGravityBlocks(level, savedData);
+        if (AstralServerTickClock.now(level) % GRAVITY_GUARD_SCAN_INTERVAL == 0L) guardGravityBlocks(level, savedData);
     }
 
     public static void retainDimensions(Set<ResourceKey<Level>> activeDimensions) {
@@ -72,7 +73,7 @@ public class BoardProtectionService {
         if (pending == null || pending.isEmpty()) return;
         pending.entrySet().removeIf(entry -> {
             PendingGravityRestore restore = entry.getValue();
-            if (level.getGameTime() < restore.restoreAfterTick()) return false;
+            if (AstralServerTickClock.now(level) < restore.restoreAfterTick()) return false;
             BlockPos pos = entry.getKey();
             if (isProtected(level, pos) && level.getBlockState(pos).isAir()) level.setBlock(pos, restore.state(), 3);
             return true;

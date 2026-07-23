@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
@@ -65,7 +66,7 @@ public class GamblePlatform extends BasePlatform {
         int baseReward = 3 + Math.max(0, roundNumber / 10) * 3;
         int totalReward = baseReward + eligibleSlots.size() * 3;
         GambleState state = new GambleState(eligibleSlots, choices, OpenBoardGamblePayload.Phase.CHOOSING,
-                0, totalReward, context.level().getGameTime() + CHOICE_TICKS, CHOICE_TICKS);
+                0, totalReward, AstralServerTickClock.now(context.level()) + CHOICE_TICKS, CHOICE_TICKS);
         this.games.put(context.session().id(), state);
         this.activateBoardEffect(context.session());
         if (choices.size() >= eligibleSlots.size()) {
@@ -89,7 +90,7 @@ public class GamblePlatform extends BasePlatform {
             return;
         }
 
-        if (level.getGameTime() < state.deadlineTick()) return;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         switch (state.phase()) {
             case CHOOSING -> {
                 Map<UUID, Boolean> choices = new LinkedHashMap<>(state.choices());
@@ -138,7 +139,7 @@ public class GamblePlatform extends BasePlatform {
     private void startRoll(ServerLevel level, BoardSession session, GambleState state) {
         int dieResult = level.getRandom().nextInt(6) + 1;
         GambleState rolling = state.withPhase(OpenBoardGamblePayload.Phase.ROLLING,
-                dieResult, level.getGameTime() + ROLL_TICKS, ROLL_TICKS);
+                dieResult, AstralServerTickClock.now(level) + ROLL_TICKS, ROLL_TICKS);
         this.games.put(session.id(), rolling);
         this.broadcast(level, session, rolling);
     }
@@ -158,7 +159,7 @@ public class GamblePlatform extends BasePlatform {
         }
 
         GambleState result = state.withPhase(OpenBoardGamblePayload.Phase.RESULT, state.dieResult(),
-                level.getGameTime() + RESULT_TICKS, RESULT_TICKS);
+                AstralServerTickClock.now(level) + RESULT_TICKS, RESULT_TICKS);
         this.games.put(session.id(), result);
         this.broadcast(level, session, result);
         BoardSessionManager.markChanged(level);
@@ -185,7 +186,7 @@ public class GamblePlatform extends BasePlatform {
                         state.phase() == OpenBoardGamblePayload.Phase.RESULT
                                 && state.choices().getOrDefault(participant.slotUuid(), !resultOdd) == resultOdd
                                 && state.eligibleSlots().contains(participant.slotUuid()))).toList();
-        int remaining = (int) Math.max(0L, state.deadlineTick() - level.getGameTime());
+        int remaining = (int) Math.max(0L, state.deadlineTick() - AstralServerTickClock.now(level));
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             BoardParticipant local = session.participantByController(viewer.getUUID()).orElse(null);
             boolean canChoose = state.phase() == OpenBoardGamblePayload.Phase.CHOOSING && local != null

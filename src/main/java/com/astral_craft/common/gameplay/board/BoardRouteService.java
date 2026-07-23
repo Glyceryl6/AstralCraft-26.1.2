@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.gameplay.BoardNode;
@@ -29,7 +30,7 @@ public class BoardRouteService {
                 .map(Map.Entry::getKey).findFirst().orElse("");
         if (!movement.branchChoices().contains(nodeId)) return false;
         HandcardRedirection.consumeFreeDirection(player.level(), session, participant.recordManualDecision());
-        session.setMovement(movement.beginStep(nodeId, player.level().getGameTime(), BoardSessionManager.MOVEMENT_STEP_TICKS));
+        session.setMovement(movement.beginStep(nodeId, AstralServerTickClock.now(player.level()), BoardSessionManager.MOVEMENT_STEP_TICKS));
         BoardSessionManager.markChanged(player.level());
         preview(player.level(), session);
         return true;
@@ -94,7 +95,7 @@ public class BoardRouteService {
         BoardSession.MovementState movement = session.movement();
         BoardParticipant participant = movement == null ? null : session.participant(movement.slotId()).orElse(null);
         int decisionTicks = active && movement != null && !movement.branchChoices().isEmpty()
-                ? (int) Math.max(0L, movement.nextStepTick() - level.getGameTime()) : 0;
+                ? (int) Math.max(0L, movement.nextStepTick() - AstralServerTickClock.now(level)) : 0;
         int decisionDurationTicks = active && participant != null && !movement.branchChoices().isEmpty()
                 ? participant.decisionDurationTicks(BoardSessionManager.BRANCH_TIMEOUT_TICKS) : 1;
         Identifier characterId = participant == null ? AstralCraft.prefix("mimi") : participant.characterId();

@@ -1,17 +1,22 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
+import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
+import com.astral_craft.common.gameplay.board.BoardEntityService;
 import com.astral_craft.common.network.s2c.OpenBoardStartChoicePayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -61,7 +66,7 @@ public class StartPlatform extends BasePlatform {
             return;
         }
 
-        if (level.getGameTime() < state.deadlineTick()) return;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
         if (participant != null) {
             BoardParticipant timedOut = participant.recordTimedOutDecision();
@@ -126,7 +131,7 @@ public class StartPlatform extends BasePlatform {
 
         int duration = participant.decisionDurationTicks(TIMEOUT_TICKS);
         this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(),
-                level.getGameTime() + duration, duration));
+                AstralServerTickClock.now(level) + duration, duration));
         this.activateBoardEffect(session);
         PacketDistributor.sendToPlayer(player, new OpenBoardStartChoicePayload(session.id(),
                 participant.stats().health(), participant.stats().maxHealth(), participant.stats().stars(),
@@ -167,6 +172,11 @@ public class StartPlatform extends BasePlatform {
         BoardParticipant updated = participant.withStats(stats);
         BoardSessionManager.updateParticipant(level, session, updated);
         ServerPlayer player = updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
+        if (leveled) {
+            var entity = BoardEntityService.entity(level, updated);
+            if (entity != null) level.playSound(null, entity.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.05F);
+        }
+
         if (player != null) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_healed", 2), true);
             if (leveled) {
@@ -185,6 +195,13 @@ public class StartPlatform extends BasePlatform {
             player.sendSystemMessage(component.withStyle(ChatFormatting.GOLD), false);
         }
 
+        var winnerEntity = BoardEntityService.entity(level, participant);
+        if (winnerEntity != null) level.playSound(null, winnerEntity.blockPosition(),
+                SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2F, 0.95F);
+        BoardHudSyncManager.announce(level, session,
+                Component.translatable("message.astral_craft.board.announcement.victory",
+                        Component.literal(winner).withStyle(ChatFormatting.GOLD)), Component.empty(),
+                BoardHudSyncManager.VICTORY_SOUND, 80);
         BoardSessionManager.endGame(level, session, true);
         return true;
     }

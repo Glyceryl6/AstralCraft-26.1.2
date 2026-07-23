@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.entity.BoardWorldObjectEntity;
 import com.astral_craft.common.entity.StarCoinEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -115,7 +116,7 @@ public class BoardWorldObjectService {
         CoinAnimationKey key = new CoinAnimationKey(session.id(), slotId);
         Deque<PendingCoinAnimation> queue = PENDING_COIN_ANIMATIONS.computeIfAbsent(key, ignored -> new ArrayDeque<>());
         PendingCoinAnimation animation = new PendingCoinAnimation(UUID.randomUUID(), amount, bursts,
-                level.getGameTime(), kind);
+                AstralServerTickClock.now(level), kind);
         if (kind == CoinAnimationKind.LOSS) queue.addFirst(animation);
         else queue.addLast(animation);
     }
@@ -193,7 +194,7 @@ public class BoardWorldObjectService {
                 completed.add(key);
                 continue;
             }
-            if (level.getGameTime() < animation.nextTick()) continue;
+            if (AstralServerTickClock.now(level) < animation.nextTick()) continue;
             BoardParticipant participant = session.participant(key.slotId()).orElse(null);
             if (participant == null) {
                 queue.clear();
@@ -209,11 +210,11 @@ public class BoardWorldObjectService {
             queue.removeFirst();
             if (remaining > 0 && bursts > 0) {
                 queue.addFirst(new PendingCoinAnimation(animation.id(), remaining, bursts,
-                        level.getGameTime() + COIN_INTERVAL_TICKS, animation.kind()));
+                        AstralServerTickClock.now(level) + COIN_INTERVAL_TICKS, animation.kind()));
             } else if (animation.kind() == CoinAnimationKind.LOSS && !queue.isEmpty()) {
                 PendingCoinAnimation next = queue.removeFirst();
                 queue.addFirst(new PendingCoinAnimation(next.id(), next.remaining(), next.burstsLeft(),
-                        Math.max(next.nextTick(), level.getGameTime() + COIN_LOSS_LIFETIME_TICKS), next.kind()));
+                        Math.max(next.nextTick(), AstralServerTickClock.now(level) + COIN_LOSS_LIFETIME_TICKS), next.kind()));
             }
             if (queue.isEmpty()) completed.add(key);
         }

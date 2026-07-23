@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.battle;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,7 +17,7 @@ public class BattleService {
     private static final Map<UUID, BattleSession> SESSIONS = new LinkedHashMap<>();
 
     public static BattleSession start(ServerLevel level, LivingEntity attacker, LivingEntity defender) {
-        BattleSession session = new BattleSession(UUID.randomUUID(), attacker, defender, level.getGameTime(), 20 * 12, 12.0D);
+        BattleSession session = new BattleSession(UUID.randomUUID(), attacker, defender, AstralServerTickClock.now(level), 20 * 12, 12.0D);
         SESSIONS.put(session.id(), session);
         if (attacker instanceof ServerPlayer attackerPlayer) {
             attackerPlayer.sendSystemMessage(Component.translatable("message.astral_craft.battle.started_attacker", defender.getDisplayName()), true);

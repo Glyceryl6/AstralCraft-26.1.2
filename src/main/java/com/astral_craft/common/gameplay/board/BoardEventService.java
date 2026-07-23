@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
@@ -12,6 +13,7 @@ import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.registry.bootstrap.AstralEventBootstrap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -30,13 +32,13 @@ public class BoardEventService {
     public static boolean trigger(ServerLevel level, BoardSession session, BoardParticipant source) {
         if (level == null || session == null || source == null || PANEL_EVENTS.containsKey(session.id())) return false;
         List<AstralEventDefinition> candidates = AstralEventBootstrap.BOARD_EVENTS.stream()
-                .map(key -> key.identifier()).map(AstralEventManager.INSTANCE::get)
+                .map(ResourceKey::identifier).map(AstralEventManager.INSTANCE::get)
                 .filter(Objects::nonNull).toList();
         if (candidates.isEmpty()) return false;
         AstralEventDefinition definition = candidates.get(level.getRandom().nextInt(candidates.size()));
         int revealTicks = AstralEventService.DEFAULT_EVENT_REVEAL_DURATION_TICKS;
         BoardEventContext context = new BoardEventContext(level, session, source, definition);
-        PANEL_EVENTS.put(session.id(), EventExecution.revealed(context, level.getGameTime() + revealTicks + 2L));
+        PANEL_EVENTS.put(session.id(), EventExecution.revealed(context, AstralServerTickClock.now(level) + revealTicks + 2L));
         broadcastReveal(context, revealTicks);
         return true;
     }
@@ -172,7 +174,7 @@ public class BoardEventService {
 
         private boolean tick() {
             if (!this.prepared) {
-                if (this.context.level().getGameTime() < this.revealUntil) return true;
+                if (AstralServerTickClock.now(this.context.level()) < this.revealUntil) return true;
                 enqueueEffects(this.context, this.context.definition().effects(), this.tasks);
                 this.prepared = true;
             }

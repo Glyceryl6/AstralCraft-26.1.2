@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.network.s2c.BoardCharacterSelectionEntry;
@@ -53,7 +54,7 @@ public class BoardLobbyService {
 
         BoardParticipant participant = createParticipant(session, player, characterId, safeSkin);
         session.putParticipant(participant);
-        session.setLobbyDeadlineTick(Math.max(session.lobbyDeadlineTick(), player.level().getGameTime() + 20L));
+        session.setLobbyDeadlineTick(Math.max(session.lobbyDeadlineTick(), AstralServerTickClock.now(player.level()) + 20L));
         BoardSessionManager.markChanged(player.level());
         player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_confirmed",
                 Component.translatable(definition.nameKey())).withStyle(ChatFormatting.GREEN), true);
@@ -115,7 +116,7 @@ public class BoardLobbyService {
         }
 
         List<Identifier> occupiedCharacters = session.participants().stream().map(BoardParticipant::characterId).toList();
-        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - player.level().getGameTime(), 0L, BoardSessionManager.LOBBY_TIMEOUT_TICKS);
+        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - AstralServerTickClock.now(player.level()), 0L, BoardSessionManager.LOBBY_TIMEOUT_TICKS);
         PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id(),
                 CharacterManager.INSTANCE.values(), new ArrayList<>(occupiedCharacters), lobby.entries(),
                 own.selected() ? own.characterId() : fallback.id(), own.selected() ? own.skinId() : fallbackSkin,

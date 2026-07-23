@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.*;
@@ -37,7 +38,7 @@ public class HospitalPlatform extends BasePlatform {
                 ? OpenBoardHospitalPayload.Phase.RESULT : OpenBoardHospitalPayload.Phase.CHECKING;
         int duration = automated ? RESULT_TICKS : CHECKING_TICKS;
         HospitalState state = new HospitalState(healed.slotUuid(), phase, result,
-                context.level().getGameTime() + duration, duration);
+                AstralServerTickClock.now(context.level()) + duration, duration);
         this.states.put(context.session().id(), state);
         this.activateBoardEffect(context.session());
         this.broadcast(context.level(), context.session(), state);
@@ -51,10 +52,10 @@ public class HospitalPlatform extends BasePlatform {
             return;
         }
 
-        if (level.getGameTime() < state.deadlineTick()) return;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         if (state.phase() == OpenBoardHospitalPayload.Phase.CHECKING) {
             HospitalState result = new HospitalState(state.slotId(), OpenBoardHospitalPayload.Phase.RESULT,
-                    state.result(), level.getGameTime() + RESULT_TICKS, RESULT_TICKS);
+                    state.result(), AstralServerTickClock.now(level) + RESULT_TICKS, RESULT_TICKS);
             this.states.put(session.id(), result);
             this.broadcast(level, session, result);
             return;
@@ -69,7 +70,7 @@ public class HospitalPlatform extends BasePlatform {
         if (state == null || !state.slotId().equals(slotId)
                 || state.phase() == OpenBoardHospitalPayload.Phase.RESULT) return;
         HospitalState result = new HospitalState(state.slotId(), OpenBoardHospitalPayload.Phase.RESULT,
-                state.result(), level.getGameTime() + RESULT_TICKS, RESULT_TICKS);
+                state.result(), AstralServerTickClock.now(level) + RESULT_TICKS, RESULT_TICKS);
         this.states.put(session.id(), result);
         this.broadcast(level, session, result);
     }
@@ -95,7 +96,7 @@ public class HospitalPlatform extends BasePlatform {
     }
 
     private void broadcast(ServerLevel level, BoardSession session, HospitalState state) {
-        int remaining = (int) Math.max(0L, state.deadlineTick() - level.getGameTime());
+        int remaining = (int) Math.max(0L, state.deadlineTick() - AstralServerTickClock.now(level));
         OpenBoardHospitalPayload payload = new OpenBoardHospitalPayload(session.id(), state.phase(), state.result(), remaining, state.durationTicks());
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             PacketDistributor.sendToPlayer(viewer, payload);

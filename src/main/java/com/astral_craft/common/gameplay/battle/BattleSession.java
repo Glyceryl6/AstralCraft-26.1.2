@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.battle;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -16,17 +17,17 @@ public final class BattleSession {
     private final UUID id;
     private final int attackerId;
     private final int defenderId;
-    private final long startedGameTime;
+    private final long startedTick;
     private final int timeoutTicks;
     private final double breakDistance;
     private BattleCardContribution attackerCards = BattleCardContribution.NONE;
     private BattleCardContribution defenderCards = BattleCardContribution.NONE;
 
-    BattleSession(UUID id, LivingEntity attacker, LivingEntity defender, long startedGameTime, int timeoutTicks, double breakDistance) {
+    BattleSession(UUID id, LivingEntity attacker, LivingEntity defender, long startedTick, int timeoutTicks, double breakDistance) {
         this.id = id;
         this.attackerId = attacker.getId();
         this.defenderId = defender.getId();
-        this.startedGameTime = startedGameTime;
+        this.startedTick = startedTick;
         this.timeoutTicks = timeoutTicks;
         this.breakDistance = breakDistance;
     }
@@ -52,7 +53,7 @@ public final class BattleSession {
     }
 
     public boolean expired(ServerLevel level) {
-        return level.getGameTime() - this.startedGameTime > this.timeoutTicks;
+        return AstralServerTickClock.now(level) - this.startedTick > this.timeoutTicks;
     }
 
     public boolean stillValid(ServerLevel level) {

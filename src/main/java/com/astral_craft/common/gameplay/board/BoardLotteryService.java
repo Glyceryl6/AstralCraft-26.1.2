@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.network.s2c.CloseBoardLotteryDrawPayload;
 import com.astral_craft.common.network.s2c.OpenBoardLotteryDrawPayload;
 import net.minecraft.ChatFormatting;
@@ -21,7 +22,7 @@ public class BoardLotteryService {
         int result = level.getRandom().nextInt(12) + 1;
         DrawState state = new DrawState(OpenBoardLotteryDrawPayload.Phase.ROLLING, result,
                 session.mechanics().lotteryJackpot(), List.of(), 0,
-                level.getGameTime() + ROLL_TICKS, ROLL_TICKS);
+                AstralServerTickClock.now(level) + ROLL_TICKS, ROLL_TICKS);
         ACTIVE_DRAWS.put(session.id(), state);
         broadcast(level, session, state);
         return true;
@@ -34,7 +35,7 @@ public class BoardLotteryService {
     public static boolean tick(ServerLevel level, BoardSession session) {
         DrawState state = ACTIVE_DRAWS.get(session.id());
         if (state == null) return false;
-        if (level.getGameTime() < state.deadlineTick()) return true;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return true;
         if (state.phase() == OpenBoardLotteryDrawPayload.Phase.ROLLING) {
             settle(level, session, state);
         } else {
@@ -75,7 +76,7 @@ public class BoardLotteryService {
         BoardSessionManager.markChanged(level);
         int displayedJackpot = winnerSlots.isEmpty() ? session.mechanics().lotteryJackpot() : state.jackpot();
         DrawState result = new DrawState(OpenBoardLotteryDrawPayload.Phase.RESULT, state.finalNumber(),
-                displayedJackpot, winnerNames, awardEach, level.getGameTime() + RESULT_TICKS, RESULT_TICKS);
+                displayedJackpot, winnerNames, awardEach, AstralServerTickClock.now(level) + RESULT_TICKS, RESULT_TICKS);
         ACTIVE_DRAWS.put(session.id(), result);
         broadcast(level, session, result);
     }
@@ -90,7 +91,7 @@ public class BoardLotteryService {
     }
 
     private static void broadcast(ServerLevel level, BoardSession session, DrawState state) {
-        int remaining = (int) Math.max(0L, state.deadlineTick() - level.getGameTime());
+        int remaining = (int) Math.max(0L, state.deadlineTick() - AstralServerTickClock.now(level));
         List<OpenBoardLotteryDrawPayload.Entry> entries = session.turnOrder().stream().map(session::participant)
                 .flatMap(Optional::stream).map(participant -> new OpenBoardLotteryDrawPayload.Entry(
                         BoardSessionManager.displayName(level, participant), participant.characterId(), participant.skinId(),

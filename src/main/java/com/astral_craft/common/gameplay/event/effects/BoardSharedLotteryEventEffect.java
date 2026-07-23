@@ -1,12 +1,8 @@
 package com.astral_craft.common.gameplay.event.effects;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.board.BoardEventContext;
-import com.astral_craft.common.gameplay.board.BoardEventTask;
-import com.astral_craft.common.gameplay.board.BoardParticipant;
-import com.astral_craft.common.gameplay.board.BoardSession;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
-import com.astral_craft.common.gameplay.board.BoardSpectatorService;
+import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.astral_craft.common.network.s2c.CloseBoardLotteryNumberPayload;
 import com.astral_craft.common.network.s2c.OpenBoardLotteryNumberPayload;
@@ -14,7 +10,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -23,9 +18,16 @@ import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
 
 public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEventEffect {
+
+    private static final Set<UUID> ACTIVE_BOARDS = ConcurrentHashMap.newKeySet();
+
+    public static boolean active(UUID boardId) {
+        return boardId != null && ACTIVE_BOARDS.contains(boardId);
+    }
 
     public static final MapCodec<BoardSharedLotteryEventEffect> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.INT.optionalFieldOf("timeout_ticks", 300).forGetter(BoardSharedLotteryEventEffect::timeoutTicks)
@@ -61,7 +63,8 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
         private SharedLotteryTask(BoardEventContext context, int durationTicks) {
             this.context = context;
             this.durationTicks = durationTicks;
-            this.deadlineTick = context.level().getGameTime() + durationTicks;
+            this.deadlineTick = AstralServerTickClock.now(context.level()) + durationTicks;
+            ACTIVE_BOARDS.add(context.session().id());
             for (BoardParticipant participant : context.session().participants()) {
                 List<Integer> available = availableNumbers(context.session(), participant);
                 if (available.isEmpty()) continue;
@@ -79,6 +82,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
                 this.opened = true;
                 this.broadcast();
             }
+
             boolean changed = false;
             for (UUID slotId : new ArrayList<>(this.pendingSlots)) {
                 BoardParticipant participant = this.context.session().participant(slotId).orElse(null);
@@ -87,7 +91,8 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
                     changed = true;
                 }
             }
-            if (!this.pendingSlots.isEmpty() && this.context.level().getGameTime() >= this.deadlineTick) {
+
+            if (!this.pendingSlots.isEmpty() && AstralServerTickClock.now(this.context.level()) >= this.deadlineTick) {
                 for (UUID slotId : new ArrayList<>(this.pendingSlots)) {
                     BoardParticipant participant = this.context.session().participant(slotId).orElse(null);
                     if (participant != null && !BoardSessionManager.isAutomated(this.context.level(), participant)) {
@@ -97,10 +102,12 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
                 }
                 changed = true;
             }
+
             if (this.pendingSlots.isEmpty()) {
                 this.close();
                 return false;
             }
+
             if (changed) this.broadcast();
             return true;
         }
@@ -131,6 +138,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
         public void close() {
             if (this.closed) return;
             this.closed = true;
+            ACTIVE_BOARDS.remove(this.context.session().id());
             for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(this.context.level(), this.context.session())) {
                 PacketDistributor.sendToPlayer(viewer, new CloseBoardLotteryNumberPayload(this.context.session().id()));
             }
@@ -146,6 +154,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
                     this.context.session().mechanics().selectLotteryNumber(slotId, number);
                 }
             }
+
             this.pendingSlots.remove(slotId);
             BoardSessionManager.markChanged(this.context.level());
         }
@@ -154,7 +163,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
             List<OpenBoardLotteryNumberPayload.Entry> entries = this.context.session().participants().stream().map(participant ->
                     new OpenBoardLotteryNumberPayload.Entry(BoardSessionManager.displayName(this.context.level(), participant),
                             participant.characterId(), participant.skinId(), !this.pendingSlots.contains(participant.slotUuid()))).toList();
-            int remaining = (int) Math.max(1L, this.deadlineTick - this.context.level().getGameTime());
+            int remaining = (int) Math.max(1L, this.deadlineTick - AstralServerTickClock.now(this.context.level()));
             for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(this.context.level(), this.context.session())) {
                 BoardParticipant local = this.context.session().participantByController(viewer.getUUID()).orElse(null);
                 boolean canChoose = local != null && this.pendingSlots.contains(local.slotUuid());
@@ -175,4 +184,5 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
         for (int number = 1; number <= 12; number++) if (!selected.contains(number)) available.add(number);
         return available;
     }
+
 }

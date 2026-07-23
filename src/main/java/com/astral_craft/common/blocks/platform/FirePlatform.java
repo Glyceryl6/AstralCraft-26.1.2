@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
@@ -51,7 +52,7 @@ public class FirePlatform extends BasePlatform {
 
         int duration = context.participant().decisionDurationTicks(TARGET_TIMEOUT_TICKS);
         this.states.put(context.session().id(), new FireState(context.participant().slotUuid(), null,
-                context.level().getGameTime() + duration));
+                AstralServerTickClock.now(context.level()) + duration));
         this.activateBoardEffect(context.session());
         PacketDistributor.sendToPlayer(player, new OpenBoardPlatformTargetPayload(context.session().id(),
                 OpenBoardPlatformTargetPayload.Action.FIRE, this.candidates(context.level(), context.session(), targets),
@@ -72,7 +73,7 @@ public class FirePlatform extends BasePlatform {
             return;
         }
 
-        if (level.getGameTime() < state.deadlineTick()) return;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         this.finish(level, session, false);
     }
 
@@ -126,7 +127,7 @@ public class FirePlatform extends BasePlatform {
         this.closeSelector(level, source, session.id());
         level.playSound(null, sourceEntity.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 1.0F, 0.75F);
         level.addFreshEntity(new FirecrackersProjectileEntity(level, sourceEntity, targetEntity, 2, PROJECTILE_TICKS - 4));
-        this.states.put(session.id(), new FireState(source.slotUuid(), target.slotUuid(), level.getGameTime() + PROJECTILE_TICKS));
+        this.states.put(session.id(), new FireState(source.slotUuid(), target.slotUuid(), AstralServerTickClock.now(level) + PROJECTILE_TICKS));
         this.activateBoardEffect(session);
     }
 

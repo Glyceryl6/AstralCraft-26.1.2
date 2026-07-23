@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.battle;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
@@ -47,7 +48,7 @@ public class BoardBattleService {
         if (ACTIVE.containsKey(session.id()) || BoardSessionManager.isHospitalProtected(session, defender)) return;
         boolean attackerAutomated = BoardSessionManager.isAutomated(level, attacker);
         boolean defenderAutomated = BoardSessionManager.isAutomated(level, defender);
-        long now = level.getGameTime();
+        long now = AstralServerTickClock.now(level);
         int attackerDurationTicks = attackerAutomated ? BOT_INITIAL_CARD_TICKS : attacker.decisionDurationTicks(DECISION_TICKS);
         int defenderDurationTicks = defenderAutomated ? BOT_INITIAL_CARD_TICKS : defender.decisionDurationTicks(DECISION_TICKS);
         long attackerDeadlineTick = now + attackerDurationTicks;
@@ -97,8 +98,9 @@ public class BoardBattleService {
 
         if (state.phase() == BattlePhase.DEFENSE_CHOICE && defender.controlledBy(player.getUUID())) {
             BoardSessionManager.updateParticipant(player.level(), session, defender.recordManualDecision());
-            beginDefenderRoll(player.level(), session,
-                    state.withDefenseMode(defenseMode == DefenseMode.EVADE ? DefenseMode.EVADE : DefenseMode.DEFEND));
+            boolean evadeAllowed = !BoardSessionManager.hasAllOrNothing(attacker);
+            DefenseMode selectedMode = evadeAllowed && defenseMode == DefenseMode.EVADE ? DefenseMode.EVADE : DefenseMode.DEFEND;
+            beginDefenderRoll(player.level(), session, state.withDefenseMode(selectedMode));
         }
     }
 
@@ -118,7 +120,7 @@ public class BoardBattleService {
             }
 
             if (state.phase() == BattlePhase.SELECT) {
-                long now = level.getGameTime();
+                long now = AstralServerTickClock.now(level);
                 BattleState next = state;
                 BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
                 BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
@@ -149,7 +151,7 @@ public class BoardBattleService {
                 continue;
             }
 
-            if (level.getGameTime() < state.deadlineTick()) continue;
+            if (AstralServerTickClock.now(level) < state.deadlineTick()) continue;
             switch (state.phase()) {
                 case READY -> beginAttackerRoll(level, session, state);
                 case ATTACKER_ROLL -> beginDefenseChoice(level, session, state);
@@ -178,7 +180,7 @@ public class BoardBattleService {
         BoardParticipant participant = session.participant(slotId).orElse(null);
         if (participant == null) return;
         if (state.phase() == BattlePhase.SELECT) {
-            long nextTick = level.getGameTime() + BOT_INITIAL_CARD_TICKS;
+            long nextTick = AstralServerTickClock.now(level) + BOT_INITIAL_CARD_TICKS;
             if (state.attackerSlot().equals(slotId) && !state.attackerReady()) {
                 state = state.withAttackerSelection(state.attackerCards(), false, nextTick, BOT_INITIAL_CARD_TICKS);
             }
@@ -224,7 +226,7 @@ public class BoardBattleService {
                 && BoardSessionManager.isAutomated(level, attacker)
                 && BoardSessionManager.isAutomated(level, defender);
         int holdTicks = automatedBattle ? BOT_FINAL_SCORE_HOLD_TICKS : CARD_READY_HOLD_TICKS;
-        BattleState ready = state.withPhase(BattlePhase.READY, level.getGameTime() + holdTicks, holdTicks);
+        BattleState ready = state.withPhase(BattlePhase.READY, AstralServerTickClock.now(level) + holdTicks, holdTicks);
         ACTIVE.put(session.id(), ready);
         send(level, session, ready);
     }
@@ -251,24 +253,23 @@ public class BoardBattleService {
                 attackBase + attackerDie + attackBonus, 0,
                 0, false, false);
         BattleState rolling = state.withRoll(BattlePhase.ATTACKER_ROLL,
-                level.getGameTime() + ATTACKER_ROLL_TICKS, ATTACKER_ROLL_TICKS, roll);
+                AstralServerTickClock.now(level) + ATTACKER_ROLL_TICKS, ATTACKER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
         send(level, session, rolling);
     }
 
     private static void beginDefenseChoice(ServerLevel level, BoardSession session, BattleState state) {
-        BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
         BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
         if (defender == null) {
             cancelAndResume(level, session);
             return;
         }
-        if (BoardSessionManager.hasAllOrNothing(attacker) || BoardSessionManager.isAutomated(level, defender)) {
+        if (BoardSessionManager.isAutomated(level, defender)) {
             beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
             return;
         }
         int durationTicks = defender.decisionDurationTicks(DEFENSE_CHOICE_TICKS);
-        BattleState choosing = state.withPhase(BattlePhase.DEFENSE_CHOICE, level.getGameTime() + durationTicks, durationTicks);
+        BattleState choosing = state.withPhase(BattlePhase.DEFENSE_CHOICE, AstralServerTickClock.now(level) + durationTicks, durationTicks);
         ACTIVE.put(session.id(), choosing);
         send(level, session, choosing);
     }
@@ -301,7 +302,7 @@ public class BoardBattleService {
                 preliminary.attackerDie(), defenderDie, preliminary.attackBonus(), defenseBonus,
                 attackTotal, defenseTotal, damage, evaded, remainingHealth == 0);
         BattleState rolling = state.withRoll(BattlePhase.DEFENDER_ROLL,
-                level.getGameTime() + DEFENDER_ROLL_TICKS, DEFENDER_ROLL_TICKS, roll);
+                AstralServerTickClock.now(level) + DEFENDER_ROLL_TICKS, DEFENDER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
         send(level, session, rolling);
     }
@@ -339,7 +340,7 @@ public class BoardBattleService {
             BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
         int resultTicks = roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
-        BattleState result = state.withPhase(BattlePhase.RESULT, level.getGameTime() + resultTicks, resultTicks);
+        BattleState result = state.withPhase(BattlePhase.RESULT, AstralServerTickClock.now(level) + resultTicks, resultTicks);
         ACTIVE.put(session.id(), result);
         send(level, session, result);
     }
@@ -487,7 +488,7 @@ public class BoardBattleService {
                     : combatCards(own, role == BattleRole.ATTACKER ? CardType.ATTACK : CardType.DEFENSE);
             long deadlineTick = state.deadlineFor(role);
             int durationTicks = state.durationFor(role);
-            int remaining = (int) Math.max(0L, deadlineTick - level.getGameTime());
+            int remaining = (int) Math.max(0L, deadlineTick - AstralServerTickClock.now(level));
             BoardParticipant progressParticipant = state.phase() == BattlePhase.DEFENSE_CHOICE
                     || role == BattleRole.DEFENDER ? defender : attacker;
             PacketDistributor.sendToPlayer(viewer, new OpenBoardBattlePayload(session.id(),
@@ -510,7 +511,8 @@ public class BoardBattleService {
                     attackBase, defenseBase, attackBase + attackRange.minimum(),
                     attackBase + attackRange.maximum(), defenseBase + defenseRange.minimum(),
                     defenseBase + defenseRange.maximum(), 0, 0, 0, 0, 0, 0, 0,
-                    false, false, state.attackerReady(), state.defenderReady(), state.defenseMode());
+                    false, false, !BoardSessionManager.hasAllOrNothing(attacker),
+                    state.attackerReady(), state.defenderReady(), state.defenseMode());
         }
         return new BattleView(state.phase(), attacker.stats().health(), defender.stats().health(),
                 roll.attackBase(), roll.defenseBase(),
@@ -518,7 +520,7 @@ public class BoardBattleService {
                 roll.defenseBase() + roll.defenseCardMinimum(), roll.defenseBase() + roll.defenseCardMaximum(),
                 roll.attackerDie(), roll.defenderDie(), roll.attackBonus(), roll.defenseBonus(),
                 roll.attackTotal(), roll.defenseTotal(), roll.damage(), roll.evaded(), roll.knockout(),
-                state.attackerReady(), state.defenderReady(), state.defenseMode());
+                !BoardSessionManager.hasAllOrNothing(attacker), state.attackerReady(), state.defenderReady(), state.defenseMode());
     }
 
     private static List<CombatCardView> combatCards(BoardParticipant participant, CardType expected) {

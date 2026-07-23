@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
@@ -61,7 +62,7 @@ public class LotteryPlatform extends BasePlatform {
             return;
         }
 
-        if (level.getGameTime() < state.deadlineTick()) return;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
         if (participant == null) {
             this.choices.remove(session.id());
@@ -105,7 +106,7 @@ public class LotteryPlatform extends BasePlatform {
 
         int duration = participant.decisionDurationTicks(TIMEOUT_TICKS);
         this.choices.put(session.id(), new LotteryChoiceState(participant.slotUuid(),
-                level.getGameTime() + duration, duration));
+                AstralServerTickClock.now(level) + duration, duration));
         this.activateBoardEffect(session);
         PacketDistributor.sendToPlayer(player, new OpenBoardLotteryNumberPayload(session.id(),
                 session.mechanics().lotteryNumbers(participant.slotUuid()), duration, duration,

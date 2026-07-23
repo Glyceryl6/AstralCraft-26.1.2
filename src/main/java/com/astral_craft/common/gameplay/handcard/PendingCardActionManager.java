@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.handcard;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import net.minecraft.server.level.ServerPlayer;
@@ -73,7 +74,7 @@ public class PendingCardActionManager {
     public static void beginBoardCardUi(ServerPlayer player, UUID boardId, boolean waitForDamage) {
         if (player == null || boardId == null) return;
         BOARD_UI.put(player.getUUID(), new PendingBoardUi(boardId, waitForDamage,
-                player.level().getGameTime(), BOARD_UI_TIMEOUT_TICKS));
+                AstralServerTickClock.now(player.level()), BOARD_UI_TIMEOUT_TICKS));
     }
 
     public static void completeBoardCardUi(ServerPlayer player) {
@@ -81,7 +82,7 @@ public class PendingCardActionManager {
         PendingBoardUi pending = BOARD_UI.remove(player.getUUID());
         if (pending != null) {
             BoardSessionManager.resumeAfterCardUi(player, pending.boardId(),
-                    Math.max(0L, player.level().getGameTime() - pending.startedAtTick()));
+                    Math.max(0L, AstralServerTickClock.now(player.level()) - pending.startedAtTick()));
         }
     }
 
@@ -156,7 +157,7 @@ public class PendingCardActionManager {
                     : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(entry.getKey());
             if (player != null) {
                 BoardSessionManager.resumeAfterCardUi(player, pending.boardId(),
-                        Math.max(0L, player.level().getGameTime() - pending.startedAtTick()));
+                        Math.max(0L, AstralServerTickClock.now(player.level()) - pending.startedAtTick()));
             }
         }
     }

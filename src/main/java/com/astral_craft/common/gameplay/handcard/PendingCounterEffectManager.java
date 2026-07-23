@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.handcard;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -91,7 +92,7 @@ public class PendingCounterEffectManager {
         PendingBoardCounter chain = new PendingBoardCounter(source.level(), session, source, source.getUUID(),
                 sourceParticipant.slotUuid(), targetParticipant.slotUuid(), targetParticipant.slotUuid(),
                 sourceStack.copyWithCount(1), definition, resolver, null, null, revealId, false,
-                source.level().getGameTime() + DEFAULT_RESPONSE_TICKS);
+                AstralServerTickClock.now(source.level()) + DEFAULT_RESPONSE_TICKS);
         presentInitialBoardTarget(chain, targetParticipant, counterIndexes);
         return true;
     }
@@ -107,7 +108,7 @@ public class PendingCounterEffectManager {
         if (target == null || target.knockedDown() || source.slotUuid().equals(target.slotUuid())) return false;
         List<Integer> counterIndexes = counterIndexes(target);
         if (counterIndexes.isEmpty()) return false;
-        long deadlineTick = level.getGameTime() + DEFAULT_RESPONSE_TICKS;
+        long deadlineTick = AstralServerTickClock.now(level) + DEFAULT_RESPONSE_TICKS;
         PendingBoardCounter chain = new PendingBoardCounter(level, session, null, source.slotUuid(),
                 source.slotUuid(), target.slotUuid(), target.slotUuid(), sourceStack.copyWithCount(1),
                 definition, null, resolver, completion, null, false, deadlineTick);
@@ -205,7 +206,7 @@ public class PendingCounterEffectManager {
 
         for (Map.Entry<UUID, PendingBoardCounter> entry : List.copyOf(BOARD_BY_CONTROLLER.entrySet())) {
             PendingBoardCounter chain = entry.getValue();
-            if (chain.level().getGameTime() < chain.deadlineTick()) continue;
+            if (AstralServerTickClock.now(chain.level()) < chain.deadlineTick()) continue;
             if (!BOARD_BY_CONTROLLER.remove(entry.getKey(), chain)) continue;
             releaseReveal(chain);
             BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
@@ -253,7 +254,7 @@ public class PendingCounterEffectManager {
 
         UUID revealId = UUID.randomUUID();
         PendingBoardCounter waiting = chain.withReveal(revealId,
-                chain.level().getGameTime() + DEFAULT_RESPONSE_TICKS);
+                AstralServerTickClock.now(chain.level()) + DEFAULT_RESPONSE_TICKS);
         broadcastEffectReveal(waiting, targetEntity, revealId, true);
         ServerPlayer controller = controllerFor(waiting, target);
         if (controller != null) {
@@ -409,8 +410,7 @@ public class PendingCounterEffectManager {
     }
 
     private static int remainingResponseTicks(PendingBoardCounter chain) {
-        return (int) Math.clamp(chain.deadlineTick() - chain.level().getGameTime(),
-                1L, DEFAULT_RESPONSE_TICKS);
+        return (int) Math.clamp(chain.deadlineTick() - AstralServerTickClock.now(chain.level()), 1L, DEFAULT_RESPONSE_TICKS);
     }
 
     private static List<Integer> counterIndexes(BoardParticipant participant) {

@@ -1,5 +1,6 @@
 package com.astral_craft.common.event;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.KnockdownManager;
@@ -199,6 +200,7 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onServerTickPost(ServerTickEvent.Post event) {
+        AstralServerTickClock.tick(event.getServer());
         PendingCardActionManager.serverTick();
         PendingCounterEffectManager.serverTick(event.getServer());
         KnockdownManager.serverTick();

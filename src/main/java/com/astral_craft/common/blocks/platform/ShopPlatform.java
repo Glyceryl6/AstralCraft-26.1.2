@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardEventService;
@@ -56,7 +57,7 @@ public class ShopPlatform extends BasePlatform {
             return;
         }
 
-        if (level.getGameTime() < state.deadlineTick()) return;
+        if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
         if (participant != null && !BoardSessionManager.isAutomated(level, participant)) {
             BoardSessionManager.updateParticipant(level, session, participant.recordTimedOutDecision());
@@ -143,7 +144,7 @@ public class ShopPlatform extends BasePlatform {
 
         int duration = participant.decisionDurationTicks(TIMEOUT_TICKS);
         ShopState state = new ShopState(session.id(), participant.slotUuid(), offers, 0,
-                level.getGameTime() + duration, duration);
+                AstralServerTickClock.now(level) + duration, duration);
         this.states.put(session.id(), state);
         this.activateBoardEffect(session);
         participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
@@ -151,7 +152,7 @@ public class ShopPlatform extends BasePlatform {
     }
 
     private void send(ServerPlayer player, BoardParticipant participant, ShopState state, int noticeCode) {
-        int remaining = (int) Math.max(0L, state.deadlineTick() - player.level().getGameTime());
+        int remaining = (int) Math.max(0L, state.deadlineTick() - AstralServerTickClock.now(player.level()));
         PacketDistributor.sendToPlayer(player, new OpenBoardShopPayload(state.boardId(),
                 state.offers(), state.purchasedMask(), participant.stats().starCoins(), CARD_PRICE,
                 remaining, state.durationTicks(), participant.characterId(), participant.skinId(), noticeCode));

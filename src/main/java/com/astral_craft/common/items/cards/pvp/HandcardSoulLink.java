@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards.pvp;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.SoulLinkEntity;
@@ -71,7 +72,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
             return true;
         }
 
-        if (!link(first, second, user.level().getGameTime() + 20L * 60L,
+        if (!link(first, second, AstralServerTickClock.now(user.level()) + 20L * 60L,
                 SoulLinkEntity.VisualStyle.rainbow(2.2F, 0.05F))) {
             user.sendSystemMessage(Component.translatable("message.astral_craft.soul_link.already_linked"), true);
             return false;
@@ -127,24 +128,24 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     public static boolean isLinked(LivingEntity entity) {
         Link link = LINKS.get(entity.getUUID());
         if (link == null) return false;
-        if (entity.level() instanceof ServerLevel level && level.getGameTime() > link.untilGameTime()) {
+        if (entity.level() instanceof ServerLevel level && AstralServerTickClock.now(level) > link.untilTick()) {
             remove(link);
             return false;
         }
         return true;
     }
 
-    public static boolean link(LivingEntity first, LivingEntity second, long untilGameTime) {
-        return link(first, second, untilGameTime, SoulLinkEntity.VisualStyle.DEFAULT);
+    public static boolean link(LivingEntity first, LivingEntity second, long untilTick) {
+        return link(first, second, untilTick, SoulLinkEntity.VisualStyle.DEFAULT);
     }
 
-    public static boolean link(LivingEntity first, LivingEntity second, long untilGameTime, SoulLinkEntity.VisualStyle style) {
+    public static boolean link(LivingEntity first, LivingEntity second, long untilTick, SoulLinkEntity.VisualStyle style) {
         if (!(first.level() instanceof ServerLevel level) || first.level() != second.level()) return false;
         if (isLinked(first) || isLinked(second)) return false;
-        int lifetime = Math.max(1, (int) (untilGameTime - level.getGameTime()));
+        int lifetime = Math.max(1, (int) (untilTick - AstralServerTickClock.now(level)));
         SoulLinkEntity visual = new SoulLinkEntity(level, first, second, lifetime, style);
         level.addFreshEntity(visual);
-        Link link = new Link(first.getUUID(), second.getUUID(), untilGameTime);
+        Link link = new Link(first.getUUID(), second.getUUID(), untilTick);
         LINKS.put(first.getUUID(), link);
         LINKS.put(second.getUUID(), link);
         return true;
@@ -154,7 +155,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         if (mirroringDamage || event.getNewDamage() <= 0.0F || !(event.getEntity().level() instanceof ServerLevel level)) return;
         Link link = LINKS.get(event.getEntity().getUUID());
         if (link == null) return;
-        if (level.getGameTime() > link.untilGameTime()) {
+        if (AstralServerTickClock.now(level) > link.untilTick()) {
             remove(link);
             return;
         }
@@ -208,7 +209,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         if (mirroringDamage || level == null || damaged == null || amount <= 0) return;
         Link link = LINKS.get(damaged.getUUID());
         if (link == null) return;
-        if (level.getGameTime() > link.untilGameTime()) {
+        if (AstralServerTickClock.now(level) > link.untilTick()) {
             remove(link);
             return;
         }
@@ -307,7 +308,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         }
     }
 
-    private record Link(UUID first, UUID second, long untilGameTime) {
+    private record Link(UUID first, UUID second, long untilTick) {
         private UUID other(UUID source) {
             return source.equals(this.first) ? this.second : this.first;
         }

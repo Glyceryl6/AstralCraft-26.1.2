@@ -1,5 +1,6 @@
 package com.astral_craft.common.items;
 
+import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.gameplay.board.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -32,11 +33,11 @@ public class BoardLobbyItem extends Item {
         if (session.phase() == BoardPhase.READY) {
             session.setProtectionEnabled(true);
             session.setPhase(BoardPhase.CHARACTER_SELECTION);
-            session.setLobbyDeadlineTick(level.getGameTime() + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
+            session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
             BoardSessionManager.markChanged(level);
             BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));
         } else if (session.lobbyDeadlineTick() <= 0L) {
-            session.setLobbyDeadlineTick(level.getGameTime() + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
+            session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
             BoardSessionManager.markChanged(level);
         }
         BoardLobbyService.registerViewer(player, session);
