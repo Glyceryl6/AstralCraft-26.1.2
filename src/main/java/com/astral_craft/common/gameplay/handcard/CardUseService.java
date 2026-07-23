@@ -51,17 +51,6 @@ public class CardUseService {
         return result.interactionResult();
     }
 
-    public static boolean useDeckCard(ServerPlayer player, String rawCardId) {
-        Identifier itemId;
-        try {
-            itemId = resolveCardItemId(rawCardId);
-        } catch (RuntimeException exception) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.card_deck.missing_card", rawCardId), true);
-            return false;
-        }
-        return useDeckCard(player, itemId);
-    }
-
     public static boolean useDeckCard(ServerPlayer player, Identifier itemId) {
         if (itemId == null) return false;
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
@@ -355,8 +344,7 @@ public class CardUseService {
         PacketDistributor.sendToPlayer(viewer, cardRevealPayload(owner, stack, definition, List.of(), animation, durationTicks));
     }
 
-    public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition,
-                                              Identifier animation, int durationTicks) {
+    public static void sendEntityRevealAround(ServerPlayer owner, ItemStack stack, CardDefinition definition, Identifier animation, int durationTicks) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         sendEntityRevealAround(owner, definition.itemId(stack).toString(), revealStack(stack), cardType.getSerializedName(),
                 revealTitle(stack, definition), revealBody(owner, stack, definition), definition.largeFrontTexture(stack),
@@ -375,6 +363,7 @@ public class CardUseService {
             PacketDistributor.sendToPlayersTrackingEntityAndSelf(owner, payload);
             return;
         }
+
         Entity source = owner.level().getEntity(sourceEntityId);
         if (source != null) PacketDistributor.sendToPlayersTrackingEntity(source, payload);
     }
@@ -391,19 +380,16 @@ public class CardUseService {
     }
 
     public static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,
-                                                      List<? extends LivingEntity> targets, Identifier animation,
-                                                      int durationTicks) {
+                                                      List<? extends LivingEntity> targets, Identifier animation, int durationTicks) {
         return cardRevealPayload(owner, stack, definition, targets, animation, durationTicks, UUID.randomUUID());
     }
 
     public static CardRevealPayload cardRevealPayload(ServerPlayer owner, ItemStack stack, CardDefinition definition,
-                                                      List<? extends LivingEntity> targets, Identifier animation,
-                                                      int durationTicks, UUID revealId) {
+                                                      List<? extends LivingEntity> targets, Identifier animation, int durationTicks, UUID revealId) {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         int sourceEntityId = BoardEntityService.revealSourceEntityId(owner);
         List<Integer> targetEntityIds = targets == null || targets.isEmpty()
-                ? List.of()
-                : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
+                ? List.of() : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
                 definition.largeFrontTexture(stack),
@@ -493,8 +479,7 @@ public class CardUseService {
     }
 
     private static void reopenBoardTurn(ServerPlayer player) {
-        BoardSessionManager.findByController(player)
-                .ifPresent(session -> BoardSessionManager.reopenTurnScreen(player, session.id()));
+        BoardSessionManager.findByController(player).ifPresent(session -> BoardSessionManager.reopenTurnScreen(player, session.id()));
     }
 
     private static void consumeAfterAcceptedUse(ServerPlayer player, ItemStack stack, boolean consumeStack, int handIndex) {
@@ -502,6 +487,7 @@ public class CardUseService {
             BoardSessionManager.consumeBoardCard(player, boardCardIndex(handIndex));
             return;
         }
+
         if (handIndex == DECK_CARD_HAND_INDEX) {
             AstralHandCardManager.removeFromInventory(player, stack, 1);
             return;

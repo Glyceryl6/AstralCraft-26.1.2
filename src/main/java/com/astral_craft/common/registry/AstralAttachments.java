@@ -8,6 +8,7 @@ import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventState;
 import com.astral_craft.common.gameplay.handcard.AstralHandCards;
 import com.astral_craft.common.stats.AstralPlayerStats;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -32,11 +33,13 @@ public class AstralAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<CharacterSkillState>> CHARACTER_SKILLS = ATTACHMENTS.register("character_skills",
             () -> AttachmentType.builder(CharacterSkillState::empty).serialize(CharacterSkillState.CODEC.fieldOf("character_skills")).sync(CharacterSkillState.STREAM_CODEC).copyOnDeath().build());
 
-
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralEventState>> EVENT_STATE = ATTACHMENTS.register("event_state",
             () -> AttachmentType.builder(AstralEventState::empty).serialize(AstralEventState.CODEC.fieldOf("event_state")).copyOnDeath().build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<AstralEventPreferences>> EVENT_PREFERENCES = ATTACHMENTS.register("event_preferences",
             () -> AttachmentType.builder(() -> AstralEventPreferences.DEFAULT).serialize(AstralEventPreferences.CODEC.fieldOf("event_preferences")).copyOnDeath().build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Identifier>> CARD_BACK = ATTACHMENTS.register("card_back",
+            () -> AttachmentType.builder(() -> AstralCraft.prefix("default")).serialize(Identifier.CODEC.fieldOf("card_back")).copyOnDeath().build());
 
 }

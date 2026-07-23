@@ -1,6 +1,5 @@
 package com.astral_craft.client.jpgloader;
 
-import com.astral_craft.AstralCraft;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -34,11 +33,10 @@ public class ScopedJpgTextureCache {
 
         int width = image.getWidth();
         int height = image.getHeight();
-        Identifier dynamicId = dynamicTextureId(jpgResource);
         DynamicTexture texture = new DynamicTexture(() -> "Scoped JPG " + jpgResource, image);
         TextureManager textureManager = minecraft.getTextureManager();
-        textureManager.register(dynamicId, texture);
-        LoadedJpgTexture loaded = new LoadedJpgTexture(dynamicId, width, height);
+        textureManager.register(jpgResource, texture);
+        LoadedJpgTexture loaded = new LoadedJpgTexture(jpgResource, width, height);
         CACHE.put(jpgResource, loaded);
         return loaded;
     }
@@ -51,12 +49,6 @@ public class ScopedJpgTextureCache {
         }
 
         CACHE.clear();
-    }
-
-    private static Identifier dynamicTextureId(Identifier source) {
-        String sanitized = source.getNamespace() + "/" + source.getPath();
-        sanitized = sanitized.replace('.', '_').replace('/', '_');
-        return Identifier.fromNamespaceAndPath(AstralCraft.MOD_ID, "dynamic/jpg/" + sanitized);
     }
 
 }

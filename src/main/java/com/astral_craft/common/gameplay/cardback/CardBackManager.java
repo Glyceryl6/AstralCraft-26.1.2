@@ -1,6 +1,8 @@
 package com.astral_craft.common.gameplay.cardback;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.client.jpgloader.LoadedJpgTexture;
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -8,6 +10,7 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.io.IOException;
 import java.util.*;
 
 @ParametersAreNonnullByDefault
@@ -25,11 +28,14 @@ public class CardBackManager extends SimpleJsonResourceReloadListener<CardBackDe
     protected void apply(Map<Identifier, CardBackDefinition> elements, ResourceManager resourceManager, ProfilerFiller profiler) {
         Map<Identifier, CardBackDefinition> loaded = new LinkedHashMap<>();
         loaded.put(CardBackDefinition.builtinDefault().id(), CardBackDefinition.builtinDefault());
+        Identifier builtin = AstralCraft.prefix("default");
         for (Map.Entry<Identifier, CardBackDefinition> entry : elements.entrySet()) {
             CardBackDefinition value = entry.getValue();
-            Identifier id = value.id().equals(AstralCraft.prefix("default"))
-                    && !entry.getKey().equals(AstralCraft.prefix("default")) ? entry.getKey() : value.id();
-            loaded.put(id, new CardBackDefinition(id, value.nameKey(), value.texture(), value.defaultChoice()));
+            Identifier id = value.id().equals(builtin) && !entry.getKey().equals(builtin) ? entry.getKey() : value.id();
+            try {
+                LoadedJpgTexture loadedTexture = ScopedJpgTextureCache.getOrLoad(value.texture());
+                loaded.put(id, new CardBackDefinition(id, value.nameKey(), loadedTexture.textureId(), value.defaultChoice()));
+            } catch (IOException _) {}
         }
 
         this.definitions.clear();

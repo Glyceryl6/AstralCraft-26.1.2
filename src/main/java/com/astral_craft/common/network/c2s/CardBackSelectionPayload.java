@@ -10,11 +10,11 @@ public record CardBackSelectionPayload(Identifier selectedId) implements CustomP
 
     public static final Type<CardBackSelectionPayload> TYPE = new Type<>(AstralCraft.prefix("card_back_selection"));
     public static final StreamCodec<ByteBuf, CardBackSelectionPayload> STREAM_CODEC = StreamCodec.composite(
-            Identifier.STREAM_CODEC, CardBackSelectionPayload::selectedId,
-            CardBackSelectionPayload::new);
+            Identifier.STREAM_CODEC, CardBackSelectionPayload::selectedId, CardBackSelectionPayload::new);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
+
 }
