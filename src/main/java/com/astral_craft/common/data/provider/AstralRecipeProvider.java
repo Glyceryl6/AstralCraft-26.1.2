@@ -21,7 +21,7 @@ public class AstralRecipeProvider extends RecipeProvider {
     @Override
     protected void buildRecipes() {
         ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), RecipeCategory.TOOLS,
-                        AstralItems.BOARD_PROJECTOR.get())
+                        AstralItems.BOARD_SCANNER.get())
                 .pattern("GAG")
                 .pattern("RMR")
                 .pattern("IRI")
@@ -31,6 +31,20 @@ public class AstralRecipeProvider extends RecipeProvider {
                 .define('M', Items.MAP)
                 .define('I', Items.IRON_INGOT)
                 .unlockedBy("has_redstone", this.has(Items.REDSTONE))
+                .save(this.output);
+
+        ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), RecipeCategory.TOOLS,
+                        AstralItems.BOARD_PROJECTOR.get())
+                .pattern("AEA")
+                .pattern("RPR")
+                .pattern("GMG")
+                .define('A', Items.AMETHYST_SHARD)
+                .define('E', Items.ENDER_EYE)
+                .define('R', Items.REDSTONE)
+                .define('P', AstralItems.BOARD_SCANNER.get())
+                .define('G', Items.GOLD_INGOT)
+                .define('M', Items.MAP)
+                .unlockedBy("has_board_scanner", this.has(AstralItems.BOARD_SCANNER.get()))
                 .save(this.output);
 
         ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), RecipeCategory.TOOLS,

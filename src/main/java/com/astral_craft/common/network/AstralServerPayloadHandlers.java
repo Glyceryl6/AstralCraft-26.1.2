@@ -18,6 +18,7 @@ import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.items.cards.HandcardSmartDice;
+import com.astral_craft.common.items.BoardProjectorItem;
 import com.astral_craft.common.items.cards.pve.HandcardFateGuidance;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
@@ -143,6 +144,14 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 BoardLobbyService.updateSelection(player, payload.boardId(), payload.characterId(), payload.skinId(), payload.confirmed());
+            }
+        });
+    }
+
+    public static void handleBoardProjectorConfirm(BoardProjectorConfirmPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardProjectorItem.confirmPlacement(player, payload);
             }
         });
     }

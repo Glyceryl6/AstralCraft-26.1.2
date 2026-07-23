@@ -132,6 +132,7 @@ public class ClientEventSubscriber {
         BoardRouteWorldRenderer.submit(event);
         BoardProtectionWorldRenderer.submit(event);
         BoardCharacterMarkerRenderer.submit(event);
+        BoardTemplatePreviewRenderer.submit(event);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -181,6 +182,7 @@ public class ClientEventSubscriber {
         event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
+        event.register(OpenBoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmScreen::open);
         event.register(OpenBoardTurnPayload.TYPE, BoardTurnScreen::open);
         event.register(OpenBoardDiscardPayload.TYPE, BoardDiscardScreen::open);
         event.register(OpenBoardEncounterPayload.TYPE, BoardEncounterScreen::open);

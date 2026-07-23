@@ -3,18 +3,17 @@
   "category": "equipment",
   "key": {
     "A": "minecraft:amethyst_shard",
-    "E": "minecraft:ender_eye",
-    "G": "minecraft:gold_ingot",
+    "G": "minecraft:glass",
+    "I": "minecraft:iron_ingot",
     "M": "minecraft:map",
-    "P": "astral_craft:board_scanner",
     "R": "minecraft:redstone"
   },
   "pattern": [
-    "AEA",
-    "RPR",
-    "GMG"
+    "GAG",
+    "RMR",
+    "IRI"
   ],
   "result": {
-    "id": "astral_craft:board_projector"
+    "id": "astral_craft:board_scanner"
   }
 }

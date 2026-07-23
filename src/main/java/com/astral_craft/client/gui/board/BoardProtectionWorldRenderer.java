@@ -2,6 +2,7 @@ package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.render.effect.EffectRenderGeometry;
 import com.astral_craft.client.util.ClientAnimationClock;
+import com.astral_craft.common.gameplay.board.BoardArea;
 import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -34,6 +35,12 @@ public class BoardProtectionWorldRenderer {
         } else {
             SNAPSHOTS.remove(payload.boardId());
         }
+    }
+
+    public static boolean intersects(BoardArea area) {
+        if (area == null) return false;
+        return SNAPSHOTS.values().stream().anyMatch(snapshot ->
+                new BoardArea(snapshot.min(), snapshot.max()).intersects(area));
     }
 
     public static void submit(SubmitCustomGeometryEvent event) {

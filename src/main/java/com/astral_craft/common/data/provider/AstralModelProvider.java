@@ -11,10 +11,7 @@ import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
 import net.minecraft.client.data.models.MultiVariant;
-import net.minecraft.client.data.models.model.ItemModelUtils;
-import net.minecraft.client.data.models.model.ModelLocationUtils;
-import net.minecraft.client.data.models.model.TextureMapping;
-import net.minecraft.client.data.models.model.TextureSlot;
+import net.minecraft.client.data.models.model.*;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.Identifier;
@@ -31,6 +28,11 @@ public class AstralModelProvider extends ModelProvider {
 
     @Override
     protected void registerModels(BlockModelGenerators blockModels, ItemModelGenerators itemModels) {
+        itemModels.generateFlatItem(AstralItems.BOARD_SCANNER.get(), ModelTemplates.FLAT_ITEM);
+        itemModels.generateFlatItem(AstralItems.BOARD_LOBBY.get(), ModelTemplates.FLAT_ITEM);
+        itemModels.generateFlatItem(AstralItems.BOARD_SPECTATOR.get(), ModelTemplates.FLAT_ITEM);
+        itemModels.generateFlatItem(AstralItems.BOARD_DISMANTLER.get(), ModelTemplates.FLAT_ITEM);
+        itemModels.generateFlatItem(AstralItems.BOARD_PROJECTOR.get(), ModelTemplates.FLAT_ITEM);
         AstralItems.MODELLED_CARD_ITEMS.forEach(modelledCardItem -> {
             Item item = modelledCardItem.item().get();
             String name = modelledCardItem.cardType().name;

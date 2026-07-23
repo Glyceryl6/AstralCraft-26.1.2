@@ -54,11 +54,11 @@ public class AstralItems {
 
     // Utility
     public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new, Item.Properties::new);
-    public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_SCANNER = register("board_scanner", BoardScannerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
-    public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
-    public static final DeferredHolder<Item, ? extends Item> BOARD_START_MARKER = register("board_start_marker", BoardStartMarkerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_SPECTATOR = register("board_spectator", BoardSpectatorItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new, () -> new Item.Properties().stacksTo(99));
 
     // Handcard

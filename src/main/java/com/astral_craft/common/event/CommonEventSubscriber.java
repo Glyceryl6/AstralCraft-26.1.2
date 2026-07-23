@@ -14,6 +14,7 @@ import com.astral_craft.common.gameplay.event.*;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.registry.AstralDataComponents;
+import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.astral_craft.common.items.BaseHandCard;
@@ -89,9 +90,7 @@ public class CommonEventSubscriber {
                                 })))
                 .then(Commands.literal("presentation")
                         .then(Commands.argument("mode", StringArgumentType.word())
-                                .suggests((_, builder) -> SharedSuggestionProvider.suggest(List.of(
-                                        AstralEventPreferences.PRESENTATION_ANIMATION,
-                                        AstralEventPreferences.PRESENTATION_CHAT), builder))
+                                .suggests((_, builder) -> SharedSuggestionProvider.suggest(List.of(AstralEventPreferences.PRESENTATION_ANIMATION, AstralEventPreferences.PRESENTATION_CHAT), builder))
                                 .executes(context -> {
                                     String mode = StringArgumentType.getString(context, "mode");
                                     var player = context.getSource().getPlayerOrException();
@@ -149,6 +148,18 @@ public class CommonEventSubscriber {
 
         if (itemStack.has(AstralDataComponents.BOARD_SPECTATOR_BINDING.get())) {
             event.getToolTip().add(Component.translatable("tooltips.astral_craft.board_spectator.bound").withStyle(ChatFormatting.AQUA));
+        }
+
+        if (itemStack.is(AstralItems.BOARD_PROJECTOR.get())) {
+            BoardTemplateData template = itemStack.get(AstralDataComponents.BOARD_TEMPLATE.get());
+            if (template == null) {
+                event.getToolTip().add(Component.translatable("tooltips.astral_craft.board_projector.empty").withStyle(ChatFormatting.GRAY));
+            } else {
+                event.getToolTip().add(Component.translatable("tooltips.astral_craft.board_projector.saved").withStyle(ChatFormatting.AQUA));
+                event.getToolTip().add(Component.translatable("tooltips.astral_craft.board_projector.details",
+                        template.panelCount(), template.width(), template.depth()).withStyle(ChatFormatting.GRAY));
+                event.getToolTip().add(Component.translatable("tooltips.astral_craft.board_projector.one_use").withStyle(ChatFormatting.GOLD));
+            }
         }
 
         if (item instanceof BlockItem blockItem) {

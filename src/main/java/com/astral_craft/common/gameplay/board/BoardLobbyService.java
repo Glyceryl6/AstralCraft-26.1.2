@@ -57,7 +57,7 @@ public class BoardLobbyService {
         BoardSessionManager.markChanged(player.level());
         player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_confirmed",
                 Component.translatable(definition.nameKey())).withStyle(ChatFormatting.GREEN), true);
-        if (session.participantCount() >= BoardSessionManager.REQUIRED_PLAYERS || isSoloIntegratedServer(player)) {
+        if (readyToStartImmediately(player, session)) {
             BoardSessionManager.startGame(player.level(), session);
         } else {
             refreshScreens(player.level(), session);
@@ -199,9 +199,10 @@ public class BoardLobbyService {
     }
 
     private static BoardParticipant createParticipant(BoardSession session, ServerPlayer player, Identifier characterId, Identifier skinId) {
-        return new BoardParticipant(UUID.randomUUID(), Optional.of(player.getUUID()), false, characterId, skinId,
-                BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID, Optional.empty(), AstralPlayerStats.DEFAULT,
-                List.of(), Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
+        return new BoardParticipant(UUID.randomUUID(), Optional.of(player.getUUID()), false,
+                characterId, skinId, BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID,
+                Optional.empty(), AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7,
+                session.nextArrivalOrder());
     }
 
     private static Identifier firstAvailableCharacter(BoardSession session) {
@@ -213,8 +214,12 @@ public class BoardLobbyService {
         return LOBBIES.computeIfAbsent(boardId, ignored -> new LobbyState());
     }
 
-    private static boolean isSoloIntegratedServer(ServerPlayer player) {
-        return player.server.isSingleplayer() || player.server.getPlayerList().getPlayerCount() <= 1;
+    private static boolean readyToStartImmediately(ServerPlayer player, BoardSession session) {
+        Set<UUID> viewers = VIEWERS.getOrDefault(session.id(), Set.of());
+        long onlineViewers = viewers.stream().map(player.server.getPlayerList()::getPlayer)
+                .filter(Objects::nonNull).filter(viewer -> viewer.level() == player.level()).count();
+        int requiredHumans = (int) Math.clamp(Math.max(1L, onlineViewers), 1L, BoardSessionManager.REQUIRED_PLAYERS);
+        return session.participantCount() >= requiredHumans;
     }
 
     private static class LobbyState {
@@ -252,11 +257,10 @@ public class BoardLobbyService {
         }
 
         private List<BoardCharacterSelectionEntry> entries() {
-            return this.ordered().stream().map(selection -> new BoardCharacterSelectionEntry(
-                    selection.slot(), selection.playerName(), selection.characterId(),
-                    selection.skinId(), selection.selected(), selection.confirmed())).toList();
+            return this.ordered().stream().map(selection -> new BoardCharacterSelectionEntry(selection.slot(),
+                    selection.playerName(), selection.characterId(), selection.skinId(),
+                    selection.selected(), selection.confirmed())).toList();
         }
-
     }
 
     private record LobbySelection(UUID playerId, int slot, String playerName, Identifier characterId, Identifier skinId, boolean selected, boolean confirmed) {

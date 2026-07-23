@@ -12,8 +12,8 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.common.data.LanguageProvider;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
-import java.lang.reflect.Method;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -38,7 +38,6 @@ public class AstralLanguageProvider extends LanguageProvider {
         // Block: Platform
         this.addKey(AstralBlocks.PLATFORM_CANDY_GHOST, "Quirky Candy Machine", "怪奇糖果机");
         this.addKey(AstralBlocks.PLATFORM_CARD, "Card Bounce", "卡牌奖励");
-        this.addKey(AstralBlocks.PLATFORM_CHECK_POINT, "Check Point", "保障点");
         this.addKey(AstralBlocks.PLATFORM_DAMAGE, "Sudden Calamity", "天降横祸");
         this.addKey(AstralBlocks.PLATFORM_DESTINY, "Fortune", "个人命运");
         this.addKey(AstralBlocks.PLATFORM_DIVINE, "Divination", "占卜");
@@ -57,8 +56,16 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralBlocks.PLATFORM_RELIC, "Chip Shop", "筹码商店");
         this.addKey(AstralBlocks.PLATFORM_SHOP, "Shop", "商店");
         this.addKey(AstralBlocks.PLATFORM_START, "Start Point", "起始点");
+        this.addKey(AstralBlocks.PLATFORM_CHECK_POINT, "Check Point", "保障点");
         this.addKey(AstralBlocks.PLATFORM_TELEPORT, "Portal", "传送门");
         this.addKey(AstralBlocks.PLATFORM_TELEPORT_POINT, "Assault", "突击门");
+        
+        // Item: Utility
+        this.addKey(AstralItems.BOARD_SCANNER, "棋盘扫描器");
+        this.addKey(AstralItems.BOARD_LOBBY, "棋盘大厅入口");
+        this.addKey(AstralItems.BOARD_SPECTATOR, "棋盘观战工具");
+        this.addKey(AstralItems.BOARD_DISMANTLER, "棋盘拆除器");
+        this.addKey(AstralItems.BOARD_PROJECTOR, "棋盘投影器");
         
         // Item: Handcard
         this.addKey(AstralItems.HANDCARD_ATTACK_M, "Attack (M)", "攻击（中）");

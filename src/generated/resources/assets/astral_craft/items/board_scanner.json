@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "astral_craft:item/board_lobby"
+    "model": "astral_craft:item/board_scanner"
   }
 }
