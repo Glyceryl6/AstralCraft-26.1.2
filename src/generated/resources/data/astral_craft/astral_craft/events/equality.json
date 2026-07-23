@@ -19,6 +19,6 @@
   ],
   "id": "astral_craft:equality",
   "name_key": "event.astral_craft.equality.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "texture": "astral_craft:textures/gui/cards/event/equality.jpg",
   "triggers": false
 }

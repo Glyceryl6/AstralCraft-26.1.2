@@ -105,10 +105,10 @@ public class BoardLotteryDrawScreen extends Screen {
         for (int number = 1; number <= 12; number++) {
             Cell cell = layout.cell(number);
             boolean highlighted = number == active;
-            graphics.fill(cell.x(), cell.y(), cell.x() + cell.size(), cell.y() + cell.size(),
-                    highlighted ? 0xFFDB9D35 : 0xFF303442);
-            graphics.fill(cell.x() + 2, cell.y() + 2, cell.x() + cell.size() - 2, cell.y() + cell.size() - 2,
-                    highlighted ? 0xFFFFC85B : 0xFF4A5064);
+            graphics.fill(cell.x(), cell.y(), cell.x() + cell.size(),
+                    cell.y() + cell.size(), highlighted ? 0xFFDB9D35 : 0xFF303442);
+            graphics.fill(cell.x() + 2, cell.y() + 2, cell.x() + cell.size() - 2,
+                    cell.y() + cell.size() - 2, highlighted ? 0xFFFFC85B : 0xFF4A5064);
             graphics.centeredText(this.font, Component.literal(Integer.toString(number)),
                     cell.x() + cell.size() / 2, cell.y() + (cell.size() - 8) / 2,
                     highlighted ? 0xFF1C1D24 : 0xFFFFFFFF);
@@ -120,13 +120,12 @@ public class BoardLotteryDrawScreen extends Screen {
             Component result = this.winnerNames.isEmpty()
                     ? Component.translatable("gui.astral_craft.board.lottery_draw.no_winner")
                     : Component.translatable("gui.astral_craft.board.lottery_draw.winner", this.winnerNames.size(), this.awardEach);
-            graphics.centeredText(this.font, result, centerX, centerY - 5,
-                    this.winnerNames.isEmpty() ? 0xFFBFC2D0 : 0xFF72D27B);
+            graphics.centeredText(this.font, result, centerX, centerY - 5, this.winnerNames.isEmpty() ? 0xFFBFC2D0 : 0xFF72D27B);
             if (!this.winnerNames.isEmpty()) {
-                List<FormattedCharSequence> lines = this.font.split(Component.literal(String.join(", ", this.winnerNames)),
-                        layout.boardInnerWidth());
+                List<FormattedCharSequence> lines = this.font.split(Component.literal(String.join(", ", this.winnerNames)), layout.boardInnerWidth());
                 for (int line = 0; line < Math.min(2, lines.size()); line++) {
-                    graphics.text(this.font, lines.get(line), centerX - this.font.width(lines.get(line)) / 2,
+                    graphics.text(this.font, lines.get(line),
+                            centerX - this.font.width(lines.get(line)) / 2,
                             centerY + 9 + line * 11, 0xFFFFFFFF, false);
                 }
             }
@@ -134,7 +133,7 @@ public class BoardLotteryDrawScreen extends Screen {
     }
 
     private void renderEntry(GuiGraphicsExtractor graphics, Layout layout, int index, OpenBoardLotteryDrawPayload.Entry entry) {
-        int rowY = layout.y() + 80 + index * 55;
+        int rowY = layout.y() + 80 + index * 40;
         int iconSize = 38;
         AstralStatusIconRenderer.renderCharacterSkinHead(graphics, entry.characterId(), entry.skinId().getPath(),
                 layout.listX(), rowY, iconSize, 255);
@@ -168,12 +167,13 @@ public class BoardLotteryDrawScreen extends Screen {
     private record Cell(int x, int y, int size) {}
 
     private record Layout(int x, int y, int width, int height) {
+
         private int listX() { return this.x + 16; }
-        private int listWidth() { return Math.min(270, Math.max(220, this.width * 2 / 5)); }
+        private int listWidth() { return Math.clamp(this.width * 2L / 5, 220, 270); }
         private int boardX() { return this.x + this.listWidth() + 20; }
         private int boardWidth() { return this.width - this.listWidth() - 36; }
         private int boardCenterX() { return this.boardX() + this.boardWidth() / 2; }
-        private int boardCenterY() { return this.y + 205; }
+        private int boardCenterY() { return this.y + 150; }
         private int boardInnerWidth() { return 122; }
 
         private Cell cell(int number) {
@@ -190,5 +190,7 @@ public class BoardLotteryDrawScreen extends Screen {
                 default -> new Cell(left, top + (13 - number) * step, size);
             };
         }
+
     }
+
 }

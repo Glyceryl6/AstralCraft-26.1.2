@@ -31,7 +31,8 @@ public class BoardProtectionWorldRenderer {
     public static void acceptSnapshot(BoardHudSnapshotPayload payload) {
         if (payload.protectionEnabled()) {
             SNAPSHOTS.put(payload.boardId(), new ProtectionSnapshot(
-                    payload.areaMin(), payload.areaMax(), ClientAnimationClock.nowTicks()));
+                    payload.areaMin(), payload.areaMax(),
+                    ClientAnimationClock.nowTicks()));
         } else {
             SNAPSHOTS.remove(payload.boardId());
         }
@@ -39,17 +40,14 @@ public class BoardProtectionWorldRenderer {
 
     public static boolean intersects(BoardArea area) {
         if (area == null) return false;
-        return SNAPSHOTS.values().stream().anyMatch(snapshot ->
-                new BoardArea(snapshot.min(), snapshot.max()).intersects(area));
+        return SNAPSHOTS.values().stream().anyMatch(snapshot -> new BoardArea(snapshot.min(), snapshot.max()).intersects(area));
     }
 
     public static void submit(SubmitCustomGeometryEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || SNAPSHOTS.isEmpty()) return;
-        SNAPSHOTS.values().removeIf(snapshot ->
-                ClientAnimationClock.elapsedTicks(snapshot.receivedAtTick()) > STALE_AFTER_TICKS);
+        SNAPSHOTS.values().removeIf(snapshot -> ClientAnimationClock.elapsedTicks(snapshot.receivedAtTick()) > STALE_AFTER_TICKS);
         if (SNAPSHOTS.isEmpty()) return;
-
         Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
         PoseStack poseStack = event.getPoseStack();
         for (ProtectionSnapshot current : SNAPSHOTS.values()) {
@@ -60,7 +58,6 @@ public class BoardProtectionWorldRenderer {
             double maxZ = current.max().getZ() + 1.18D;
             Vec3 center = new Vec3((minX + maxX) * 0.5D, y, (minZ + maxZ) * 0.5D);
             if (center.distanceToSqr(cameraPos) > MAX_RENDER_DISTANCE_SQR) continue;
-
             submitSolidLine(event, poseStack, cameraPos, new Vec3(minX, y, minZ),
                     new Vec3(maxX, y, minZ), OUTLINE_COLOR, HALF_WIDTH);
             submitSolidLine(event, poseStack, cameraPos, new Vec3(maxX, y, minZ),
@@ -69,7 +66,6 @@ public class BoardProtectionWorldRenderer {
                     new Vec3(minX, y, maxZ), OUTLINE_COLOR, HALF_WIDTH);
             submitSolidLine(event, poseStack, cameraPos, new Vec3(minX, y, maxZ),
                     new Vec3(minX, y, minZ), OUTLINE_COLOR, HALF_WIDTH);
-
             submitCorner(event, poseStack, cameraPos, minX, y, minZ, 1.0D, 1.0D);
             submitCorner(event, poseStack, cameraPos, maxX, y, minZ, -1.0D, 1.0D);
             submitCorner(event, poseStack, cameraPos, maxX, y, maxZ, -1.0D, -1.0D);
@@ -85,13 +81,11 @@ public class BoardProtectionWorldRenderer {
                 new Vec3(x, y + 0.006D, z + zDirection * CORNER_LENGTH), CORNER_COLOR, HALF_WIDTH * 1.8D);
     }
 
-    private static void submitSolidLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
-                                        Vec3 start, Vec3 end, int color, double halfWidth) {
+    private static void submitSolidLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos, Vec3 start, Vec3 end, int color, double halfWidth) {
         submitSegment(event, poseStack, cameraPos, start, end, color, halfWidth);
     }
 
-    private static void submitSegment(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
-                                      Vec3 start, Vec3 end, int color, double halfWidth) {
+    private static void submitSegment(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos, Vec3 start, Vec3 end, int color, double halfWidth) {
         Vec3 direction = end.subtract(start);
         if (direction.lengthSqr() < 1.0E-8D) return;
         direction = direction.normalize();

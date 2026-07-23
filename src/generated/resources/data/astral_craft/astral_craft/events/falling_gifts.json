@@ -19,6 +19,6 @@
   "id": "astral_craft:falling_gifts",
   "kind": "astral_craft:good",
   "name_key": "event.astral_craft.falling_gifts.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "texture": "astral_craft:textures/gui/cards/event/falling_gifts.jpg",
   "triggers": false
 }

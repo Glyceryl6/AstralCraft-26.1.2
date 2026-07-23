@@ -35,6 +35,8 @@ public class BoardDiscardScreen extends Screen {
     private final int timeoutDurationTicks;
     private final Identifier characterId;
     private final Identifier skinId;
+    private boolean timedOut;
+    private int timeoutMessageTicks;
 
     public BoardDiscardScreen(OpenBoardDiscardPayload payload) {
         super(Component.translatable("gui.astral_craft.board.discard"));
@@ -56,7 +58,12 @@ public class BoardDiscardScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
-        if (this.timeoutTicks > 0 && --this.timeoutTicks == 0) this.onClose();
+        if (this.timeoutTicks > 0 && --this.timeoutTicks == 0) {
+            this.timedOut = true;
+            this.timeoutMessageTicks = 20;
+        } else if (this.timedOut && this.timeoutMessageTicks > 0 && --this.timeoutMessageTicks == 0) {
+            this.onClose();
+        }
     }
 
     @Override
@@ -68,9 +75,16 @@ public class BoardDiscardScreen extends Screen {
         Component hint = Component.translatable("gui.astral_craft.board.discard_count", this.selected.size(), this.required);
         graphics.text(this.font, this.title, 18, 15, 0xFFFFFFFF, false);
         graphics.text(this.font, hint, 18, 30, this.selected.size() == this.required ? 0xFF80FFA8 : 0xFFFFC75C, false);
+        Component limitHint = Component.translatable("gui.astral_craft.board.discard_limit",
+                Math.max(0, this.cards.size() - this.required));
+        graphics.text(this.font, limitHint, 18, 44, 0xFFE6E6F0, false);
+        if (this.timedOut) {
+            Component timeout = Component.translatable("gui.astral_craft.board.discard_timeout");
+            graphics.centeredText(this.font, timeout, this.width / 2, 58, 0xFFFF7777);
+        }
         int columns = Math.max(1, (this.width - 30) / (CARD_W + GAP));
         int startX = (this.width - columns * (CARD_W + GAP) + GAP) / 2;
-        int startY = 52;
+        int startY = 74;
         for (int index = 0; index < this.cards.size(); index++) {
             Card card = this.cards.get(index);
             int x = startX + index % columns * (CARD_W + GAP);
@@ -87,7 +101,7 @@ public class BoardDiscardScreen extends Screen {
         int buttonH = 26;
         int buttonX = this.width - buttonW - 18;
         int buttonY = this.height - buttonH - 16;
-        boolean enabled = this.selected.size() == this.required;
+        boolean enabled = !this.timedOut && this.selected.size() == this.required;
         Component confirm = Component.translatable("gui.astral_craft.board.confirm");
         AstralFancyButton.renderButton(graphics, this.font, confirm, buttonX, buttonY, buttonW, buttonH,
                 false, enabled && inside(mouseX, mouseY, buttonX, buttonY, buttonW, buttonH),
@@ -99,10 +113,10 @@ public class BoardDiscardScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) return super.mouseClicked(event, doubleClick);
+        if (event.button() != 0 || this.timedOut) return super.mouseClicked(event, doubleClick);
         int columns = Math.max(1, (this.width - 30) / (CARD_W + GAP));
         int startX = (this.width - columns * (CARD_W + GAP) + GAP) / 2;
-        int startY = 52;
+        int startY = 74;
         for (int index = 0; index < this.cards.size(); index++) {
             int x = startX + index % columns * (CARD_W + GAP);
             int y = startY + index / columns * (CARD_H + GAP);

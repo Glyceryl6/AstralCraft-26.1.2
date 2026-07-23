@@ -28,6 +28,6 @@
   ],
   "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.food_safety.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "texture": "astral_craft:textures/gui/cards/event/food_safety.jpg",
   "triggers": false
 }

@@ -80,10 +80,9 @@ public class AstralEventService {
         }
 
         if (revealDelay > 0) {
-            CardUseService.sendEntityRevealAround(player,
-                    definition.id().toString(),
-                    ItemStack.EMPTY,
-                    "event",
+            CardUseService.sendEntityRevealAround(
+                    player, definition.id().toString(),
+                    ItemStack.EMPTY, "event",
                     Component.translatable(definition.nameKey()),
                     Component.translatable(definition.descriptionKey()),
                     definition.texture(),

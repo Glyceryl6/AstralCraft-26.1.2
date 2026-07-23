@@ -14,6 +14,6 @@
   "id": "astral_craft:haste",
   "kind": "astral_craft:good",
   "name_key": "event.astral_craft.haste.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "texture": "astral_craft:textures/gui/cards/event/haste.jpg",
   "triggers": false
 }

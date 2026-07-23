@@ -121,15 +121,15 @@ public class AstralEventBootstrap {
         Identifier eventId = AstralCraft.prefix(id);
         return new AstralEventDefinition(eventId,
                 AstralEventLocalizationKeys.name(eventId),
-                AstralEventLocalizationKeys.description(eventId), kind, texture(kind),
+                AstralEventLocalizationKeys.description(eventId), kind, texture(id),
                 triggers, conditions, difficulties, target, triggerSettings,
                 effects, intervalEffects, activeConditions, activeEffects,
                 List.of(), cooldownTicks, chance, false, timing,
                 durationTicks, intervalTicks);
     }
 
-    public static Identifier texture(Identifier id) {
-        return AstralCraft.prefix("textures/gui/cards/event/event_" + id.getPath() + ".png");
+    public static Identifier texture(String id) {
+        return AstralCraft.prefix("textures/gui/cards/event/" + id + ".jpg");
     }
 
 }

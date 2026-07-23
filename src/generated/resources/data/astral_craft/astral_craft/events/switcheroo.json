@@ -8,6 +8,6 @@
   ],
   "id": "astral_craft:switcheroo",
   "name_key": "event.astral_craft.switcheroo.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "texture": "astral_craft:textures/gui/cards/event/switcheroo.jpg",
   "triggers": false
 }

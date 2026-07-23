@@ -19,6 +19,6 @@
   "id": "astral_craft:isolation",
   "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.isolation.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "texture": "astral_craft:textures/gui/cards/event/isolation.jpg",
   "triggers": false
 }

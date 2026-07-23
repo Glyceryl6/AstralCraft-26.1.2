@@ -16,6 +16,6 @@
   "id": "astral_craft:broken_pocket",
   "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.broken_pocket.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "texture": "astral_craft:textures/gui/cards/event/broken_pocket.jpg",
   "triggers": false
 }

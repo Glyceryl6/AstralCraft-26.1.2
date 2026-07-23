@@ -15,6 +15,6 @@
   "id": "astral_craft:card_destruction",
   "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.card_destruction.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_bad.png",
+  "texture": "astral_craft:textures/gui/cards/event/card_destruction.jpg",
   "triggers": false
 }

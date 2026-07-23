@@ -9,6 +9,6 @@
   ],
   "id": "astral_craft:crowd",
   "name_key": "event.astral_craft.crowd.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_neutral.png",
+  "texture": "astral_craft:textures/gui/cards/event/crowd.jpg",
   "triggers": false
 }

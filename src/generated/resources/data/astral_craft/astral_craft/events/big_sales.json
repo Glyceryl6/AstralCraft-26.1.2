@@ -10,6 +10,6 @@
   "id": "astral_craft:big_sales",
   "kind": "astral_craft:good",
   "name_key": "event.astral_craft.big_sales.name",
-  "texture": "astral_craft:textures/gui/cards/event/event_good.png",
+  "texture": "astral_craft:textures/gui/cards/event/big_sales.jpg",
   "triggers": false
 }
