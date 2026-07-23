@@ -114,6 +114,7 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(BoardHudOverlay.LAYER, BoardHudOverlay::render);
+        event.registerAboveAll(BoardAnnouncementOverlay.LAYER, BoardAnnouncementOverlay::render);
         event.registerAboveAll(BoardRouteDecisionOverlay.LAYER, BoardRouteDecisionOverlay::render);
         event.registerAboveAll(CardRevealOverlay.LAYER, CardRevealOverlay::render);
         event.registerAboveAll(AstralHandCardHudOverlay.LAYER, AstralHandCardHudOverlay::render);
@@ -181,6 +182,7 @@ public class ClientEventSubscriber {
         event.register(OpenCardNumberSelectionPayload.TYPE, CardNumberSelectionScreen::open);
         event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
+        event.register(BoardAnnouncementPayload.TYPE, BoardAnnouncementOverlay::show);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
         event.register(OpenBoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmScreen::open);
         event.register(OpenBoardTurnPayload.TYPE, BoardTurnScreen::open);
