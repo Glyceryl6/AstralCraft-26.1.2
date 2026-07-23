@@ -120,7 +120,7 @@ public record OpenBoardBattlePayload(
             int attackBase, int defenseBase, int attackMinimum, int attackMaximum,
             int defenseMinimum, int defenseMaximum, int attackerDie, int defenderDie,
             int attackBonus, int defenseBonus, int attackTotal, int defenseTotal,
-            int damage, boolean evaded, boolean knockout,
+            int damage, boolean evaded, boolean knockout, boolean evadeAllowed,
             boolean attackerReady, boolean defenderReady, DefenseMode defenseMode) {
 
         public static final StreamCodec<ByteBuf, BattleView> STREAM_CODEC = StreamCodec.ofMember(
@@ -137,7 +137,8 @@ public record OpenBoardBattlePayload(
                     ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
                     ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
                     ByteBufCodecs.BOOL.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
-                    ByteBufCodecs.BOOL.decode(buffer), DefenseMode.STREAM_CODEC.decode(buffer));
+                    ByteBufCodecs.BOOL.decode(buffer), ByteBufCodecs.BOOL.decode(buffer),
+                    DefenseMode.STREAM_CODEC.decode(buffer));
         }
 
         private void encode(ByteBuf buffer) {
@@ -159,6 +160,7 @@ public record OpenBoardBattlePayload(
             ByteBufCodecs.VAR_INT.encode(buffer, this.damage);
             ByteBufCodecs.BOOL.encode(buffer, this.evaded);
             ByteBufCodecs.BOOL.encode(buffer, this.knockout);
+            ByteBufCodecs.BOOL.encode(buffer, this.evadeAllowed);
             ByteBufCodecs.BOOL.encode(buffer, this.attackerReady);
             ByteBufCodecs.BOOL.encode(buffer, this.defenderReady);
             DefenseMode.STREAM_CODEC.encode(buffer, this.defenseMode);
@@ -172,7 +174,7 @@ public record OpenBoardBattlePayload(
 
         public static BattleView empty() {
             return new BattleView(BattlePhase.SELECT, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, false, false, false, false, DefenseMode.DEFEND);
+                    0, 0, 0, 0, 0, 0, 0, false, false, true, false, false, DefenseMode.DEFEND);
         }
 
         public boolean selecting() {

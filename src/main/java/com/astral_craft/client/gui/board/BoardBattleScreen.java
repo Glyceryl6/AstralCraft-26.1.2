@@ -303,9 +303,8 @@ public class BoardBattleScreen extends Screen {
         int renderBottom = Math.round(Mth.lerp(victory, layout.modelBottom(), winnerBottom));
         float attackerOffsetX = Mth.lerp(victory, approachOffset, 0.0F);
         float attackerOffsetY = -(float) Math.sin(Math.PI * victoryProgress) * 8.0F;
-        BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight,
-                renderBottom, -225.0F, 1.0F,
-                attackerOffsetX, attackerOffsetY, 0.0F);
+        BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight, renderBottom,
+                -225.0F, 1.0F, attackerOffsetX, attackerOffsetY, 0.0F);
     }
 
     private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
@@ -548,13 +547,13 @@ public class BoardBattleScreen extends Screen {
             if (particleAge < 0.0F || particleAge >= 15.0F) continue;
             float spread = index / 21.0F;
             double angle = Math.toRadians(102.0D + spread * 88.0D) + Math.sin(index * 1.71D) * 0.09D;
-            float distance = 10.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F))
-                    * (30.0F + index % 5 * 8.0F);
+            float distance = 10.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F)) * (30.0F + index % 5 * 8.0F);
             float x = (float) Math.cos(angle) * distance;
             float y = (float) Math.sin(angle) * distance - particleAge * 0.16F;
             float scale = 0.54F + index % 4 * 0.12F;
             this.renderExplosionParticle(graphics, centerX, centerY, particleAge, index + 1, x, y, scale);
         }
+
         this.renderExplosionSparks(graphics, centerX, centerY, age);
     }
 
@@ -655,23 +654,20 @@ public class BoardBattleScreen extends Screen {
         for (int visibleIndex = 0; visibleIndex < visible.size(); visibleIndex++) {
             int index = visible.get(visibleIndex);
             CardPosition position = layout.cardPosition(visibleIndex, this.cardScroll);
-            if (index != this.draggingIndex && position.x() + CARD_W >= layout.cardX()
-                    && position.x() <= layout.cardRight()) {
+            if (index != this.draggingIndex && position.x() + CARD_W >= layout.cardX() && position.x() <= layout.cardRight()) {
                 this.renderCard(graphics, this.cards.get(index), position.x(), position.y(), mouseX, mouseY, false);
             }
         }
 
         graphics.disableScissor();
         if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
-            this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX,
-                    mouseY - this.dragOffsetY, mouseX, mouseY, true);
+            this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX, mouseY - this.dragOffsetY, mouseX, mouseY, true);
         }
     }
 
     private void renderCard(GuiGraphicsExtractor graphics, CombatCard card, int x, int y, int mouseX, int mouseY, boolean dragging) {
-        HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(),
-                card.definition().largeFrontTexture(card.stack()), card.definition().displayName(card.stack()),
-                x, y, mouseX, mouseY, dragging);
+        HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(), card.definition().largeFrontTexture(card.stack()),
+                card.definition().displayName(card.stack()), x, y, mouseX, mouseY, dragging);
         Component cost = Component.translatable("gui.astral_craft.board.card_cost", card.cost());
         graphics.fill(x + 3, y + 3, x + 27, y + 16, 0xE0000000);
         graphics.text(this.font, cost, x + 5, y + 6, 0xFFFFD36B, true);
@@ -685,17 +681,16 @@ public class BoardBattleScreen extends Screen {
         int accent = this.role == BattleRole.DEFENDER ? DEFENSE_ACCENT : ATTACK_ACCENT;
         int diamondY = labelY + 13;
         for (int index = 0; index < this.maximumCost; index++) {
-            this.renderCostDiamond(graphics, layout.actionX() + index * 15 + 5, diamondY,
-                    index < remaining ? accent : 0xFF555560);
+            this.renderCostDiamond(graphics, layout.actionX() + index * 15 + 5, diamondY, index < remaining ? accent : 0xFF555560);
         }
     }
 
     private void renderCostDiamond(GuiGraphicsExtractor graphics, int centerX, int centerY, int color) {
         for (int row = -4; row <= 4; row++) {
             int halfWidth = 4 - Math.abs(row);
-            graphics.fill(centerX - halfWidth, centerY + row,
-                    centerX + halfWidth + 1, centerY + row + 1, color);
+            graphics.fill(centerX - halfWidth, centerY + row, centerX + halfWidth + 1, centerY + row + 1, color);
         }
+
         graphics.fill(centerX - 2, centerY - 2, centerX + 1, centerY + 1, 0x66FFFFFF);
     }
 
@@ -709,14 +704,28 @@ public class BoardBattleScreen extends Screen {
                 return;
             }
 
+            int choiceWidth = Math.min(380, layout.width() - 32);
+            int choiceX = layout.x() + (layout.width() - choiceWidth) / 2;
+            int buttonWidth = (choiceWidth - 8) / 2;
+            int evadeX = choiceX + buttonWidth + 8;
             Component defend = Component.translatable("gui.astral_craft.board.defend");
-            Component evade = Component.translatable("gui.astral_craft.board.evade");
-            AstralFancyButton.renderButton(graphics, this.font, defend, layout.actionX(), layout.actionY(), layout.actionW(), 30, false,
-                    !this.submitted && inside(mouseX, mouseY, layout.actionX(), layout.actionY(), layout.actionW(), 30),
+            int attackerDie = this.view.attackerDie();
+            Component evade = attackerDie < 6
+                    ? Component.translatable("gui.astral_craft.board.evade_greater_attack_roll", attackerDie)
+                    : Component.translatable("gui.astral_craft.board.evade_equal_six");
+            if (!this.view.evadeAllowed()) {
+                graphics.centeredText(this.font,
+                        Component.translatable("gui.astral_craft.board.all_or_nothing_no_evade"),
+                        layout.x() + layout.width() / 2, layout.actionY() + 16, 0xFFFF7777);
+            }
+
+            AstralFancyButton.renderButton(graphics, this.font, defend, choiceX, layout.actionY(), buttonWidth, 30, false,
+                    !this.submitted && inside(mouseX, mouseY, choiceX, layout.actionY(), buttonWidth, 30),
                     ButtonStyle.button(this.submitted ? 0xFF555560 : DEFENSE_ACCENT));
-            AstralFancyButton.renderButton(graphics, this.font, evade, layout.actionX(), layout.actionY() + 38, layout.actionW(), 30, false,
-                    !this.submitted && inside(mouseX, mouseY, layout.actionX(), layout.actionY() + 38, layout.actionW(), 30),
-                    ButtonStyle.button(this.submitted ? 0xFF555560 : 0xFF69A94B));
+            boolean evadeEnabled = !this.submitted && this.view.evadeAllowed();
+            AstralFancyButton.renderButton(graphics, this.font, evade, evadeX, layout.actionY(), buttonWidth, 30, false,
+                    evadeEnabled && inside(mouseX, mouseY, evadeX, layout.actionY(), buttonWidth, 30),
+                    ButtonStyle.button(evadeEnabled ? 0xFF69A94B : 0xFF555560));
             return;
         }
 
@@ -744,12 +753,16 @@ public class BoardBattleScreen extends Screen {
 
         Layout layout = this.layout();
         if (this.view.defenseChoice() && this.role == BattleRole.DEFENDER && !this.submitted) {
-            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY(), layout.actionW(), 30)) {
+            int choiceWidth = Math.min(380, layout.width() - 32);
+            int choiceX = layout.x() + (layout.width() - choiceWidth) / 2;
+            int buttonWidth = (choiceWidth - 8) / 2;
+            int evadeX = choiceX + buttonWidth + 8;
+            if (inside(event.x(), event.y(), choiceX, layout.actionY(), buttonWidth, 30)) {
                 this.submit(DefenseMode.DEFEND);
                 return true;
             }
 
-            if (inside(event.x(), event.y(), layout.actionX(), layout.actionY() + 38, layout.actionW(), 30)) {
+            if (this.view.evadeAllowed() && inside(event.x(), event.y(), evadeX, layout.actionY(), buttonWidth, 30)) {
                 this.submit(DefenseMode.EVADE);
                 return true;
             }
@@ -878,6 +891,7 @@ public class BoardBattleScreen extends Screen {
                     view.minimumBonus(), view.maximumBonus());
         }
     }
+
     private record CardPosition(int x, int y) {}
     private record Range(int minimum, int maximum) {}
 
