@@ -27,13 +27,20 @@ public record CardRevealPayload(
         int durationTicks,
         int sourceEntityId,
         List<Integer> targetEntityIds,
-        UUID revealId
+        UUID revealId,
+        boolean showRelationship
 ) implements CustomPacketPayload {
 
     public static final Identifier ANIMATION_FLIP = AstralCraft.prefix("flip");
     public static final Identifier ANIMATION_APPROACH = AstralCraft.prefix("approach");
 
     public static final CustomPacketPayload.Type<CardRevealPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("card_reveal"));
+
+    private static final StreamCodec<RegistryFriendlyByteBuf, RelationshipPresentation> RELATIONSHIP_STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, RelationshipPresentation::sourceEntityId,
+            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(8)), RelationshipPresentation::targetEntityIds,
+            ByteBufCodecs.BOOL, RelationshipPresentation::visible,
+            RelationshipPresentation::new);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, CardRevealPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.STRING_UTF8, CardRevealPayload::cardId,
@@ -45,16 +52,34 @@ public record CardRevealPayload(
             Identifier.STREAM_CODEC, CardRevealPayload::largeBackTexture,
             Identifier.STREAM_CODEC, CardRevealPayload::animation,
             ByteBufCodecs.VAR_INT, CardRevealPayload::durationTicks,
-            ByteBufCodecs.VAR_INT, CardRevealPayload::sourceEntityId,
-            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(8)), CardRevealPayload::targetEntityIds,
+            RELATIONSHIP_STREAM_CODEC, payload -> new RelationshipPresentation(
+                    payload.sourceEntityId(), payload.targetEntityIds(), payload.showRelationship()),
             BoardNetworkCodecs.UUID_STREAM_CODEC, CardRevealPayload::revealId,
-            CardRevealPayload::new);
+            (cardId, stack, cardType, title, body, largeFrontTexture, largeBackTexture, animation,
+             durationTicks, relationship, revealId) -> new CardRevealPayload(cardId, stack, cardType, title, body,
+                    largeFrontTexture, largeBackTexture, animation, durationTicks, relationship.sourceEntityId(),
+                    relationship.targetEntityIds(), revealId, relationship.visible()));
 
     public CardRevealPayload(String cardId, ItemStack stack, String cardType, Component title, Component body,
                              Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation,
                              int durationTicks, int sourceEntityId, List<Integer> targetEntityIds) {
         this(cardId, stack, cardType, title, body, largeFrontTexture, largeBackTexture, animation,
-                durationTicks, sourceEntityId, targetEntityIds, UUID.randomUUID());
+                durationTicks, sourceEntityId, targetEntityIds, UUID.randomUUID(), true);
+    }
+
+    public CardRevealPayload(String cardId, ItemStack stack, String cardType, Component title, Component body,
+                             Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation,
+                             int durationTicks, int sourceEntityId, List<Integer> targetEntityIds, UUID revealId) {
+        this(cardId, stack, cardType, title, body, largeFrontTexture, largeBackTexture, animation,
+                durationTicks, sourceEntityId, targetEntityIds, revealId, true);
+    }
+
+    public CardRevealPayload(String cardId, ItemStack stack, String cardType, Component title, Component body,
+                             Identifier largeFrontTexture, Identifier largeBackTexture, Identifier animation,
+                             int durationTicks, int sourceEntityId, List<Integer> targetEntityIds,
+                             boolean showRelationship) {
+        this(cardId, stack, cardType, title, body, largeFrontTexture, largeBackTexture, animation,
+                durationTicks, sourceEntityId, targetEntityIds, UUID.randomUUID(), showRelationship);
     }
 
     public CardRevealPayload {
@@ -65,5 +90,11 @@ public record CardRevealPayload(
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
+    }
+
+    private record RelationshipPresentation(int sourceEntityId, List<Integer> targetEntityIds, boolean visible) {
+        private RelationshipPresentation {
+            targetEntityIds = List.copyOf(targetEntityIds == null ? List.of() : targetEntityIds);
+        }
     }
 }

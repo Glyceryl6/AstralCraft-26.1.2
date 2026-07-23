@@ -21,18 +21,19 @@ public record CardReveal(
         int sourceEntityId,
         List<Integer> targetEntityIds,
         UUID revealId,
+        boolean showRelationship,
         boolean held) {
 
     public CardReveal withStartedAt(double startedAtTick) {
         return new CardReveal(this.cardId, this.cardType, this.title, this.body, this.stack,
                 this.frontTexture, this.backTexture, this.animation, startedAtTick, this.durationTicks,
-                this.sourceEntityId, this.targetEntityIds, this.revealId, this.held);
+                this.sourceEntityId, this.targetEntityIds, this.revealId, this.showRelationship, this.held);
     }
 
     public CardReveal withHeld(boolean held) {
         return new CardReveal(this.cardId, this.cardType, this.title, this.body, this.stack,
                 this.frontTexture, this.backTexture, this.animation, this.startedAtTick, this.durationTicks,
-                this.sourceEntityId, this.targetEntityIds, this.revealId, held);
+                this.sourceEntityId, this.targetEntityIds, this.revealId, this.showRelationship, held);
     }
 
 }

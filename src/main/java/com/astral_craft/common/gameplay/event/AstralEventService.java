@@ -206,7 +206,7 @@ public class AstralEventService {
                 CardBackPreferenceManager.selectedTexture(viewer),
                 CardRevealPayload.ANIMATION_APPROACH,
                 Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks()),
-                -1, List.of()));
+                -1, List.of(), false));
     }
 
     protected static AstralEventState state(Entity entity) {

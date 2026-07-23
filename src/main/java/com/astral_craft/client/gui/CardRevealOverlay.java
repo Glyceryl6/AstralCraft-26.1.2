@@ -52,7 +52,7 @@ public class CardRevealOverlay {
                 payload.largeFrontTexture(), payload.largeBackTexture(),
                 animationId, ClientAnimationClock.nowTicks(), duration,
                 payload.sourceEntityId(), payload.targetEntityIds(), payload.revealId(),
-                pendingControl == CardRevealControlPayload.Action.HOLD);
+                payload.showRelationship(), pendingControl == CardRevealControlPayload.Action.HOLD);
         if (active == null) {
             active = reveal;
         } else if (isActive()) {
@@ -84,6 +84,7 @@ public class CardRevealOverlay {
             } else {
                 active = pollNextReveal(ClientAnimationClock.nowTicks());
             }
+
             return;
         }
 
@@ -110,8 +111,7 @@ public class CardRevealOverlay {
     }
 
     public static boolean isActive() {
-        return active != null && (active.held()
-                || ClientAnimationClock.elapsedTicks(active.startedAtTick()) < active.durationTicks());
+        return active != null && (active.held() || ClientAnimationClock.elapsedTicks(active.startedAtTick()) < active.durationTicks());
     }
 
     public static void clear() {
@@ -127,6 +127,7 @@ public class CardRevealOverlay {
             active = pollNextReveal(ClientAnimationClock.nowTicks());
             return;
         }
+
         if (active.held()) {
             ageTicks = Math.min(ageTicks, SETTINGS.flipIntroHoldTicks + SETTINGS.flipRotateTicks + 5.0F);
         }

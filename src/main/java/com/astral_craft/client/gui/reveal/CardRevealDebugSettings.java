@@ -28,6 +28,7 @@ public class CardRevealDebugSettings {
         if (now < this.nextCheckNanos) {
             return;
         }
+
         this.nextCheckNanos = now + 500_000_000L;
         this.createDefaultFile(settings);
         long modified = this.lastModified();
@@ -47,13 +48,13 @@ public class CardRevealDebugSettings {
             if (Files.exists(this.path)) {
                 return;
             }
+
             Properties properties = new Properties();
             this.writeDefaults(properties, settings);
             try (OutputStream output = Files.newOutputStream(this.path)) {
                 properties.store(output, "AstralCraft card reveal debug settings. Edit while the game is running; changes hot-reload every 0.5s.");
             }
-        } catch (IOException ignored) {
-        }
+        } catch (IOException ignored) {}
     }
 
     public void writeDefaults(Properties properties, CardRevealSettings settings) {

@@ -66,7 +66,7 @@ public class CardRevealRenderer {
 
     protected void renderRelationship(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings,
                                       int centerX, int centerY, int modelSize, float alpha, float widthScale) {
-        if (reveal.sourceEntityId() < 0 || this.minecraft.level == null) return;
+        if (!reveal.showRelationship() || reveal.sourceEntityId() < 0 || this.minecraft.level == null) return;
         Entity source = this.minecraft.level.getEntity(reveal.sourceEntityId());
         if (!(source instanceof LivingEntity sourceLiving)) return;
         List<LivingEntity> targets = new ArrayList<>();
@@ -80,19 +80,18 @@ public class CardRevealRenderer {
 
         if (targets.isEmpty()) return;
         boolean selfOnly = targets.size() == 1 && targets.getFirst().getId() == sourceLiving.getId();
-        int cardWidth = Math.max(2, Math.round(modelSize * settings.cardFrameWidthRatio * widthScale));
         int boxSize = Mth.clamp(Math.round(modelSize * 0.17F), 24, 42);
         int gap = Math.max(5, boxSize / 5);
         int arrowWidth = Math.max(18, this.font.width("→") + 8);
         int targetColumns = targets.size();
         int totalWidth = selfOnly ? boxSize
                 : boxSize + gap + arrowWidth + gap + boxSize * targetColumns + gap * Math.max(0, targetColumns - 1);
-        int left = centerX + cardWidth / 2 + Math.max(10, modelSize / 18);
-        if (left + totalWidth > this.minecraft.getWindow().getGuiScaledWidth() - 5) {
-            left = centerX - cardWidth / 2 - Math.max(10, modelSize / 18) - totalWidth;
-        }
-
-        int top = centerY - boxSize / 2;
+        int frameHeight = Math.max(8, Math.round(modelSize * settings.cardFrameHeightRatio));
+        int frameCenterY = centerY + Math.round(modelSize * settings.cardFrameYOffsetRatio);
+        int top = frameCenterY - frameHeight / 2 - boxSize - Math.max(8, modelSize / 24);
+        top = Math.max(5, top);
+        int left = Mth.clamp(centerX - totalWidth / 2, 5,
+                Math.max(5, this.minecraft.getWindow().getGuiScaledWidth() - totalWidth - 5));
         this.renderRelationshipEntity(graphics, sourceLiving, left, top, boxSize, alpha);
         if (selfOnly) return;
         int arrowX = left + boxSize + gap;
@@ -121,6 +120,7 @@ public class CardRevealRenderer {
                         state.skinId(), x + 2, y + 2, size - 4, a);
             }
         }
+
         if (!rendered) {
             BoardScreenEntityRenderer.render(graphics, entity, x + 1, y + 1, x + size - 1, y + size - 1, 180.0F);
         }

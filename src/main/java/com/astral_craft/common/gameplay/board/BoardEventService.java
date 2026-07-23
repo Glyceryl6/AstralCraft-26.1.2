@@ -12,22 +12,12 @@ import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.registry.bootstrap.AstralEventBootstrap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /** Selects one board event, owns its reveal lock and runs its data-generated task sequence. */
 public class BoardEventService {
@@ -40,7 +30,7 @@ public class BoardEventService {
     public static boolean trigger(ServerLevel level, BoardSession session, BoardParticipant source) {
         if (level == null || session == null || source == null || PANEL_EVENTS.containsKey(session.id())) return false;
         List<AstralEventDefinition> candidates = AstralEventBootstrap.BOARD_EVENTS.stream()
-                .map(ResourceKey::identifier).map(AstralEventManager.INSTANCE::get)
+                .map(key -> key.identifier()).map(AstralEventManager.INSTANCE::get)
                 .filter(Objects::nonNull).toList();
         if (candidates.isEmpty()) return false;
         AstralEventDefinition definition = candidates.get(level.getRandom().nextInt(candidates.size()));
@@ -62,9 +52,8 @@ public class BoardEventService {
 
     public static boolean beginRoundEffects(ServerLevel level, BoardSession session) {
         if (ROUND_EVENTS.containsKey(session.id())) return true;
-        BoardParticipant source = session.currentParticipant()
-                .orElse(session.participants().isEmpty()
-                        ? null : session.participants().getFirst());
+        BoardParticipant source = session.currentParticipant().orElse(session.participants().isEmpty()
+                ? null : session.participants().getFirst());
         if (source == null) return false;
         Deque<BoardEventTask> tasks = new ArrayDeque<>();
         for (Map.Entry<Identifier, Integer> entry : new ArrayList<>(session.mechanics().timedEvents().entrySet())) {
@@ -150,17 +139,13 @@ public class BoardEventService {
     }
 
     private static void broadcastReveal(BoardEventContext context, int duration) {
-        BoardParticipant source = context.source();
-        int sourceEntityId = source.entityUuid().map(context.level()::getEntity).map(Entity::getId).orElse(-1);
-        List<Integer> targets = context.session().participants().stream().map(BoardParticipant::entityUuid)
-                .flatMap(Optional::stream).map(context.level()::getEntity).filter(Objects::nonNull).map(Entity::getId).toList();
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(context.level(), context.session())) {
             AstralEventDefinition definition = context.definition();
             PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id().toString(), ItemStack.EMPTY,
                     CardType.EVENT.getSerializedName(), Component.translatable(definition.nameKey()),
                     Component.translatable(definition.descriptionKey()), definition.texture(),
                     CardBackPreferenceManager.selectedTexture(viewer), CardRevealPayload.ANIMATION_APPROACH,
-                    duration, sourceEntityId, targets));
+                    duration, -1, List.of(), false));
         }
     }
 
