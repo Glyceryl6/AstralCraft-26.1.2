@@ -21,17 +21,17 @@ import java.util.UUID;
 public class BoardRouteWorldRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int ROUTE_GLOW_COLOR = 0x558BE8FF;
-    private static final int ROUTE_COLOR = 0xF08BE8FF;
-    private static final int STAR_ROUTE_GLOW_COLOR = 0x66FFF19A;
-    private static final int STAR_ROUTE_COLOR = 0xFFFFFFB8;
-    private static final int BRANCH_COLOR = 0xFFFFD875;
-    private static final int STAR_BRANCH_COLOR = 0xFFFFFF8A;
-    private static final float ROUTE_Y_OFFSET = 0.555F;
-    private static final float ROUTE_GLOW_HALF_WIDTH = 0.16F;
-    private static final float ROUTE_HALF_WIDTH = 0.075F;
-    private static final float STAR_ROUTE_GLOW_HALF_WIDTH = 0.19F;
-    private static final float STAR_ROUTE_HALF_WIDTH = 0.095F;
+    private static final int ROUTE_GLOW_COLOR = 0xA046CCFF;
+    private static final int ROUTE_COLOR = 0xFFD4F8FF;
+    private static final int STAR_ROUTE_GLOW_COLOR = 0xB0FFE46A;
+    private static final int STAR_ROUTE_COLOR = 0xFFFFFFDD;
+    private static final int BRANCH_COLOR = 0xFFFFE6A0;
+    private static final int STAR_BRANCH_COLOR = 0xFFFFFFE0;
+    private static final float ROUTE_Y_OFFSET = 0.61F;
+    private static final float ROUTE_GLOW_HALF_WIDTH = 0.18F;
+    private static final float ROUTE_HALF_WIDTH = 0.06F;
+    private static final float STAR_ROUTE_GLOW_HALF_WIDTH = 0.21F;
+    private static final float STAR_ROUTE_HALF_WIDTH = 0.075F;
     private static final float DASH_LENGTH = 0.24F;
     private static final float DASH_GAP = 0.10F;
     private static final double STALE_AFTER_TICKS = 20.0D * 30.0D;
@@ -154,7 +154,7 @@ public class BoardRouteWorldRenderer {
 
     private static void submitQuad(SubmitCustomGeometryEvent event, PoseStack poseStack,
                                    Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color) {
-        event.getSubmitNodeCollector().order(1).submitCustomGeometry(
+        event.getSubmitNodeCollector().order(4).submitCustomGeometry(
                 poseStack,
                 RenderTypes.entityTranslucentEmissive(TEXTURE),
                 (pose, consumer) -> {
