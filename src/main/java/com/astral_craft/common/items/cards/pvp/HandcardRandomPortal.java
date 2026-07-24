@@ -31,8 +31,7 @@ public class HandcardRandomPortal extends BaseHandCard implements BoardBotEffect
     }
 
     @Override
-    public boolean onRevealFinished(ServerPlayer user, InteractionHand hand, ItemStack itemStack,
-                                    CardDefinition definition) {
+    public boolean onRevealFinished(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition) {
         BoardSession session = BoardSessionManager.findByController(user).orElse(null);
         BoardParticipant participant = session == null ? null
                 : session.participantByController(user.getUUID()).orElse(null);
@@ -56,14 +55,14 @@ public class HandcardRandomPortal extends BaseHandCard implements BoardBotEffect
             BoardSessionManager.relocateParticipant(context.level(), context.session(), context.user(),
                     destinations.get(context.level().getRandom().nextInt(destinations.size())));
         }
+
         return 0;
     }
 
     private static List<String> portalNodes(BoardSession session, BoardParticipant participant) {
         return session.nodes().values().stream()
                 .filter(node -> BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof TeleportPlatform)
-                .map(BoardNode::id)
-                .filter(nodeId -> !nodeId.equals(participant.currentNodeKey()))
-                .toList();
+                .map(BoardNode::id).filter(nodeId -> !nodeId.equals(participant.currentNodeKey())).toList();
     }
+
 }

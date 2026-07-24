@@ -30,6 +30,11 @@ public class LotteryPlatform extends BasePlatform {
     }
 
     @Override
+    public Component boardActionPrompt(Component actorName) {
+        return Component.translatable("message.astral_craft.board.prompt.lucky_number", actorName);
+    }
+
+    @Override
     public void applyBoardEffect(BoardPanelContext context) {
         List<Integer> available = availableNumbers(context.session(), context.participant());
         if (available.isEmpty()) {

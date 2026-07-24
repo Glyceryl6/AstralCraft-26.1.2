@@ -59,10 +59,9 @@ public class FirePlatform extends BasePlatform {
                 duration, duration));
     }
 
-    public static void choose(ServerPlayer player, UUID boardId, int entityId) {
-        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> BasePlatform.activeBoardEffect(boardId)
-                .filter(FirePlatform.class::isInstance).map(FirePlatform.class::cast)
-                .ifPresent(platform -> platform.chooseInternal(player, session, entityId)));
+    @Override
+    public void handleBoardTargetSelection(ServerPlayer player, BoardSession session, int entityId) {
+        this.chooseInternal(player, session, entityId);
     }
 
     @Override

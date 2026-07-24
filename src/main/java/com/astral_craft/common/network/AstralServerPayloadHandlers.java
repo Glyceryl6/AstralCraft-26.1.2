@@ -1,11 +1,10 @@
 package com.astral_craft.common.network;
 
-import com.astral_craft.common.blocks.platform.FirePlatform;
+import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.blocks.platform.GamblePlatform;
 import com.astral_craft.common.blocks.platform.LotteryPlatform;
 import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
-import com.astral_craft.common.blocks.platform.TeleportPointPlatform;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
@@ -15,11 +14,11 @@ import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
+import com.astral_craft.common.gameplay.handcard.CardNumberSelectionHandler;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
-import com.astral_craft.common.items.cards.HandcardSmartDice;
+import com.astral_craft.common.items.BoardDismantlerItem;
 import com.astral_craft.common.items.BoardProjectorItem;
-import com.astral_craft.common.items.cards.pve.HandcardFateGuidance;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.server.level.ServerPlayer;
@@ -42,12 +41,9 @@ public class AstralServerPayloadHandlers {
 
     public static void handleCardNumberSelection(CardNumberSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
-                if (payload.cardStack().getItem() instanceof HandcardFateGuidance) {
-                    HandcardFateGuidance.applyNumberSelection(player, payload);
-                } else {
-                    HandcardSmartDice.applyNumberSelection(player, payload);
-                }
+            if (context.player() instanceof ServerPlayer player
+                    && payload.cardStack().getItem() instanceof CardNumberSelectionHandler handler) {
+                handler.applyNumberSelection(player, payload);
             }
         });
     }
@@ -156,6 +152,12 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleBoardDismantleConfirm(BoardDismantleConfirmPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) BoardDismantlerItem.confirmDelete(player, payload.boardId());
+        });
+    }
+
     public static void handleUseBoardCard(UseBoardCardPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player
@@ -237,10 +239,9 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardPlatformTarget(BoardPlatformTargetPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
-            switch (payload.action()) {
-                case FIRE -> FirePlatform.choose(player, payload.boardId(), payload.entityId());
-                case ASSAULT -> TeleportPointPlatform.choose(player, payload.boardId(), payload.entityId());
-            }
+            BoardSessionManager.session(player.level(), payload.boardId()).ifPresent(session ->
+                    BasePlatform.activeBoardEffect(payload.boardId()).ifPresent(platform ->
+                            platform.handleBoardTargetSelection(player, session, payload.entityId())));
         });
     }
 

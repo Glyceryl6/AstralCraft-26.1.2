@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
@@ -69,8 +70,7 @@ public class BasePlatform extends Block {
     }
 
     public boolean triggers(boolean landing) {
-        return this.trigger == Trigger.BOTH || landing && this.trigger == Trigger.LANDING
-                || !landing && this.trigger == Trigger.PASS;
+        return this.trigger == Trigger.BOTH || landing && this.trigger == Trigger.LANDING || !landing && this.trigger == Trigger.PASS;
     }
 
     public void applyBoardEffect(BoardPanelContext context) {}
@@ -113,6 +113,20 @@ public class BasePlatform extends Block {
     protected void pendingParticipantBecameAutomated(ServerLevel level, BoardSession session, UUID slotId) {}
 
     protected void discardPendingBoardEffect(UUID boardId) {}
+
+    public Component boardActionPrompt(Component actorName) {
+        return Component.empty();
+    }
+
+    public void handleBoardTargetSelection(ServerPlayer player, BoardSession session, int entityId) {}
+
+    public boolean protectsBoardParticipant() {
+        return false;
+    }
+
+    public boolean characterStart() {
+        return false;
+    }
 
     public Component tooltip() {
         Identifier id = BuiltInRegistries.BLOCK.getKey(this);

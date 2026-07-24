@@ -7,6 +7,7 @@ import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.s2c.CloseBoardPlatformTargetPayload;
 import com.astral_craft.common.network.s2c.OpenBoardPlatformTargetPayload;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -22,6 +23,11 @@ public class TeleportPointPlatform extends BasePlatform {
 
     public TeleportPointPlatform(Block.Properties properties) {
         super(properties, Trigger.LANDING);
+    }
+
+    @Override
+    public Component boardActionPrompt(Component actorName) {
+        return Component.translatable("message.astral_craft.board.prompt.teleport", actorName);
     }
 
     @Override
@@ -53,10 +59,9 @@ public class TeleportPointPlatform extends BasePlatform {
                 OpenBoardPlatformTargetPayload.Action.ASSAULT, this.candidates(context.level(), targets), duration, duration));
     }
 
-    public static void choose(ServerPlayer player, UUID boardId, int entityId) {
-        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> BasePlatform.activeBoardEffect(boardId)
-                .filter(TeleportPointPlatform.class::isInstance).map(TeleportPointPlatform.class::cast)
-                .ifPresent(platform -> platform.chooseInternal(player, session, entityId)));
+    @Override
+    public void handleBoardTargetSelection(ServerPlayer player, BoardSession session, int entityId) {
+        this.chooseInternal(player, session, entityId);
     }
 
     @Override
@@ -67,7 +72,9 @@ public class TeleportPointPlatform extends BasePlatform {
             return;
         }
 
-        if (AstralServerTickClock.now(level) >= state.deadlineTick()) this.cancel(level, session, state.sourceSlotId());
+        if (AstralServerTickClock.now(level) >= state.deadlineTick()) {
+            this.cancel(level, session, state.sourceSlotId());
+        }
     }
 
     @Override

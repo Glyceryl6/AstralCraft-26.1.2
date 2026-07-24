@@ -1,7 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.blocks.platform.*;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.event.effects.BoardSharedLotteryEventEffect;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
@@ -27,11 +26,11 @@ public class BoardHudSyncManager {
     public static final Identifier ROUND_START_SOUND = Identifier.withDefaultNamespace("ui.toast.in");
     public static final Identifier VICTORY_SOUND = Identifier.withDefaultNamespace("ui.toast.challenge_complete");
     private static final int SYNC_INTERVAL_TICKS = 10;
-    private static final int TURN_START_PROMPT_TICKS = 40;
     private static final double HUD_RANGE_SQR = 512.0D * 512.0D;
     private static final UUID EMPTY_SLOT_ID = new UUID(0L, 0L);
     private static final ChatFormatting[] PLAYER_COLORS = {
-            ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.YELLOW, ChatFormatting.LIGHT_PURPLE};
+            ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.YELLOW, ChatFormatting.LIGHT_PURPLE
+    };
     private static int ticker;
 
     public static void serverTick(MinecraftServer server) {
@@ -57,7 +56,8 @@ public class BoardHudSyncManager {
         }
     }
 
-    public static void announce(ServerLevel level, BoardSession session, Component title, Component subtitle, Identifier sound, int durationTicks) {
+    public static void announce(ServerLevel level, BoardSession session, Component title, Component subtitle,
+                                Identifier sound, int durationTicks) {
         BoardAnnouncementPayload payload = new BoardAnnouncementPayload(title, subtitle, durationTicks, sound);
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             PacketDistributor.sendToPlayer(viewer, payload);
@@ -106,12 +106,8 @@ public class BoardHudSyncManager {
         BasePlatform platform = BasePlatform.activeBoardEffect(session.id()).orElse(null);
         BoardParticipant current = session.currentParticipant().orElse(null);
         if (platform != null && current != null) {
-            Component name = coloredName(level, session, current);
-            if (platform instanceof StartPlatform) return Component.translatable("message.astral_craft.board.prompt.stop", name);
-            if (platform instanceof ShopPlatform) return Component.translatable("message.astral_craft.board.prompt.shop", name);
-            if (platform instanceof LotteryPlatform) return Component.translatable("message.astral_craft.board.prompt.lucky_number", name);
-            if (platform instanceof TeleportPointPlatform) return Component.translatable("message.astral_craft.board.prompt.teleport", name);
-            if (platform instanceof HospitalPlatform) return Component.translatable("message.astral_craft.board.prompt.hospital", name);
+            Component prompt = platform.boardActionPrompt(coloredName(level, session, current));
+            if (!prompt.equals(Component.empty())) return prompt;
         }
 
         if (current == null || current.knockedDown()) return Component.empty();
@@ -123,26 +119,22 @@ public class BoardHudSyncManager {
                 || BoardPanelSelectionService.hasPending(controller))) {
             return Component.translatable("message.astral_craft.board.prompt.preparing_card", name);
         }
-
         if (movement != null || session.encounter() != null || BoardBattleService.active(session.id())
                 || BoardEventService.active(session.id())) return Component.empty();
-        int duration = session.actionDurationTicks();
-        long remaining = Math.max(0L, session.actionDeadlineTick() - AstralServerTickClock.now(level));
-        long elapsed = Math.max(0L, duration - remaining);
-        return Component.translatable(elapsed < TURN_START_PROMPT_TICKS
+
+        return Component.translatable(session.actionDurationTicks() < 0
                 ? "message.astral_craft.board.prompt.turn_start"
                 : "message.astral_craft.board.prompt.thinking", name);
     }
 
     private static Component coloredNames(ServerLevel level, BoardSession session) {
         MutableComponent names = Component.empty();
-        List<BoardParticipant> participants = session.turnOrder().stream()
-                .map(session::participant).flatMap(Optional::stream).toList();
+        List<BoardParticipant> participants = session.turnOrder().stream().map(session::participant)
+                .flatMap(Optional::stream).toList();
         for (int index = 0; index < participants.size(); index++) {
             if (index > 0) names.append(Component.literal("、").withStyle(ChatFormatting.WHITE));
             names.append(coloredName(level, session, participants.get(index)));
         }
-
         return names;
     }
 
@@ -159,5 +151,4 @@ public class BoardHudSyncManager {
                 participant.stats().health(), participant.stats().maxHealth(), participant.stats().stars(),
                 participant.knockedDown(), participant.disconnectedHuman(), participant.hand().size()));
     }
-
 }

@@ -10,6 +10,7 @@ import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.s2c.OpenBoardShopPayload;
 import com.astral_craft.common.registry.AstralItems;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -17,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -29,6 +31,11 @@ public class ShopPlatform extends BasePlatform {
 
     public ShopPlatform(Block.Properties properties) {
         super(properties, Trigger.BOTH);
+    }
+
+    @Override
+    public Component boardActionPrompt(Component actorName) {
+        return Component.translatable("message.astral_craft.board.prompt.shop", actorName);
     }
 
     @Override
@@ -77,7 +84,7 @@ public class ShopPlatform extends BasePlatform {
         this.states.remove(boardId);
     }
 
-    private void handleActionInternal(ServerPlayer player, BoardSession session, List<Integer> offerIndexes, boolean leave) {
+    private void handleActionInternal(ServerPlayer player, BoardSession session, @Nullable List<Integer> offerIndexes, boolean leave) {
         ShopState state = this.states.get(session.id());
         if (state == null) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
@@ -170,7 +177,7 @@ public class ShopPlatform extends BasePlatform {
         }
 
         Collections.shuffle(candidates, new Random(level.getRandom().nextLong()));
-        return List.copyOf(candidates.subList(0, Math.min(Math.max(0, count), candidates.size())));
+        return List.copyOf(candidates.subList(0, Math.clamp(count, 0, candidates.size())));
     }
 
     private void close(ServerLevel level, BoardSession session) {
@@ -192,9 +199,9 @@ public class ShopPlatform extends BasePlatform {
         }
 
         private ShopState withPurchasedMask(int purchasedMask) {
-            return new ShopState(this.boardId, this.slotId, this.offers, purchasedMask,
-                    this.deadlineTick, this.durationTicks);
+            return new ShopState(this.boardId, this.slotId, this.offers, purchasedMask, this.deadlineTick, this.durationTicks);
         }
+
     }
 
 }

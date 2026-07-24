@@ -2,7 +2,6 @@ package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -77,7 +76,8 @@ public class BoardScanner {
         }
 
         List<BlockPos> allStartPositions = visited.stream()
-                .filter(pos -> level.getBlockState(pos).getBlock() instanceof StartPlatform start && start.characterStart()).toList();
+                .filter(pos -> level.getBlockState(pos).getBlock() instanceof BasePlatform platform
+                        && platform.characterStart()).toList();
         if (allStartPositions.size() != REQUIRED_START_NODES) errors.add("need_4_start_panels");
         Set<BlockPos> startPositions = new HashSet<>(allStartPositions);
         Map<String, BoardNode> nodes = new LinkedHashMap<>();

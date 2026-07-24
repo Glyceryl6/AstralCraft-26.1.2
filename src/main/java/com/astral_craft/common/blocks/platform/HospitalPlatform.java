@@ -6,6 +6,7 @@ import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.network.s2c.CloseBoardHospitalPayload;
 import com.astral_craft.common.network.s2c.OpenBoardHospitalPayload;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,6 +26,16 @@ public class HospitalPlatform extends BasePlatform {
 
     public HospitalPlatform(Block.Properties properties) {
         super(properties, Trigger.LANDING);
+    }
+
+    @Override
+    public Component boardActionPrompt(Component actorName) {
+        return Component.translatable("message.astral_craft.board.prompt.hospital", actorName);
+    }
+
+    @Override
+    public boolean protectsBoardParticipant() {
+        return true;
     }
 
     @Override
@@ -67,8 +78,7 @@ public class HospitalPlatform extends BasePlatform {
     @Override
     protected void pendingParticipantBecameAutomated(ServerLevel level, BoardSession session, UUID slotId) {
         HospitalState state = this.states.get(session.id());
-        if (state == null || !state.slotId().equals(slotId)
-                || state.phase() == OpenBoardHospitalPayload.Phase.RESULT) return;
+        if (state == null || !state.slotId().equals(slotId) || state.phase() == OpenBoardHospitalPayload.Phase.RESULT) return;
         HospitalState result = new HospitalState(state.slotId(), OpenBoardHospitalPayload.Phase.RESULT,
                 state.result(), AstralServerTickClock.now(level) + RESULT_TICKS, RESULT_TICKS);
         this.states.put(session.id(), result);
@@ -84,8 +94,8 @@ public class HospitalPlatform extends BasePlatform {
         this.states.remove(session.id());
         this.deactivateBoardEffect(session.id());
         if (state.result() == OpenBoardHospitalPayload.Result.HOSPITALIZED) {
-            session.participant(state.slotId()).ifPresent(participant -> BoardSessionManager.updateParticipant(level, session,
-                    participant.withRoundStatusEffect(HOSPITALIZED_STATUS, 1)));
+            session.participant(state.slotId()).ifPresent(participant -> BoardSessionManager.updateParticipant(
+                    level, session, participant.withRoundStatusEffect(HOSPITALIZED_STATUS, 1)));
         }
 
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {

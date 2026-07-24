@@ -40,8 +40,14 @@ public class StartPlatform extends BasePlatform {
         this.checkpoint = checkpoint;
     }
 
+    @Override
     public boolean characterStart() {
         return !this.checkpoint;
+    }
+
+    @Override
+    public Component boardActionPrompt(Component actorName) {
+        return Component.translatable("message.astral_craft.board.prompt.stop", actorName);
     }
 
     @Override
@@ -174,7 +180,8 @@ public class StartPlatform extends BasePlatform {
         ServerPlayer player = updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (leveled) {
             var entity = BoardEntityService.entity(level, updated);
-            if (entity != null) level.playSound(null, entity.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.05F);
+            if (entity != null) level.playSound(null, entity.blockPosition(),
+                    SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.05F);
         }
 
         if (player != null) {
@@ -196,8 +203,10 @@ public class StartPlatform extends BasePlatform {
         }
 
         var winnerEntity = BoardEntityService.entity(level, participant);
-        if (winnerEntity != null) level.playSound(null, winnerEntity.blockPosition(),
-                SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2F, 0.95F);
+        if (winnerEntity != null) {
+            level.playSound(null, winnerEntity.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2F, 0.95F);
+        }
+
         BoardHudSyncManager.announce(level, session,
                 Component.translatable("message.astral_craft.board.announcement.victory",
                         Component.literal(winner).withStyle(ChatFormatting.GOLD)), Component.empty(),

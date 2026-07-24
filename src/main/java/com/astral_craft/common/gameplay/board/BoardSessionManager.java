@@ -67,6 +67,7 @@ public class BoardSessionManager {
     public static final int PVP_INITIAL_STAR_COINS = 6;
     public static final int LOBBY_TIMEOUT_TICKS = 20 * 25;
     public static final int TURN_TIMEOUT_TICKS = 20 * 45;
+    public static final int TURN_START_PROMPT_TICKS = 40;
     public static final int DISCARD_TIMEOUT_TICKS = 20 * 20;
     public static final int ENCOUNTER_TIMEOUT_TICKS = 20 * 12;
     public static final int BRANCH_TIMEOUT_TICKS = 20 * 12;
@@ -223,7 +224,8 @@ public class BoardSessionManager {
         BoardParticipant participant = session.participantFor(entity).orElse(null);
         if (participant == null || !participant.controlledBy(player.getUUID())) return false;
         boolean currentTurn = session.currentParticipant().map(value -> value.slotUuid().equals(participant.slotUuid())).orElse(false);
-        boolean canAct = currentTurn && !participant.knockedDown() && session.movement() == null && session.encounter() == null && session.discard() == null
+        boolean canAct = currentTurn && isTurnActionReady(session, player.level()) && !participant.knockedDown()
+                && session.movement() == null && session.encounter() == null && session.discard() == null
                 && !BoardBattleService.active(session.id()) && !BoardEventService.active(session.id());
         sendTurnScreen(player, session, participant, entity, canAct);
         return true;
@@ -282,7 +284,8 @@ public class BoardSessionManager {
 
     public static void requestMove(ServerPlayer player, UUID boardId) {
         BoardSession session = session(player.level(), boardId).orElse(null);
-        if (session == null || session.phase() != BoardPhase.PLAYING || session.movement() != null
+        if (session == null || session.phase() != BoardPhase.PLAYING || !isTurnActionReady(session, player.level())
+                || session.movement() != null
                 || session.encounter() != null || session.discard() != null
                 || BoardBattleService.active(session.id()) || BoardEventService.active(session.id())
                 || PendingCardActionManager.isExclusiveBusy(player)
@@ -320,7 +323,8 @@ public class BoardSessionManager {
 
     public static void requestSkill(ServerPlayer player, UUID boardId) {
         BoardSession session = session(player.level(), boardId).orElse(null);
-        if (session == null || session.phase() != BoardPhase.PLAYING || BoardBattleService.active(session.id())
+        if (session == null || session.phase() != BoardPhase.PLAYING || !isTurnActionReady(session, player.level())
+                || BoardBattleService.active(session.id())
                 || BoardEventService.active(session.id()) || PendingCardActionManager.isExclusiveBusy(player)
                 || PendingCardActionManager.hasPendingSelection(player)
                 || PendingCardActionManager.hasBoardCardUi(player)) return;
@@ -391,7 +395,8 @@ public class BoardSessionManager {
         BoardSession session = session(player.level(), boardId).orElse(null);
         if (session == null || session.phase() != BoardPhase.PLAYING) return false;
         BoardParticipant participant = currentControlledParticipant(session, player);
-        return participant != null && !PendingCardActionManager.hasBoardCardUi(player)
+        return participant != null && isTurnActionReady(session, player.level())
+                && !PendingCardActionManager.hasBoardCardUi(player)
                 && !BoardEventService.active(session.id())
                 && session.movement() == null && session.encounter() == null
                 && session.discard() == null && participant.stats().cardPlaysRemaining() > 0
@@ -465,8 +470,8 @@ public class BoardSessionManager {
         AstralCharacterEntity entity = BoardEntityService.entity(player.level(), participant);
         if (entity == null) return;
         boolean currentTurn = session.currentParticipant().map(value -> value.slotUuid().equals(participant.slotUuid())).orElse(false)
-                && session.movement() == null && session.encounter() == null && session.discard() == null
-                && !BoardBattleService.active(session.id());
+                && isTurnActionReady(session, player.level()) && session.movement() == null
+                && session.encounter() == null && session.discard() == null && !BoardBattleService.active(session.id());
         sendTurnScreen(player, session, participant, entity, currentTurn);
     }
 
@@ -646,6 +651,7 @@ public class BoardSessionManager {
 
         if (BoardLotteryService.tick(level, session)) return;
         if (!session.turnStarted()) beginCurrentTurn(level, session);
+        if (!activateCurrentTurnAfterPrompt(level, session)) return;
         if (processTimeBombRoll(level, session)) return;
         BoardSession.DiscardState discard = session.discard();
         if (discard != null) {
@@ -799,22 +805,44 @@ public class BoardSessionManager {
         if (wasKnockedDown && stillKnockedDown) finishTurn(level, session);
     }
 
-    private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session, BoardParticipant participant, boolean stillKnockedDown) {
+    private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session,
+                                                 BoardParticipant participant, boolean stillKnockedDown) {
         ServerPlayer controller = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         boolean automated = participant.bot() || controller == null;
         int durationTicks = stillKnockedDown || automated ? 1 : participant.decisionDurationTicks(TURN_TIMEOUT_TICKS);
-        session.setActionDurationTicks(durationTicks);
-        session.setActionDeadlineTick(stillKnockedDown ? 0L : automated ? AstralServerTickClock.now(level) : AstralServerTickClock.now(level) + durationTicks);
+        // A negative duration retains the later decision duration while the turn-start prompt blocks input.
+        session.setActionDurationTicks(-durationTicks);
+        session.setActionDeadlineTick(stillKnockedDown ? 0L : AstralServerTickClock.now(level) + TURN_START_PROMPT_TICKS);
         markChanged(level);
-        if (controller != null) {
-            controller.sendSystemMessage(Component.translatable(stillKnockedDown
-                    ? "message.astral_craft.board.turn_skipped_knockdown"
-                    : "message.astral_craft.board.your_turn", session.round() + 1), true);
-            if (!stillKnockedDown) {
-                AstralCharacterEntity character = BoardEntityService.entity(level, participant);
-                if (character != null) sendTurnScreen(controller, session, participant, character);
-            }
+        if (!stillKnockedDown) BoardHudSyncManager.send(level, session);
+        if (controller != null && stillKnockedDown) {
+            controller.sendSystemMessage(Component.translatable("message.astral_craft.board.turn_skipped_knockdown"), true);
         }
+    }
+
+    private static boolean activateCurrentTurnAfterPrompt(ServerLevel level, BoardSession session) {
+        if (session.actionDurationTicks() >= 0) return true;
+        if (session.actionDeadlineTick() > AstralServerTickClock.now(level)) return false;
+        BoardParticipant participant = session.currentParticipant().orElse(null);
+        if (participant == null || participant.knockedDown()) return true;
+        int durationTicks = Math.max(1, -session.actionDurationTicks());
+        boolean automated = isAutomated(level, participant);
+        session.setActionDurationTicks(durationTicks);
+        session.setActionDeadlineTick(automated ? AstralServerTickClock.now(level) : AstralServerTickClock.now(level) + durationTicks);
+        markChanged(level);
+        BoardHudSyncManager.send(level, session);
+        ServerPlayer controller = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
+        AstralCharacterEntity character = BoardEntityService.entity(level, participant);
+        if (controller != null && character != null) {
+            controller.sendSystemMessage(Component.translatable("message.astral_craft.board.your_turn", session.round() + 1), true);
+            sendTurnScreen(controller, session, participant, character);
+        }
+        return true;
+    }
+
+    public static boolean isTurnActionReady(BoardSession session, ServerLevel level) {
+        return session.turnStarted() && session.actionDurationTicks() >= 0
+                && (session.actionDeadlineTick() <= 0L || AstralServerTickClock.now(level) <= session.actionDeadlineTick());
     }
 
     public static void beginAutomaticMoveAgain(ServerLevel level, BoardSession session, BoardParticipant participant) {
@@ -1332,8 +1360,8 @@ public class BoardSessionManager {
         if (session.round() != previousRound) {
             int roundNumber = session.round() + 1;
             BoardHudSyncManager.announce(level, session,
-                    Component.translatable("message.astral_craft.board.announcement.round_start", roundNumber),
-                    Component.empty(), BoardHudSyncManager.ROUND_START_SOUND, 50);
+                    Component.translatable("message.astral_craft.board.announcement.round_start", roundNumber), Component.empty(),
+                    BoardHudSyncManager.ROUND_START_SOUND, 50);
             HandcardSoulLink.tickBoardLinks(level, session);
             if (BoardEventService.beginRoundEffects(level, session)) {
                 markChanged(level);
@@ -1509,7 +1537,8 @@ public class BoardSessionManager {
 
     public static boolean isHospitalProtected(BoardSession session, BoardParticipant participant) {
         if (session == null || participant == null) return false;
-        return platform(session.nodes().get(participant.currentNodeKey())) instanceof HospitalPlatform;
+        BasePlatform platform = platform(session.nodes().get(participant.currentNodeKey()));
+        return platform != null && platform.protectsBoardParticipant();
     }
 
     public static boolean isHospitalProtected(AstralCharacterEntity entity) {

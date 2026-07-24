@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.event.effects;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.blocks.platform.HospitalPlatform;
+import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
@@ -14,6 +14,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.StringRepresentable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -49,9 +50,11 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
                 case CONNECTED_RANDOM -> connectedNodes(context);
                 case HOSPITAL -> hospitalNodes(context, participants.size());
             };
+
             if (destinations.size() < participants.size()) return;
             for (int index = 0; index < participants.size(); index++) {
-                BoardSessionManager.relocateParticipant(context.level(), context.session(),
+                BoardSessionManager.relocateParticipant(
+                        context.level(), context.session(),
                         participants.get(index), destinations.get(index));
             }
         }, 12));
@@ -81,17 +84,22 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
                 }
             }
         }
+
         return List.of();
     }
 
     private static List<String> hospitalNodes(BoardEventContext context, int count) {
         List<String> hospitals = context.session().nodes().values().stream()
-                .filter(node -> BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof HospitalPlatform)
+                .filter(node -> BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof BasePlatform platform
+                        && platform.protectsBoardParticipant())
                 .map(BoardNode::id).toList();
         if (hospitals.isEmpty()) return List.of();
         List<String> result = new ArrayList<>();
         int start = context.level().getRandom().nextInt(hospitals.size());
-        for (int index = 0; index < count; index++) result.add(hospitals.get((start + index) % hospitals.size()));
+        for (int index = 0; index < count; index++) {
+            result.add(hospitals.get((start + index) % hospitals.size()));
+        }
+
         return result;
     }
 
@@ -99,13 +107,17 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
         Set<String> result = new LinkedHashSet<>();
         BoardNode node = session.nodes().get(nodeId);
         if (node != null) result.addAll(node.next());
-        session.nodes().values().stream().filter(candidate -> candidate.next().contains(nodeId))
+        session.nodes().values().stream()
+                .filter(candidate -> candidate.next().contains(nodeId))
                 .map(BoardNode::id).forEach(result::add);
         return List.copyOf(result);
     }
 
     public enum Mode implements StringRepresentable {
-        ROTATE_CURRENT("rotate_current"), CONNECTED_RANDOM("connected_random"), HOSPITAL("hospital");
+
+        ROTATE_CURRENT("rotate_current"),
+        CONNECTED_RANDOM("connected_random"),
+        HOSPITAL("hospital");
 
         public static final Codec<Mode> CODEC = StringRepresentable.fromEnum(Mode::values);
         private final String serializedName;
@@ -115,8 +127,9 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
         }
 
         @Override
-        public String getSerializedName() {
+        public @NonNull String getSerializedName() {
             return this.serializedName;
         }
+
     }
 }
