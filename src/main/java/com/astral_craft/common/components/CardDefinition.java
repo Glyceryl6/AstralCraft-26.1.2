@@ -173,7 +173,7 @@ public record CardDefinition(
     }
 
     public static Identifier defaultBackTexture() {
-        return AstralCraft.prefix("textures/gui/cards/card_back.png");
+        return AstralCraft.prefix("textures/gui/cards/back/card_back.png");
     }
 
 }

@@ -1,17 +1,14 @@
 package com.astral_craft.common.gameplay.handcard;
 
-import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.items.cards.pvp.HandcardBarrier;
-import com.astral_craft.common.items.cards.pvp.HandcardEyeForAnEye;
-import com.astral_craft.common.items.cards.pvp.HandcardRandomSelect;
-import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
+import com.astral_craft.common.registry.AstralDataComponents;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -139,21 +136,20 @@ public class PendingCounterEffectManager {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
         if (target == null || !target.controlledBy(responder.getUUID())) return false;
         if (handIndex >= 0 && !isUsableCounterIndex(target, handIndex)) {
-            BoardSessionManager.openCounterScreen(responder, chain.session(), target,
-                    remainingResponseTicks(chain));
+            BoardSessionManager.openCounterScreen(responder, chain.session(), target, remainingResponseTicks(chain));
             return false;
         }
         if (!BOARD_BY_CONTROLLER.remove(responder.getUUID(), chain)) return false;
         boolean handled = respondBoard(chain, target, responder, handIndex);
         if (!handled) {
             BOARD_BY_CONTROLLER.put(responder.getUUID(), chain);
-            BoardSessionManager.openCounterScreen(responder, chain.session(), target,
-                    remainingResponseTicks(chain));
+            BoardSessionManager.openCounterScreen(responder, chain.session(), target, remainingResponseTicks(chain));
         }
         return handled;
     }
 
-    public static boolean respond(ServerPlayer target, CounterAction action) {
+    public static boolean respond(ServerPlayer target, CounterCardBehavior counter) {
+        if (target == null || counter == null) return false;
         PendingEffect effect = BY_TARGET.remove(target.getUUID());
         if (effect == null) {
             target.sendSystemMessage(Component.translatable("message.astral_craft.counter.none")
@@ -161,33 +157,9 @@ public class PendingCounterEffectManager {
             return false;
         }
 
-        switch (action) {
-            case BARRIER -> {
-                target.sendSystemMessage(Component.translatable("message.astral_craft.counter.barrier")
-                        .withStyle(ChatFormatting.GREEN), true);
-                target.level().playSound(null, target.getX(), target.getY(), target.getZ(),
-                        SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.95F, 1.2F);
-            }
-            case EYE_FOR_AN_EYE -> {
-                target.sendSystemMessage(Component.translatable("message.astral_craft.counter.reflect")
-                        .withStyle(ChatFormatting.GOLD), true);
-                target.level().playSound(null, target.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE,
-                        SoundSource.PLAYERS, 0.9F, 1.55F);
-                offer(effect.withTarget(effect.source()).withTicksLeft(DEFAULT_RESPONSE_TICKS));
-            }
-            case RANDOM_SELECT -> {
-                LivingEntity redirected = randomOtherPlayer(effect, target.level(), target);
-                if (redirected == null) {
-                    target.sendSystemMessage(Component.translatable("message.astral_craft.counter.random_failed")
-                            .withStyle(ChatFormatting.YELLOW), true);
-                    return true;
-                }
-                target.sendSystemMessage(Component.translatable("message.astral_craft.counter.random",
-                        redirected.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE), true);
-                offer(effect.withTarget(redirected).withTicksLeft(DEFAULT_RESPONSE_TICKS));
-            }
-        }
-        return true;
+        WorldCounterContext context = new WorldCounterContext(effect, target);
+        counter.resolveWorldCounter(context);
+        return context.handled();
     }
 
     public static void serverTick(MinecraftServer server) {
@@ -247,8 +219,7 @@ public class PendingCounterEffectManager {
             }
             UUID revealId = UUID.randomUUID();
             broadcastEffectReveal(chain, targetEntity, revealId, false);
-            schedule(chain, REDIRECT_REVEAL_DELAY_TICKS,
-                    () -> finishBoardEffect(chain, targetEntity));
+            schedule(chain, REDIRECT_REVEAL_DELAY_TICKS, () -> finishBoardEffect(chain, targetEntity));
             return;
         }
 
@@ -266,8 +237,7 @@ public class PendingCounterEffectManager {
         }
 
         int selectedIndex = counterIndexes.get(chain.level().getRandom().nextInt(counterIndexes.size()));
-        schedule(chain, 18,
-                () -> respondBoard(waiting, target, null, selectedIndex));
+        schedule(chain, 18, () -> respondBoard(waiting, target, null, selectedIndex));
     }
 
     private static void openHumanCounter(PendingBoardCounter chain, BoardParticipant target, ServerPlayer controller) {
@@ -275,8 +245,7 @@ public class PendingCounterEffectManager {
         schedule(chain, 2, () -> {
             PendingBoardCounter current = BOARD_BY_CONTROLLER.get(controller.getUUID());
             if (chain.equals(current) && !controller.isRemoved()) {
-                BoardSessionManager.openCounterScreen(controller, chain.session(), target,
-                        remainingResponseTicks(chain));
+                BoardSessionManager.openCounterScreen(controller, chain.session(), target, remainingResponseTicks(chain));
             }
         });
     }
@@ -292,49 +261,23 @@ public class PendingCounterEffectManager {
 
         if (handIndex < 0) {
             releaseReveal(chain);
-            schedule(chain, 20,
-                    () -> finishBoardEffect(chain, responderEntity));
+            schedule(chain, 20, () -> finishBoardEffect(chain, responderEntity));
             return true;
         }
         if (!isUsableCounterIndex(target, handIndex)) return false;
         Item item = BuiltInRegistries.ITEM.getValue(target.hand().get(handIndex));
-        CounterAction action = counterAction(item);
+        if (!(item instanceof BaseHandCard card) || !(item instanceof CounterCardBehavior counter)) return false;
         ItemStack counterStack = new ItemStack(item);
-        CardDefinition counterDefinition = ((BaseHandCard) item).definition(counterStack);
+        CardDefinition counterDefinition = card.definition(counterStack);
         boolean consumed = responder != null
                 ? BoardSessionManager.consumeCounterCard(responder, chain.session().id(), handIndex)
                 : BoardSessionManager.consumeCounterCard(chain.level(), chain.session(), target, handIndex);
         if (!consumed) return false;
         releaseReveal(chain);
-
-        BoardParticipant redirectedTarget = switch (action) {
-            case BARRIER -> null;
-            case EYE_FOR_AN_EYE -> chain.session().participant(chain.sourceSlot()).orElse(null);
-            case RANDOM_SELECT -> randomOtherBoardTarget(chain, target);
-        };
-        AstralCharacterEntity redirectedEntity = redirectedTarget == null ? null
-                : BoardEntityService.entity(chain.level(), redirectedTarget);
-        broadcastCounterReveal(chain, responder, responderEntity, counterStack, counterDefinition, redirectedEntity);
-
-        switch (action) {
-            case BARRIER -> {
-                chain.level().playSound(null, responderEntity.blockPosition(), SoundEvents.SHIELD_BLOCK.value(),
-                        SoundSource.PLAYERS, 0.95F, 1.2F);
-                schedule(chain, CardUseService.CARD_REVEAL_DURATION_TICKS,
-                        () -> completeBoardCard(chain));
-            }
-            case EYE_FOR_AN_EYE, RANDOM_SELECT -> {
-                if (redirectedTarget == null || redirectedEntity == null) {
-                    schedule(chain, CardUseService.CARD_REVEAL_DURATION_TICKS,
-                            () -> completeBoardCard(chain));
-                } else {
-                    PendingBoardCounter redirected = chain.withTarget(redirectedTarget.slotUuid(), true);
-                    schedule(chain, CardUseService.CARD_REVEAL_DURATION_TICKS,
-                            () -> presentBoardTarget(redirected, true));
-                }
-            }
-        }
-        return true;
+        BoardCounterContext context = new BoardCounterContext(chain, target, responder, responderEntity,
+                counterStack, counterDefinition);
+        counter.resolveBoardCounter(context);
+        return context.handled();
     }
 
     private static void scheduleBoardEffect(ServerPlayer source, List<LivingEntity> targets, BoardCardResolver resolver, int delayTicks) {
@@ -404,32 +347,24 @@ public class PendingCounterEffectManager {
     private static boolean isUsableCounterIndex(BoardParticipant participant, int handIndex) {
         if (participant == null || handIndex < 0 || handIndex >= participant.hand().size()) return false;
         Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(handIndex));
-        return item instanceof BaseHandCard card
-                && card.definition(new ItemStack(item)).type() == CardType.COUNTER
-                && counterAction(item) != null;
+        return item instanceof BaseHandCard card && item instanceof CounterCardBehavior
+                && card.definition(new ItemStack(item)).type() == CardType.COUNTER;
     }
 
     private static int remainingResponseTicks(PendingBoardCounter chain) {
-        return (int) Math.clamp(chain.deadlineTick() - AstralServerTickClock.now(chain.level()), 1L, DEFAULT_RESPONSE_TICKS);
+        return (int) Math.clamp(chain.deadlineTick() - AstralServerTickClock.now(chain.level()),
+                1L, DEFAULT_RESPONSE_TICKS);
     }
 
     private static List<Integer> counterIndexes(BoardParticipant participant) {
         List<Integer> result = new ArrayList<>();
         for (int index = 0; index < participant.hand().size(); index++) {
             Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
-            if (item instanceof BaseHandCard card
-                    && card.definition(new ItemStack(item)).type() == CardType.COUNTER
-                    && counterAction(item) != null) result.add(index);
+            if (item instanceof BaseHandCard card && item instanceof CounterCardBehavior
+                    && card.definition(new ItemStack(item)).type() == CardType.COUNTER) result.add(index);
         }
 
         return result;
-    }
-
-    private static CounterAction counterAction(Item item) {
-        if (item instanceof HandcardBarrier) return CounterAction.BARRIER;
-        if (item instanceof HandcardEyeForAnEye) return CounterAction.EYE_FOR_AN_EYE;
-        if (item instanceof HandcardRandomSelect) return CounterAction.RANDOM_SELECT;
-        return null;
     }
 
     private static BoardParticipant randomOtherBoardTarget(PendingBoardCounter chain, BoardParticipant currentTarget) {
@@ -511,6 +446,102 @@ public class PendingCounterEffectManager {
         effect.resolver().apply(target);
     }
 
+    public static class WorldCounterContext {
+
+        private final PendingEffect effect;
+        private final ServerPlayer responder;
+        private boolean handled;
+
+        private WorldCounterContext(PendingEffect effect, ServerPlayer responder) {
+            this.effect = effect;
+            this.responder = responder;
+        }
+
+        public ServerPlayer responder() {
+            return this.responder;
+        }
+
+        public LivingEntity source() {
+            return this.effect.source();
+        }
+
+        public LivingEntity randomTarget() {
+            return randomOtherPlayer(this.effect, this.responder.level(), this.responder);
+        }
+
+        public void block() {
+            this.handled = true;
+        }
+
+        public void redirect(LivingEntity target) {
+            if (target != null) offer(this.effect.withTarget(target).withTicksLeft(DEFAULT_RESPONSE_TICKS));
+            this.handled = true;
+        }
+
+        private boolean handled() {
+            return this.handled;
+        }
+    }
+
+    public static class BoardCounterContext {
+
+        private final PendingBoardCounter chain;
+        private final BoardParticipant responder;
+        private final ServerPlayer controller;
+        private final AstralCharacterEntity responderEntity;
+        private final ItemStack stack;
+        private final CardDefinition definition;
+        private boolean handled;
+
+        private BoardCounterContext(PendingBoardCounter chain, BoardParticipant responder, ServerPlayer controller,
+                                    AstralCharacterEntity responderEntity, ItemStack stack, CardDefinition definition) {
+            this.chain = chain;
+            this.responder = responder;
+            this.controller = controller;
+            this.responderEntity = responderEntity;
+            this.stack = stack;
+            this.definition = definition;
+        }
+
+        public ServerLevel level() {
+            return this.chain.level();
+        }
+
+        public AstralCharacterEntity responderEntity() {
+            return this.responderEntity;
+        }
+
+        public void block() {
+            this.finish(null);
+        }
+
+        public void redirectToSource() {
+            this.finish(this.chain.session().participant(this.chain.sourceSlot()).orElse(null));
+        }
+
+        public void redirectRandomly() {
+            this.finish(randomOtherBoardTarget(this.chain, this.responder));
+        }
+
+        private void finish(BoardParticipant redirectedTarget) {
+            AstralCharacterEntity redirectedEntity = redirectedTarget == null ? null
+                    : BoardEntityService.entity(this.chain.level(), redirectedTarget);
+            broadcastCounterReveal(this.chain, this.controller, this.responderEntity, this.stack,
+                    this.definition, redirectedEntity);
+            if (redirectedTarget == null || redirectedEntity == null) {
+                schedule(this.chain, CardUseService.CARD_REVEAL_DURATION_TICKS, () -> completeBoardCard(this.chain));
+            } else {
+                PendingBoardCounter redirected = this.chain.withTarget(redirectedTarget.slotUuid(), true);
+                schedule(this.chain, CardUseService.CARD_REVEAL_DURATION_TICKS, () -> presentBoardTarget(redirected, true));
+            }
+            this.handled = true;
+        }
+
+        private boolean handled() {
+            return this.handled;
+        }
+    }
+
     @FunctionalInterface
     public interface EffectResolver {
         void apply(LivingEntity target);
@@ -524,12 +555,6 @@ public class PendingCounterEffectManager {
     @FunctionalInterface
     public interface BoardBotCardResolver {
         int apply(List<UUID> targetSlotIds);
-    }
-
-    public enum CounterAction {
-        BARRIER,
-        RANDOM_SELECT,
-        EYE_FOR_AN_EYE
     }
 
     private record PendingBoardCounter(ServerLevel level, BoardSession session,
