@@ -8,6 +8,7 @@ import com.astral_craft.common.gameplay.board.BoardBotEffect;
 import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
+import com.astral_craft.common.gameplay.handcard.CardNumberSelectionHandler;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.items.BaseHandCard;
@@ -21,7 +22,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 
-public class HandcardFateGuidance extends BaseHandCard implements BoardBotEffect {
+public class HandcardFateGuidance extends BaseHandCard implements BoardBotEffect, CardNumberSelectionHandler {
 
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, 6)
             .withRestrictions(new CardUseRestriction(List.of(AstralCraft.prefix("hai_qing")), Boolean.TRUE, Boolean.TRUE));
@@ -40,10 +41,11 @@ public class HandcardFateGuidance extends BaseHandCard implements BoardBotEffect
         return true;
     }
 
-    public static void applyNumberSelection(ServerPlayer user, CardNumberSelectionPayload payload) {
+    @Override
+    public void applyNumberSelection(ServerPlayer user, CardNumberSelectionPayload payload) {
         PendingCardActionManager.PendingNumberSelection selection = PendingCardActionManager.consumeNumberSelection(
                 user, payload.cardStack(), payload.value());
-        if (selection == null || !(selection.cardStack().getItem() instanceof HandcardFateGuidance)) return;
+        if (selection == null || selection.cardStack().getItem() != this) return;
         applyEffects(user, payload.value());
     }
 
