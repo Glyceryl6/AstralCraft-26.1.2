@@ -3,6 +3,7 @@ package com.astral_craft.common.registry;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.entity.BoardWorldObjectEntity;
+import com.astral_craft.common.entity.CustomPaintingEntity;
 import com.astral_craft.common.entity.SoulLinkEntity;
 import com.astral_craft.common.entity.StarCoinEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -36,6 +37,10 @@ public final class AstralEntities {
     public static final Supplier<EntityType<BoardWorldObjectEntity>> BOARD_WORLD_OBJECT = ENTITIES.registerEntityType(
             "board_world_object", BoardWorldObjectEntity::new, MobCategory.MISC,
             builder -> builder.sized(0.55F, 0.55F).clientTrackingRange(128).updateInterval(1).noSave());
+
+    public static final Supplier<EntityType<CustomPaintingEntity>> CUSTOM_PAINTING = ENTITIES.registerEntityType(
+            "custom_painting", CustomPaintingEntity::new, MobCategory.MISC,
+            builder -> builder.sized(1.0F, 1.0F).clientTrackingRange(128).updateInterval(10));
 
     public static final Supplier<EntityType<StarCoinEntity>> STAR_COIN = ENTITIES.registerEntityType(
             "star_coin", StarCoinEntity::new, MobCategory.MISC,

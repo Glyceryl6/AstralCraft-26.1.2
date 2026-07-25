@@ -131,6 +131,10 @@ public class AstralLanguageProvider extends LanguageProvider {
         this.addKey(AstralItems.HANDCARD_MISFORTUNE, "Talisman Card - Misfortune", "符卡-祸");
         this.addKey(AstralItems.HANDCARD_LIVING_BOOK, "Living Book", "活体书页");
         this.addKey(AstralItems.HANDCARD_ENHANCED_BARRICADE, "Enhanced Barricade", "强化拒止");
+
+        // Effect
+
+
         this.addCharacterTranslations();
     }
 
@@ -151,24 +155,13 @@ public class AstralLanguageProvider extends LanguageProvider {
             for (AstralCharacterDataCatalog.SkinEntry skin : entry.skins) {
                 this.add(baseKey + ".skin." + skin.id(), skin.enName(), skin.zhName());
             }
+
             if (entry.hasPotential) {
                 this.add(baseKey + ".potential.desc", "This character has an unlockable potential.", "该角色拥有可以激发的潜能。");
                 this.add(baseKey + ".potential.effect", "After activation, this character's skill is enhanced.", "激发后，该角色的技能会获得强化。");
             }
         }
 
-        this.add("event.astral_craft.lucky_find.name", "Lucky Find", "幸运发现");
-        this.add("event.astral_craft.lucky_find.description", "You found a small treasure nearby.", "你在附近发现了一份小小的宝物。");
-        this.add("event.astral_craft.ambush.name", "Sudden Ambush", "突然伏击");
-        this.add("event.astral_craft.ambush.description", "Something dangerous has been drawn to you.", "有什么危险的东西被你吸引过来了。");
-        this.add("event.astral_craft.astral_blessing.name", "Astral Blessing", "星之祝福");
-        this.add("event.astral_craft.astral_blessing.description", "A gentle astral light restores your strength.", "温柔的星光正在恢复你的力量。");
-        this.add("event.astral_craft.low_health_aid.name", "Emergency Aid", "应急援助");
-        this.add("event.astral_craft.low_health_aid.description", "When you are in danger, a small reserve of astral power answers you.", "当你陷入危险时，一小股星力会回应你。");
-        this.add("event.astral_craft.night_ambush.name", "Night Ambush", "夜间伏击");
-        this.add("event.astral_craft.night_ambush.description", "The night connects you with wandering hostile presences.", "夜色将你与游荡的敌意存在连接在了一起。");
-        this.add("event.astral_craft.cave_cache.name", "Cave Cache", "洞窟藏物");
-        this.add("event.astral_craft.cave_cache.description", "Deep underground mining may uncover a small cache.", "在地下深处挖掘时，有机会发现一份小小的藏物。");
         this.add("message.astral_craft.event.triggered", "%s", "%s");
     }
 

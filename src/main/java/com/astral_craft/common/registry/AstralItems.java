@@ -60,6 +60,7 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> STAR_COIN = register("star_coin", Item::new, () -> new Item.Properties().stacksTo(99));
+    public static final DeferredHolder<Item, ? extends Item> CUSTOM_PAINTING = register("custom_painting", CustomPaintingItem::new, () -> new Item.Properties().stacksTo(16));
 
     // Handcard
     public static final DeferredHolder<Item, ? extends Item> HANDCARD_ATTACK_M = registerCombatCard("handcard_attack_m", BaseHandCard::new,
