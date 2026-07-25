@@ -2,7 +2,7 @@ package com.astral_craft.common.items.cards.pve;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
@@ -22,7 +22,7 @@ public class HandcardOverflowingFortune extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.update(user, AstralStats.get(user).addCardPlaysThisTurn(8).addCoins(888).addBuff(BuffKinds.STARLIGHT, 88).addBaseAttack(8));
+        AstralCardEffects.update(user, AstralStats.get(user).addCardPlaysThisTurn(8).addCoins(888).addPermanentBuff(AstralBoardBuffs.STARLIGHT.get(), 88).addBaseAttack(8));
         for (ServerPlayer player : user.server.getPlayerList().getPlayers()) {
             AstralCardEffects.update(player, AstralStats.get(player).heal(88));
         }

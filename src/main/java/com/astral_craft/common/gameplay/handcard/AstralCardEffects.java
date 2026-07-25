@@ -7,7 +7,7 @@ import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
@@ -96,7 +96,7 @@ public class AstralCardEffects {
         if (source == null || target == null || !(source.level() instanceof ServerLevel level)) return;
         AstralPlayerStats targetStats = AstralStats.getOrDefault(target);
         int finalDamage = Math.max(0, amount + targetStats.incomingDamageBonus()
-                + Math.min(1, targetStats.buff(BuffKinds.MARK)));
+                + Math.min(1, targetStats.buff(AstralBoardBuffs.MARK.get())));
         if (finalDamage == 0) return;
         if (finalDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
             DamagePresentation.playCriticalImpact(level, target);

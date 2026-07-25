@@ -14,7 +14,8 @@ public class AstralCraft {
 
     public AstralCraft(IEventBus modEventBus) {
         AstralChips.CHIPS.register(modEventBus);
-        AstralCharacterSkills.SKILL_SETS.register(modEventBus);
+        AstralBoardBuffs.BUFFS.register(modEventBus);
+        AstralCharacters.CHARACTERS.register(modEventBus);
         AstralStatusEffects.MOB_EFFECTS.register(modEventBus);
         AstralAttributes.ATTRIBUTES.register(modEventBus);
         AstralTabs.TABS.register(modEventBus);

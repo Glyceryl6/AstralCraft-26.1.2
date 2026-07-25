@@ -5,7 +5,7 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.SoulLinkEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
@@ -52,7 +52,8 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         if (targets.size() != 2 || targets.get(0) == targets.get(1)
-                || isUserControlledTarget(user, targets.get(0)) || isUserControlledTarget(user, targets.get(1))) return false;
+                || isUserControlledTarget(user, targets.get(0))
+                || isUserControlledTarget(user, targets.get(1))) return false;
         LivingEntity first = targets.get(0);
         LivingEntity second = targets.get(1);
         if (first instanceof AstralCharacterEntity firstPawn && second instanceof AstralCharacterEntity secondPawn) {
@@ -77,8 +78,8 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
             user.sendSystemMessage(Component.translatable("message.astral_craft.soul_link.already_linked"), true);
             return false;
         }
-        AstralCardEffects.update(first, AstralStats.getOrDefault(first).addBuff(BuffKinds.CUSTOM, 1));
-        AstralCardEffects.update(second, AstralStats.getOrDefault(second).addBuff(BuffKinds.CUSTOM, 1));
+        AstralCardEffects.update(first, AstralStats.getOrDefault(first).addPermanentBuff(AstralBoardBuffs.CUSTOM.get(), 1));
+        AstralCardEffects.update(second, AstralStats.getOrDefault(second).addPermanentBuff(AstralBoardBuffs.CUSTOM.get(), 1));
         return true;
     }
 

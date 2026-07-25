@@ -1,5 +1,6 @@
 package com.astral_craft.common.entity.projectile;
 
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.registry.AstralEntities;
 import com.astral_craft.common.stats.AstralStats;
@@ -34,7 +35,7 @@ public class SnowballAttackProjectileEntity extends AbstractCardProjectileEntity
     @Override
     protected void onImpact(ServerLevel level, LivingEntity owner, LivingEntity target) {
         this.damageTarget(owner, target);
-        AstralCardEffects.update(target, AstralStats.getOrDefault(target).addTemporary("speed", -4, 1));
+        AstralCardEffects.update(target, AstralStats.getOrDefault(target).addBuff(AstralBoardBuffs.SNOWBALL_SLOW.get(), 1, 0));
         level.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(), 28, 0.28D, 0.28D, 0.28D, 0.02D);
         level.playSound(null, target.blockPosition(), SoundEvents.SNOW_BREAK, SoundSource.PLAYERS, 0.75F, 1.45F);
     }

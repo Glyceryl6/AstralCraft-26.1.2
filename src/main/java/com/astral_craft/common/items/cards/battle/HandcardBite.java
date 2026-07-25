@@ -4,7 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CardUseRestriction;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
@@ -26,10 +26,10 @@ public class HandcardBite extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        int awakening = AstralStats.get(user).buff(BuffKinds.AWAKENING) + 1;
+        int awakening = AstralStats.get(user).buff(AstralBoardBuffs.AWAKENING.get()) + 1;
         AstralCardEffects.update(user, AstralStats.get(user)
-                .addBuff(BuffKinds.AWAKENING, 1)
-                .addTemporary("attack", Math.min(4, awakening), 1));
+                .addPermanentBuff(AstralBoardBuffs.AWAKENING.get(), 1)
+                .addBuff(AstralBoardBuffs.AWAKENED_ATTACK.get(), 1, Math.max(0, Math.min(4, awakening) - 1)));
         return true;
     }
 

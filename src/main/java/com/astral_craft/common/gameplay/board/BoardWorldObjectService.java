@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.entity.BoardWorldObjectEntity;
 import com.astral_craft.common.entity.StarCoinEntity;
@@ -155,7 +156,7 @@ public class BoardWorldObjectService {
         for (UUID trapId : remove) session.mechanics().removeTrap(trapId);
         BoardParticipant updated = session.participant(participant.slotUuid()).orElse(participant);
         if (enhancedBarricade && !updated.knockedDown()) {
-            updated = updated.withStats(updated.stats().addTemporary("speed", 2, 1));
+            updated = updated.withStats(updated.stats().addBuff(AstralBoardBuffs.ENHANCED_BARRICADE_BOOST.get(), 1, 0));
             BoardSessionManager.updateParticipant(level, session, updated);
         }
 

@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -29,13 +30,13 @@ public class HandcardAllOrNothing extends BaseHandCard implements BoardBotEffect
         if (session != null && participant != null) {
             return BoardSessionManager.activateAllOrNothing(user.level(), session, participant.slotUuid());
         }
-        AstralCardEffects.update(user, AstralStats.get(user).addTemporary("attack", 5, 1));
+        AstralCardEffects.update(user, AstralStats.get(user).addBuff(AstralBoardBuffs.ALL_OR_NOTHING.get(), 1, 0));
         return true;
     }
 
     @Override
     public boolean canUseByBoardBot(BoardBotEffectContext context) {
-        return !BoardSessionManager.hasAllOrNothing(context.user());
+        return !context.user().stats().hasBuff(AstralBoardBuffs.ALL_OR_NOTHING.get());
     }
 
     @Override

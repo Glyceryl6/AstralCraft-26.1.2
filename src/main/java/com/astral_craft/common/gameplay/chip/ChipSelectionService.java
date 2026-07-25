@@ -1,7 +1,7 @@
 package com.astral_craft.common.gameplay.chip;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.BuffKind;
+import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.network.s2c.OpenChipSelectionPayload;
 import com.astral_craft.common.registry.AstralChips;
@@ -101,7 +101,7 @@ public class ChipSelectionService {
 
     private static class PlayerChipState {
         private final Set<String> owned = new HashSet<>();
-        private final Map<BuffKind, Integer> keywordBias = new HashMap<>();
+        private final Map<BoardBuff, Integer> keywordBias = new HashMap<>();
     }
 
 }

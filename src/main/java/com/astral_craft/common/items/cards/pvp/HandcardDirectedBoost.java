@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards.pvp;
 
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.board.BoardBotEffect;
@@ -23,13 +24,13 @@ public class HandcardDirectedBoost extends BaseHandCard implements BoardBotEffec
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.update(user, AstralStats.get(user).addTemporary("speed", 3, 1));
+        AstralCardEffects.update(user, AstralStats.get(user).addBuff(AstralBoardBuffs.DIRECTED_BOOST.get(), 1, 0));
         return true;
     }
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
-        context.updateUser(stats -> stats.addTemporary("speed", 3, 1));
+        context.updateUser(stats -> stats.addBuff(AstralBoardBuffs.DIRECTED_BOOST.get(), 1, 0));
         return 0;
     }
 

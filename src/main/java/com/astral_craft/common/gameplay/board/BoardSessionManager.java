@@ -1,7 +1,5 @@
 package com.astral_craft.common.gameplay.board;
 
-import com.astral_craft.common.util.AstralServerTickClock;
-import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.blocks.platform.HospitalPlatform;
 import com.astral_craft.common.components.CardDefinition;
@@ -10,8 +8,9 @@ import com.astral_craft.common.components.CombatBonusDefinition;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.BoardNode;
-import com.astral_craft.common.gameplay.BuffKinds;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
+import com.astral_craft.common.gameplay.buff.BoardBuff;
+import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
@@ -26,9 +25,11 @@ import com.astral_craft.common.items.cards.pvp.HandcardSoulLink;
 import com.astral_craft.common.network.BoardCardView;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.s2c.*;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -74,7 +75,6 @@ public class BoardSessionManager {
     public static final int MOVEMENT_STEP_TICKS = 3;
     private static final int MOVEMENT_GAP_TICKS = 1;
     public static final int MAX_ROUTE_BRANCHES = 96;
-    public static final Identifier ALL_OR_NOTHING_STATUS = AstralCraft.prefix("all_or_nothing");
     private static final Map<UUID, PendingBotEffect> PENDING_BOT_EFFECTS = new HashMap<>();
     private static final Map<UUID, PendingTimeBombRoll> PENDING_TIME_BOMB_ROLLS = new HashMap<>();
     private static final Map<UUID, Long> PENDING_BOT_MOVEMENT_TICKS = new HashMap<>();
@@ -184,6 +184,15 @@ public class BoardSessionManager {
         if (participant == null) return;
         updateParticipant(player.level(), session, participant.withSkillCooldown(
                 Math.max(0, participant.skillCooldownTurns() - turns)));
+    }
+
+    public static boolean addBoardBuff(AstralCharacterEntity entity, BoardBuff buff, int duration, int amplifier) {
+        if (entity == null || buff == null || !(entity.level() instanceof ServerLevel level)) return false;
+        BoardSession session = findByEntity(entity).orElse(null);
+        BoardParticipant participant = session == null ? null : session.participantFor(entity).orElse(null);
+        if (participant == null) return false;
+        updateParticipant(level, session, participant.withStats(participant.stats().addBuff(buff, duration, amplifier)));
+        return true;
     }
 
     public static boolean addRoundStatusEffect(AstralCharacterEntity entity, Identifier statusId, int turns) {
@@ -536,12 +545,10 @@ public class BoardSessionManager {
 
     public static int resolveIncomingDamage(ServerLevel level, BoardSession session, BoardParticipant participant, int damage) {
         if (participant == null || damage <= 0 || isHospitalProtected(session, participant)) return 0;
-        int resolved = damage;
-        if (participant.hasRoundStatusEffect(BoardEventService.EQUALITY_GUARD_STATUS)) {
-            BoardEventService.consumeEqualityGuard(level, session, participant);
-            resolved = Math.max(0, resolved - 10);
-        }
-
+        AstralPlayerStats stats = participant.stats();
+        int resolved = stats.resolveIncomingDamage(damage);
+        AstralPlayerStats consumed = stats.consumeIncomingDamageBuffs();
+        if (!consumed.equals(stats)) updateParticipant(level, session, participant.withStats(consumed));
         return resolved;
     }
 
@@ -783,13 +790,23 @@ public class BoardSessionManager {
         if (current == null) return;
         boolean wasKnockedDown = current.knockedDown();
         boolean hospitalized = current.hasRoundStatusEffect(HospitalPlatform.HOSPITALIZED_STATUS);
+        int turnStartHealing = current.stats().turnStartHealing();
+        int turnStartDamage = current.stats().turnStartDamage();
         BoardParticipant next = current.beginTurn();
-        boolean stillKnockedDown = next.knockedDown();
         updateParticipant(level, session, next);
-        if (current.stats().buff(BuffKinds.HEAL) > 0 && next.stats().health() > current.stats().health()) {
-            AstralCardEffects.playHealingEffect(BoardEntityService.entity(level, next));
+        if (!wasKnockedDown && !next.knockedDown() && turnStartHealing > 0) {
+            int previousHealth = next.stats().health();
+            next = next.withStats(next.stats().heal(turnStartHealing));
+            updateParticipant(level, session, next);
+            if (next.stats().health() > previousHealth) AstralCardEffects.playHealingEffect(BoardEntityService.entity(level, next));
+        }
+        if (!wasKnockedDown && !next.knockedDown() && turnStartDamage > 0) {
+            damageFromEffect(level, session, next.slotUuid(), turnStartDamage);
+            next = session.participant(next.slotUuid()).orElse(next);
         }
 
+        AstralCharacterEntity turnEntity = BoardEntityService.entity(level, next);
+        if (turnEntity != null) CharacterManager.INSTANCE.character(next.characterId()).onBoardTurnStart(turnEntity);
         session.setTurnStarted(true);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
@@ -800,24 +817,25 @@ public class BoardSessionManager {
             finishTurn(level, session);
             return;
         }
+        if (next.knockedDown()) {
+            next.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(player ->
+                    player.sendSystemMessage(Component.translatable("message.astral_craft.board.turn_skipped_knockdown"), true));
+            finishTurn(level, session);
+            return;
+        }
 
-        prepareCurrentTurnAction(level, session, next, stillKnockedDown);
-        if (wasKnockedDown && stillKnockedDown) finishTurn(level, session);
+        prepareCurrentTurnAction(level, session, next);
     }
 
-    private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session,
-                                                 BoardParticipant participant, boolean stillKnockedDown) {
+    private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session, BoardParticipant participant) {
         ServerPlayer controller = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         boolean automated = participant.bot() || controller == null;
-        int durationTicks = stillKnockedDown || automated ? 1 : participant.decisionDurationTicks(TURN_TIMEOUT_TICKS);
+        int durationTicks = automated ? 1 : participant.decisionDurationTicks(TURN_TIMEOUT_TICKS);
         // A negative duration retains the later decision duration while the turn-start prompt blocks input.
         session.setActionDurationTicks(-durationTicks);
-        session.setActionDeadlineTick(stillKnockedDown ? 0L : AstralServerTickClock.now(level) + TURN_START_PROMPT_TICKS);
+        session.setActionDeadlineTick(AstralServerTickClock.now(level) + TURN_START_PROMPT_TICKS);
         markChanged(level);
-        if (!stillKnockedDown) BoardHudSyncManager.send(level, session);
-        if (controller != null && stillKnockedDown) {
-            controller.sendSystemMessage(Component.translatable("message.astral_craft.board.turn_skipped_knockdown"), true);
-        }
+        BoardHudSyncManager.send(level, session);
     }
 
     private static boolean activateCurrentTurnAfterPrompt(ServerLevel level, BoardSession session) {
@@ -1202,7 +1220,9 @@ public class BoardSessionManager {
 
         if (AstralServerTickClock.now(level) < movement.nextStepTick()) return;
         if (movement.route().isEmpty()) {
-            level.playSound(null, entity.blockPosition(), SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 0.9F, 1.35F);
+            level.playSound(null, entity.blockPosition(),
+                    SoundEvents.NOTE_BLOCK_PLING.value(),
+                    SoundSource.PLAYERS, 0.9F, 1.35F);
         }
 
         if (movement.remainingSteps() <= 0) {
@@ -1306,13 +1326,25 @@ public class BoardSessionManager {
         }
     }
 
+    private static BoardParticipant applyMovementBuffs(ServerLevel level, BoardSession session, BoardSession.MovementState movement, BoardParticipant participant) {
+        BoardParticipant updated = participant;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : participant.stats().buffs().entrySet()) {
+            updated = entry.getKey().onMovementFinished(level, session, movement, updated, entry.getValue());
+        }
+
+        if (!updated.equals(participant)) {
+            updateParticipant(level, session, updated);
+        }
+
+        return updated;
+    }
+
     private static void finishMovement(ServerLevel level, BoardSession session) {
         BoardSession.MovementState movement = session.movement();
         if (movement == null) return;
         BoardParticipant participant = session.participant(movement.slotId()).orElse(null);
         if (participant != null) {
-            BoardEventService.applyLeakingPocket(level, session, movement, participant);
-            participant = session.participant(movement.slotId()).orElse(participant);
+            participant = applyMovementBuffs(level, session, movement, participant);
         }
 
         session.setMovement(null);
@@ -1348,6 +1380,8 @@ public class BoardSessionManager {
     private static void finishTurn(ServerLevel level, BoardSession session) {
         BoardParticipant participant = session.currentParticipant().orElse(null);
         if (participant != null) {
+            AstralCharacterEntity turnEntity = BoardEntityService.entity(level, participant);
+            if (turnEntity != null) CharacterManager.INSTANCE.character(participant.characterId()).onBoardTurnEnd(turnEntity);
             BoardParticipant ended = participant.endTurn();
             session.putParticipant(ended);
             BoardEntityService.syncState(level, ended);
@@ -1360,8 +1394,8 @@ public class BoardSessionManager {
         if (session.round() != previousRound) {
             int roundNumber = session.round() + 1;
             BoardHudSyncManager.announce(level, session,
-                    Component.translatable("message.astral_craft.board.announcement.round_start", roundNumber), Component.empty(),
-                    BoardHudSyncManager.ROUND_START_SOUND, 50);
+                    Component.translatable("message.astral_craft.board.announcement.round_start", roundNumber),
+                    Component.empty(), BoardHudSyncManager.ROUND_START_SOUND, 50);
             HandcardSoulLink.tickBoardLinks(level, session);
             if (BoardEventService.beginRoundEffects(level, session)) {
                 markChanged(level);
@@ -1407,8 +1441,8 @@ public class BoardSessionManager {
             updateParticipant(level, session, updated);
             int totalCoins = coinsPerReward * rewardEvents;
             int finalTotalCards = totalCards;
-            updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(player ->
-                    player.sendSystemMessage(Component.translatable(
+            updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
+                    .ifPresent(player -> player.sendSystemMessage(Component.translatable(
                             "message.astral_craft.board.round_reward", roundNumber, totalCoins, finalTotalCards)
                             .withStyle(ChatFormatting.GOLD), true));
         }
@@ -1586,21 +1620,17 @@ public class BoardSessionManager {
     public static boolean activateAllOrNothing(ServerLevel level, BoardSession session, UUID slotId) {
         BoardParticipant participant = session == null ? null : session.participant(slotId).orElse(null);
         if (participant == null || participant.knockedDown()) return false;
-        BoardParticipant updated = participant.withStats(participant.stats().addTemporary("attack", 5, 1))
-                .withRoundStatusEffect(ALL_OR_NOTHING_STATUS, 1);
-        updateParticipant(level, session, updated);
+        updateParticipant(level, session, participant.withStats(participant.stats()
+                .setBuff(AstralBoardBuffs.ALL_OR_NOTHING.get(), BoardBuffInstance.PERMANENT, 0)));
         return true;
     }
 
-    public static boolean hasAllOrNothing(BoardParticipant participant) {
-        return participant != null && participant.hasRoundStatusEffect(ALL_OR_NOTHING_STATUS);
+    public static boolean attackBuffPreventsEvade(BoardParticipant participant) {
+        return participant != null && participant.stats().anyBuffPreventsEvade();
     }
 
-    public static void consumeAllOrNothing(ServerLevel level, BoardSession session, UUID slotId) {
-        BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant != null && participant.hasRoundStatusEffect(ALL_OR_NOTHING_STATUS)) {
-            updateParticipant(level, session, participant.withoutRoundStatusEffect(ALL_OR_NOTHING_STATUS));
-        }
+    public static boolean attackBuffKnocksDownOnFailure(BoardParticipant participant) {
+        return participant != null && participant.stats().anyBuffKnocksDownOwnerWhenAttackFails();
     }
 
     public static void knockDownFromEffect(ServerLevel level, BoardSession session, UUID slotId) {

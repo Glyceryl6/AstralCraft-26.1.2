@@ -2,7 +2,7 @@ package com.astral_craft.common.items.cards.pve;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
@@ -22,7 +22,7 @@ public class HandcardEnergyBar extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.targetPlayerOrSelf(user, targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addTemporary("attack", 2, 2).addTemporary("speed", 2, 2).addBuff(BuffKinds.OVERCLOCK, 2)));
+        AstralCardEffects.targetPlayerOrSelf(user, targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addBuff(AstralBoardBuffs.OVERCLOCK.get(), 2, 0)));
         return true;
     }
 }

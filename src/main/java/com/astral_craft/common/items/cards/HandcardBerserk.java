@@ -3,7 +3,7 @@ package com.astral_craft.common.items.cards;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
@@ -41,7 +41,7 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
         LivingEntity target = AstralCardEffects.target(targets).orElse(null);
         if (!isSelfTarget(user, target)) return false;
         AstralCardEffects.update(target, AstralStats.getOrDefault(target)
-                .addTemporary("attack", 3, 2).addBuff(BuffKinds.BERSERK, 1));
+                .addBuff(AstralBoardBuffs.BERSERK.get(), 2, 0));
         return true;
     }
 
@@ -52,7 +52,7 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
-        context.updateUser(stats -> stats.addTemporary("attack", 3, 2).addBuff(BuffKinds.BERSERK, 1));
+        context.updateUser(stats -> stats.addBuff(AstralBoardBuffs.BERSERK.get(), 2, 0));
         return 0;
     }
 

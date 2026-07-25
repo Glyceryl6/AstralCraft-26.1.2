@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards.pve;
 
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
@@ -21,7 +22,7 @@ public class HandcardKingPower extends BaseHandCard {
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.update(user, AstralStats.get(user).damage(4).addTemporary("attack", 5, 3));
+        AstralCardEffects.update(user, AstralStats.get(user).damage(4).addBuff(AstralBoardBuffs.KING_POWER.get(), 3, 0));
         return true;
     }
 }

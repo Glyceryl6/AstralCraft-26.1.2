@@ -2,7 +2,7 @@ package com.astral_craft.common.items.cards;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.gameplay.BuffKinds;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.board.BoardBotEffect;
 import com.astral_craft.common.gameplay.board.BoardBotEffectContext;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
@@ -30,14 +30,14 @@ public class HandcardFightFireWithFire extends BaseHandCard implements BoardBotE
 
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
-        AstralCardEffects.update(user, AstralStats.get(user).damage(2).addBuff(BuffKinds.HEAL, 6));
+        AstralCardEffects.update(user, AstralStats.get(user).damage(2).addBuff(AstralBoardBuffs.FIGHT_FIRE_WITH_FIRE.get(), 2, 0));
         return true;
     }
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
         context.damageUser(2);
-        context.updateUser(stats -> stats.addBuff(BuffKinds.HEAL, 6));
+        context.updateUser(stats -> stats.addBuff(AstralBoardBuffs.FIGHT_FIRE_WITH_FIRE.get(), 2, 0));
         return 0;
     }
 

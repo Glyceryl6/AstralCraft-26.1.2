@@ -1,15 +1,15 @@
 package com.astral_craft.common.gameplay.chip;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.BuffKind;
+import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.StatBundle;
 import net.minecraft.network.chat.Component;
 
 import java.util.Optional;
 
-public record ChipDefinition(String id, String nameKey, String effectKey, ChipRarity rarity, Optional<BuffKind> keyword, StatBundle stats) {
+public record ChipDefinition(String id, String nameKey, String effectKey, ChipRarity rarity, Optional<BoardBuff> keyword, StatBundle stats) {
 
-    public ChipDefinition(String id, String nameKey, String effectKey, ChipRarity rarity, BuffKind keyword, StatBundle stats) {
+    public ChipDefinition(String id, String nameKey, String effectKey, ChipRarity rarity, BoardBuff keyword, StatBundle stats) {
         this(id, nameKey, effectKey, rarity, Optional.ofNullable(keyword), stats);
     }
 
