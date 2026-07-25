@@ -13,10 +13,8 @@ import java.util.concurrent.CompletableFuture;
 public class AstralDatapackBuiltinEntriesProvider extends DatapackBuiltinEntriesProvider {
 
     public static final RegistrySetBuilder BUILDER = new RegistrySetBuilder()
-            .add(AstralCharacterBootstrap.CHARACTERS, AstralCharacterBootstrap::bootstrap)
             .add(AstralCharacterSkinBootstrap.CHARACTER_SKINS, AstralCharacterSkinBootstrap::bootstrap)
             .add(AstralSkinRarityBootstrap.SKIN_RARITIES, AstralSkinRarityBootstrap::bootstrap)
-            .add(AstralCardBackBootstrap.CARD_BACKS, AstralCardBackBootstrap::bootstrap)
             .add(AstralEventBootstrap.EVENTS, AstralEventBootstrap::bootstrap);
 
     public AstralDatapackBuiltinEntriesProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {

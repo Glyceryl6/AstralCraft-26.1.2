@@ -2,120 +2,73 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
-import net.minecraft.resources.FileToIdConverter;
+import com.astral_craft.common.registry.AstralCharacters;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
-import net.minecraft.util.profiling.ProfilerFiller;
 
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 
-@ParametersAreNonnullByDefault
-public class CharacterManager extends SimpleJsonResourceReloadListener<CharacterDefinition> {
+/** Runtime view of registered characters plus resource-pack supplied skins. */
+public class CharacterManager {
 
-    public static final String DIRECTORY = "astral_craft/characters";
     public static final CharacterManager INSTANCE = new CharacterManager();
 
-    protected final Map<Identifier, CharacterDefinition> definitions = new LinkedHashMap<>();
-
-    public CharacterManager() {
-        super(CharacterDefinition.CODEC, FileToIdConverter.json(DIRECTORY));
-        this.resetToDefault();
-    }
-
-    @Override
-    protected void apply(Map<Identifier, CharacterDefinition> elements, ResourceManager resourceManager, ProfilerFiller profiler) {
-        Map<Identifier, CharacterDefinition> loaded = new LinkedHashMap<>();
-        CharacterDefinition fallback = CharacterDefinition.builtinDefault();
-        loaded.put(fallback.id(), this.withRuntimeIdAndSkins(fallback.id(), fallback));
-        for (Map.Entry<Identifier, CharacterDefinition> entry : elements.entrySet()) {
-            CharacterDefinition definition = entry.getValue();
-            Identifier id = entry.getKey();
-            loaded.put(id, this.withRuntimeIdAndSkins(id, definition));
+    public List<CharacterDefinition> values() {
+        List<CharacterDefinition> values = new ArrayList<>();
+        for (Identifier id : AstralCharacters.REGISTRY.keySet()) {
+            AstralCharacter character = AstralCharacters.REGISTRY.getValue(id);
+            if (character != null) values.add(this.withRuntimeSkins(id, character.definition(id)));
         }
+        if (values.isEmpty()) values.add(CharacterDefinition.builtinDefault());
+        values.sort(Comparator.comparingInt(CharacterDefinition::sortOrder).thenComparing(value -> value.id().toString()));
+        return values;
+    }
 
-        this.definitions.clear();
-        loaded.values().stream().sorted(Comparator.comparingInt(CharacterDefinition::sortOrder).thenComparing(value -> value.id().toString()))
-                .forEach(value -> this.definitions.put(value.id(), value));
-        if (this.definitions.isEmpty()) {
-            this.resetToDefault();
+    public boolean contains(Identifier id) {
+        return id != null && AstralCharacters.REGISTRY.getValue(id) != null;
+    }
+
+    public CharacterDefinition get(Identifier id) {
+        AstralCharacter character = id == null ? null : AstralCharacters.REGISTRY.getValue(id);
+        return character == null ? this.defaultCharacter() : this.withRuntimeSkins(id, character.definition(id));
+    }
+
+    public AstralCharacter character(Identifier id) {
+        AstralCharacter character = id == null ? null : AstralCharacters.REGISTRY.getValue(id);
+        if (character != null) return character;
+        for (Identifier key : AstralCharacters.REGISTRY.keySet()) {
+            AstralCharacter fallback = AstralCharacters.REGISTRY.getValue(key);
+            if (fallback != null) return fallback;
         }
+        return new AstralCharacter(new AstralCharacter.Properties().unlockedByDefault(true).sortOrder(80));
     }
 
-    public void resetToDefault() {
-        this.definitions.clear();
-        CharacterDefinition definition = CharacterDefinition.builtinDefault();
-        this.definitions.put(definition.id(), this.withRuntimeIdAndSkins(definition.id(), definition));
+    public CharacterDefinition defaultCharacter() {
+        List<CharacterDefinition> values = this.values();
+        return values.isEmpty() ? CharacterDefinition.builtinDefault() : values.getFirst();
     }
 
-    protected CharacterDefinition withRuntimeIdAndSkins(Identifier id, CharacterDefinition definition) {
+    protected CharacterDefinition withRuntimeSkins(Identifier id, CharacterDefinition definition) {
         List<CharacterSkinDefinition> skins = this.mergeImplicitAndAdditionalSkins(id, definition);
         Identifier previewTexture = skins.isEmpty() ? definition.previewTexture() : skins.getFirst().texture();
-        return new CharacterDefinition(id,
-                definition.nameKey(),
-                definition.titleKey(),
-                definition.modelKey(),
-                previewTexture,
-                definition.entityTypeKey(),
-                definition.rendererKey(),
-                definition.animationSetKey(),
-                definition.previewAction(),
-                definition.maxPveLevel(),
-                definition.maxFriendshipLevel(),
-                definition.baseStats(),
-                definition.skills(),
-                definition.profileSections(),
-                skins,
-                definition.hasPotential(),
-                definition.potential(),
-                definition.implicitDefaultSkin(),
-                definition.implicitBondSkin(),
-                definition.unlockedByDefault(),
-                definition.unlockHintKey(),
+        return new CharacterDefinition(id, definition.nameKey(), definition.titleKey(), definition.modelKey(),
+                previewTexture, definition.entityTypeKey(), definition.rendererKey(), definition.animationSetKey(),
+                definition.previewAction(), definition.maxPveLevel(), definition.maxFriendshipLevel(),
+                definition.baseStats(), definition.skills(), definition.profileSections(), skins,
+                definition.hasPotential(), definition.potential(), definition.implicitDefaultSkin(),
+                definition.implicitBondSkin(), definition.unlockedByDefault(), definition.unlockHintKey(),
                 definition.sortOrder());
     }
 
     protected List<CharacterSkinDefinition> mergeImplicitAndAdditionalSkins(Identifier characterId, CharacterDefinition definition) {
         Map<String, CharacterSkinDefinition> merged = new LinkedHashMap<>();
-        this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
-        if (definition.implicitBondSkin()) {
-            this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
-        }
-
-        if (definition.skins() != null) {
-            for (CharacterSkinDefinition skin : definition.skins()) {
-                this.putSkin(merged, skin);
-            }
-        }
-
-        for (CharacterSkinDefinition skin : CharacterSkinManager.INSTANCE.skinsFor(characterId)) {
-            this.putSkin(merged, skin);
-        }
-
+        if (definition.implicitDefaultSkin()) this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
+        if (definition.implicitBondSkin()) this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
+        for (CharacterSkinDefinition skin : CharacterSkinManager.INSTANCE.skinsFor(characterId)) this.putSkin(merged, skin);
         return new ArrayList<>(merged.values());
     }
 
     protected void putSkin(Map<String, CharacterSkinDefinition> merged, CharacterSkinDefinition skin) {
-        if (skin.id() == null || skin.id().isBlank()) return;
-        merged.put(skin.id(), skin);
-    }
-
-    public List<CharacterDefinition> values() {
-        return new ArrayList<>(this.definitions.values());
-    }
-
-    public boolean contains(Identifier id) {
-        return this.definitions.containsKey(id);
-    }
-
-    public CharacterDefinition get(Identifier id) {
-        CharacterDefinition fallback = this.defaultCharacter();
-        return this.definitions.getOrDefault(id, fallback);
-    }
-
-    public CharacterDefinition defaultCharacter() {
-        return this.definitions.values().stream().findFirst().orElse(CharacterDefinition.builtinDefault());
+        if (skin != null && skin.id() != null && !skin.id().isBlank()) merged.put(skin.id(), skin);
     }
 
 }

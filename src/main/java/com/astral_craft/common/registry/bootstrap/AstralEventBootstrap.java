@@ -2,13 +2,13 @@ package com.astral_craft.common.registry.bootstrap;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.platform.HospitalPlatform;
-import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.gameplay.board.BoardMechanicsState;
 import com.astral_craft.common.gameplay.event.*;
 import com.astral_craft.common.gameplay.event.effects.*;
 import com.astral_craft.common.gameplay.event.type.AstralEventKinds;
 import com.astral_craft.common.gameplay.event.type.AstralEventLocalizationKeys;
 import com.astral_craft.common.gameplay.event.type.AstralEventTimings;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.core.Registry;
 import net.minecraft.data.worldgen.BootstrapContext;
@@ -71,11 +71,11 @@ public class AstralEventBootstrap {
         context.register(OVERSPENDING, boardEvent("overspending", AstralEventKinds.BAD,
                 List.of(all(new BoardTrapEventEffect(BoardMechanicsState.BoardTrapType.DEMOLITION))), List.of()));
         context.register(BROKEN_POCKET, boardEvent("broken_pocket", AstralEventKinds.BAD,
-                List.of(all(new BoardStatusEventEffect(BoardEventService.LEAKING_POCKET_STATUS, Integer.MAX_VALUE))), List.of()));
+                List.of(all(new BoardStatusEventEffect(AstralBoardBuffs.LEAKING_POCKET_ID, Integer.MAX_VALUE))), List.of()));
         context.register(IT_IS_WAR, boardEvent("it_is_war", AstralEventKinds.GOOD,
                 List.of(all(new GiveItemEventEffect(AstralItems.HANDCARD_ATTACK_G.get().builtInRegistryHolder(), 1))), List.of()));
         context.register(EQUALITY, boardEvent("equality", AstralEventKinds.NEUTRAL,
-                List.of(all(new BoardSetHealthEventEffect(1), new BoardStatusEventEffect(BoardEventService.EQUALITY_GUARD_STATUS, Integer.MAX_VALUE))), List.of()));
+                List.of(all(new BoardSetHealthEventEffect(1), new BoardStatusEventEffect(AstralBoardBuffs.EQUALITY_GUARD_ID, Integer.MAX_VALUE))), List.of()));
         context.register(SWITCHEROO, boardEvent("switcheroo", AstralEventKinds.NEUTRAL, List.of(new BoardTransferHandsEventEffect()), List.of()));
     }
 

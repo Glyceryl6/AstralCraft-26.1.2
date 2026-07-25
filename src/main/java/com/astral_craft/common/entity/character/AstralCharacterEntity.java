@@ -97,6 +97,10 @@ public class AstralCharacterEntity extends PathfinderMob {
             return;
         }
 
+        if (!this.level().isClientSide()) {
+            CharacterManager.INSTANCE.character(this.characterId()).onBoardEntityTick(this);
+        }
+
         if (!this.level().isClientSide() && this.boardReactionTicks > 0) {
             this.boardReactionTicks--;
             if (this.boardReactionTicks == 0

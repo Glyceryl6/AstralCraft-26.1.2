@@ -7,8 +7,6 @@ import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.items.cards.pvp.HandcardSoulLink;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
-import com.astral_craft.common.gameplay.cardback.CardBackManager;
-import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.*;
@@ -67,9 +65,7 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onAddServerReloadListeners(AddServerReloadListenersEvent event) {
-        event.addListener(AstralCraft.prefix("card_backs"), CardBackManager.INSTANCE);
         event.addListener(AstralCraft.prefix("character_skins"), CharacterSkinManager.INSTANCE);
-        event.addListener(AstralCraft.prefix("characters"), CharacterManager.INSTANCE);
         event.addListener(AstralCraft.prefix("astral_events"), AstralEventManager.INSTANCE);
     }
 
