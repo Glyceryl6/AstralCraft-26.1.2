@@ -40,6 +40,6 @@ public class AstralAttachments {
             () -> AttachmentType.builder(() -> AstralEventPreferences.DEFAULT).serialize(AstralEventPreferences.CODEC.fieldOf("event_preferences")).copyOnDeath().build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<Identifier>> CARD_BACK = ATTACHMENTS.register("card_back",
-            () -> AttachmentType.builder(() -> AstralCraft.prefix("default")).serialize(Identifier.CODEC.fieldOf("card_back")).copyOnDeath().build());
+            () -> AttachmentType.builder(() -> AstralCraft.prefix("textures/gui/cards/back/card_back.jpg")).serialize(Identifier.CODEC.fieldOf("card_back")).copyOnDeath().build());
 
 }

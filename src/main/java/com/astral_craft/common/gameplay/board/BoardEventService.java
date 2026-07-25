@@ -1,7 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.common.util.AstralServerTickClock;
-import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
@@ -24,8 +23,6 @@ import java.util.*;
 /** Selects one board event, owns its reveal lock and runs its data-generated task sequence. */
 public class BoardEventService {
 
-    public static final Identifier EQUALITY_GUARD_STATUS = AstralCraft.prefix("event_equality_guard");
-    public static final Identifier LEAKING_POCKET_STATUS = AstralCraft.prefix("event_leaking_pocket");
     private static final Map<UUID, EventExecution> PANEL_EVENTS = new HashMap<>();
     private static final Map<UUID, EventExecution> ROUND_EVENTS = new HashMap<>();
 
@@ -109,24 +106,6 @@ public class BoardEventService {
 
     public static int shopOfferBonus(BoardSession session) {
         return session != null && session.mechanics().timedEventTurns(AstralEventBootstrap.BIG_SALES.identifier()) > 0 ? 2 : 0;
-    }
-
-    public static void consumeEqualityGuard(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        if (participant == null || !participant.hasRoundStatusEffect(EQUALITY_GUARD_STATUS)) return;
-        BoardParticipant updated = participant.withoutRoundStatusEffect(EQUALITY_GUARD_STATUS);
-        BoardSessionManager.updateParticipant(level, session, updated);
-    }
-
-    public static void applyLeakingPocket(ServerLevel level, BoardSession session, BoardSession.MovementState movement,
-                                          BoardParticipant participant) {
-        if (participant == null || !participant.hasRoundStatusEffect(LEAKING_POCKET_STATUS)) return;
-        int amount = Math.min(participant.stats().starCoins(), movement.route().size());
-        BoardParticipant updated = participant.withoutRoundStatusEffect(LEAKING_POCKET_STATUS);
-        BoardSessionManager.updateParticipant(level, session, updated);
-        if (amount > 0) {
-            BoardWorldObjectService.changeCoins(level, session, participant.slotUuid(), -amount);
-            BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), amount);
-        }
     }
 
     private static void enqueueEffects(BoardEventContext context, List<AstralEventEffect> effects,

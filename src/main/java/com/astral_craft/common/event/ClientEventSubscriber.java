@@ -140,6 +140,7 @@ public class ClientEventSubscriber {
         BoardProtectionWorldRenderer.submit(event);
         BoardCharacterMarkerRenderer.submit(event);
         BoardTemplatePreviewRenderer.submit(event);
+        CustomPaintingPreviewRenderer.submit(event);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -176,6 +177,7 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.FIRECRACKERS_PROJECTILE.get(), FirecrackersRenderer::new);
         event.registerEntityRenderer(AstralEntities.SLINGSHOT_PROJECTILE.get(), SlingshotProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), SnowballAttackProjectileRenderer::new);
+        event.registerEntityRenderer(AstralEntities.CUSTOM_PAINTING.get(), CustomPaintingRenderer::new);
     }
 
     @SubscribeEvent
@@ -224,6 +226,7 @@ public class ClientEventSubscriber {
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
         event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);
+        event.register(OpenCustomPaintingConfigPayload.TYPE, CustomPaintingConfigScreen::open);
     }
 
     private static void openBoardDismantleConfirmation(OpenBoardDismantleConfirmPayload payload, IPayloadContext context) {

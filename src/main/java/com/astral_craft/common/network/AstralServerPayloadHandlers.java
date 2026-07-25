@@ -5,6 +5,8 @@ import com.astral_craft.common.blocks.platform.GamblePlatform;
 import com.astral_craft.common.blocks.platform.LotteryPlatform;
 import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
+import com.astral_craft.common.components.CustomPaintingData;
+import com.astral_craft.common.entity.CustomPaintingEntity;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
@@ -21,6 +23,7 @@ import com.astral_craft.common.items.BoardDismantlerItem;
 import com.astral_craft.common.items.BoardProjectorItem;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.slf4j.Logger;
@@ -30,6 +33,17 @@ import org.slf4j.LoggerFactory;
 public class AstralServerPayloadHandlers {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AstralServerPayloadHandlers.class);
+
+    public static void handleCustomPaintingConfig(CustomPaintingConfigPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            if (!(player.level().getEntity(payload.entityId()) instanceof CustomPaintingEntity painting)) return;
+            if (player.distanceToSqr(painting) > 64.0D || !CustomPaintingData.validResource(payload.data().resource())) return;
+            if (!painting.applyConfiguration(payload.data())) {
+                player.sendSystemMessage(Component.translatable("message.astral_craft.custom_painting.no_space"), true);
+            }
+        });
+    }
 
     public static void handleCardTargets(CardTargetSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {

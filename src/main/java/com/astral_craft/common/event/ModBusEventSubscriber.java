@@ -2,8 +2,6 @@ package com.astral_craft.common.event;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.cardback.CardBackDefinition;
-import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinAddition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinRarityDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
@@ -37,16 +35,14 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
-        event.dataPackRegistry(AstralCharacterBootstrap.CHARACTERS, CharacterDefinition.CODEC, CharacterDefinition.CODEC);
         event.dataPackRegistry(AstralCharacterSkinBootstrap.CHARACTER_SKINS, CharacterSkinAddition.CODEC, CharacterSkinAddition.CODEC);
         event.dataPackRegistry(AstralSkinRarityBootstrap.SKIN_RARITIES, CharacterSkinRarityDefinition.CODEC, CharacterSkinRarityDefinition.CODEC);
-        event.dataPackRegistry(AstralCardBackBootstrap.CARD_BACKS, CardBackDefinition.CODEC, CardBackDefinition.CODEC);
         event.dataPackRegistry(AstralEventBootstrap.EVENTS, AstralEventDefinition.CODEC, AstralEventDefinition.CODEC);
     }
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("23");
+        PayloadRegistrar registrar = event.registrar("24");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -82,6 +78,7 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenCharacterSettingsPayload.TYPE, OpenCharacterSettingsPayload.STREAM_CODEC);
         registrar.playToClient(OpenHandCardDeckPayload.TYPE, OpenHandCardDeckPayload.STREAM_CODEC);
         registrar.playToClient(CharacterSkillCutinPayload.TYPE, CharacterSkillCutinPayload.STREAM_CODEC);
+        registrar.playToClient(OpenCustomPaintingConfigPayload.TYPE, OpenCustomPaintingConfigPayload.STREAM_CODEC);
         registrar.playToServer(CardTargetSelectionPayload.TYPE, CardTargetSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardTargets);
         registrar.playToServer(CardNumberSelectionPayload.TYPE, CardNumberSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardNumberSelection);
         registrar.playToServer(ChipSelectionPayload.TYPE, ChipSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleChipSelection);
@@ -97,7 +94,8 @@ public class ModBusEventSubscriber {
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
         registrar.playToServer(BoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCharacterSelection);
         registrar.playToServer(BoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardProjectorConfirm);
-        registrar.playToServer(BoardDismantleConfirmPayload.TYPE, BoardDismantleConfirmPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardDismantleConfirm);
+        registrar.playToServer(BoardDismantleConfirmPayload.TYPE, BoardDismantleConfirmPayload.STREAM_CODEC,
+                AstralServerPayloadHandlers::handleBoardDismantleConfirm);
         registrar.playToServer(UseBoardCardPayload.TYPE, UseBoardCardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseBoardCard);
         registrar.playToServer(BoardCounterResponsePayload.TYPE, BoardCounterResponsePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCounterResponse);
         registrar.playToServer(BoardMoveRequestPayload.TYPE, BoardMoveRequestPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardMove);
@@ -112,6 +110,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(BoardLeavePayload.TYPE, BoardLeavePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardLeave);
         registrar.playToServer(BoardShopActionPayload.TYPE, BoardShopActionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardShop);
         registrar.playToServer(BoardPanelSelectionPayload.TYPE, BoardPanelSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardPanelSelection);
+        registrar.playToServer(CustomPaintingConfigPayload.TYPE, CustomPaintingConfigPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCustomPaintingConfig);
     }
 
 }

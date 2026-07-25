@@ -2,7 +2,6 @@ package com.astral_craft.client.gui.cardback;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
-import com.astral_craft.common.gameplay.cardback.CardBackDefinition;
 import com.astral_craft.common.network.c2s.CardBackSelectionPayload;
 import com.astral_craft.common.network.s2c.OpenCardBackSelectionPayload;
 import net.minecraft.client.Minecraft;
@@ -40,19 +39,19 @@ public class CardBackSelectionScreen extends Screen {
     protected double dragStartY;
     protected float dragStartScrollY;
 
-    public CardBackSelectionScreen(List<CardBackDefinition> definitions, Identifier selected) {
+    public CardBackSelectionScreen(Identifier selected) {
         super(Component.translatable("gui.astral_craft.card_back_selection.title"));
-        this.definitions = mergeResourceBacks(definitions);
+        this.definitions = CardBackResourceCache.values();
         this.sections = groupByNamespace(this.definitions);
         CardBackDefinition selectedDefinition = this.definitions.stream()
-                .filter(definition -> definition.id().equals(selected)
-                        || definition.texture().equals(selected))
+                .filter(definition -> definition.id().equals(selected) || definition.texture().equals(selected))
                 .findFirst().orElse(this.definitions.getFirst());
         this.selected = selectedDefinition.id();
     }
 
     public static void open(OpenCardBackSelectionPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new CardBackSelectionScreen(payload.options(), payload.selectedId())));
+        context.enqueueWork(() -> Minecraft.getInstance().setScreen(
+                new CardBackSelectionScreen(payload.selectedId())));
     }
 
     @Override
@@ -75,6 +74,7 @@ public class CardBackSelectionScreen extends Screen {
         graphics.fill(x, y, right, bottom, 0xE00A0A12);
         graphics.fill(x, y, right, y + 2, 0x80FFFFFF);
         graphics.text(this.font, this.title, x + 16, y + 12, 0xFFFFFFFF, false);
+
         int listX = x + 16;
         int listY = y + 36;
         int listW = width - 32;
@@ -83,6 +83,7 @@ public class CardBackSelectionScreen extends Screen {
         this.renderSections(graphics, listX, listY, listW, mouseX, mouseY);
         graphics.disableScissor();
         this.renderScrollbar(graphics, listX + listW - 5, listY, listH);
+
         int confirmX = right - 16 - BUTTON_W * 2 - 10;
         int buttonY = bottom - 42;
         boolean confirmHovered = inside(mouseX, mouseY, confirmX, buttonY, BUTTON_W, BUTTON_H);
@@ -92,8 +93,8 @@ public class CardBackSelectionScreen extends Screen {
                 confirmX, buttonY, BUTTON_W, BUTTON_H, false, confirmHovered, ButtonStyle.button(0xFF4F9D69));
         AstralFancyButton.renderButton(graphics, this.font,
                 Component.translatable("gui.astral_craft.card_back_selection.cancel"),
-                confirmX + BUTTON_W + 10, buttonY, BUTTON_W, BUTTON_H, false,
-                cancelHovered, ButtonStyle.button(0xFF9B5360));
+                confirmX + BUTTON_W + 10, buttonY, BUTTON_W, BUTTON_H, false, cancelHovered,
+                ButtonStyle.button(0xFF9B5360));
         AstralFancyButton.setHandCursor(confirmHovered || cancelHovered || this.hoveredCard(mouseX, mouseY));
     }
 
@@ -129,7 +130,6 @@ public class CardBackSelectionScreen extends Screen {
             this.onClose();
             return true;
         }
-
         if (inside(event.x(), event.y(), confirmX + BUTTON_W + 10, buttonY, BUTTON_W, BUTTON_H)) {
             this.onClose();
             return true;
@@ -158,7 +158,6 @@ public class CardBackSelectionScreen extends Screen {
             this.draggingScrollbar = false;
             return true;
         }
-
         return super.mouseReleased(event);
     }
 
@@ -172,7 +171,6 @@ public class CardBackSelectionScreen extends Screen {
             this.scrollY = Mth.clamp(this.scrollY - (float) deltaY * 34.0F, 0.0F, this.maxScroll());
             return true;
         }
-
         return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
     }
 
@@ -182,7 +180,6 @@ public class CardBackSelectionScreen extends Screen {
             this.onClose();
             return true;
         }
-
         return super.keyPressed(event);
     }
 
@@ -212,9 +209,9 @@ public class CardBackSelectionScreen extends Screen {
                         0.0F, 0.0F, CARD_W, CARD_H, 256, 360, 256, 360, 0xFFFFFFFF);
                 Component name = this.displayName(definition);
                 Component clipped = this.ellipsize(name, CARD_W + 4);
-                graphics.text(this.font, clipped, cardX + CARD_W / 2 - this.font.width(clipped) / 2, cardY + CARD_H + 5, 0xFFFFFFFF, false);
+                graphics.text(this.font, clipped, cardX + CARD_W / 2 - this.font.width(clipped) / 2,
+                        cardY + CARD_H + 5, 0xFFFFFFFF, false);
             }
-
             cursorY += this.rows(section.definitions().size(), columns) * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
         }
     }
@@ -236,10 +233,8 @@ public class CardBackSelectionScreen extends Screen {
                     return section.definitions().get(index);
                 }
             }
-
             cursorY += this.rows(section.definitions().size(), columns) * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
         }
-
         return null;
     }
 
@@ -264,7 +259,6 @@ public class CardBackSelectionScreen extends Screen {
             if (this.font.width(out.toString()) + this.font.width(suffix) >= maxWidth) break;
             out.append(text.charAt(index));
         }
-
         return Component.literal(out + suffix);
     }
 
@@ -273,9 +267,9 @@ public class CardBackSelectionScreen extends Screen {
         int columns = this.columns(listW);
         int contentHeight = 0;
         for (NamespaceSection section : this.sections) {
-            contentHeight += HEADER_H + this.rows(section.definitions().size(), columns) * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
+            contentHeight += HEADER_H + this.rows(section.definitions().size(), columns)
+                    * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
         }
-
         return Math.max(0, contentHeight - (this.panelHeight() - 92));
     }
 
@@ -316,29 +310,11 @@ public class CardBackSelectionScreen extends Screen {
         graphics.fill(x, thumbY, x + 5, thumbY + thumbH, 0xCCFFFFFF);
     }
 
-    protected static List<CardBackDefinition> mergeResourceBacks(List<CardBackDefinition> serverDefinitions) {
-        Map<Identifier, CardBackDefinition> byTexture = new LinkedHashMap<>();
-        for (CardBackDefinition definition : serverDefinitions) {
-            byTexture.put(definition.texture(), definition);
-        }
-
-        Minecraft.getInstance().getResourceManager().listResources("textures/gui/cards/back",
-                identifier -> identifier.getPath().endsWith(".jpg")).keySet().forEach(texture ->
-                byTexture.putIfAbsent(texture, CardBackDefinition.scanned(texture)));
-        if (byTexture.isEmpty()) {
-            CardBackDefinition definition = CardBackDefinition.builtinDefault();
-            byTexture.put(definition.texture(), definition);
-        }
-
-        return List.copyOf(byTexture.values());
-    }
-
     protected static List<NamespaceSection> groupByNamespace(List<CardBackDefinition> definitions) {
         Map<String, List<CardBackDefinition>> grouped = new LinkedHashMap<>();
         for (CardBackDefinition definition : definitions) {
             grouped.computeIfAbsent(definition.texture().getNamespace(), ignored -> new ArrayList<>()).add(definition);
         }
-
         return grouped.entrySet().stream().map(entry -> new NamespaceSection(entry.getKey(), entry.getValue())).toList();
     }
 
@@ -351,5 +327,4 @@ public class CardBackSelectionScreen extends Screen {
             definitions = List.copyOf(definitions);
         }
     }
-
 }
