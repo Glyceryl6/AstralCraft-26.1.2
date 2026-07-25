@@ -41,11 +41,11 @@ public class BoardBattleScreen extends Screen {
     private static final int CARD_GAP = 7;
     private static final int ATTACK_ACCENT = 0xFFD84B61;
     private static final int DEFENSE_ACCENT = 0xFF3F9DCE;
-    private static final int DICE_FLASH_END_TICK = 26;
+    private static final int DICE_FLASH_END_TICK = 16;
     private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 10;
-    private static final int BASE_VALUE_STAGE_TICK = 49;
-    private static final int CARD_VALUE_STAGE_TICK = 67;
-    private static final int EVADE_FAILURE_STAGE_TICK = 49;
+    private static final int BASE_VALUE_STAGE_TICK = 38;
+    private static final int CARD_VALUE_STAGE_TICK = 52;
+    private static final int EVADE_FAILURE_STAGE_TICK = 38;
     private static final int KNOCKOUT_FLIGHT_START_TICK = 1;
     private static final int KNOCKOUT_FLIGHT_TICKS = 16;
     private static final int KNOCKOUT_EXPLOSION_TICK = 18;
@@ -80,6 +80,8 @@ public class BoardBattleScreen extends Screen {
     private int attackerScoreFlashTicks;
     private int defenderScoreFlashTicks;
     private boolean knockoutExplosionTriggered;
+    private boolean attackerSixSoundPlayed;
+    private boolean defenderSixSoundPlayed;
     private float renderPartialTick;
 
     public BoardBattleScreen(OpenBoardBattlePayload payload) {
@@ -163,6 +165,17 @@ public class BoardBattleScreen extends Screen {
         if (this.defenderHealthFlashTicks > 0) this.defenderHealthFlashTicks--;
         if (this.attackerScoreFlashTicks > 0) this.attackerScoreFlashTicks--;
         if (this.defenderScoreFlashTicks > 0) this.defenderScoreFlashTicks--;
+        if (!this.attackerSixSoundPlayed && this.view.attackerDie() == 6
+                && (!this.view.attackerRolling() || this.phaseAgeTicks >= DICE_FLASH_END_TICK)) {
+            this.attackerSixSoundPlayed = true;
+            this.playMaximumDiceSound();
+        }
+        if (!this.defenderSixSoundPlayed && this.view.defenderDie() == 6
+                && (this.view.result() || this.view.defenderRolling() && this.defenderRollAge() >= DICE_FLASH_END_TICK)) {
+            this.defenderSixSoundPlayed = true;
+            this.playMaximumDiceSound();
+        }
+
         if (this.view.result() && this.view.knockout()
                 && this.phaseAgeTicks >= KNOCKOUT_EXPLOSION_TICK
                 && !this.knockoutExplosionTriggered) {
@@ -303,8 +316,9 @@ public class BoardBattleScreen extends Screen {
         int renderBottom = Math.round(Mth.lerp(victory, layout.modelBottom(), winnerBottom));
         float attackerOffsetX = Mth.lerp(victory, approachOffset, 0.0F);
         float attackerOffsetY = -(float) Math.sin(Math.PI * victoryProgress) * 8.0F;
-        BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight, renderBottom,
-                -225.0F, 1.0F, attackerOffsetX, attackerOffsetY, 0.0F);
+        BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight,
+                renderBottom, -225.0F, 1.0F,
+                attackerOffsetX, attackerOffsetY, 0.0F);
     }
 
     private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
@@ -330,24 +344,25 @@ public class BoardBattleScreen extends Screen {
         if (this.view.attackerRolling()) {
             int value = this.phaseAgeTicks < DICE_FLASH_END_TICK
                     ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : this.view.attackerDie();
-            this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(value)), attackX, y + 8,
-                    0xFFFFE3A0, this.phaseAgeTicks < DICE_FLASH_END_TICK ? 3.25F : 2.85F, true);
+            boolean rolling = this.phaseAgeTicks < DICE_FLASH_END_TICK;
+            this.renderDiceValue(graphics, value, attackX, y + 8, true,
+                    rolling ? 1.0F : this.settledDiceScale(true), this.diceTextColor(true, rolling));
             return;
         }
 
         if (this.view.defenseChoice()) {
-            this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(this.view.attackerDie())),
-                    attackX, y + 8, 0xFFFFE3A0, 2.85F, true);
+            this.renderDiceValue(graphics, this.view.attackerDie(), attackX, y + 8, true,
+                    this.settledDiceScale(true), this.diceTextColor(true, false));
             return;
         }
 
         if (this.shouldRenderAnimatedValue(true)) {
-            this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(this.animatedValue(true))),
-                    attackX, y + 8, this.animatedValueColor(true), this.numberScale(true), true);
+            this.renderDiceValue(graphics, this.animatedValue(true), attackX, y + 8, true,
+                    this.numberScale(true) / 2.85F, this.animatedValueColor(true));
         }
         if (this.shouldRenderAnimatedValue(false)) {
-            this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(this.animatedValue(false))),
-                    defenseX, y + 8, this.animatedValueColor(false), this.numberScale(false), true);
+            this.renderDiceValue(graphics, this.animatedValue(false), defenseX, y + 8, false,
+                    this.numberScale(false) / 2.85F, this.animatedValueColor(false));
         }
         if (this.showEvadeResult()) {
             Component evade = Component.translatable(this.view.evaded()
@@ -389,9 +404,9 @@ public class BoardBattleScreen extends Screen {
             pulseDistance = Math.min(Math.abs(age - BASE_VALUE_STAGE_TICK), Math.abs(age - CARD_VALUE_STAGE_TICK));
         }
 
-        if (pulseDistance > 4) return base;
-        float pulse = 1.0F - Mth.clamp(pulseDistance / 4.0F, 0.0F, 1.0F);
-        return base + pulse * 0.85F;
+        float stagePulse = pulseDistance > 4 ? 0.0F : 1.0F - Mth.clamp(pulseDistance / 4.0F, 0.0F, 1.0F);
+        float sixPulse = this.settledDiceScale(attack) - 1.0F;
+        return base + stagePulse * 0.85F + sixPulse * base;
     }
 
     private void renderScaledCenteredText(GuiGraphicsExtractor graphics, Component text, int centerX, int y, int color, float scale, boolean shadow) {
@@ -419,21 +434,59 @@ public class BoardBattleScreen extends Screen {
     private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator, int centerX, int y, int color, int flashTicks) {
         Component top = Component.literal(Integer.toString(numerator));
         Component bottom = Component.literal(Integer.toString(denominator));
-        float pulse = flashTicks > 0 ? 0.30F * (flashTicks / 10.0F) : 0.0F;
-        float scale = 1.65F + pulse;
-        int width = Math.round(Math.max(this.font.width(top), this.font.width(bottom)) * scale) + 14;
-        graphics.fill(centerX - width / 2, y, centerX + width / 2, y + 37, 0xC8000000);
-        int drawColor = flashTicks > 0 && Math.floorMod(flashTicks / 2, 2) == 0 ? 0xFFFFFFFF : color;
-        this.renderScaledCenteredText(graphics, top, centerX, y + 8, drawColor, scale, true);
-        graphics.fill(centerX - width / 2 + 3, y + 18, centerX + width / 2 - 3, y + 20, 0xFFE8E8E8);
-        this.renderScaledCenteredText(graphics, bottom, centerX, y + 29, drawColor, scale, true);
+        float scale = 1.0F + (flashTicks > 0 ? 0.08F * flashTicks / 7.0F : 0.0F);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, y + 25);
+        graphics.pose().scale(scale, scale);
+        int width = 62;
+        int height = 50;
+        graphics.fill(-width / 2, -height / 2, width / 2, height / 2, 0xFF050505);
+        graphics.fill(-width / 2 + 3, -height / 2 + 3, width / 2 - 3, height / 2 - 3, color);
+        int drawColor = flashTicks > 0 && Math.floorMod(flashTicks / 2, 2) == 0 ? 0xFFFFFFFF : 0xFF080808;
+        this.renderScaledCenteredText(graphics, top, 0, -10, drawColor, 1.45F, false);
+        graphics.fill(-width / 2 + 10, -1, width / 2 - 10, 1, 0xFF080808);
+        this.renderScaledCenteredText(graphics, bottom, 0, 12, drawColor, 1.45F, false);
+        graphics.pose().popMatrix();
+    }
+
+    private void renderDiceValue(GuiGraphicsExtractor graphics, int value, int centerX, int centerY,
+                                 boolean attack, float scale, int textColor) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, centerY);
+        graphics.pose().scale(scale, scale);
+        int width = 54;
+        int height = 42;
+        graphics.fill(-width / 2, -height / 2, width / 2, height / 2, 0xFF050505);
+        graphics.fill(-width / 2 + 3, -height / 2 + 3, width / 2 - 3, height / 2 - 3,
+                attack ? ATTACK_ACCENT : DEFENSE_ACCENT);
+        this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(value)), 0, 1,
+                textColor, 2.55F, false);
+        graphics.pose().popMatrix();
+    }
+
+    private float settledDiceScale(boolean attack) {
+        int die = attack ? this.view.attackerDie() : this.view.defenderDie();
+        int age = this.maximumDiceEffectAge(attack);
+        if (die != 6 || age < 0 || age > 12) return 1.0F;
+        return 1.0F + (float) Math.sin(age / 12.0F * Math.PI) * 0.22F;
+    }
+
+    private int diceTextColor(boolean attack, boolean rolling) {
+        int die = attack ? this.view.attackerDie() : this.view.defenderDie();
+        int age = this.maximumDiceEffectAge(attack);
+        if (!rolling && die == 6 && age >= 0 && age <= 12 && Math.floorMod(age, 4) < 2) return 0xFFFFFFFF;
+        return 0xFF080808;
+    }
+
+    private int maximumDiceEffectAge(boolean attack) {
+        if (attack) return this.view.attackerRolling() ? this.phaseAgeTicks - DICE_FLASH_END_TICK : Integer.MAX_VALUE;
+        return this.view.defenderRolling() ? this.defenderRollAge() - DICE_FLASH_END_TICK : Integer.MAX_VALUE;
     }
 
     private boolean shouldRenderAnimatedValue(boolean attack) {
-        if (this.view.result()) return true;
-        if (!this.view.defenderRolling()) return false;
-        if (attack) return true;
-        return this.phaseAgeTicks >= DEFENSE_CHOICE_ANNOUNCE_TICKS;
+        if (this.view.result() || !this.view.defenderRolling()) return false;
+        if (this.phaseAgeTicks > CARD_VALUE_STAGE_TICK + 8) return false;
+        return attack || this.phaseAgeTicks >= DEFENSE_CHOICE_ANNOUNCE_TICKS;
     }
 
     private int animatedValueColor(boolean attack) {
@@ -450,7 +503,7 @@ public class BoardBattleScreen extends Screen {
         }
 
         if (flash && Math.floorMod(this.phaseAgeTicks, 4) < 2) return 0xFFFFFFFF;
-        return attack ? 0xFFFFE3A0 : 0xFFA8E8FF;
+        return 0xFF080808;
     }
 
     private int animatedValue(boolean attack) {
@@ -547,13 +600,13 @@ public class BoardBattleScreen extends Screen {
             if (particleAge < 0.0F || particleAge >= 15.0F) continue;
             float spread = index / 21.0F;
             double angle = Math.toRadians(102.0D + spread * 88.0D) + Math.sin(index * 1.71D) * 0.09D;
-            float distance = 10.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F)) * (30.0F + index % 5 * 8.0F);
+            float distance = 10.0F + smoothStep(Mth.clamp(particleAge / 13.0F, 0.0F, 1.0F))
+                    * (30.0F + index % 5 * 8.0F);
             float x = (float) Math.cos(angle) * distance;
             float y = (float) Math.sin(angle) * distance - particleAge * 0.16F;
             float scale = 0.54F + index % 4 * 0.12F;
             this.renderExplosionParticle(graphics, centerX, centerY, particleAge, index + 1, x, y, scale);
         }
-
         this.renderExplosionSparks(graphics, centerX, centerY, age);
     }
 
@@ -594,6 +647,11 @@ public class BoardBattleScreen extends Screen {
         int y = Math.round(centerY + offsetY) - size / 2;
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F,
                 size, size, 16, 16, 16, 16, alpha << 24 | 0x00FFFFFF);
+    }
+
+    private void playMaximumDiceSound() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null) minecraft.player.playSound(SoundEvents.NOTE_BLOCK_PLING.value(), 0.85F, 1.55F);
     }
 
     private void playKnockoutExplosion() {
@@ -654,20 +712,23 @@ public class BoardBattleScreen extends Screen {
         for (int visibleIndex = 0; visibleIndex < visible.size(); visibleIndex++) {
             int index = visible.get(visibleIndex);
             CardPosition position = layout.cardPosition(visibleIndex, this.cardScroll);
-            if (index != this.draggingIndex && position.x() + CARD_W >= layout.cardX() && position.x() <= layout.cardRight()) {
+            if (index != this.draggingIndex && position.x() + CARD_W >= layout.cardX()
+                    && position.x() <= layout.cardRight()) {
                 this.renderCard(graphics, this.cards.get(index), position.x(), position.y(), mouseX, mouseY, false);
             }
         }
 
         graphics.disableScissor();
         if (this.draggingIndex >= 0 && this.draggingIndex < this.cards.size()) {
-            this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX, mouseY - this.dragOffsetY, mouseX, mouseY, true);
+            this.renderCard(graphics, this.cards.get(this.draggingIndex), mouseX - this.dragOffsetX,
+                    mouseY - this.dragOffsetY, mouseX, mouseY, true);
         }
     }
 
     private void renderCard(GuiGraphicsExtractor graphics, CombatCard card, int x, int y, int mouseX, int mouseY, boolean dragging) {
-        HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(), card.definition().largeFrontTexture(card.stack()),
-                card.definition().displayName(card.stack()), x, y, mouseX, mouseY, dragging);
+        HandCardRenderHelper.renderFramedCard(graphics, this.font, card.definition().type(),
+                card.definition().largeFrontTexture(card.stack()), card.definition().displayName(card.stack()),
+                x, y, mouseX, mouseY, dragging);
         Component cost = Component.translatable("gui.astral_craft.board.card_cost", card.cost());
         graphics.fill(x + 3, y + 3, x + 27, y + 16, 0xE0000000);
         graphics.text(this.font, cost, x + 5, y + 6, 0xFFFFD36B, true);
@@ -681,16 +742,17 @@ public class BoardBattleScreen extends Screen {
         int accent = this.role == BattleRole.DEFENDER ? DEFENSE_ACCENT : ATTACK_ACCENT;
         int diamondY = labelY + 13;
         for (int index = 0; index < this.maximumCost; index++) {
-            this.renderCostDiamond(graphics, layout.actionX() + index * 15 + 5, diamondY, index < remaining ? accent : 0xFF555560);
+            this.renderCostDiamond(graphics, layout.actionX() + index * 15 + 5, diamondY,
+                    index < remaining ? accent : 0xFF555560);
         }
     }
 
     private void renderCostDiamond(GuiGraphicsExtractor graphics, int centerX, int centerY, int color) {
         for (int row = -4; row <= 4; row++) {
             int halfWidth = 4 - Math.abs(row);
-            graphics.fill(centerX - halfWidth, centerY + row, centerX + halfWidth + 1, centerY + row + 1, color);
+            graphics.fill(centerX - halfWidth, centerY + row,
+                    centerX + halfWidth + 1, centerY + row + 1, color);
         }
-
         graphics.fill(centerX - 2, centerY - 2, centerX + 1, centerY + 1, 0x66FFFFFF);
     }
 
@@ -891,7 +953,6 @@ public class BoardBattleScreen extends Screen {
                     view.minimumBonus(), view.maximumBonus());
         }
     }
-
     private record CardPosition(int x, int y) {}
     private record Range(int minimum, int maximum) {}
 

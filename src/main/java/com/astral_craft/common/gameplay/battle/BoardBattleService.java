@@ -31,8 +31,8 @@ public class BoardBattleService {
 
     public static final int DECISION_TICKS = 20 * 20;
     public static final int DEFENSE_CHOICE_TICKS = 20 * 8;
-    public static final int ATTACKER_ROLL_TICKS = 36;
-    public static final int DEFENDER_ROLL_TICKS = 84;
+    public static final int ATTACKER_ROLL_TICKS = 28;
+    public static final int DEFENDER_ROLL_TICKS = 72;
     public static final int RESULT_TICKS = 20 * 3;
     public static final int KNOCKOUT_RESULT_TICKS = 20 * 6;
     private static final int BOT_INITIAL_CARD_TICKS = 1;
@@ -98,7 +98,7 @@ public class BoardBattleService {
 
         if (state.phase() == BattlePhase.DEFENSE_CHOICE && defender.controlledBy(player.getUUID())) {
             BoardSessionManager.updateParticipant(player.level(), session, defender.recordManualDecision());
-            boolean evadeAllowed = !BoardSessionManager.hasAllOrNothing(attacker);
+            boolean evadeAllowed = !BoardSessionManager.attackBuffPreventsEvade(attacker);
             DefenseMode selectedMode = evadeAllowed && defenseMode == DefenseMode.EVADE ? DefenseMode.EVADE : DefenseMode.DEFEND;
             beginDefenderRoll(player.level(), session, state.withDefenseMode(selectedMode));
         }
@@ -315,17 +315,16 @@ public class BoardBattleService {
             cancelAndResume(level, session);
             return;
         }
-        boolean allOrNothing = BoardSessionManager.hasAllOrNothing(attacker);
+        boolean knockDownAttackerOnFailure = BoardSessionManager.attackBuffKnocksDownOnFailure(attacker);
         AstralPlayerStats nextStats = defender.stats().damage(roll.damage());
-        BoardParticipant nextAttacker = removeCards(attacker, roll.attackerCards())
-                .withoutRoundStatusEffect(BoardSessionManager.ALL_OR_NOTHING_STATUS);
+        BoardParticipant nextAttacker = removeCards(attacker.withStats(attacker.stats().consumeAttackBuffs()), roll.attackerCards());
         BoardParticipant nextDefender = removeCards(defender.withStats(nextStats), roll.defenderCards());
         int knockoutCoins = 0;
         if (nextStats.health() <= 0) {
             knockoutCoins = Math.max(0, (nextDefender.stats().starCoins() + 1) / 2);
             nextDefender = nextDefender.knockDown();
             DELAYED_ATTACKER_KNOCKOUT.remove(session.id());
-        } else if (allOrNothing) {
+        } else if (knockDownAttackerOnFailure) {
             DELAYED_ATTACKER_KNOCKOUT.add(session.id());
         }
         playAttackAnimation(level, nextAttacker);
@@ -511,7 +510,7 @@ public class BoardBattleService {
                     attackBase, defenseBase, attackBase + attackRange.minimum(),
                     attackBase + attackRange.maximum(), defenseBase + defenseRange.minimum(),
                     defenseBase + defenseRange.maximum(), 0, 0, 0, 0, 0, 0, 0,
-                    false, false, !BoardSessionManager.hasAllOrNothing(attacker),
+                    false, false, !BoardSessionManager.attackBuffPreventsEvade(attacker),
                     state.attackerReady(), state.defenderReady(), state.defenseMode());
         }
         return new BattleView(state.phase(), attacker.stats().health(), defender.stats().health(),
@@ -520,7 +519,7 @@ public class BoardBattleService {
                 roll.defenseBase() + roll.defenseCardMinimum(), roll.defenseBase() + roll.defenseCardMaximum(),
                 roll.attackerDie(), roll.defenderDie(), roll.attackBonus(), roll.defenseBonus(),
                 roll.attackTotal(), roll.defenseTotal(), roll.damage(), roll.evaded(), roll.knockout(),
-                !BoardSessionManager.hasAllOrNothing(attacker), state.attackerReady(), state.defenderReady(), state.defenseMode());
+                !BoardSessionManager.attackBuffPreventsEvade(attacker), state.attackerReady(), state.defenderReady(), state.defenseMode());
     }
 
     private static List<CombatCardView> combatCards(BoardParticipant participant, CardType expected) {
