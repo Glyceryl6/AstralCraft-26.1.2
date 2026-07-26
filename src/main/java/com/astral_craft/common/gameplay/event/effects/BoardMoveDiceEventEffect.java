@@ -3,6 +3,8 @@ package com.astral_craft.common.gameplay.event.effects;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.board.BoardEventTargets;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
@@ -27,8 +29,10 @@ public record BoardMoveDiceEventEffect(int extraDice) implements AstralEventEffe
 
     @Override
     public void apply(AstralEventContext context) {
+        int dice = Math.max(0, this.extraDice);
+        if (dice == 0) return;
         BoardEventTargets.resolve(context).ifPresent(target -> BoardSessionManager.updateParticipant(target.level(),
                 target.session(), target.participant().withStats(target.participant().stats()
-                        .addNextMoveDice(Math.max(0, this.extraDice)))));
+                        .addBuff(AstralBoardBuffs.HASTE.get(), BoardBuffInstance.PERMANENT, dice - 1))));
     }
 }

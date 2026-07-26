@@ -72,14 +72,11 @@ public record AstralPlayerStats(
         Map<BoardBuff, BoardBuffInstance> migrated = new HashMap<>(buffs);
         legacyBuffs.forEach((name, level) -> {
             BoardBuff buff = AstralBoardBuffs.REGISTRY.getValue(AstralCraft.prefix(name));
-            if (buff != null && level > 0) {
-                migrated.putIfAbsent(buff, new BoardBuffInstance(BoardBuffInstance.PERMANENT, level - 1, 0, false));
-            }
+            if (buff != null && level > 0) migrated.putIfAbsent(buff, new BoardBuffInstance(BoardBuffInstance.PERMANENT, level - 1, 0, false));
         });
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed,
-                maxHealth, health, starCoins, stars, cardPlaysPerTurn,
-                cardPlaysRemaining, skillCooldownReduction,
-                nextMoveFixed, nextMoveExtraDice, migrated, modifiers);
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice,
+                migrated, modifiers);
     }
 
     public AstralPlayerStats {
@@ -105,52 +102,59 @@ public record AstralPlayerStats(
 
     public int speed() {
         int value = this.baseSpeed + this.modifierSum("speed");
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += entry.getKey().speedModifier(entry.getValue());
+        return Math.max(0, value);
+    }
+
+    public int moveDiceBonus() {
+        int value = 0;
         for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value += entry.getKey().speedModifier(entry.getValue());
+            value += entry.getKey().moveDiceModifier(entry.getValue());
         }
         return Math.max(0, value);
     }
 
     public int incomingDamageBonus() {
         int value = 0;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value += entry.getKey().incomingDamageModifier(entry.getValue());
-        }
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += entry.getKey().incomingDamageModifier(entry.getValue());
         return Math.max(0, value);
     }
 
     public int turnStartHealing() {
         int value = 0;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value += Math.max(0, entry.getKey().turnStartHealing(entry.getValue()));
-        }
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += Math.max(0, entry.getKey().turnStartHealing(entry.getValue()));
         return value;
     }
 
     public int turnStartDamage() {
         int value = 0;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value += Math.max(0, entry.getKey().turnStartDamage(entry.getValue()));
-        }
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += Math.max(0, entry.getKey().turnStartDamage(entry.getValue()));
         return value;
     }
 
     public int roundRewardBonus() {
         int value = 0;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value += entry.getKey().roundRewardBonus(entry.getValue());
-        }
-
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += entry.getKey().roundRewardBonus(entry.getValue());
         return Math.max(0, value);
     }
 
     public int resolveIncomingDamage(int damage) {
         int reduction = 0;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            reduction += entry.getKey().damageReduction(entry.getValue());
-        }
-
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) reduction += entry.getKey().damageReduction(entry.getValue());
         return Math.max(0, damage - reduction);
+    }
+
+    public AstralPlayerStats consumeMoveRollBuffs() {
+        Map<BoardBuff, BoardBuffInstance> next = new HashMap<>(this.buffs);
+        boolean changed = false;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(next.entrySet())) {
+            if (!entry.getKey().consumedAfterMoveRoll(entry.getValue())) continue;
+            BoardBuffInstance retained = entry.getValue().withoutAcquiredLevels();
+            if (retained == null) next.remove(entry.getKey());
+            else next.put(entry.getKey(), retained);
+            changed = true;
+        }
+        return changed ? this.withBuffs(next) : this;
     }
 
     public AstralPlayerStats consumeIncomingDamageBuffs() {
@@ -418,5 +422,4 @@ public record AstralPlayerStats(
         });
         return Map.copyOf(result);
     }
-
 }

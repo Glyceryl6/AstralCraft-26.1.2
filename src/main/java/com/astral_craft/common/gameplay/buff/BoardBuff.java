@@ -84,7 +84,6 @@ public class BoardBuff {
             BoardBuffInstance next = instance.withAcquiredLevels(acquiredLevels / 2);
             return next == null ? stats.removeBuff(this) : stats.setBuff(this, next);
         }
-
         if (this.properties.levelDecayAtTurnEnd <= 0) return stats;
         BoardBuffInstance next = instance.withAcquiredLevels(acquiredLevels - this.properties.levelDecayAtTurnEnd);
         return next == null ? stats.removeBuff(this) : stats.setBuff(this, next);
@@ -110,6 +109,10 @@ public class BoardBuff {
         return this.properties.speedPerLevel * instance.level();
     }
 
+    public int moveDiceModifier(BoardBuffInstance instance) {
+        return Math.max(0, this.properties.extraMoveDicePerLevel * instance.level());
+    }
+
     public int incomingDamageModifier(BoardBuffInstance instance) {
         return this.properties.incomingDamageFlat + this.properties.incomingDamagePerLevel * instance.level();
     }
@@ -126,15 +129,17 @@ public class BoardBuff {
         return this.properties.consumeAfterIncomingDamage;
     }
 
-    public BoardParticipant onMovementFinished(
-            ServerLevel level, BoardSession session, BoardSession.MovementState movement,
-            BoardParticipant participant, BoardBuffInstance instance) {
+    public boolean consumedAfterMoveRoll(BoardBuffInstance instance) {
+        return this.properties.consumeAfterMoveRoll;
+    }
+
+    public BoardParticipant onMovementFinished(ServerLevel level, BoardSession session, BoardSession.MovementState movement,
+                                               BoardParticipant participant, BoardBuffInstance instance) {
         return participant;
     }
 
-    public BattleFollowUp onDefendedBattle(
-            ServerLevel level, BoardSession session, BoardParticipant defender,
-            BoardParticipant attacker, BoardBuffInstance instance) {
+    public BattleFollowUp onDefendedBattle(ServerLevel level, BoardSession session, BoardParticipant defender,
+                                           BoardParticipant attacker, BoardBuffInstance instance) {
         return BattleFollowUp.none(defender);
     }
 
@@ -163,11 +168,11 @@ public class BoardBuff {
     }
 
     public static class Properties {
-
         protected int color;
         protected int attackPerLevel;
         protected int defensePerLevel;
         protected int speedPerLevel;
+        protected int extraMoveDicePerLevel;
         protected int incomingDamagePerLevel;
         protected int incomingDamageFlat;
         protected int damageReductionPerLevel;
@@ -181,6 +186,7 @@ public class BoardBuff {
         protected boolean permanent;
         protected boolean halveLevelsAtTurnEnd;
         protected boolean consumeAfterIncomingDamage;
+        protected boolean consumeAfterMoveRoll;
         protected boolean consumeAfterAttack;
         protected boolean preventsEvade;
         protected boolean knockDownOwnerWhenAttackFails;
@@ -194,115 +200,36 @@ public class BoardBuff {
             return new Properties(color);
         }
 
-        public Properties attack(int value) {
-            this.attackPerLevel = value;
-            return this;
-        }
-
-        public Properties defense(int value) {
-            this.defensePerLevel = value;
-            return this;
-        }
-
-        public Properties speed(int value) {
-            this.speedPerLevel = value;
-            return this;
-        }
-
-        public Properties incomingDamage(int value) {
-            this.incomingDamagePerLevel = value;
-            return this;
-        }
-
-        public Properties incomingDamageFlat(int value) {
-            this.incomingDamageFlat = value;
-            return this;
-        }
-
-        public Properties damageReduction(int value) {
-            this.damageReductionPerLevel = Math.max(0, value);
-            return this;
-        }
-
-        public Properties healAtTurnStart(int value) {
-            this.turnStartHealingPerLevel = Math.max(0, value);
-            return this;
-        }
-
-        public Properties damageAtTurnStart(int value) {
-            this.turnStartDamagePerLevel = Math.max(0, value);
-            return this;
-        }
-
-        public Properties roundReward(int value) {
-            this.roundRewardPerLevel = Math.max(0, value);
-            return this;
-        }
-
-        public Properties stacking() {
-            this.addLevels = true;
-            return this;
-        }
-
-        public Properties maximumLevel(int value) {
-            this.maximumLevel = Math.max(0, value);
-            return this;
-        }
-
-        public Properties loopLevels() {
-            this.loopLevels = true;
-            return this;
-        }
-
-        public Properties permanent() {
-            this.permanent = true;
-            return this;
-        }
-
-        public Properties decayLevelsAtTurnEnd() {
-            return this.decayLevelsAtTurnEnd(1);
-        }
-
-        public Properties decayLevelsAtTurnEnd(int value) {
-            this.levelDecayAtTurnEnd = Math.max(0, value);
-            return this;
-        }
-
-        public Properties halveLevelsAtTurnEnd() {
-            this.halveLevelsAtTurnEnd = true;
-            return this;
-        }
-
-        public Properties consumeAfterIncomingDamage() {
-            this.consumeAfterIncomingDamage = true;
-            return this;
-        }
-
-        public Properties consumeAfterAttack() {
-            this.consumeAfterAttack = true;
-            return this;
-        }
-
-        public Properties preventsEvade() {
-            this.preventsEvade = true;
-            return this;
-        }
-
-        public Properties knockDownOwnerWhenAttackFails() {
-            this.knockDownOwnerWhenAttackFails = true;
-            return this;
-        }
-
-        public Properties keepOnKnockout() {
-            this.clearOnKnockout = false;
-            return this;
-        }
+        public Properties attack(int value) { this.attackPerLevel = value; return this; }
+        public Properties defense(int value) { this.defensePerLevel = value; return this; }
+        public Properties speed(int value) { this.speedPerLevel = value; return this; }
+        public Properties extraMoveDice(int value) { this.extraMoveDicePerLevel = Math.max(0, value); return this; }
+        public Properties incomingDamage(int value) { this.incomingDamagePerLevel = value; return this; }
+        public Properties incomingDamageFlat(int value) { this.incomingDamageFlat = value; return this; }
+        public Properties damageReduction(int value) { this.damageReductionPerLevel = Math.max(0, value); return this; }
+        public Properties healAtTurnStart(int value) { this.turnStartHealingPerLevel = Math.max(0, value); return this; }
+        public Properties damageAtTurnStart(int value) { this.turnStartDamagePerLevel = Math.max(0, value); return this; }
+        public Properties roundReward(int value) { this.roundRewardPerLevel = Math.max(0, value); return this; }
+        public Properties stacking() { this.addLevels = true; return this; }
+        public Properties maximumLevel(int value) { this.maximumLevel = Math.max(0, value); return this; }
+        public Properties loopLevels() { this.loopLevels = true; return this; }
+        public Properties permanent() { this.permanent = true; return this; }
+        public Properties decayLevelsAtTurnEnd() { return this.decayLevelsAtTurnEnd(1); }
+        public Properties decayLevelsAtTurnEnd(int value) { this.levelDecayAtTurnEnd = Math.max(0, value); return this; }
+        public Properties halveLevelsAtTurnEnd() { this.halveLevelsAtTurnEnd = true; return this; }
+        public Properties consumeAfterIncomingDamage() { this.consumeAfterIncomingDamage = true; return this; }
+        public Properties consumeAfterMoveRoll() { this.consumeAfterMoveRoll = true; return this; }
+        public Properties consumeAfterAttack() { this.consumeAfterAttack = true; return this; }
+        public Properties preventsEvade() { this.preventsEvade = true; return this; }
+        public Properties knockDownOwnerWhenAttackFails() { this.knockDownOwnerWhenAttackFails = true; return this; }
+        public Properties keepOnKnockout() { this.clearOnKnockout = false; return this; }
 
         protected Properties copy() {
             Properties result = new Properties(this.color);
             result.attackPerLevel = this.attackPerLevel;
             result.defensePerLevel = this.defensePerLevel;
             result.speedPerLevel = this.speedPerLevel;
+            result.extraMoveDicePerLevel = this.extraMoveDicePerLevel;
             result.incomingDamagePerLevel = this.incomingDamagePerLevel;
             result.incomingDamageFlat = this.incomingDamageFlat;
             result.damageReductionPerLevel = this.damageReductionPerLevel;
@@ -316,6 +243,7 @@ public class BoardBuff {
             result.permanent = this.permanent;
             result.halveLevelsAtTurnEnd = this.halveLevelsAtTurnEnd;
             result.consumeAfterIncomingDamage = this.consumeAfterIncomingDamage;
+            result.consumeAfterMoveRoll = this.consumeAfterMoveRoll;
             result.consumeAfterAttack = this.consumeAfterAttack;
             result.preventsEvade = this.preventsEvade;
             result.knockDownOwnerWhenAttackFails = this.knockDownOwnerWhenAttackFails;

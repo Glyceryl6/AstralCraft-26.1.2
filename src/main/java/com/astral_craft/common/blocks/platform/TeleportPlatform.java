@@ -26,10 +26,10 @@ public class TeleportPlatform extends BasePlatform {
         if (destinations.isEmpty()) return;
         String destination = destinations.get(context.level().getRandom().nextInt(destinations.size()));
         context.level().playSound(null, context.session().positions().get(context.participant().currentNodeKey()),
-                SoundEvents.PORTAL_TRAVEL, SoundSource.PLAYERS, 0.75F, 1.0F);
+                SoundEvents.PLAYER_TELEPORT, SoundSource.PLAYERS, 0.75F, 1.0F);
         BoardSessionManager.relocateParticipant(context.level(), context.session(), context.participant(), destination);
         context.level().playSound(null, context.session().positions().get(destination),
-                SoundEvents.PORTAL_TRAVEL, SoundSource.PLAYERS, 0.75F, 1.1F);
+                SoundEvents.PLAYER_TELEPORT, SoundSource.PLAYERS, 0.75F, 1.1F);
     }
 
 }

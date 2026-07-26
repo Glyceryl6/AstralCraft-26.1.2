@@ -239,18 +239,34 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
 
     @ParametersAreNullableByDefault
     public static boolean addBoardLink(ServerLevel level, BoardSession session, UUID firstSlotId, UUID secondSlotId, int rounds) {
-        if (session == null || !session.mechanics().addSoulLink(firstSlotId, secondSlotId, rounds)) return false;
+        BoardParticipant first = session == null ? null : session.participant(firstSlotId).orElse(null);
+        BoardParticipant second = session == null ? null : session.participant(secondSlotId).orElse(null);
+        if (first == null || second == null || rounds <= 0
+                || !session.mechanics().addSoulLink(firstSlotId, secondSlotId, rounds)) return false;
+        BoardSessionManager.updateParticipant(level, session, first.withStats(first.stats()
+                .addBuff(AstralBoardBuffs.SOUL_LINK.get(), rounds, 0)));
+        BoardSessionManager.updateParticipant(level, session, second.withStats(second.stats()
+                .addBuff(AstralBoardBuffs.SOUL_LINK.get(), rounds, 0)));
         BoardSessionManager.markChanged(level);
         return true;
     }
 
     public static void tickBoardLinks(ServerLevel level, BoardSession session) {
-        List<BoardMechanicsState.BoardSoulLink> expired = session.mechanics().tickSoulLinks();
-        for (BoardMechanicsState.BoardSoulLink link : expired) {
+        boolean changed = false;
+        for (BoardMechanicsState.BoardSoulLink link : new ArrayList<>(session.mechanics().soulLinks())) {
+            BoardParticipant first = session.participant(link.firstSlotId()).orElse(null);
+            BoardParticipant second = session.participant(link.secondSlotId()).orElse(null);
+            boolean active = first != null && second != null
+                    && first.stats().hasBuff(AstralBoardBuffs.SOUL_LINK.get())
+                    && second.stats().hasBuff(AstralBoardBuffs.SOUL_LINK.get());
+            if (active) continue;
             removeBoardVisual(level, session, link);
+            session.mechanics().removeSoulLink(link.id());
+            clearBoardBuff(level, session, first);
+            clearBoardBuff(level, session, second);
+            changed = true;
         }
-
-        if (!expired.isEmpty()) BoardSessionManager.markChanged(level);
+        if (changed) BoardSessionManager.markChanged(level);
     }
 
     public static void removeBoardLink(ServerLevel level, BoardSession session, UUID slotId) {
@@ -258,7 +274,15 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
         if (link == null) return;
         removeBoardVisual(level, session, link);
         session.mechanics().removeSoulLink(link.id());
+        clearBoardBuff(level, session, session.participant(link.firstSlotId()).orElse(null));
+        clearBoardBuff(level, session, session.participant(link.secondSlotId()).orElse(null));
         BoardSessionManager.markChanged(level);
+    }
+
+    private static void clearBoardBuff(ServerLevel level, BoardSession session, @Nullable BoardParticipant participant) {
+        if (participant == null || !participant.stats().hasBuff(AstralBoardBuffs.SOUL_LINK.get())) return;
+        BoardSessionManager.updateParticipant(level, session, participant.withStats(
+                participant.stats().removeBuff(AstralBoardBuffs.SOUL_LINK.get())));
     }
 
     public static void mirrorBoardDamage(ServerLevel level, BoardSession session, BoardParticipant damaged, int logicalDamage) {
