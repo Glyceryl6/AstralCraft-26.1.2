@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.board;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
 import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.registry.AstralEntities;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 /** Board pawn spawning, state synchronization and node arrangement. */
+@SuppressWarnings("deprecation")
 public class BoardEntityService {
 
     public static void ensureEntities(ServerLevel level, BoardSession session) {
@@ -43,10 +45,16 @@ public class BoardEntityService {
         if (entity == null) return;
         entity.setCharacterId(participant.characterId());
         entity.setSkinId(participant.skinName());
+        participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(controller -> {
+            var progress = CharacterProgressManager.progress(controller).entry(participant.characterId());
+            entity.setCharacterLevel(progress.level());
+            entity.setFriendship(progress.friendship());
+            entity.setPotentialActive(progress.potentialActivated());
+        });
         entity.setStarCoins(participant.stats().starCoins());
         entity.setBoardSessionId(session.id());
         entity.setBoardParticipantId(participant.slotUuid());
-        entity.setCustomName(Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).nameKey()));
+        entity.setCustomName(Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
         entity.setCustomNameVisible(false);
         AttributeInstance instance = entity.getAttribute(Attributes.MAX_HEALTH);
         if (instance != null) instance.setBaseValue(participant.stats().maxHealth());

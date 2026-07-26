@@ -10,9 +10,11 @@ import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.network.c2s.BoardCharacterSelectionPayload;
+import com.astral_craft.common.network.s2c.BoardCharacterAvailability;
 import com.astral_craft.common.network.s2c.BoardCharacterSelectionEntry;
 import com.astral_craft.common.network.s2c.OpenBoardCharacterSelectionPayload;
 import com.astral_craft.common.registry.AstralEntities;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -24,8 +26,10 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,6 +46,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     private final UUID boardId;
     private final List<CharacterDefinition> characters;
     private final Set<Identifier> occupied;
+    private final Map<Identifier, BoardCharacterAvailability> availability = new HashMap<>();
     private final AstralCharacterEntity[] slotPreviews = new AstralCharacterEntity[SLOT_COUNT];
     private List<BoardCharacterSelectionEntry> lobbyEntries;
     private Identifier selectedCharacter;
@@ -60,6 +65,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         this.characters = definitions.isEmpty() ? List.of(CharacterManager.INSTANCE.defaultCharacter()) : definitions;
         ClientCharacterDefinitionCache.INSTANCE.replace(this.characters);
         this.occupied = new HashSet<>(payload.occupiedCharacterIds());
+        this.replaceAvailability(payload.availability());
         this.lobbyEntries = payload.lobbyEntries();
         this.selectionLocked = payload.selectionLocked();
         this.submitted = this.selectionLocked;
@@ -93,6 +99,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     private void refresh(OpenBoardCharacterSelectionPayload payload) {
         this.occupied.clear();
         this.occupied.addAll(payload.occupiedCharacterIds());
+        this.replaceAvailability(payload.availability());
         this.lobbyEntries = payload.lobbyEntries();
         this.timeoutTicks = Math.max(1, payload.timeoutTicks());
         this.timeoutDurationTicks = Math.max(1, payload.timeoutDurationTicks());
@@ -172,6 +179,16 @@ public class BoardCharacterSelectionScreen extends Screen {
                         y + layout.slotH() / 2 - 8, 0xFF777784, true);
             }
 
+            if (entry != null && entry.confirmed()) {
+                Component ok = Component.literal("OK").withStyle(ChatFormatting.BOLD);
+                float scale = 1.45F;
+                graphics.pose().pushMatrix();
+                graphics.pose().translate(x + layout.slotW() - 5, y + 6);
+                graphics.pose().scale(scale, scale);
+                graphics.text(this.font, ok, -this.font.width(ok), 0, 0xFFFFE06C, true);
+                graphics.pose().popMatrix();
+            }
+
             String playerName = entry == null ? "" : entry.playerName();
             String shown = this.font.plainSubstrByWidth(playerName, layout.slotW() - 6);
             graphics.fill(x + 2, y + layout.slotH() - 16, x + layout.slotW() - 2,
@@ -189,11 +206,12 @@ public class BoardCharacterSelectionScreen extends Screen {
             if (position.y() + CHARACTER_H < layout.gridTop() || position.y() > layout.gridBottom()) continue;
             boolean selectedCard = definition.id().equals(this.selectedCharacter);
             boolean occupiedCard = this.occupied.contains(definition.id());
-            boolean unavailable = this.selectionLocked || this.submitted || occupiedCard;
+            boolean unlocked = this.characterUnlocked(definition.id());
+            boolean unavailable = this.selectionLocked || this.submitted || occupiedCard || !unlocked;
             boolean hovered = inside(mouseX, mouseY, position.x(), position.y(), CHARACTER_W, CHARACTER_H);
             AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H, selectedCard, hovered && !unavailable);
             if (occupiedCard) {
-                int frameColor = selectedCard && this.selectionLocked ? 0xFF63F08A : 0xFFFFC65C;
+                int frameColor = 0xFFFFC65C;
                 graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W, position.y() + 2, frameColor);
                 graphics.fill(position.x(), position.y() + CHARACTER_H - 2, position.x() + CHARACTER_W, position.y() + CHARACTER_H, frameColor);
                 graphics.fill(position.x(), position.y(), position.x() + 2, position.y() + CHARACTER_H, frameColor);
@@ -201,12 +219,16 @@ public class BoardCharacterSelectionScreen extends Screen {
                 if (!selectedCard) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W, position.y() + CHARACTER_H, 0x882A2026);
             }
 
-            String skinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
+            String skinId = this.preferredSkin(definition.id());
+            int alpha = occupiedCard && !selectedCard ? 90 : 255;
             AstralStatusIconRenderer.renderCharacterSkinHead(graphics, definition.id(), skinId,
-                    position.x() + 12, position.y() + 2, 24, occupiedCard && !selectedCard ? 90 : 255);
-            Component characterName = Component.translatable(definition.nameKey());
+                    position.x() + 12, position.y() + 2, 24, alpha, !unlocked);
+            if (!unlocked) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W,
+                    position.y() + CHARACTER_H, 0x66101010);
+            Component characterName = Component.translatable(definition.getDescriptionId());
+            int textColor = !unlocked || occupiedCard && !selectedCard ? 0xFF7C7478 : 0xFFFFFFFF;
             graphics.text(this.font, this.font.plainSubstrByWidth(characterName.getString(), CHARACTER_W - 4),
-                    position.x() + 2, position.y() + 29, occupiedCard && !selectedCard ? 0xFF7C7478 : 0xFFFFFFFF, false);
+                    position.x() + 2, position.y() + 29, textColor, false);
         }
 
         graphics.disableScissor();
@@ -220,11 +242,15 @@ public class BoardCharacterSelectionScreen extends Screen {
             CharacterSkinDefinition skin = skins.get(index);
             int x = layout.gridX() + index * (SKIN_W + GAP) - Math.round(this.skinScroll);
             boolean active = skin.id().equals(this.selectedSkin);
-            boolean hovered = !this.selectionLocked && !this.submitted && inside(mouseX, mouseY, x, layout.skinY(), SKIN_W, SKIN_H);
+            boolean unlocked = this.skinUnlocked(this.selected().id(), skin.id());
+            boolean hovered = unlocked && !this.selectionLocked && !this.submitted
+                    && inside(mouseX, mouseY, x, layout.skinY(), SKIN_W, SKIN_H);
             AstralFancyButton.renderIconFrame(graphics, x, layout.skinY(), SKIN_W, SKIN_H, active, hovered);
-            AstralStatusIconRenderer.renderCharacterSkinHead(graphics, this.selected().id(), skin.id(), x + 8, layout.skinY() + 3, 30, 255);
+            AstralStatusIconRenderer.renderCharacterSkinHead(graphics, this.selected().id(), skin.id(),
+                    x + 8, layout.skinY() + 3, 30, 255, !unlocked);
+            if (!unlocked) graphics.fill(x, layout.skinY(), x + SKIN_W, layout.skinY() + SKIN_H, 0x66101010);
             graphics.text(this.font, this.font.plainSubstrByWidth(Component.translatable(skin.nameKey()).getString(), SKIN_W - 4),
-                    x + 2, layout.skinY() + 33, 0xFFFFFFFF, false);
+                    x + 2, layout.skinY() + 33, unlocked ? 0xFFFFFFFF : 0xFF777777, false);
         }
 
         graphics.disableScissor();
@@ -240,9 +266,10 @@ public class BoardCharacterSelectionScreen extends Screen {
             if (!inside(event.x(), event.y(), position.x(), position.y(), CHARACTER_W, CHARACTER_H)
                     || event.y() < layout.gridTop() || event.y() > layout.gridBottom()) continue;
             CharacterDefinition definition = this.characters.get(index);
-            if (!this.occupied.contains(definition.id())) {
+            if (!this.occupied.contains(definition.id()) && this.characterUnlocked(definition.id())) {
                 this.selectedCharacter = definition.id();
-                this.selectedSkin = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
+                this.selectedSkin = this.preferredSkin(definition.id());
+                this.ensureSkin();
                 this.skinScroll = 0.0F;
                 this.sendSelection(false);
             }
@@ -256,8 +283,11 @@ public class BoardCharacterSelectionScreen extends Screen {
             for (int index = 0; index < skins.size(); index++) {
                 int x = layout.gridX() + index * (SKIN_W + GAP) - Math.round(this.skinScroll);
                 if (inside(event.x(), event.y(), x, layout.skinY(), SKIN_W, SKIN_H)) {
-                    this.selectedSkin = skins.get(index).id();
-                    this.sendSelection(false);
+                    CharacterSkinDefinition skin = skins.get(index);
+                    if (this.skinUnlocked(this.selectedCharacter, skin.id())) {
+                        this.selectedSkin = skin.id();
+                        this.sendSelection(false);
+                    }
                     return true;
                 }
             }
@@ -287,7 +317,8 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private void submit() {
-        if (this.submitted) return;
+        if (this.submitted || !this.characterUnlocked(this.selectedCharacter)
+                || !this.skinUnlocked(this.selectedCharacter, this.selectedSkin)) return;
         this.submitted = true;
         this.sendSelection(true);
     }
@@ -327,16 +358,46 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private void ensureAvailableSelection() {
-        if (this.selectionLocked || !this.occupied.contains(this.selectedCharacter)) return;
+        if (this.selectionLocked) return;
+        boolean unavailable = this.occupied.contains(this.selectedCharacter) || !this.characterUnlocked(this.selectedCharacter);
+        if (!unavailable) return;
         this.selectedCharacter = this.characters.stream().map(CharacterDefinition::id)
-                .filter(id -> !this.occupied.contains(id)).findFirst().orElse(this.selectedCharacter);
+                .filter(this::characterUnlocked).filter(id -> !this.occupied.contains(id))
+                .findFirst().orElse(this.selectedCharacter);
+        this.selectedSkin = this.preferredSkin(this.selectedCharacter);
     }
 
     private void ensureSkin() {
         CharacterDefinition definition = this.selected();
-        if (definition.skins().stream().noneMatch(value -> value.id().equals(this.selectedSkin))) {
-            this.selectedSkin = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
-        }
+        boolean valid = definition.skins().stream().anyMatch(value -> value.id().equals(this.selectedSkin))
+                && this.skinUnlocked(definition.id(), this.selectedSkin);
+        if (valid) return;
+        String preferred = this.preferredSkin(definition.id());
+        this.selectedSkin = definition.skins().stream().filter(skin -> skin.id().equals(preferred))
+                .filter(skin -> this.skinUnlocked(definition.id(), skin.id())).map(CharacterSkinDefinition::id)
+                .findFirst().orElseGet(() -> definition.skins().stream()
+                        .filter(skin -> this.skinUnlocked(definition.id(), skin.id())).map(CharacterSkinDefinition::id)
+                        .findFirst().orElse("default"));
+    }
+
+    private void replaceAvailability(List<BoardCharacterAvailability> values) {
+        this.availability.clear();
+        for (BoardCharacterAvailability value : values) this.availability.put(value.characterId(), value);
+    }
+
+    private boolean characterUnlocked(Identifier characterId) {
+        BoardCharacterAvailability value = this.availability.get(characterId);
+        return value == null || value.unlocked();
+    }
+
+    private boolean skinUnlocked(Identifier characterId, String skinId) {
+        BoardCharacterAvailability value = this.availability.get(characterId);
+        return value == null || value.isSkinUnlocked(skinId);
+    }
+
+    private String preferredSkin(Identifier characterId) {
+        BoardCharacterAvailability value = this.availability.get(characterId);
+        return value == null ? "default" : value.preferredSkinId().getPath();
     }
 
     private float maximumCharacterScroll(Layout layout) {

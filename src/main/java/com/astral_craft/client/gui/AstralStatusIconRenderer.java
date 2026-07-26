@@ -41,14 +41,22 @@ public class AstralStatusIconRenderer {
     }
 
     public static boolean renderCharacterSkinHead(GuiGraphicsExtractor graphics, Identifier characterId, String skinId, int x, int y, int size, int alpha) {
+        return renderCharacterSkinHead(graphics, characterId, skinId, x, y, size, alpha, false);
+    }
+
+    public static boolean renderCharacterSkinHead(GuiGraphicsExtractor graphics, Identifier characterId, String skinId,
+                                                   int x, int y, int size, int alpha, boolean grayscale) {
         Identifier texture = characterSkinTexture(characterId, skinId);
         if (texture == null) return false;
-        int argb = (Mth.clamp(alpha, 0, 255) << 24) | 0xFFFFFF;
+        int safeAlpha = Mth.clamp(alpha, 0, 255);
+        int tint = grayscale ? 0xB0B0B0 : 0xFFFFFF;
+        int argb = safeAlpha << 24 | tint;
         int pad = Math.max(1, Math.round(size / 18.0F));
         int headSize = Math.max(1, size - pad * 2);
-        graphics.fill(x, y, x + size, y + size, (Mth.clamp(alpha, 0, 255) << 24) | 0x11131F);
+        graphics.fill(x, y, x + size, y + size, safeAlpha << 24 | 0x11131F);
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + pad, y + pad, 8.0F, 8.0F, headSize, headSize, 8, 8, 64, 64, argb);
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + pad, y + pad, 40.0F, 8.0F, headSize, headSize, 8, 8, 64, 64, argb);
+        if (grayscale) graphics.fill(x, y, x + size, y + size, 0xAA707070);
         return true;
     }
 

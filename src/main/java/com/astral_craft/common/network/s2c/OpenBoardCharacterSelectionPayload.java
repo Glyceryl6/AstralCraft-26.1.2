@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public record OpenBoardCharacterSelectionPayload(
         UUID boardId, List<CharacterDefinition> characters, List<Identifier> occupiedCharacterIds,
-        List<BoardCharacterSelectionEntry> lobbyEntries,
+        List<BoardCharacterSelectionEntry> lobbyEntries, List<BoardCharacterAvailability> availability,
         Identifier selectedCharacterId, Identifier selectedSkinId,
         int timeoutTicks, int timeoutDurationTicks, boolean selectionLocked, boolean refresh) implements CustomPacketPayload {
 
@@ -29,6 +29,8 @@ public record OpenBoardCharacterSelectionPayload(
             OpenBoardCharacterSelectionPayload::occupiedCharacterIds,
             BoardCharacterSelectionEntry.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_LOBBY_ENTRIES)),
             OpenBoardCharacterSelectionPayload::lobbyEntries,
+            BoardCharacterAvailability.STREAM_CODEC.apply(ByteBufCodecs.list(CharacterCodecLines.MAXIMUM_CHARACTERS)),
+            OpenBoardCharacterSelectionPayload::availability,
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedCharacterId,
             Identifier.STREAM_CODEC, OpenBoardCharacterSelectionPayload::selectedSkinId,
             ByteBufCodecs.VAR_INT, OpenBoardCharacterSelectionPayload::timeoutTicks,
@@ -41,6 +43,7 @@ public record OpenBoardCharacterSelectionPayload(
         characters = List.copyOf(characters);
         occupiedCharacterIds = List.copyOf(occupiedCharacterIds);
         lobbyEntries = List.copyOf(lobbyEntries);
+        availability = List.copyOf(availability);
         timeoutTicks = Math.max(0, timeoutTicks);
         timeoutDurationTicks = Math.max(1, timeoutDurationTicks);
     }
@@ -49,5 +52,4 @@ public record OpenBoardCharacterSelectionPayload(
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
-
 }
