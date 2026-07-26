@@ -12,7 +12,7 @@ public record CharacterSkillContext(
         LivingEntity actor,
         ActiveCharacterState state,
         CharacterDefinition definition,
-        CharacterSkillDefinition skill,
+        ActiveCharacterSkillDefinition skill,
         CharacterSkillState skillState) {
 
     public CharacterProgressEntry progressEntry() {

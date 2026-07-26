@@ -58,9 +58,9 @@ public record CharacterPotentialDefinition(
         return entry.experience() >= this.requiredExperience;
     }
 
-    public boolean canActivate(CharacterProgressEntry entry, CharacterDefinition definition, Player player) {
+    public boolean canActivate(CharacterProgressEntry entry, Player player) {
         if (!this.canActivate(entry)) return false;
-        if (definition != null && entry.level() < definition.maxPveLevel()) return false;
+        if (entry.level() < CharacterProgressEntry.MAX_PVE_LEVEL) return false;
         return this.hasMaterials(player);
     }
 

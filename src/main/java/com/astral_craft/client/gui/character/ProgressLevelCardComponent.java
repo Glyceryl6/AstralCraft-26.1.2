@@ -63,7 +63,7 @@ public class ProgressLevelCardComponent {
     }
 
     protected MutableComponent description() {
-        return Component.translatable(this.translationPrefix + ".desc", Component.translatable(this.definition.nameKey()), this.level);
+        return Component.translatable(this.translationPrefix + ".desc", Component.translatable(this.definition.getDescriptionId()), this.level);
     }
 
 }

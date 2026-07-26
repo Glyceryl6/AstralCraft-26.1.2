@@ -39,7 +39,7 @@ public class CharacterManager {
             AstralCharacter fallback = AstralCharacters.REGISTRY.getValue(key);
             if (fallback != null) return fallback;
         }
-        return new AstralCharacter(new AstralCharacter.Properties().unlockedByDefault(true).sortOrder(80));
+        return new AstralCharacter(new AstralCharacter.Properties(), CharacterProgressionDefinition.of(80).unlockedByDefault());
     }
 
     public CharacterDefinition defaultCharacter() {
@@ -49,19 +49,15 @@ public class CharacterManager {
 
     protected CharacterDefinition withRuntimeSkins(Identifier id, CharacterDefinition definition) {
         List<CharacterSkinDefinition> skins = this.mergeImplicitAndAdditionalSkins(id, definition);
-        Identifier previewTexture = skins.isEmpty() ? definition.previewTexture() : skins.getFirst().texture();
-        return new CharacterDefinition(id, definition.nameKey(), definition.titleKey(), definition.modelKey(),
-                previewTexture, definition.entityTypeKey(), definition.rendererKey(), definition.animationSetKey(),
-                definition.previewAction(), definition.maxPveLevel(), definition.maxFriendshipLevel(),
-                definition.baseStats(), definition.skills(), definition.profileSections(), skins,
-                definition.hasPotential(), definition.potential(), definition.implicitDefaultSkin(),
-                definition.implicitBondSkin(), definition.unlockedByDefault(), definition.unlockHintKey(),
-                definition.sortOrder());
+        return new CharacterDefinition(id, definition.modelKey(), definition.entityTypeKey(), definition.rendererKey(),
+                definition.animationSetKey(), definition.previewAction(), definition.baseStats(), definition.skills(),
+                definition.profileSections(), skins, definition.potential(), definition.implicitBondSkin(),
+                definition.unlockedByDefault(), definition.unlockHintKey(), definition.sortOrder());
     }
 
     protected List<CharacterSkinDefinition> mergeImplicitAndAdditionalSkins(Identifier characterId, CharacterDefinition definition) {
         Map<String, CharacterSkinDefinition> merged = new LinkedHashMap<>();
-        if (definition.implicitDefaultSkin()) this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
+        this.putSkin(merged, CharacterSkinManager.defaultSkin(characterId));
         if (definition.implicitBondSkin()) this.putSkin(merged, CharacterSkinManager.bondSkin(characterId));
         for (CharacterSkinDefinition skin : CharacterSkinManager.INSTANCE.skinsFor(characterId)) this.putSkin(merged, skin);
         return new ArrayList<>(merged.values());

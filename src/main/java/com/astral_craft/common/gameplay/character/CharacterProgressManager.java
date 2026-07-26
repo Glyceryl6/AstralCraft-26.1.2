@@ -127,7 +127,7 @@ public class CharacterProgressManager {
         refreshActiveCharacter(player, definition.id());
         player.sendSystemMessage(
                 Component.translatable("message.astral_craft.character_settings.character_active",
-                Component.translatable(definition.nameKey())), true);
+                Component.translatable(definition.getDescriptionId())), true);
     }
 
     public static void deactivateCharacter(ServerPlayer player) {
@@ -182,7 +182,7 @@ public class CharacterProgressManager {
             player.sendSystemMessage(Component.translatable("message.astral_craft.character_settings.potential_already_active"), true);
             return;
         }
-        if (!potential.canActivate(entry, definition, player)) {
+        if (!potential.canActivate(entry, player)) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.character_settings.potential_requirement_not_met"), true);
             return;
         }
@@ -191,7 +191,7 @@ public class CharacterProgressManager {
         progress.activatePotential(characterId);
         save(player, progress);
         refreshActiveIfSame(player, characterId);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.character_settings.potential_activated", Component.translatable(definition.nameKey())), true);
+        player.sendSystemMessage(Component.translatable("message.astral_craft.character_settings.potential_activated", Component.translatable(definition.getDescriptionId())), true);
         open(player);
     }
 

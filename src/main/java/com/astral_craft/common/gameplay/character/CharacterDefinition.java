@@ -1,8 +1,7 @@
 package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillType;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillView;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -14,183 +13,119 @@ import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
+/** Immutable network/UI view of a registered character. Runtime behavior remains in {@link AstralCharacter}. */
 public record CharacterDefinition(
         Identifier id,
-        String nameKey,
-        String titleKey,
         Identifier modelKey,
-        Identifier previewTexture,
         Identifier entityTypeKey,
         Identifier rendererKey,
         Identifier animationSetKey,
         String previewAction,
-        int maxPveLevel,
-        int maxFriendshipLevel,
         CharacterStatsDefinition baseStats,
-        List<CharacterSkillDefinition> skills,
+        List<CharacterSkillView> skills,
         List<CharacterProfileSection> profileSections,
         List<CharacterSkinDefinition> skins,
-        boolean hasPotential,
         CharacterPotentialDefinition potential,
-        boolean implicitDefaultSkin,
         boolean implicitBondSkin,
         boolean unlockedByDefault,
         String unlockHintKey,
         int sortOrder) {
 
-    private static final MapCodec<CharacterIdentity> IDENTITY_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Identifier.CODEC.optionalFieldOf("id", AstralCraft.prefix("mimi")).forGetter(CharacterIdentity::id),
-            Codec.STRING.fieldOf("name_key").forGetter(CharacterIdentity::nameKey),
-            Codec.STRING.optionalFieldOf("title_key", "character.astral_craft.default.title").forGetter(CharacterIdentity::titleKey),
-            Identifier.CODEC.optionalFieldOf("model", AstralCraft.prefix("humanoid")).forGetter(CharacterIdentity::modelKey),
-            Identifier.CODEC.fieldOf("preview_texture").forGetter(CharacterIdentity::previewTexture),
-            Identifier.CODEC.optionalFieldOf("entity_type", AstralCraft.prefix("astral_character")).forGetter(CharacterIdentity::entityTypeKey),
-            Identifier.CODEC.optionalFieldOf("renderer", AstralCraft.prefix("player")).forGetter(CharacterIdentity::rendererKey),
-            Identifier.CODEC.optionalFieldOf("animation_set", AstralCraft.prefix("humanoid")).forGetter(CharacterIdentity::animationSetKey),
-            Codec.STRING.optionalFieldOf("preview_action", "idle").forGetter(CharacterIdentity::previewAction)
-    ).apply(instance, CharacterIdentity::new));
+    private static final MapCodec<Presentation> PRESENTATION_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Identifier.CODEC.optionalFieldOf("id", AstralCraft.prefix("mimi")).forGetter(Presentation::id),
+            Identifier.CODEC.optionalFieldOf("model", AstralCraft.prefix("humanoid")).forGetter(Presentation::modelKey),
+            Identifier.CODEC.optionalFieldOf("entity_type", AstralCraft.prefix("astral_character")).forGetter(Presentation::entityTypeKey),
+            Identifier.CODEC.optionalFieldOf("renderer", AstralCraft.prefix("player")).forGetter(Presentation::rendererKey),
+            Identifier.CODEC.optionalFieldOf("animation_set", AstralCraft.prefix("humanoid")).forGetter(Presentation::animationSetKey),
+            Codec.STRING.optionalFieldOf("preview_action", "idle").forGetter(Presentation::previewAction)
+    ).apply(instance, Presentation::new));
 
-    private static final MapCodec<CharacterProgressionMetadata> PROGRESSION_METADATA_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Codec.INT.optionalFieldOf("max_pve_level", 6).forGetter(CharacterProgressionMetadata::maxPveLevel),
-            Codec.INT.optionalFieldOf("max_friendship_level", 5).forGetter(CharacterProgressionMetadata::maxFriendshipLevel),
-            Codec.BOOL.optionalFieldOf("unlocked_by_default", false).forGetter(CharacterProgressionMetadata::unlockedByDefault),
-            Codec.STRING.fieldOf("unlock_hint_key").forGetter(CharacterProgressionMetadata::unlockHintKey),
-            Codec.INT.optionalFieldOf("sort_order", 1000).forGetter(CharacterProgressionMetadata::sortOrder)
-    ).apply(instance, CharacterProgressionMetadata::new));
+    private static final MapCodec<Content> CONTENT_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            CharacterStatsDefinition.CODEC.optionalFieldOf("base_stats", CharacterStatsDefinition.defaultStats()).forGetter(Content::baseStats),
+            CharacterSkillView.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(Content::skills),
+            CharacterProfileSection.CODEC.listOf().optionalFieldOf("profile", List.of()).forGetter(Content::profileSections),
+            CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(Content::skins)
+    ).apply(instance, Content::new));
 
-    private static final MapCodec<CharacterContent> CONTENT_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            CharacterStatsDefinition.CODEC.optionalFieldOf("base_stats", CharacterStatsDefinition.defaultStats()).forGetter(CharacterContent::baseStats),
-            CharacterSkillDefinition.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(CharacterContent::skills),
-            CharacterProfileSection.CODEC.listOf().optionalFieldOf("profile", List.of()).forGetter(CharacterContent::profileSections),
-            CharacterSkinDefinition.CODEC.listOf().optionalFieldOf("skins", List.of()).forGetter(CharacterContent::skins),
-            Codec.BOOL.optionalFieldOf("has_potential", false).forGetter(CharacterContent::hasPotential),
-            CharacterPotentialDefinition.CODEC.optionalFieldOf("potential", CharacterPotentialDefinition.NONE).forGetter(CharacterContent::potential),
-            Codec.BOOL.optionalFieldOf("implicit_default_skin", true).forGetter(CharacterContent::implicitDefaultSkin),
-            Codec.BOOL.optionalFieldOf("implicit_bond_skin", true).forGetter(CharacterContent::implicitBondSkin)
-    ).apply(instance, CharacterContent::new));
+    private static final MapCodec<Progression> PROGRESSION_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            CharacterPotentialDefinition.CODEC.optionalFieldOf("potential", CharacterPotentialDefinition.NONE).forGetter(Progression::potential),
+            Codec.BOOL.optionalFieldOf("implicit_bond_skin", true).forGetter(Progression::implicitBondSkin),
+            Codec.BOOL.optionalFieldOf("unlocked_by_default", false).forGetter(Progression::unlockedByDefault),
+            Codec.STRING.optionalFieldOf("unlock_hint_key", "").forGetter(Progression::unlockHintKey),
+            Codec.INT.optionalFieldOf("sort_order", 1000).forGetter(Progression::sortOrder)
+    ).apply(instance, Progression::new));
 
     public static final Codec<CharacterDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            IDENTITY_CODEC.forGetter(CharacterDefinition::identity),
-            PROGRESSION_METADATA_CODEC.forGetter(CharacterDefinition::progressionMetadata),
-            CONTENT_CODEC.forGetter(CharacterDefinition::content)
-    ).apply(instance, CharacterDefinition::fromCodecParts));
+            PRESENTATION_CODEC.forGetter(CharacterDefinition::presentation),
+            CONTENT_CODEC.forGetter(CharacterDefinition::content),
+            PROGRESSION_CODEC.forGetter(CharacterDefinition::progression)
+    ).apply(instance, CharacterDefinition::fromParts));
     public static final StreamCodec<ByteBuf, CharacterDefinition> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
-    private static CharacterDefinition fromCodecParts(CharacterIdentity identity, CharacterProgressionMetadata progressionMetadata, CharacterContent content) {
-        return new CharacterDefinition(
-                identity.id(),
-                identity.nameKey(),
-                identity.titleKey(),
-                identity.modelKey(),
-                identity.previewTexture(),
-                identity.entityTypeKey(),
-                identity.rendererKey(),
-                identity.animationSetKey(),
-                identity.previewAction(),
-                progressionMetadata.maxPveLevel(),
-                progressionMetadata.maxFriendshipLevel(),
-                content.baseStats(),
-                content.skills(),
-                content.profileSections(),
-                content.skins(),
-                content.hasPotential() || content.potential().enabled(),
-                content.potential(),
-                content.implicitDefaultSkin(),
-                content.implicitBondSkin(),
-                progressionMetadata.unlockedByDefault(),
-                progressionMetadata.unlockHintKey(),
-                progressionMetadata.sortOrder());
+    public CharacterDefinition {
+        skills = List.copyOf(skills);
+        profileSections = List.copyOf(profileSections);
+        skins = List.copyOf(skins);
+        potential = potential == null ? CharacterPotentialDefinition.NONE : potential;
+        unlockHintKey = unlockHintKey == null ? "" : unlockHintKey;
     }
 
-    private CharacterIdentity identity() {
-        return new CharacterIdentity(
-                this.id,
-                this.nameKey,
-                this.titleKey,
-                this.modelKey,
-                this.previewTexture,
-                this.entityTypeKey,
-                this.rendererKey,
-                this.animationSetKey,
-                this.previewAction);
+    private static CharacterDefinition fromParts(Presentation presentation, Content content, Progression progression) {
+        return new CharacterDefinition(presentation.id(), presentation.modelKey(), presentation.entityTypeKey(),
+                presentation.rendererKey(), presentation.animationSetKey(), presentation.previewAction(), content.baseStats(),
+                content.skills(), content.profileSections(), content.skins(), progression.potential(),
+                progression.implicitBondSkin(), progression.unlockedByDefault(), progression.unlockHintKey(), progression.sortOrder());
     }
 
-    private CharacterProgressionMetadata progressionMetadata() {
-        return new CharacterProgressionMetadata(
-                this.maxPveLevel,
-                this.maxFriendshipLevel,
-                this.unlockedByDefault,
-                this.unlockHintKey,
-                this.sortOrder);
+    private Presentation presentation() {
+        return new Presentation(this.id, this.modelKey, this.entityTypeKey, this.rendererKey, this.animationSetKey, this.previewAction);
     }
 
-    private CharacterContent content() {
-        return new CharacterContent(
-                this.baseStats,
-                this.skills,
-                this.profileSections,
-                this.skins,
-                this.hasPotential,
-                this.potential,
-                this.implicitDefaultSkin,
-                this.implicitBondSkin);
+    private Content content() {
+        return new Content(this.baseStats, this.skills, this.profileSections, this.skins);
     }
 
-    private record CharacterIdentity(
-            Identifier id,
-            String nameKey,
-            String titleKey,
-            Identifier modelKey,
-            Identifier previewTexture,
-            Identifier entityTypeKey,
-            Identifier rendererKey,
-            Identifier animationSetKey,
-            String previewAction) { }
-
-    private record CharacterProgressionMetadata(
-            int maxPveLevel,
-            int maxFriendshipLevel,
-            boolean unlockedByDefault,
-            String unlockHintKey,
-            int sortOrder) { }
-
-    private record CharacterContent(
-            CharacterStatsDefinition baseStats,
-            List<CharacterSkillDefinition> skills,
-            List<CharacterProfileSection> profileSections,
-            List<CharacterSkinDefinition> skins,
-            boolean hasPotential,
-            CharacterPotentialDefinition potential,
-            boolean implicitDefaultSkin,
-            boolean implicitBondSkin) { }
+    private Progression progression() {
+        return new Progression(this.potential, this.implicitBondSkin, this.unlockedByDefault, this.unlockHintKey, this.sortOrder);
+    }
 
     public static CharacterDefinition builtinDefault() {
         Identifier id = AstralCraft.prefix("mimi");
-        return new CharacterDefinition(id,
-                "character.astral_craft.mimi.name",
-                "character.astral_craft.mimi.title",
-                AstralCraft.prefix("humanoid"),
-                AstralCraft.prefix("entity/character/skin_mimi_default"),
-                AstralCraft.prefix("astral_character"),
-                AstralCraft.prefix("player"),
-                AstralCraft.prefix("humanoid"),
-                "idle", 6, 5,
+        CharacterSkinDefinition skin = new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",
+                AstralCraft.prefix("entity/character/skin_mimi_default"), true);
+        return new CharacterDefinition(id, AstralCraft.prefix("humanoid"), AstralCraft.prefix("astral_character"),
+                AstralCraft.prefix("player"), AstralCraft.prefix("humanoid"), "idle",
                 new CharacterStatsDefinition(1, 1, 9, 6),
-                List.of(new CharacterSkillDefinition(CharacterSkillType.ACTIVE, 3)),
+                List.of(new CharacterSkillView("active", true, 3, -1, -1, false, false),
+                        new CharacterSkillView("passive", false, 0, -1, -1, false, false)),
                 List.of(new CharacterProfileSection("", "character.astral_craft.mimi.profile.basic.body")),
-                List.of(new CharacterSkinDefinition("default", "character.astral_craft.mimi.skin.default",
-                        AstralCraft.prefix("entity/character/skin_mimi_default"), true)),
-                false,
-                CharacterPotentialDefinition.NONE,
-                true,
-                true,
-                true,
-                "character.astral_craft.unlock_hint.default",
-                80);
+                List.of(skin), CharacterPotentialDefinition.NONE, true, true,
+                "character.astral_craft.mimi.unlock_hint", 80);
+    }
+
+    public String getDescriptionId() {
+        return "character." + this.id.getNamespace() + "." + this.id.getPath() + ".name";
+    }
+
+    public String getTitleDescriptionId() {
+        return "character." + this.id.getNamespace() + "." + this.id.getPath() + ".title";
+    }
+
+    public int maxPveLevel() {
+        return CharacterProgressEntry.MAX_PVE_LEVEL;
+    }
+
+    public int maxFriendshipLevel() {
+        return CharacterProgressEntry.MAX_FRIENDSHIP_LEVEL;
+    }
+
+    public Identifier previewTexture() {
+        return this.skins.isEmpty() ? Identifier.fromNamespaceAndPath(this.id.getNamespace(),
+                "entity/character/skin_" + this.id.getPath() + "_default") : this.skins.getFirst().texture();
     }
 
     public boolean supportsPotential() {
-        return this.hasPotential;
+        return this.potential.enabled();
     }
 
     public String potentialDescriptionKey() {
@@ -202,44 +137,42 @@ public record CharacterDefinition(
     }
 
     public CharacterPotentialDefinition potentialOrDefault() {
-        if (!this.supportsPotential()) return CharacterPotentialDefinition.NONE;
-        return this.potential == null || !this.potential.enabled()
-                ? CharacterPotentialDefinition.defaultRequirement() : this.potential;
+        return this.supportsPotential() ? this.potential : CharacterPotentialDefinition.NONE;
+    }
+
+    public String skillNameKey(CharacterSkillView skill, CharacterSkillView.SkillMode mode) {
+        return this.skillLocalizationKey(skill, mode, "");
+    }
+
+    public String skillDescriptionKey(CharacterSkillView skill, CharacterSkillView.SkillMode mode) {
+        return this.skillLocalizationKey(skill, mode, ".desc");
+    }
+
+    public CharacterSkinDefinition skinOrDefault(String skinId) {
+        for (CharacterSkinDefinition skin : this.skins) if (skin.id().equals(skinId)) return skin;
+        if (!this.skins.isEmpty()) return this.skins.getFirst();
+        return new CharacterSkinDefinition("default", this.getDescriptionId(), this.previewTexture(), true);
     }
 
     private String potentialLocalizationKey(String suffix) {
         return "character." + this.id.getNamespace() + "." + this.id.getPath() + ".potential." + suffix;
     }
 
-    public String skillNameKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode) {
-        return this.skillLocalizationKey(skill, mode, "");
-    }
-
-    public String skillDescriptionKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode) {
-        return this.skillLocalizationKey(skill, mode, ".desc");
-    }
-
-    private String skillLocalizationKey(CharacterSkillDefinition skill, CharacterSkillDefinition.SkillMode mode, String suffix) {
-        String skillId = skill == null || skill.id() == null ? CharacterSkillType.ACTIVE.serializedName() : skill.serializedId();
+    private String skillLocalizationKey(CharacterSkillView skill, CharacterSkillView.SkillMode mode, String suffix) {
+        String skillId = skill == null ? "active" : skill.serializedId();
         String base = "character." + this.id.getNamespace() + "." + this.id.getPath() + ".skill." + skillId;
-        if (skill != null) {
-            if (mode == CharacterSkillDefinition.SkillMode.PVE && skill.hasPveSpecificText()) {
-                return base + ".pve" + suffix;
-            }
-            if (mode == CharacterSkillDefinition.SkillMode.PVP && skill.hasPvpSpecificText()) {
-                return base + ".pvp" + suffix;
-            }
-        }
-
+        if (skill != null && mode == CharacterSkillView.SkillMode.PVE && skill.hasPveSpecificText()) return base + ".pve" + suffix;
+        if (skill != null && mode == CharacterSkillView.SkillMode.PVP && skill.hasPvpSpecificText()) return base + ".pvp" + suffix;
         return base + suffix;
     }
 
-    public CharacterSkinDefinition skinOrDefault(String skinId) {
-        for (CharacterSkinDefinition skin : this.skins) {
-            if (skin.id().equals(skinId)) return skin;
-        }
+    private record Presentation(Identifier id, Identifier modelKey, Identifier entityTypeKey, Identifier rendererKey,
+                                Identifier animationSetKey, String previewAction) {}
 
-        return this.skins.isEmpty() ? new CharacterSkinDefinition("default", this.nameKey, this.previewTexture, true) : this.skins.getFirst();
-    }
+    private record Content(CharacterStatsDefinition baseStats, List<CharacterSkillView> skills,
+                           List<CharacterProfileSection> profileSections, List<CharacterSkinDefinition> skins) {}
+
+    private record Progression(CharacterPotentialDefinition potential, boolean implicitBondSkin,
+                               boolean unlockedByDefault, String unlockHintKey, int sortOrder) {}
 
 }

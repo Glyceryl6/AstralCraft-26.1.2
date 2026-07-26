@@ -2,7 +2,7 @@ package com.astral_craft.client.gui.character;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.common.gameplay.character.*;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillView;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -134,9 +134,9 @@ public class ArchiveDetailPage implements CharacterDetailPage {
                 y += 31;
             }
 
-            for (CharacterSkillDefinition skill : definition.skills()) {
+            for (CharacterSkillView skill : definition.skills()) {
                 String prefix = "character.astral_craft.skill." + skill.serializedId();
-                int nameColor = skill.id().isActive() ? ARGB.color(255, 191, 0) : ARGB.color(152, 252, 253);
+                int nameColor = skill.active() ? ARGB.color(255, 191, 0) : ARGB.color(152, 252, 253);
                 y = screen.drawHeader(graphics, Component.translatable(prefix, Component.translatable(definition.skillNameKey(skill, screen.skillMode))), area.contentX(), y, nameColor, area.maxWidth() - 8);
                 y = screen.drawWrapped(graphics, Component.translatable(definition.skillDescriptionKey(skill, screen.skillMode)), area.contentX() + 8, y + 2, 0xFFE7E7E7, area.maxWidth() - 16);
                 int cooldown = skill.cooldown(screen.skillMode);
@@ -167,7 +167,7 @@ public class ArchiveDetailPage implements CharacterDetailPage {
                 height += 31;
             }
 
-            for (CharacterSkillDefinition skill : definition.skills()) {
+            for (CharacterSkillView skill : definition.skills()) {
                 height += 16;
                 height += screen.wrappedHeight(Component.translatable(definition.skillDescriptionKey(skill, screen.skillMode)), maxWidth - 8) + 10;
                 if (skill.cooldown(screen.skillMode) > 0) {
@@ -186,19 +186,19 @@ public class ArchiveDetailPage implements CharacterDetailPage {
             int y = layout.bodyY + 38 - Math.round(screen.bodyScroll);
             int w = Math.clamp(layout.bodyW - 64, 128, 174);
             if (!screen.isInside(mouseX, mouseY, x, y, w, 22)) return false;
-            screen.skillMode = mouseX < x + w / 2.0D ? CharacterSkillDefinition.SkillMode.PVP : CharacterSkillDefinition.SkillMode.PVE;
+            screen.skillMode = mouseX < x + w / 2.0D ? CharacterSkillView.SkillMode.PVP : CharacterSkillView.SkillMode.PVE;
             screen.bodyScroll = 0.0F;
             return true;
         }
 
         private boolean shouldShowModeSwitch(CharacterDefinition definition) {
-            return definition.skills().stream().anyMatch(CharacterSkillDefinition::hasModeSpecificText);
+            return definition.skills().stream().anyMatch(CharacterSkillView::hasModeSpecificText);
         }
 
         private void renderModeSwitch(GuiGraphicsExtractor graphics, CharacterLayout layout, int x, int y, int maxWidth) {
             int w = Math.clamp(maxWidth, 128, 174);
             int h = 22;
-            boolean pvp = screen.skillMode == CharacterSkillDefinition.SkillMode.PVP;
+            boolean pvp = screen.skillMode == CharacterSkillView.SkillMode.PVP;
             graphics.fill(x, y, x + w, y + h, 0xAA101018);
             graphics.fill(x, y, x + w, y + 1, 0x80FFFFFF);
             int knobX = pvp ? x + 2 : x + w / 2;

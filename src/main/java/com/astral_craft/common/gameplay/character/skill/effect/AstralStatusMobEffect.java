@@ -2,10 +2,8 @@ package com.astral_craft.common.gameplay.character.skill.effect;
 
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
-import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
@@ -76,14 +74,10 @@ public class AstralStatusMobEffect extends MobEffect {
 
     protected boolean activeCharacterDefinesStatus() {
         if (this.characterId == null || this.statusId == null || !CharacterManager.INSTANCE.contains(this.characterId)) return false;
-        CharacterDefinition definition = CharacterManager.INSTANCE.get(this.characterId);
-        for (CharacterSkillDefinition skill : definition.skills()) {
-            if (skill.statusEffectId().filter(this.statusId::equals).isPresent()) {
-                return true;
-            }
-        }
-
-        return false;
+        var character = CharacterManager.INSTANCE.character(this.characterId);
+        if (character.activeSkill().statusEffectId().filter(this.statusId::equals).isPresent()) return true;
+        return character.passiveSkills().stream()
+                .anyMatch(skill -> skill.statusEffectId().filter(this.statusId::equals).isPresent());
     }
 
 }

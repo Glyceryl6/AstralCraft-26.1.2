@@ -25,7 +25,7 @@ public record CharacterListCardComponent(
             this.screen.renderLockedOverlay(graphics, this.x, this.y, this.width, this.height, Component.translatable(this.definition.unlockHintKey()));
         }
 
-        MutableComponent name = Component.translatable(this.definition.nameKey());
+        MutableComponent name = Component.translatable(this.definition.getDescriptionId());
         this.screen.drawLine(graphics, this.screen.ellipsize(name, this.width - 8), this.x + 4, this.y + this.height - 29, this.unlocked ? 0xFFFFFFFF : 0xFFB7B7B7, this.width - 8);
         this.screen.drawCenteredText(graphics, Component.translatable("gui.astral_craft.character_settings.card_pve", entry.level(), this.definition.maxPveLevel()), this.x + 3, this.y + this.height - 18, Math.max(20, this.width / 2 - 3), this.unlocked ? 0xFFBFE6FF : 0xFF888888);
         this.screen.drawCenteredText(graphics, Component.translatable("gui.astral_craft.character_settings.card_friendship", entry.friendship(), this.definition.maxFriendshipLevel()), this.x + Math.max(20, this.width / 2), this.y + this.height - 18, Math.max(20, this.width / 2 - 3), this.unlocked ? 0xFFFFC0E8 : 0xFF888888);

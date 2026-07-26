@@ -16,7 +16,7 @@ import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterProfileSection;
 import com.astral_craft.common.gameplay.character.CharacterProgressEntry;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
+import com.astral_craft.common.gameplay.character.skill.CharacterSkillView;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.network.c2s.ActivateCharacterPotentialPayload;
 import com.astral_craft.common.network.c2s.CharacterSelectionPayload;
@@ -66,7 +66,7 @@ public class CharacterSettingsScreen extends Screen {
     protected ScreenMode mode = ScreenMode.LIST;
     protected MainTab mainTab = MainTab.ARCHIVE;
     protected ArchiveTab archiveTab = ArchiveTab.SKILLS;
-    protected CharacterSkillDefinition.SkillMode skillMode = CharacterSkillDefinition.SkillMode.PVP;
+    protected CharacterSkillView.SkillMode skillMode = CharacterSkillView.SkillMode.PVP;
     protected CharacterSortMode sortMode = CharacterSortMode.DEFAULT;
     protected String characterNamespaceFilter = "";
     protected float characterScroll;
@@ -402,8 +402,8 @@ public class CharacterSettingsScreen extends Screen {
 
         this.renderPreviewAnimationControls(graphics, layout, mouseX, mouseY);
         int infoY = layout.previewY + layout.previewH + 10;
-        graphics.text(this.font, Component.translatable(selected.nameKey()), layout.leftX + 12, infoY, 0xFFFFFFFF, false);
-        graphics.text(this.font, Component.translatable(selected.titleKey()).withStyle(ChatFormatting.YELLOW), layout.leftX + 12, infoY + 13, 0xFFFFFFFF, false);
+        graphics.text(this.font, Component.translatable(selected.getDescriptionId()), layout.leftX + 12, infoY, 0xFFFFFFFF, false);
+        graphics.text(this.font, Component.translatable(selected.getTitleDescriptionId()).withStyle(ChatFormatting.YELLOW), layout.leftX + 12, infoY + 13, 0xFFFFFFFF, false);
     }
 
     protected void renderCharacterListPage(GuiGraphicsExtractor graphics, CharacterLayout layout, int mouseX, int mouseY) {
@@ -666,7 +666,7 @@ public class CharacterSettingsScreen extends Screen {
     protected boolean canActivatePotential(CharacterDefinition definition) {
         if (definition == null) return false;
         if (!definition.supportsPotential()) return false;
-        return definition.potentialOrDefault().canActivate(this.progressEntry(definition.id()), definition, Minecraft.getInstance().player);
+        return definition.potentialOrDefault().canActivate(this.progressEntry(definition.id()), Minecraft.getInstance().player);
     }
 
     protected void activatePotential(CharacterDefinition definition) {

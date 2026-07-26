@@ -2,76 +2,91 @@ package com.astral_craft.common.gameplay.character;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardParticipant;
+import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillEffects;
-import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillContext;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillDefinition;
-import com.astral_craft.common.gameplay.character.skill.CharacterSkillType;
-import com.astral_craft.common.registry.AstralBoardBuffs;
+import com.astral_craft.common.gameplay.character.skill.*;
+import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
- * Registered character type. Metadata is fixed during mod initialization while skins remain
- * resource-pack driven through {@link com.astral_craft.common.gameplay.character.skin.CharacterSkinManager}.
+ * Registered character type. Static metadata and runtime mechanics live together; skins remain resource-pack driven.
  */
 public class AstralCharacter {
 
     public static final Identifier DEFAULT_CUTIN_ANIMATION = AstralCraft.prefix("skill");
 
     protected final Properties properties;
+    protected final CharacterProgressionDefinition progression;
 
     public AstralCharacter(Properties properties) {
+        this(properties, CharacterProgressionDefinition.of(1000));
+    }
+
+    public AstralCharacter(Properties properties, CharacterProgressionDefinition progression) {
         this.properties = properties.copy();
+        this.progression = progression == null ? CharacterProgressionDefinition.of(1000) : progression.copy();
     }
 
     public CharacterDefinition definition(Identifier id) {
         String prefix = "character." + id.getNamespace() + "." + id.getPath();
-        List<CharacterSkillDefinition> skills = this.properties.skills.isEmpty() ? this.defaultSkills(id) : List.copyOf(this.properties.skills);
-        return new CharacterDefinition(id, this.properties.nameKey == null ? prefix + ".name" : this.properties.nameKey,
-                this.properties.titleKey == null ? prefix + ".title" : this.properties.titleKey,
-                this.properties.modelKey, this.properties.previewTexture == null
-                ? Identifier.fromNamespaceAndPath(id.getNamespace(), "entity/character/skin_" + id.getPath() + "_default")
-                : this.properties.previewTexture,
-                this.properties.entityTypeKey, this.properties.rendererKey, this.properties.animationSetKey,
-                this.properties.previewAction, this.properties.maxPveLevel, this.properties.maxFriendshipLevel,
-                this.properties.baseStats, skills, this.properties.profileSections.isEmpty()
+        List<CharacterSkillView> skills = new ArrayList<>();
+        skills.add(this.activeSkill().view());
+        for (PassiveCharacterSkillDefinition passive : this.passiveSkills()) skills.add(passive.view());
+        List<CharacterProfileSection> profiles = this.properties.profileSections.isEmpty()
                 ? List.of(new CharacterProfileSection("", prefix + ".profile.basic.body"))
-                : List.copyOf(this.properties.profileSections),
-                List.of(), this.properties.potential.enabled(), this.properties.potential,
-                this.properties.implicitDefaultSkin, this.properties.implicitBondSkin,
-                this.properties.unlockedByDefault, this.properties.unlockHintKey == null
-                ? prefix + ".unlock_hint" : this.properties.unlockHintKey, this.properties.sortOrder);
+                : List.copyOf(this.properties.profileSections);
+        String unlockHint = this.progression.unlockHintKey() == null || this.progression.unlockHintKey().isBlank()
+                ? prefix + ".unlock_hint" : this.progression.unlockHintKey();
+        return new CharacterDefinition(id, this.properties.modelKey, this.properties.entityTypeKey,
+                this.properties.rendererKey, this.properties.animationSetKey, this.properties.previewAction,
+                this.properties.baseStats, skills, profiles, List.of(), this.progression.potential(),
+                this.progression.implicitBondSkin(), this.progression.unlockedByDefaultValue(), unlockHint,
+                this.progression.sortOrder());
     }
 
-    protected List<CharacterSkillDefinition> defaultSkills(Identifier id) {
-        Identifier handler = this.properties.skillHandler == null ? id : this.properties.skillHandler;
-        if (this.properties.sameSkillCooldown) {
-            return List.of(new CharacterSkillDefinition(CharacterSkillType.ACTIVE, this.properties.cooldown, 0,
-                            handler, this.properties.fallbackAnimation, false, false, -1, -1, null),
-                    new CharacterSkillDefinition(CharacterSkillType.PASSIVE, 0, 0, handler,
-                            this.properties.fallbackAnimation, false, false, -1, -1, null));
+    public ActiveCharacterSkillDefinition activeSkill() {
+        return this.properties.activeSkill;
+    }
+
+    public List<PassiveCharacterSkillDefinition> passiveSkills() {
+        return List.copyOf(this.properties.passiveSkills);
+    }
+
+    public BoardSkillDefinition boardSkill() {
+        return this.properties.boardSkill;
+    }
+
+    public AstralPlayerStats initializeBoardStats(AstralPlayerStats stats) {
+        AstralPlayerStats result = stats;
+        for (IntrinsicBuff value : this.properties.intrinsicBuffs) {
+            BoardBuff buff = value.buff().get();
+            if (buff != null) {
+                result = result.addIntrinsicBuff(buff, value.level());
+            }
         }
 
-        return List.of(new CharacterSkillDefinition(CharacterSkillType.ACTIVE, 0, 0, handler,
-                        this.properties.fallbackAnimation, true, true, this.properties.pvpCooldown,
-                        this.properties.pveCooldown, null),
-                new CharacterSkillDefinition(CharacterSkillType.PASSIVE, 0, 0, handler,
-                        this.properties.fallbackAnimation, true, true, -1, -1, null));
-    }
-
-    public boolean hasActiveSkill() {
-        return false;
+        return result;
     }
 
     public boolean useActiveSkill(CharacterSkillContext context) {
-        return false;
+        return grantConfiguredStatusEffect(context) || context != null;
     }
+
+    public boolean useBoardSkill(BoardSkillContext context) {
+        return context != null;
+    }
+
+    public void onSkillUsed(CharacterSkillContext context) {}
+
+    public void onBoardSkillUsed(BoardSkillContext context) {}
 
     public void serverTick(CharacterSkillContext context) {}
 
@@ -83,70 +98,43 @@ public class AstralCharacter {
 
     public void onBoardTurnEnd(AstralCharacterEntity entity) {}
 
+    public void onBoardEffectCardUsed(ServerLevel level, BoardSession session, BoardParticipant participant, ItemStack card) {}
+
+    public void onBoardMoveStarted(ServerLevel level, BoardSession session, BoardParticipant participant) {}
+
+    public void onBoardMoveFinished(ServerLevel level, BoardSession session, BoardParticipant participant) {}
+
+    public void onBoardBattleStarted(ServerLevel level, BoardSession session, BoardParticipant attacker, BoardParticipant defender) {}
+
+    public void onBoardBattleFinished(ServerLevel level, BoardSession session, BoardParticipant attacker, BoardParticipant defender) {}
+
     public Identifier fallbackAnimation() {
         return this.properties.fallbackAnimation;
     }
 
     public static boolean grantConfiguredStatusEffect(CharacterSkillContext context) {
         if (context == null || context.skill() == null) return false;
-        return context.skill().statusEffectId().filter(statusId -> {
-            if (context.actor() instanceof AstralCharacterEntity character && character.isBoardPawn()) {
-                BoardBuff buff = AstralBoardBuffs.REGISTRY.getValue(statusId);
-                int duration = AstralCharacterSkillService.durationRounds(context.skill());
-                return buff == null ? BoardSessionManager.addRoundStatusEffect(character, statusId, duration)
-                        : BoardSessionManager.addBoardBuff(character, buff, duration, 0);
-            }
-
-            return AstralCharacterSkillEffects.add(context.actor(), statusId,
-                    AstralCharacterSkillService.durationTicks(context.skill()), 0);
-        }).isPresent();
+        return context.skill().statusEffectId().filter(statusId -> AstralCharacterSkillEffects.add(context.actor(), statusId,
+                AstralCharacterSkillService.durationTicks(context.skill()), 0)).isPresent();
     }
 
     public static class Properties {
 
-        protected String nameKey;
-        protected String titleKey;
         protected Identifier modelKey = AstralCraft.prefix("humanoid");
-        protected Identifier previewTexture;
         protected Identifier entityTypeKey = AstralCraft.prefix("astral_character");
         protected Identifier rendererKey = AstralCraft.prefix("player");
         protected Identifier animationSetKey = AstralCraft.prefix("humanoid");
         protected String previewAction = "idle";
-        protected int maxPveLevel = 6;
-        protected int maxFriendshipLevel = 6;
         protected CharacterStatsDefinition baseStats = CharacterStatsDefinition.defaultStats();
-        protected final List<CharacterSkillDefinition> skills = new ArrayList<>();
+        protected ActiveCharacterSkillDefinition activeSkill = ActiveCharacterSkillDefinition.cooldown(3);
+        protected BoardSkillDefinition boardSkill = BoardSkillDefinition.cooldown(3);
+        protected final List<PassiveCharacterSkillDefinition> passiveSkills = new ArrayList<>(List.of(PassiveCharacterSkillDefinition.of("passive")));
         protected final List<CharacterProfileSection> profileSections = new ArrayList<>();
-        protected CharacterPotentialDefinition potential = CharacterPotentialDefinition.NONE;
-        protected boolean implicitDefaultSkin = true;
-        protected boolean implicitBondSkin = true;
-        protected boolean unlockedByDefault;
-        protected String unlockHintKey;
-        protected int sortOrder = 1000;
-        protected boolean sameSkillCooldown;
-        protected int cooldown;
-        protected int pvpCooldown = -1;
-        protected int pveCooldown = -1;
-        protected Identifier skillHandler;
+        protected final List<IntrinsicBuff> intrinsicBuffs = new ArrayList<>();
         protected Identifier fallbackAnimation = DEFAULT_CUTIN_ANIMATION;
-
-        public Properties nameKey(String value) {
-            this.nameKey = value;
-            return this;
-        }
-
-        public Properties titleKey(String value) {
-            this.titleKey = value;
-            return this;
-        }
 
         public Properties model(Identifier value) {
             this.modelKey = value;
-            return this;
-        }
-
-        public Properties previewTexture(Identifier value) {
-            this.previewTexture = value;
             return this;
         }
 
@@ -170,23 +158,42 @@ public class AstralCharacter {
             return this;
         }
 
-        public Properties maxPveLevel(int value) {
-            this.maxPveLevel = Math.max(1, value);
-            return this;
-        }
-
-        public Properties maxFriendshipLevel(int value) {
-            this.maxFriendshipLevel = Math.max(1, value);
-            return this;
-        }
-
         public Properties baseStats(int attack, int defense, int health, int initialStarCoins) {
             this.baseStats = new CharacterStatsDefinition(attack, defense, health, initialStarCoins);
             return this;
         }
 
-        public Properties skill(CharacterSkillDefinition value) {
-            if (value != null) this.skills.add(value);
+        public Properties activeSkill(ActiveCharacterSkillDefinition value) {
+            if (value != null) this.activeSkill = value;
+            return this;
+        }
+
+        public Properties boardSkill(BoardSkillDefinition value) {
+            if (value != null) this.boardSkill = value;
+            return this;
+        }
+
+        public Properties cooldown(int value) {
+            this.activeSkill = ActiveCharacterSkillDefinition.cooldown(value);
+            this.boardSkill = BoardSkillDefinition.cooldown(value);
+            return this;
+        }
+
+        public Properties cooldown(int pvp, int pve) {
+            this.activeSkill = ActiveCharacterSkillDefinition.cooldown(pvp, pve);
+            this.boardSkill = BoardSkillDefinition.cooldown(pvp, pve);
+            return this;
+        }
+
+        public Properties passiveSkill(PassiveCharacterSkillDefinition value) {
+            if (value != null) {
+                if (this.passiveSkills.size() == 1 && "passive".equals(this.passiveSkills.getFirst().id())) {
+                    this.passiveSkills.clear();
+                }
+
+                this.passiveSkills.add(value);
+            }
+
             return this;
         }
 
@@ -195,89 +202,35 @@ public class AstralCharacter {
             return this;
         }
 
-        public Properties potential(CharacterPotentialDefinition value) {
-            this.potential = value == null ? CharacterPotentialDefinition.NONE : value;
-            return this;
-        }
-
-        public Properties implicitDefaultSkin(boolean value) {
-            this.implicitDefaultSkin = value;
-            return this;
-        }
-
-        public Properties implicitBondSkin(boolean value) {
-            this.implicitBondSkin = value;
-            return this;
-        }
-
-        public Properties unlockedByDefault(boolean value) {
-            this.unlockedByDefault = value;
-            return this;
-        }
-
-        public Properties unlockHintKey(String value) {
-            this.unlockHintKey = value;
-            return this;
-        }
-
-        public Properties sortOrder(int value) {
-            this.sortOrder = value;
-            return this;
-        }
-
-        public Properties cooldown(int value) {
-            this.sameSkillCooldown = true;
-            this.cooldown = Math.max(0, value);
-            return this;
-        }
-
-        public Properties cooldown(int pvp, int pve) {
-            this.sameSkillCooldown = false;
-            this.pvpCooldown = pvp;
-            this.pveCooldown = pve;
-            return this;
-        }
-
-        public Properties skillHandler(Identifier value) {
-            this.skillHandler = value;
+        public Properties intrinsicBuff(Supplier<? extends BoardBuff> buff, int level) {
+            if (buff != null && level > 0) this.intrinsicBuffs.add(new IntrinsicBuff(buff, level));
             return this;
         }
 
         public Properties fallbackAnimation(Identifier value) {
-            this.fallbackAnimation = value;
+            if (value != null) this.fallbackAnimation = value;
             return this;
         }
 
         protected Properties copy() {
             Properties result = new Properties();
-            result.nameKey = this.nameKey;
-            result.titleKey = this.titleKey;
             result.modelKey = this.modelKey;
-            result.previewTexture = this.previewTexture;
             result.entityTypeKey = this.entityTypeKey;
             result.rendererKey = this.rendererKey;
             result.animationSetKey = this.animationSetKey;
             result.previewAction = this.previewAction;
-            result.maxPveLevel = this.maxPveLevel;
-            result.maxFriendshipLevel = this.maxFriendshipLevel;
             result.baseStats = this.baseStats;
-            result.skills.addAll(this.skills);
+            result.activeSkill = this.activeSkill;
+            result.boardSkill = this.boardSkill;
+            result.passiveSkills.clear();
+            result.passiveSkills.addAll(this.passiveSkills);
             result.profileSections.addAll(this.profileSections);
-            result.potential = this.potential;
-            result.implicitDefaultSkin = this.implicitDefaultSkin;
-            result.implicitBondSkin = this.implicitBondSkin;
-            result.unlockedByDefault = this.unlockedByDefault;
-            result.unlockHintKey = this.unlockHintKey;
-            result.sortOrder = this.sortOrder;
-            result.sameSkillCooldown = this.sameSkillCooldown;
-            result.cooldown = this.cooldown;
-            result.pvpCooldown = this.pvpCooldown;
-            result.pveCooldown = this.pveCooldown;
-            result.skillHandler = this.skillHandler;
+            result.intrinsicBuffs.addAll(this.intrinsicBuffs);
             result.fallbackAnimation = this.fallbackAnimation;
             return result;
         }
-
     }
+
+    protected record IntrinsicBuff(Supplier<? extends BoardBuff> buff, int level) { }
 
 }

@@ -41,6 +41,7 @@ public class AstralCharacterEntity extends PathfinderMob {
     protected static final EntityDataAccessor<String> DATA_SKIN_ID = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<Integer> DATA_LEVEL = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<Integer> DATA_FRIENDSHIP = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Boolean> DATA_POTENTIAL_ACTIVE = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.BOOLEAN);
     protected static final EntityDataAccessor<Integer> DATA_STAR_COINS = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<String> DATA_ANIMATION_ACTION = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.STRING);
     protected static final EntityDataAccessor<Integer> DATA_ANIMATION_STARTED_TICK = SynchedEntityData.defineId(AstralCharacterEntity.class, EntityDataSerializers.INT);
@@ -70,6 +71,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         builder.define(DATA_SKIN_ID, definition.skins().getFirst().id());
         builder.define(DATA_LEVEL, 1);
         builder.define(DATA_FRIENDSHIP, 1);
+        builder.define(DATA_POTENTIAL_ACTIVE, false);
         builder.define(DATA_STAR_COINS, 0);
         builder.define(DATA_ANIMATION_ACTION, "idle");
         builder.define(DATA_ANIMATION_STARTED_TICK, 0);
@@ -97,10 +99,7 @@ public class AstralCharacterEntity extends PathfinderMob {
             return;
         }
 
-        if (!this.level().isClientSide()) {
-            CharacterManager.INSTANCE.character(this.characterId()).onBoardEntityTick(this);
-        }
-
+        if (!this.level().isClientSide()) CharacterManager.INSTANCE.character(this.characterId()).onBoardEntityTick(this);
         if (!this.level().isClientSide() && this.boardReactionTicks > 0) {
             this.boardReactionTicks--;
             if (this.boardReactionTicks == 0
@@ -174,6 +173,8 @@ public class AstralCharacterEntity extends PathfinderMob {
     public int friendship() { return this.entityData.get(DATA_FRIENDSHIP); }
     public void setFriendship(int friendship) { this.entityData.set(DATA_FRIENDSHIP, Math.max(0, friendship)); }
     public void addFriendship(int amount) { this.setFriendship(this.friendship() + amount); }
+    public boolean potentialActive() { return this.entityData.get(DATA_POTENTIAL_ACTIVE); }
+    public void setPotentialActive(boolean active) { this.entityData.set(DATA_POTENTIAL_ACTIVE, active); }
     public int starCoins() { return this.entityData.get(DATA_STAR_COINS); }
     public void setStarCoins(int amount) { this.entityData.set(DATA_STAR_COINS, Math.max(0, amount)); }
     public void addStarCoins(int amount) { this.setStarCoins(this.starCoins() + amount); }
@@ -296,6 +297,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         this.setSkinId(input.getStringOr("skin_id", "default"));
         this.setCharacterLevel(input.getIntOr("character_level", 1));
         this.setFriendship(input.getIntOr("friendship", 1));
+        this.setPotentialActive(input.getBooleanOr("potential_active", false));
         this.setStarCoins(input.getIntOr("star_coins", 0));
         String savedAction = input.getStringOr("animation_action", "idle");
         this.setAnimationAction(("hurt".equals(savedAction) || "attack".equals(savedAction)) ? "idle" : savedAction);
@@ -313,6 +315,7 @@ public class AstralCharacterEntity extends PathfinderMob {
         output.putString("skin_id", this.skinId());
         output.putInt("character_level", this.characterLevel());
         output.putInt("friendship", this.friendship());
+        output.putBoolean("potential_active", this.potentialActive());
         output.putInt("star_coins", this.starCoins());
         output.putString("animation_action", this.animationAction());
         output.putString("board_session_id", this.entityData.get(DATA_BOARD_SESSION_ID));
