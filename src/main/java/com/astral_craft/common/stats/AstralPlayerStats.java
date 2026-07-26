@@ -72,11 +72,14 @@ public record AstralPlayerStats(
         Map<BoardBuff, BoardBuffInstance> migrated = new HashMap<>(buffs);
         legacyBuffs.forEach((name, level) -> {
             BoardBuff buff = AstralBoardBuffs.REGISTRY.getValue(AstralCraft.prefix(name));
-            if (buff != null && level > 0) migrated.putIfAbsent(buff, new BoardBuffInstance(BoardBuffInstance.PERMANENT, level - 1));
+            if (buff != null && level > 0) {
+                migrated.putIfAbsent(buff, new BoardBuffInstance(BoardBuffInstance.PERMANENT, level - 1, 0, false));
+            }
         });
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
-                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice,
-                migrated, modifiers);
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed,
+                maxHealth, health, starCoins, stars, cardPlaysPerTurn,
+                cardPlaysRemaining, skillCooldownReduction,
+                nextMoveFixed, nextMoveExtraDice, migrated, modifiers);
     }
 
     public AstralPlayerStats {
@@ -90,32 +93,28 @@ public record AstralPlayerStats(
 
     public int attack() {
         int value = this.baseAttack + this.modifierSum("attack");
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value = entry.getKey().modifyAttack(value, entry.getValue());
-        }
-        return value;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += entry.getKey().attackModifier(entry.getValue());
+        return Math.max(0, value);
     }
 
     public int defense() {
         int value = this.baseDefense + this.modifierSum("defense");
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value = entry.getKey().modifyDefense(value, entry.getValue());
-        }
-        return value;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) value += entry.getKey().defenseModifier(entry.getValue());
+        return Math.max(0, value);
     }
 
     public int speed() {
         int value = this.baseSpeed + this.modifierSum("speed");
         for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value = entry.getKey().modifySpeed(value, entry.getValue());
+            value += entry.getKey().speedModifier(entry.getValue());
         }
-        return value;
+        return Math.max(0, value);
     }
 
     public int incomingDamageBonus() {
         int value = 0;
         for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value = entry.getKey().modifyIncomingDamage(value, entry.getValue());
+            value += entry.getKey().incomingDamageModifier(entry.getValue());
         }
         return Math.max(0, value);
     }
@@ -133,22 +132,38 @@ public record AstralPlayerStats(
         for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
             value += Math.max(0, entry.getKey().turnStartDamage(entry.getValue()));
         }
-
         return value;
     }
 
-    public int resolveIncomingDamage(int damage) {
-        int value = Math.max(0, damage);
+    public int roundRewardBonus() {
+        int value = 0;
         for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            value = Math.max(0, entry.getKey().resolveIncomingDamage(value, entry.getValue()));
+            value += entry.getKey().roundRewardBonus(entry.getValue());
         }
-        return value;
+
+        return Math.max(0, value);
+    }
+
+    public int resolveIncomingDamage(int damage) {
+        int reduction = 0;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
+            reduction += entry.getKey().damageReduction(entry.getValue());
+        }
+
+        return Math.max(0, damage - reduction);
     }
 
     public AstralPlayerStats consumeIncomingDamageBuffs() {
         Map<BoardBuff, BoardBuffInstance> next = new HashMap<>(this.buffs);
-        next.entrySet().removeIf(entry -> entry.getKey().consumedAfterIncomingDamage(entry.getValue()));
-        return next.size() == this.buffs.size() ? this : this.withBuffs(next);
+        boolean changed = false;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(next.entrySet())) {
+            if (!entry.getKey().consumedAfterIncomingDamage(entry.getValue())) continue;
+            BoardBuffInstance retained = entry.getValue().withoutAcquiredLevels();
+            if (retained == null) next.remove(entry.getKey());
+            else next.put(entry.getKey(), retained);
+            changed = true;
+        }
+        return changed ? this.withBuffs(next) : this;
     }
 
     public int buff(BoardBuff buff) {
@@ -215,21 +230,31 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats addPermanentBuff(BoardBuff buff, int levels) {
-        return buff == null || levels <= 0 ? this : buff.apply(this, new BoardBuffInstance(BoardBuffInstance.PERMANENT, levels - 1));
+        return buff == null || levels <= 0 ? this
+                : buff.apply(this, new BoardBuffInstance(BoardBuffInstance.PERMANENT, levels - 1));
+    }
+
+    public AstralPlayerStats addIntrinsicBuff(BoardBuff buff, int levels) {
+        return buff == null || levels <= 0 ? this
+                : buff.apply(this, new BoardBuffInstance(BoardBuffInstance.PERMANENT, levels - 1, true));
     }
 
     public AstralPlayerStats changeBuffLevel(BoardBuff buff, int amount) {
         if (buff == null || amount == 0) return this;
         BoardBuffInstance current = this.buffs.get(buff);
         if (current == null) return amount > 0 ? this.addPermanentBuff(buff, amount) : this;
-        int level = current.level() + amount;
-        return level <= 0 ? this.removeBuff(buff) : this.setBuff(buff, current.duration(), level - 1);
+        BoardBuffInstance next = current.withAcquiredLevels(current.acquiredLevels() + amount);
+        return next == null ? this.removeBuff(buff) : this.setBuff(buff, next);
     }
 
     public AstralPlayerStats setBuff(BoardBuff buff, int duration, int amplifier) {
-        if (buff == null) return this;
+        return this.setBuff(buff, new BoardBuffInstance(duration, amplifier));
+    }
+
+    public AstralPlayerStats setBuff(BoardBuff buff, BoardBuffInstance instance) {
+        if (buff == null || instance == null) return this;
         Map<BoardBuff, BoardBuffInstance> next = new HashMap<>(this.buffs);
-        next.put(buff, new BoardBuffInstance(duration, amplifier));
+        next.put(buff, instance);
         return this.withBuffs(next);
     }
 
@@ -242,8 +267,28 @@ public record AstralPlayerStats(
 
     public AstralPlayerStats consumeAttackBuffs() {
         Map<BoardBuff, BoardBuffInstance> next = new HashMap<>(this.buffs);
-        next.entrySet().removeIf(entry -> entry.getKey().consumedAfterAttack(entry.getValue()));
-        return next.size() == this.buffs.size() ? this : this.withBuffs(next);
+        boolean changed = false;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(next.entrySet())) {
+            if (!entry.getKey().consumedAfterAttack(entry.getValue())) continue;
+            BoardBuffInstance retained = entry.getValue().withoutAcquiredLevels();
+            if (retained == null) next.remove(entry.getKey());
+            else next.put(entry.getKey(), retained);
+            changed = true;
+        }
+        return changed ? this.withBuffs(next) : this;
+    }
+
+    public AstralPlayerStats clearAcquiredBuffs() {
+        Map<BoardBuff, BoardBuffInstance> next = new HashMap<>(this.buffs);
+        boolean changed = false;
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(next.entrySet())) {
+            BoardBuffInstance retained = entry.getKey().afterKnockout(entry.getValue());
+            if (retained == entry.getValue()) continue;
+            if (retained == null) next.remove(entry.getKey());
+            else next.put(entry.getKey(), retained);
+            changed = true;
+        }
+        return changed ? this.withBuffs(next) : this;
     }
 
     public AstralPlayerStats applyChip(StatBundle stats) {
@@ -299,53 +344,51 @@ public record AstralPlayerStats(
 
     public AstralPlayerStats beginTurn() {
         AstralPlayerStats next = this;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            next = entry.getKey().onTurnStart(next, entry.getValue());
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(this.buffs.entrySet())) {
+            BoardBuffInstance current = next.buffInstance(entry.getKey());
+            if (current != null) next = entry.getKey().onTurnStart(next, current);
         }
-
-        Map<BoardBuff, BoardBuffInstance> ticked = new HashMap<>();
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : next.buffs.entrySet()) {
-            BoardBuffInstance instance = entry.getValue();
-            if (instance.permanent()) {
-                ticked.put(entry.getKey(), instance);
-            } else if (instance.duration() > 1) {
-                ticked.put(entry.getKey(), instance.tickDown());
-            }
-        }
-
         return next.copy(next.baseAttack, next.baseDefense, next.baseSpeed, next.maxHealth, next.health, next.starCoins,
                 next.stars, next.cardPlaysPerTurn, next.cardPlaysPerTurn, next.skillCooldownReduction,
-                next.nextMoveFixed, next.nextMoveExtraDice, ticked, next.tickModifiers());
+                next.nextMoveFixed, next.nextMoveExtraDice, next.buffs, next.tickModifiers());
     }
 
     public AstralPlayerStats endTurn() {
         AstralPlayerStats next = this;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : this.buffs.entrySet()) {
-            next = entry.getKey().onTurnEnd(next, entry.getValue());
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(this.buffs.entrySet())) {
+            BoardBuffInstance current = next.buffInstance(entry.getKey());
+            if (current != null) next = entry.getKey().onTurnEnd(next, current);
         }
-
-        return next;
+        Map<BoardBuff, BoardBuffInstance> ticked = new HashMap<>();
+        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : next.buffs.entrySet()) {
+            BoardBuffInstance instance = entry.getValue();
+            if (instance.acquiredLevels() <= 0 || instance.permanent()) ticked.put(entry.getKey(), instance.activate());
+            else if (instance.fresh()) ticked.put(entry.getKey(), instance.activate());
+            else if (instance.duration() > 1) ticked.put(entry.getKey(), instance.tickDown());
+            else {
+                BoardBuffInstance retained = instance.withoutAcquiredLevels();
+                if (retained != null) ticked.put(entry.getKey(), retained);
+            }
+        }
+        return next.withBuffs(ticked);
     }
 
     public AstralPlayerStats withHealth(int value) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, Math.clamp(value, 0, this.maxHealth),
-                this.starCoins, this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
-                this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
+        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth,
+                Math.clamp(value, 0, this.maxHealth), this.starCoins, this.stars, this.cardPlaysPerTurn,
+                this.cardPlaysRemaining, this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice,
+                this.buffs, this.modifiers);
     }
 
     private AstralPlayerStats withBuffs(Map<BoardBuff, BoardBuffInstance> buffs) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins, this.stars, this.cardPlaysPerTurn,
-                this.cardPlaysRemaining, this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice, buffs, this.modifiers);
+        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
+                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
+                this.nextMoveFixed, this.nextMoveExtraDice, buffs, this.modifiers);
     }
 
     private int modifierSum(String stat) {
         int value = 0;
-        for (TimedStatModifier modifier : this.modifiers) {
-            if (modifier.active() && modifier.stat().equals(stat)) {
-                value += modifier.amount();
-            }
-        }
-
+        for (TimedStatModifier modifier : this.modifiers) if (modifier.active() && modifier.stat().equals(stat)) value += modifier.amount();
         return value;
     }
 
@@ -353,11 +396,8 @@ public record AstralPlayerStats(
         List<TimedStatModifier> next = new ArrayList<>();
         for (TimedStatModifier modifier : this.modifiers) {
             TimedStatModifier ticked = modifier.turns() > 0 ? modifier.tickDown() : modifier;
-            if (ticked.active()) {
-                next.add(ticked);
-            }
+            if (ticked.active()) next.add(ticked);
         }
-
         return next;
     }
 
@@ -365,8 +405,9 @@ public record AstralPlayerStats(
                                    int starCoins, int stars, int cardPlaysPerTurn, int cardPlaysRemaining,
                                    int skillCooldownReduction, int nextMoveFixed, int nextMoveExtraDice,
                                    Map<BoardBuff, BoardBuffInstance> buffs, List<TimedStatModifier> modifiers) {
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars, cardPlaysPerTurn,
-                cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice, buffs, modifiers);
+        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice,
+                buffs, modifiers);
     }
 
     private static Map<BoardBuff, BoardBuffInstance> copyBuffs(Map<BoardBuff, BoardBuffInstance> input) {
