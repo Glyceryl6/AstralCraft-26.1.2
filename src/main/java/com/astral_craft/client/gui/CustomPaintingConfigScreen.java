@@ -1,6 +1,7 @@
 package com.astral_craft.client.gui;
 
 import com.astral_craft.client.gui.components.AstralFancyButton;
+import com.astral_craft.client.render.CustomPaintingPreviewRenderer;
 import com.astral_craft.common.components.CustomPaintingData;
 import com.astral_craft.common.network.c2s.CustomPaintingConfigPayload;
 import com.astral_craft.common.network.s2c.OpenCustomPaintingConfigPayload;
@@ -55,7 +56,17 @@ public class CustomPaintingConfigScreen extends Screen {
         this.heightBox.setMaxLength(2);
         this.heightBox.setFilter(CustomPaintingConfigScreen::numericOrEmpty);
         this.heightBox.setValue(Integer.toString(this.initialData.height()));
+        this.resourceBox.setResponder(value -> this.updatePreview());
+        this.widthBox.setResponder(value -> this.updatePreview());
+        this.heightBox.setResponder(value -> this.updatePreview());
+        CustomPaintingPreviewRenderer.beginEditing(this.entityId, this.currentData());
         this.setInitialFocus(this.resourceBox);
+    }
+
+    @Override
+    public void removed() {
+        CustomPaintingPreviewRenderer.endEditing();
+        super.removed();
     }
 
     @Override
@@ -93,8 +104,7 @@ public class CustomPaintingConfigScreen extends Screen {
             Layout layout = this.layout();
             if (inside(event.x(), event.y(), layout.confirmX(), layout.buttonY(), layout.buttonWidth(), 32) && this.validInput()) {
                 this.submitted = true;
-                ClientPacketDistributor.sendToServer(new CustomPaintingConfigPayload(this.entityId,
-                        new CustomPaintingData(this.resourceBox.getValue().trim(), parseSize(this.widthBox.getValue()), parseSize(this.heightBox.getValue()))));
+                ClientPacketDistributor.sendToServer(new CustomPaintingConfigPayload(this.entityId, this.currentData()));
                 this.onClose();
                 return true;
             }
@@ -104,6 +114,18 @@ public class CustomPaintingConfigScreen extends Screen {
             }
         }
         return super.mouseClicked(event, doubleClick);
+    }
+
+    private void updatePreview() {
+        if (this.resourceBox != null && this.widthBox != null && this.heightBox != null) {
+            CustomPaintingPreviewRenderer.updateEditing(this.currentData());
+        }
+    }
+
+    private CustomPaintingData currentData() {
+        return new CustomPaintingData(this.resourceBox == null ? this.initialData.resource() : this.resourceBox.getValue().trim(),
+                this.widthBox == null ? this.initialData.width() : parseSize(this.widthBox.getValue()),
+                this.heightBox == null ? this.initialData.height() : parseSize(this.heightBox.getValue()));
     }
 
     private boolean validInput() {

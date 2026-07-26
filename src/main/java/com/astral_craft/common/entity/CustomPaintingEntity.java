@@ -31,6 +31,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public class CustomPaintingEntity extends Painting {
 
+    private static final int ANCHOR_VERSION = 1;
     private static final EntityDataAccessor<String> DATA_RESOURCE = SynchedEntityData.defineId(CustomPaintingEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_WIDTH = SynchedEntityData.defineId(CustomPaintingEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_HEIGHT = SynchedEntityData.defineId(CustomPaintingEntity.class, EntityDataSerializers.INT);
@@ -61,13 +62,15 @@ public class CustomPaintingEntity extends Painting {
     }
 
     public boolean applyConfiguration(CustomPaintingData data) {
-        if (data == null || !data.configured()) return false;
-        CustomPaintingData previous = this.data();
+        if (!data.configured()) return false;
         this.setData(data);
         this.recalculateBoundingBox();
         if (this.survives()) return true;
-        this.setData(previous);
-        this.recalculateBoundingBox();
+        if (this.level() instanceof ServerLevel level) {
+            level.playSound(null, this.blockPosition(), SoundEvents.PAINTING_BREAK, SoundSource.BLOCKS, 1.0F, 1.0F);
+            this.spawnAtLocation(level, this.createDropStack(), 0.0F);
+            this.discard();
+        }
         return false;
     }
 
@@ -124,6 +127,9 @@ public class CustomPaintingEntity extends Painting {
         this.entityData.set(DATA_RESOURCE, input.getStringOr("resource", ""));
         this.entityData.set(DATA_WIDTH, Math.clamp(input.getIntOr("width", 1), 1, CustomPaintingData.MAX_SIZE));
         this.entityData.set(DATA_HEIGHT, Math.clamp(input.getIntOr("height", 1), 1, CustomPaintingData.MAX_SIZE));
+        if (input.getIntOr("anchor_version", 0) < ANCHOR_VERSION) {
+            this.pos = this.pos.relative(CustomPaintingPlacement.right(this.facing()), -this.data().width() / 2);
+        }
         this.recalculateBoundingBox();
     }
 
@@ -133,10 +139,11 @@ public class CustomPaintingEntity extends Painting {
         output.putString("resource", this.data().resource());
         output.putInt("width", this.data().width());
         output.putInt("height", this.data().height());
+        output.putInt("anchor_version", ANCHOR_VERSION);
     }
 
     private void setData(CustomPaintingData data) {
-        CustomPaintingData safeData = data == null ? CustomPaintingData.EMPTY : data;
+        CustomPaintingData safeData = data;
         this.entityData.set(DATA_RESOURCE, safeData.resource());
         this.entityData.set(DATA_WIDTH, safeData.width());
         this.entityData.set(DATA_HEIGHT, safeData.height());
@@ -147,4 +154,5 @@ public class CustomPaintingEntity extends Painting {
         stack.set(AstralDataComponents.CUSTOM_PAINTING.get(), this.data());
         return stack;
     }
+
 }
