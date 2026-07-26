@@ -41,6 +41,8 @@ public class BoardBattleScreen extends Screen {
     private static final int CARD_GAP = 7;
     private static final int ATTACK_ACCENT = 0xFFD84B61;
     private static final int DEFENSE_ACCENT = 0xFF3F9DCE;
+    private static final int NUMBER_BOX_SIZE = 32;
+    private static final int NUMBER_BOX_BORDER = 2;
     private static final int DICE_FLASH_END_TICK = 16;
     private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 10;
     private static final int BASE_VALUE_STAGE_TICK = 38;
@@ -326,16 +328,14 @@ public class BoardBattleScreen extends Screen {
         int separation = Math.clamp(layout.width() / 9, 58, 92);
         int attackX = center - separation;
         int defenseX = center + separation;
-        int y = this.view.scorePhase() ? layout.modelTop() + 28 : layout.modelTop() + 18;
+        int numberY = layout.modelTop() + 30;
         if (this.view.scorePhase()) {
             Range attackRange = this.displayRange(true);
             Range defenseRange = this.displayRange(false);
-            this.renderFraction(graphics, attackRange.minimum(),
-                    attackRange.maximum(), attackX, y,
-                    ATTACK_ACCENT, this.attackerScoreFlashTicks);
-            this.renderFraction(graphics, defenseRange.minimum(),
-                    defenseRange.maximum(), defenseX, y,
-                    DEFENSE_ACCENT, this.defenderScoreFlashTicks);
+            this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, numberY,
+                    true, this.attackerScoreFlashTicks);
+            this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, numberY,
+                    false, this.defenderScoreFlashTicks);
             this.renderReadyState(graphics, layout, true);
             this.renderReadyState(graphics, layout, false);
             return;
@@ -345,29 +345,29 @@ public class BoardBattleScreen extends Screen {
             int value = this.phaseAgeTicks < DICE_FLASH_END_TICK
                     ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : this.view.attackerDie();
             boolean rolling = this.phaseAgeTicks < DICE_FLASH_END_TICK;
-            this.renderDiceValue(graphics, value, attackX, y + 8, true,
+            this.renderDiceValue(graphics, value, attackX, numberY, true,
                     rolling ? 1.0F : this.settledDiceScale(true), this.diceTextColor(true, rolling));
             return;
         }
 
         if (this.view.defenseChoice()) {
-            this.renderDiceValue(graphics, this.view.attackerDie(), attackX, y + 8, true,
+            this.renderDiceValue(graphics, this.view.attackerDie(), attackX, numberY, true,
                     this.settledDiceScale(true), this.diceTextColor(true, false));
             return;
         }
 
         if (this.shouldRenderAnimatedValue(true)) {
-            this.renderDiceValue(graphics, this.animatedValue(true), attackX, y + 8, true,
+            this.renderDiceValue(graphics, this.animatedValue(true), attackX, numberY, true,
                     this.numberScale(true) / 2.85F, this.animatedValueColor(true));
         }
         if (this.shouldRenderAnimatedValue(false)) {
-            this.renderDiceValue(graphics, this.animatedValue(false), defenseX, y + 8, false,
+            this.renderDiceValue(graphics, this.animatedValue(false), defenseX, numberY, false,
                     this.numberScale(false) / 2.85F, this.animatedValueColor(false));
         }
         if (this.showEvadeResult()) {
             Component evade = Component.translatable(this.view.evaded()
                     ? "gui.astral_craft.board.evade_success" : "gui.astral_craft.board.evade_failed");
-            this.renderScaledCenteredText(graphics, evade, defenseX, y + 43,
+            this.renderScaledCenteredText(graphics, evade, defenseX, numberY + 35,
                     this.view.evaded() ? 0xFF79FF8A : 0xFFFF7373, 1.35F, true);
         }
     }
@@ -431,37 +431,31 @@ public class BoardBattleScreen extends Screen {
         return new Range(minimum, maximum);
     }
 
-    private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator, int centerX, int y, int color, int flashTicks) {
-        Component top = Component.literal(Integer.toString(numerator));
-        Component bottom = Component.literal(Integer.toString(denominator));
-        float scale = 1.0F + (flashTicks > 0 ? 0.08F * flashTicks / 7.0F : 0.0F);
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(centerX, y + 25);
-        graphics.pose().scale(scale, scale);
-        int width = 62;
-        int height = 50;
-        graphics.fill(-width / 2, -height / 2, width / 2, height / 2, 0xFF050505);
-        graphics.fill(-width / 2 + 3, -height / 2 + 3, width / 2 - 3, height / 2 - 3, color);
+    private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator, int centerX,
+                                int centerY, boolean attack, int flashTicks) {
+        this.renderNumberBox(graphics, centerX, centerY, attack);
         int drawColor = flashTicks > 0 && Math.floorMod(flashTicks / 2, 2) == 0 ? 0xFFFFFFFF : 0xFF080808;
-        this.renderScaledCenteredText(graphics, top, 0, -10, drawColor, 1.45F, false);
-        graphics.fill(-width / 2 + 10, -1, width / 2 - 10, 1, 0xFF080808);
-        this.renderScaledCenteredText(graphics, bottom, 0, 12, drawColor, 1.45F, false);
-        graphics.pose().popMatrix();
+        float scale = 1.0F + (flashTicks > 0 ? 0.08F * flashTicks / 7.0F : 0.0F);
+        Component top = Component.literal(Integer.toString(numerator)).withStyle(ChatFormatting.BOLD);
+        Component bottom = Component.literal(Integer.toString(denominator)).withStyle(ChatFormatting.BOLD);
+        this.renderScaledCenteredText(graphics, top, centerX, centerY - 8, drawColor, scale, false);
+        graphics.fill(centerX - 8, centerY - 1, centerX + 9, centerY + 1, 0xFF080808);
+        this.renderScaledCenteredText(graphics, bottom, centerX, centerY + 8, drawColor, scale, false);
     }
 
     private void renderDiceValue(GuiGraphicsExtractor graphics, int value, int centerX, int centerY,
                                  boolean attack, float scale, int textColor) {
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(centerX, centerY);
-        graphics.pose().scale(scale, scale);
-        int width = 54;
-        int height = 42;
-        graphics.fill(-width / 2, -height / 2, width / 2, height / 2, 0xFF050505);
-        graphics.fill(-width / 2 + 3, -height / 2 + 3, width / 2 - 3, height / 2 - 3,
+        this.renderNumberBox(graphics, centerX, centerY, attack);
+        Component text = Component.literal(Integer.toString(value)).withStyle(ChatFormatting.BOLD);
+        this.renderScaledCenteredText(graphics, text, centerX, centerY + 1, textColor, 2.25F * scale, false);
+    }
+
+    private void renderNumberBox(GuiGraphicsExtractor graphics, int centerX, int centerY, boolean attack) {
+        int half = NUMBER_BOX_SIZE / 2;
+        graphics.fill(centerX - half, centerY - half, centerX + half, centerY + half, 0xFF050505);
+        graphics.fill(centerX - half + NUMBER_BOX_BORDER, centerY - half + NUMBER_BOX_BORDER,
+                centerX + half - NUMBER_BOX_BORDER, centerY + half - NUMBER_BOX_BORDER,
                 attack ? ATTACK_ACCENT : DEFENSE_ACCENT);
-        this.renderScaledCenteredText(graphics, Component.literal(Integer.toString(value)), 0, 1,
-                textColor, 2.55F, false);
-        graphics.pose().popMatrix();
     }
 
     private float settledDiceScale(boolean attack) {

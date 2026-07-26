@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
+import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.character.CharacterManager;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.AABB;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 
 /** Board pawn spawning, state synchronization and node arrangement. */
-@SuppressWarnings("deprecation")
 public class BoardEntityService {
 
     public static void ensureEntities(ServerLevel level, BoardSession session) {
@@ -106,6 +107,16 @@ public class BoardEntityService {
             double radius = occupants.size() == 1 ? 0.0D : Math.min(0.34D, 0.12D + occupants.size() * 0.035D);
             entity.setPos(pos.getX() + 0.5D + Math.cos(angle) * radius, pos.getY() + 0.12D,
                     pos.getZ() + 0.5D + Math.sin(angle) * radius);
+        }
+    }
+
+    public static void clearBoardDice(ServerLevel level, BoardSession session) {
+        BoardArea area = session.protectedArea().inflate(8, 12);
+        AABB bounds = new AABB(area.min().getX(), area.min().getY(), area.min().getZ(),
+                area.max().getX() + 1.0D, area.max().getY() + 1.0D, area.max().getZ() + 1.0D);
+        for (AstralDiceEntity dice : level.getEntitiesOfClass(AstralDiceEntity.class, bounds,
+                candidate -> candidate.boardSessionId().filter(session.id()::equals).isPresent())) {
+            dice.discard();
         }
     }
 

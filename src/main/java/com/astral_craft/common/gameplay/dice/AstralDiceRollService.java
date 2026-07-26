@@ -10,10 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AstralDiceRollService {
@@ -42,12 +39,17 @@ public class AstralDiceRollService {
     }
 
     public static DiceRollResult rollNextMove(ServerPlayer player, Vec3 origin, AstralPlayerStats stats) {
+        return rollNextMove(player, origin, stats, null);
+    }
+
+    public static DiceRollResult rollNextMove(ServerPlayer player, Vec3 origin, AstralPlayerStats stats, UUID boardId) {
         AstralPlayerStats safeStats = stats == null ? AstralPlayerStats.DEFAULT : stats;
         int fixed = safeStats.nextMoveFixed();
-        int diceCount = fixed > 0 ? 1 : Math.clamp(1 + safeStats.nextMoveExtraDice(), 1, 8);
+        int diceCount = fixed > 0 ? 1
+                : Math.clamp(1 + safeStats.nextMoveExtraDice() + safeStats.moveDiceBonus(), 1, 8);
         DiceRollRequest request = new DiceRollRequest(fixed > 0 ? fixed : 1, fixed > 0 ? fixed : 10,
                 diceCount, DEFAULT_ROLL_TICKS, diceCount > 1 ? DEFAULT_MERGE_TICKS : 0,
-                DEFAULT_SPIN_SPEED, WORLD_ENTITY_PRESENTATION);
+                DEFAULT_SPIN_SPEED, WORLD_ENTITY_PRESENTATION, boardId);
         return roll(player, origin, request, safeStats.speed());
     }
 
@@ -84,6 +86,7 @@ public class AstralDiceRollService {
             double offset = (i - center) * spacing;
             Vec3 spawn = origin.add(side.scale(offset));
             AstralDiceEntity dice = new AstralDiceEntity(level, spawn.x, spawn.y, spawn.z);
+            dice.setBoardSessionId(request.boardId());
             dice.startRoll(request.minValue(), request.maxValue(), request.rollTicks(), request.spinSpeed(),
                     result.values().get(i), result.total(), request.mergeTicks(), i == 0,
                     (float) (-side.x * offset), (float) (-side.z * offset));
@@ -97,7 +100,12 @@ public class AstralDiceRollService {
     }
 
     public record DiceRollRequest(int minValue, int maxValue, int diceCount, int rollTicks,
-                                  int mergeTicks, float spinSpeed, Identifier presentation) {
+                                  int mergeTicks, float spinSpeed, Identifier presentation, UUID boardId) {
+        public DiceRollRequest(int minValue, int maxValue, int diceCount, int rollTicks,
+                               int mergeTicks, float spinSpeed, Identifier presentation) {
+            this(minValue, maxValue, diceCount, rollTicks, mergeTicks, spinSpeed, presentation, null);
+        }
+
         public DiceRollRequest {
             int safeMin = Math.min(minValue, maxValue);
             int safeMax = Math.max(minValue, maxValue);

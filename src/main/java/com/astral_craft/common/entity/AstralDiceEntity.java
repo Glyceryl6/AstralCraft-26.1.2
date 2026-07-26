@@ -14,9 +14,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
+import java.util.Optional;
+import java.util.UUID;
+
 public class AstralDiceEntity extends Entity {
 
     public static final int RESULT_HOLD_TICKS = 12;
+    private UUID boardSessionId;
 
     private static final EntityDataAccessor<Integer> DATA_MIN = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_MAX = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
@@ -96,6 +100,14 @@ public class AstralDiceEntity extends Entity {
         }
 
         if (this.tickCount > mergeEnd + RESULT_HOLD_TICKS) this.discard();
+    }
+
+    public void setBoardSessionId(UUID boardSessionId) {
+        this.boardSessionId = boardSessionId;
+    }
+
+    public Optional<UUID> boardSessionId() {
+        return Optional.ofNullable(this.boardSessionId);
     }
 
     public int rollTicks() {
@@ -188,6 +200,12 @@ public class AstralDiceEntity extends Entity {
         this.entityData.set(DATA_MERGE_OFFSET_X, input.getFloatOr("merge_offset_x", 0.0F));
         this.entityData.set(DATA_MERGE_OFFSET_Z, input.getFloatOr("merge_offset_z", 0.0F));
         this.entityData.set(DATA_PRIMARY, input.getBooleanOr("primary", true));
+        String boardId = input.getStringOr("board_session_id", "");
+        try {
+            this.boardSessionId = boardId.isBlank() ? null : UUID.fromString(boardId);
+        } catch (IllegalArgumentException ignored) {
+            this.boardSessionId = null;
+        }
         this.tickCount = Math.max(0, input.getIntOr("age", 0));
     }
 
@@ -203,6 +221,7 @@ public class AstralDiceEntity extends Entity {
         output.putFloat("merge_offset_x", this.mergeOffsetX());
         output.putFloat("merge_offset_z", this.mergeOffsetZ());
         output.putBoolean("primary", this.isPrimary());
+        output.putString("board_session_id", this.boardSessionId == null ? "" : this.boardSessionId.toString());
         output.putInt("age", this.tickCount);
     }
 
