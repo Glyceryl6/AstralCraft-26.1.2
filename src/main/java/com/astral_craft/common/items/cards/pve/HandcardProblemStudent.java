@@ -25,7 +25,8 @@ public class HandcardProblemStudent extends BaseHandCard {
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         AstralCardEffects.damage(user, targets, 2);
         AstralCardEffects.update(user, AstralStats.get(user).addCoins(3));
-        AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addPermanentBuff(AstralBoardBuffs.PROBLEM_STUDENT.get(), 1)));
+        AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.PROBLEM_STUDENT_ID, AstralBoardBuffs.STATE.get())
+                .permanent().build())));
         return !targets.isEmpty();
     }
 

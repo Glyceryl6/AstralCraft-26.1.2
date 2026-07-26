@@ -14,11 +14,10 @@ public class LeakingPocketBoardBuff extends BoardBuff {
     }
 
     @Override
-    public BoardParticipant onMovementFinished(
-            ServerLevel level, BoardSession session, BoardSession.MovementState movement,
-            BoardParticipant participant, BoardBuffInstance instance) {
+    public BoardParticipant onMovementFinished(ServerLevel level, BoardSession session, BoardSession.MovementState movement,
+                                               BoardParticipant participant, BoardBuffInstance instance) {
         int amount = Math.min(participant.stats().starCoins(), movement.route().size());
-        BoardParticipant updated = participant.withStats(participant.stats().spendCoins(amount).removeBuff(this));
+        BoardParticipant updated = participant.withStats(participant.stats().spendCoins(amount).removeBuff(instance.id()));
         if (amount > 0) BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), amount);
         return updated;
     }

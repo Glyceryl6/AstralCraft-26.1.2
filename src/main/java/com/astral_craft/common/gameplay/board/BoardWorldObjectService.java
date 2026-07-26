@@ -156,7 +156,8 @@ public class BoardWorldObjectService {
         for (UUID trapId : remove) session.mechanics().removeTrap(trapId);
         BoardParticipant updated = session.participant(participant.slotUuid()).orElse(participant);
         if (enhancedBarricade && !updated.knockedDown()) {
-            updated = updated.withStats(updated.stats().addBuff(AstralBoardBuffs.ENHANCED_BARRICADE_BOOST.get(), 1, 0));
+            updated = updated.withStats(updated.stats().addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.ENHANCED_BARRICADE_BOOST_ID, AstralBoardBuffs.SPEED.get())
+                    .duration(1).value(2).build()));
             BoardSessionManager.updateParticipant(level, session, updated);
         }
 

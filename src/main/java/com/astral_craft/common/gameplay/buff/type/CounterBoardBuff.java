@@ -14,14 +14,13 @@ public class CounterBoardBuff extends BoardBuff {
     }
 
     @Override
-    public BattleFollowUp onDefendedBattle(
-            ServerLevel level, BoardSession session, BoardParticipant defender,
-            BoardParticipant attacker, BoardBuffInstance instance) {
+    public BattleFollowUp onDefendedBattle(ServerLevel level, BoardSession session, BoardParticipant defender,
+                                           BoardParticipant attacker, BoardBuffInstance instance) {
         if (defender.knockedDown() || attacker.knockedDown()) return BattleFollowUp.none(defender);
         AstralPlayerStats stats = defender.stats();
         if (instance.acquiredLevels() > 0) {
             BoardBuffInstance next = instance.withAcquiredLevels(instance.acquiredLevels() - 1);
-            stats = next == null ? stats.removeBuff(this) : stats.setBuff(this, next);
+            stats = next == null ? stats.removeBuff(instance.id()) : stats.setBuff(next);
         }
 
         return new BattleFollowUp(defender.withStats(stats), true);

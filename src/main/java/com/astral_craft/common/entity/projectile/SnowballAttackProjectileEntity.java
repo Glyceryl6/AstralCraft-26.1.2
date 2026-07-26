@@ -35,7 +35,7 @@ public class SnowballAttackProjectileEntity extends AbstractCardProjectileEntity
     @Override
     protected void onImpact(ServerLevel level, LivingEntity owner, LivingEntity target) {
         this.damageTarget(owner, target);
-        AstralCardEffects.update(target, AstralStats.getOrDefault(target).addBuff(AstralBoardBuffs.SNOWBALL_SLOW.get(), 1, 0));
+        AstralCardEffects.update(target, AstralStats.getOrDefault(target).addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.SNOWBALL_SLOW_ID, AstralBoardBuffs.SPEED.get()).duration(1).value(-4).build()));
         level.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(), 28, 0.28D, 0.28D, 0.28D, 0.02D);
         level.playSound(null, target.blockPosition(), SoundEvents.SNOW_BREAK, SoundSource.PLAYERS, 0.75F, 1.45F);
     }

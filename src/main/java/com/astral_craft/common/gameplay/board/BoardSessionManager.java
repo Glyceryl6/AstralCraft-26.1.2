@@ -1,7 +1,5 @@
 package com.astral_craft.common.gameplay.board;
 
-import com.astral_craft.common.util.AstralServerTickClock;
-import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.blocks.platform.HospitalPlatform;
 import com.astral_craft.common.components.CardDefinition;
@@ -13,7 +11,6 @@ import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
-import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
@@ -28,9 +25,11 @@ import com.astral_craft.common.items.cards.pvp.HandcardSoulLink;
 import com.astral_craft.common.network.BoardCardView;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.s2c.*;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -962,7 +961,6 @@ public class BoardSessionManager {
                     SoundEvents.NOTE_BLOCK_PLING.value(),
                     SoundSource.PLAYERS, 0.9F, 1.35F);
         }
-
         if (participant == null) {
             session.mechanics().setTimeBombSlot(Optional.empty());
             markChanged(level);
@@ -1354,8 +1352,8 @@ public class BoardSessionManager {
     private static BoardParticipant applyMovementBuffs(ServerLevel level, BoardSession session,
                                                        BoardSession.MovementState movement, BoardParticipant participant) {
         BoardParticipant updated = participant;
-        for (Map.Entry<BoardBuff, BoardBuffInstance> entry : participant.stats().buffs().entrySet()) {
-            updated = entry.getKey().onMovementFinished(level, session, movement, updated, entry.getValue());
+        for (BoardBuffInstance instance : participant.stats().buffs().values()) {
+            updated = instance.buff().onMovementFinished(level, session, movement, updated, instance);
         }
         if (!updated.equals(participant)) updateParticipant(level, session, updated);
         return updated;

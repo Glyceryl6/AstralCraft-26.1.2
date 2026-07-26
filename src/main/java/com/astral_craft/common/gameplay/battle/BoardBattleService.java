@@ -172,7 +172,6 @@ public class BoardBattleService {
                     }
                     beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
                 }
-
                 case DEFENDER_ROLL -> applyRoll(level, session, state);
                 default -> finishBattle(level, session, state);
             }
@@ -184,35 +183,30 @@ public class BoardBattleService {
         if (DELAYED_ATTACKER_KNOCKOUT.remove(state.boardId())) {
             BoardSessionManager.knockDownFromEffect(level, session, state.attackerSlot());
         }
-
         BoardParticipant attacker = session.participant(state.attackerSlot()).orElse(null);
         BoardParticipant defender = session.participant(state.defenderSlot()).orElse(null);
         if (attacker != null && defender != null) {
             CharacterManager.INSTANCE.character(attacker.characterId()).onBoardBattleFinished(level, session, attacker, defender);
             CharacterManager.INSTANCE.character(defender.characterId()).onBoardBattleFinished(level, session, attacker, defender);
         }
-
         if (attacker == null || defender == null || attacker.knockedDown() || defender.knockedDown()) {
             BoardSessionManager.resumeAfterBattle(level, session);
             return;
         }
-
         BoardParticipant updatedDefender = defender;
         boolean counterAttack = false;
         if (state.counterableChallenge()) {
-            for (Map.Entry<BoardBuff, BoardBuffInstance> entry : new ArrayList<>(defender.stats().buffs().entrySet())) {
-                BoardBuff.BattleFollowUp followUp = entry.getKey().onDefendedBattle(level, session, updatedDefender, attacker, entry.getValue());
+            for (BoardBuffInstance instance : new ArrayList<>(defender.stats().buffs().values())) {
+                BoardBuff.BattleFollowUp followUp = instance.buff().onDefendedBattle(level, session, updatedDefender, attacker, instance);
                 updatedDefender = followUp.defender();
                 counterAttack |= followUp.counterAttack();
             }
         }
-
         if (updatedDefender != defender) BoardSessionManager.updateParticipant(level, session, updatedDefender);
         if (counterAttack && !updatedDefender.knockedDown() && !attacker.knockedDown()) {
             start(level, session, updatedDefender, attacker, false);
             return;
         }
-
         BoardSessionManager.resumeAfterBattle(level, session);
     }
 
@@ -233,7 +227,6 @@ public class BoardBattleService {
             send(level, session, state);
             return;
         }
-
         if (state.phase() == BattlePhase.DEFENSE_CHOICE && state.defenderSlot().equals(slotId)) {
             beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
         }
@@ -307,12 +300,10 @@ public class BoardBattleService {
             cancelAndResume(level, session);
             return;
         }
-
         if (BoardSessionManager.isAutomated(level, defender)) {
             beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
             return;
         }
-
         int durationTicks = defender.decisionDurationTicks(DEFENSE_CHOICE_TICKS);
         BattleState choosing = state.withPhase(BattlePhase.DEFENSE_CHOICE, AstralServerTickClock.now(level) + durationTicks, durationTicks);
         ACTIVE.put(session.id(), choosing);
@@ -359,7 +350,6 @@ public class BoardBattleService {
             cancelAndResume(level, session);
             return;
         }
-
         boolean knockDownAttackerOnFailure = BoardSessionManager.attackBuffKnocksDownOnFailure(attacker);
         AstralPlayerStats nextStats = defender.stats().damage(roll.damage());
         BoardParticipant nextAttacker = removeCards(attacker.withStats(attacker.stats().consumeAttackBuffs()), roll.attackerCards());
@@ -372,22 +362,17 @@ public class BoardBattleService {
         } else if (knockDownAttackerOnFailure) {
             DELAYED_ATTACKER_KNOCKOUT.add(session.id());
         }
-
         playAttackAnimation(level, nextAttacker);
         playHurtAnimation(level, nextDefender, roll.damage());
         if (roll.damage() >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
             Entity damagedEntity = nextDefender.entityUuid().map(level::getEntity).orElse(null);
-            if (damagedEntity instanceof LivingEntity living) {
-                DamagePresentation.playCriticalImpact(level, living);
-            }
+            if (damagedEntity instanceof LivingEntity living) DamagePresentation.playCriticalImpact(level, living);
         }
-
         BoardSessionManager.updateParticipant(level, session, nextAttacker);
         BoardSessionManager.updateParticipant(level, session, nextDefender);
         if (knockoutCoins > 0) {
             BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
-
         int resultTicks = roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
         BattleState result = state.withPhase(BattlePhase.RESULT, AstralServerTickClock.now(level) + resultTicks, resultTicks);
         ACTIVE.put(session.id(), result);
@@ -427,7 +412,6 @@ public class BoardBattleService {
             minimum += bonus.minimum();
             maximum += bonus.maximum();
         }
-
         return new CardRange(minimum, maximum);
     }
 
@@ -437,7 +421,6 @@ public class BoardBattleService {
             CombatBonusDefinition bonus = combatBonus(participant, index, expected);
             if (bonus != null) result += bonus.random(level.getRandom());
         }
-
         return result;
     }
 
@@ -454,7 +437,6 @@ public class BoardBattleService {
             if (cost > MAXIMUM_PVP_COST) return null;
             result.add(index);
         }
-
         result.sort(Integer::compareTo);
         return List.copyOf(result);
     }
@@ -491,7 +473,6 @@ public class BoardBattleService {
         for (int index = 0; index < participant.hand().size(); index++) {
             if (combatDefinition(participant, index, expected) != null) candidates.add(index);
         }
-
         List<Integer> best = new ArrayList<>();
         chooseBotCards(participant, expected, candidates, 0, 0, new ArrayList<>(), best);
         best.sort(Integer::compareTo);
@@ -506,7 +487,6 @@ public class BoardBattleService {
             best.clear();
             best.addAll(chosen);
         }
-
         if (cursor >= candidates.size() || chosen.size() >= MAXIMUM_SELECTED_CARDS) return;
         for (int index = cursor; index < candidates.size(); index++) {
             CardDefinition definition = combatDefinition(participant, candidates.get(index), expected);
@@ -568,7 +548,6 @@ public class BoardBattleService {
                     false, false, !BoardSessionManager.attackBuffPreventsEvade(attacker),
                     state.attackerReady(), state.defenderReady(), state.defenseMode());
         }
-
         return new BattleView(state.phase(), attacker.stats().health(), defender.stats().health(),
                 roll.attackBase(), roll.defenseBase(),
                 roll.attackBase() + roll.attackCardMinimum(), roll.attackBase() + roll.attackCardMaximum(),
@@ -585,10 +564,10 @@ public class BoardBattleService {
             CombatBonusDefinition bonus = combatBonus(participant, index, expected);
             ItemStack stack = combatStack(participant, index, expected);
             if (definition != null && bonus != null && stack != null) {
-                result.add(new CombatCardView(index, stack, definition.combatCost(), bonus.minimum(), bonus.maximum()));
+                result.add(new CombatCardView(index, stack, definition.combatCost(),
+                        bonus.minimum(), bonus.maximum()));
             }
         }
-
         return List.copyOf(result);
     }
 
@@ -692,7 +671,5 @@ public class BoardBattleService {
                     roll.attackerCards(), roll.defenderCards(),
                     this.defenseMode, true, true, this.counterableChallenge, roll);
         }
-
     }
-
 }

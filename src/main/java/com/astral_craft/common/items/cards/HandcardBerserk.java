@@ -3,11 +3,12 @@ package com.astral_craft.common.items.cards;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.registry.AstralBoardBuffs;
+import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -40,8 +41,7 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         LivingEntity target = AstralCardEffects.target(targets).orElse(null);
         if (!isSelfTarget(user, target)) return false;
-        AstralCardEffects.update(target, AstralStats.getOrDefault(target)
-                .addBuff(AstralBoardBuffs.BERSERK.get(), 2, 0));
+        AstralCardEffects.update(target, applyBuffs(AstralStats.getOrDefault(target)));
         return true;
     }
 
@@ -52,8 +52,15 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
 
     @Override
     public int applyByBoardBot(BoardBotEffectContext context) {
-        context.updateUser(stats -> stats.addBuff(AstralBoardBuffs.BERSERK.get(), 2, 0));
+        context.updateUser(HandcardBerserk::applyBuffs);
         return 0;
+    }
+
+    private static AstralPlayerStats applyBuffs(AstralPlayerStats stats) {
+        return stats.addBuff(AstralBoardBuffs.partInstance(AstralBoardBuffs.BERSERK_ID, "attack", AstralBoardBuffs.ATTACK.get())
+                        .duration(2).value(3).build())
+                .addBuff(AstralBoardBuffs.partInstance(AstralBoardBuffs.BERSERK_ID, "damage", AstralBoardBuffs.INCOMING_DAMAGE.get())
+                        .duration(2).value(1).build());
     }
 
     @ParametersAreNullableByDefault
@@ -62,12 +69,9 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
         if (target == user) return true;
         if (!(target instanceof AstralCharacterEntity character) || !character.isBoardPawn()) return false;
         BoardSession session = BoardSessionManager.findByController(user).orElse(null);
-        BoardParticipant source = session == null ? null
-                : session.participantByController(user.getUUID()).orElse(null);
+        BoardParticipant source = session == null ? null : session.participantByController(user.getUUID()).orElse(null);
         UUID boardId = character.boardSessionUuid().orElse(null);
         UUID slotId = character.boardParticipantUuid().orElse(null);
-        return session != null && source != null && session.id().equals(boardId)
-                && source.slotUuid().equals(slotId);
+        return session != null && source != null && session.id().equals(boardId) && source.slotUuid().equals(slotId);
     }
-
 }
