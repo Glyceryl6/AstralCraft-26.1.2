@@ -274,7 +274,7 @@ public record BoardParticipant(
 
     public BoardParticipant knockDown() {
         int lost = Math.max(0, (this.stats.starCoins() + 1) / 2);
-        AstralPlayerStats next = this.stats.spendCoins(lost).withHealth(0);
+        AstralPlayerStats next = this.stats.spendCoins(lost).withHealth(0).clearAcquiredBuffs();
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, next, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, 2, this.cardPlaysUsed,

@@ -36,30 +36,35 @@ public class AstralDiceRollService {
 
     public static DiceRollResult rollNextMove(ServerPlayer player, Vec3 origin) {
         AstralPlayerStats stats = AstralStats.get(player);
-        int fixed = stats.nextMoveFixed();
-        int diceCount = fixed > 0 ? 1 : Math.clamp(1 + stats.nextMoveExtraDice(), 1, 8);
-        DiceRollRequest request = new DiceRollRequest(
-                fixed > 0 ? fixed : 1,
-                fixed > 0 ? fixed : 10,
-                diceCount,
-                DEFAULT_ROLL_TICKS,
-                diceCount > 1 ? DEFAULT_MERGE_TICKS : 0,
-                DEFAULT_SPIN_SPEED,
-                WORLD_ENTITY_PRESENTATION);
+        DiceRollResult result = rollNextMove(player, origin, stats);
         AstralStats.set(player, stats.clearNextMoveDiceEffects());
-        return roll(player, origin, request);
+        return result;
+    }
+
+    public static DiceRollResult rollNextMove(ServerPlayer player, Vec3 origin, AstralPlayerStats stats) {
+        AstralPlayerStats safeStats = stats == null ? AstralPlayerStats.DEFAULT : stats;
+        int fixed = safeStats.nextMoveFixed();
+        int diceCount = fixed > 0 ? 1 : Math.clamp(1 + safeStats.nextMoveExtraDice(), 1, 8);
+        DiceRollRequest request = new DiceRollRequest(fixed > 0 ? fixed : 1, fixed > 0 ? fixed : 10,
+                diceCount, DEFAULT_ROLL_TICKS, diceCount > 1 ? DEFAULT_MERGE_TICKS : 0,
+                DEFAULT_SPIN_SPEED, WORLD_ENTITY_PRESENTATION);
+        return roll(player, origin, request, safeStats.speed());
     }
 
     public static DiceRollResult roll(ServerPlayer player, Vec3 origin, DiceRollRequest request) {
+        return roll(player, origin, request, 0);
+    }
+
+    public static DiceRollResult roll(ServerPlayer player, Vec3 origin, DiceRollRequest request, int flatBonus) {
         ServerLevel level = player.level();
         List<Integer> values = new ArrayList<>(request.diceCount());
         for (int i = 0; i < request.diceCount(); i++) {
             values.add(Mth.nextInt(level.getRandom(), request.minValue(), request.maxValue()));
         }
 
-        DiceRollResult result = new DiceRollResult(List.copyOf(values));
-        DicePresentation presentation = PRESENTATIONS.getOrDefault(
-                request.presentation(), WORLD_ENTITY_PRESENTER);
+        int total = Math.max(0, values.stream().mapToInt(Integer::intValue).sum() + flatBonus);
+        DiceRollResult result = new DiceRollResult(List.copyOf(values), total);
+        DicePresentation presentation = PRESENTATIONS.getOrDefault(request.presentation(), WORLD_ENTITY_PRESENTER);
         presentation.present(player, origin, request, result);
         return result;
     }
@@ -106,13 +111,10 @@ public class AstralDiceRollService {
         }
     }
 
-    public record DiceRollResult(List<Integer> values) {
+    public record DiceRollResult(List<Integer> values, int total) {
         public DiceRollResult {
             values = List.copyOf(values);
-        }
-
-        public int total() {
-            return this.values.stream().mapToInt(Integer::intValue).sum();
+            total = Math.max(0, total);
         }
     }
 }

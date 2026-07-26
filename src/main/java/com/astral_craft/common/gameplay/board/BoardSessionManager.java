@@ -342,8 +342,8 @@ public class BoardSessionManager {
                 || session.encounter() != null || session.discard() != null) return;
         AstralCharacterEntity entity = BoardEntityService.entity(player.level(), participant);
         if (entity == null) return;
-        int cooldown = AstralCharacterSkillService.useActiveSkillForBoard(player, entity,
-                participant.characterId(), participant.skinName(), humanPlayers(player.level(), session));
+        int cooldown = AstralCharacterSkillService.useActiveSkillForBoard(player, entity, session, participant,
+                humanPlayers(player.level(), session));
         if (cooldown < 0) return;
         BoardParticipant refreshed = session.participant(participant.slotUuid()).orElse(participant);
         BoardParticipant updated = refreshed.recordManualDecision().withSkillCooldown(cooldown);
@@ -418,7 +418,11 @@ public class BoardSessionManager {
         BoardSession session = maybeSession.get();
         BoardParticipant participant = currentControlledParticipant(session, player);
         if (participant == null || index < 0 || index >= participant.hand().size()) return;
-        updateParticipant(player.level(), session, participant.recordManualDecision().removeCard(index).useCardPlay());
+        Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
+        ItemStack stack = new ItemStack(item);
+        BoardParticipant updated = participant.recordManualDecision().removeCard(index).useCardPlay();
+        updateParticipant(player.level(), session, updated);
+        CharacterManager.INSTANCE.character(updated.characterId()).onBoardEffectCardUsed(player.level(), session, updated, stack);
     }
 
     public static boolean consumeCounterCard(ServerPlayer player, UUID boardId, int index) {
@@ -546,7 +550,7 @@ public class BoardSessionManager {
     public static int resolveIncomingDamage(ServerLevel level, BoardSession session, BoardParticipant participant, int damage) {
         if (participant == null || damage <= 0 || isHospitalProtected(session, participant)) return 0;
         AstralPlayerStats stats = participant.stats();
-        int resolved = stats.resolveIncomingDamage(damage);
+        int resolved = stats.resolveIncomingDamage(Math.max(0, damage + stats.incomingDamageBonus()));
         AstralPlayerStats consumed = stats.consumeIncomingDamageBuffs();
         if (!consumed.equals(stats)) updateParticipant(level, session, participant.withStats(consumed));
         return resolved;
@@ -754,7 +758,8 @@ public class BoardSessionManager {
             BoardParticipant participant = participants.get(index);
             String startNode = starts.get(index);
             CharacterDefinition definition = CharacterManager.INSTANCE.get(participant.characterId());
-            AstralPlayerStats stats = AstralPlayerStats.initial(definition.baseStats());
+            AstralPlayerStats stats = CharacterManager.INSTANCE.character(participant.characterId())
+                    .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
             stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
             List<Identifier> hand = randomInitialHand(level, 4 + level.getRandom().nextInt(2));
             BoardParticipant initialized = new BoardParticipant(participant.slotId(), participant.controllerId(),
@@ -884,11 +889,13 @@ public class BoardSessionManager {
 
         if (controller != null) {
             AstralDiceRollService.DiceRollResult result = AstralDiceRollService.rollNextMove(controller,
-                    entity.position().add(0.0D, entity.getBbHeight() + 0.85D, 0.0D));
+                    entity.position().add(0.0D, entity.getBbHeight() + 0.85D, 0.0D), participant.stats());
             int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS
                     + (result.values().size() > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0)
                     + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
-            beginMovement(level, session, participant, result.total(), revealTicks);
+            BoardParticipant updated = participant.withStats(participant.stats().clearNextMoveDiceEffects());
+            updateParticipant(level, session, updated);
+            beginMovement(level, session, updated, result.total(), revealTicks);
             return;
         }
 
@@ -898,6 +905,7 @@ public class BoardSessionManager {
         for (int index = 0; index < diceCount; index++) {
             total += fixed > 0 ? fixed : level.getRandom().nextInt(10) + 1;
         }
+        total = Math.max(0, total + participant.stats().speed());
 
         AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
                 entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
@@ -1002,6 +1010,7 @@ public class BoardSessionManager {
     }
 
     private static void beginMovement(ServerLevel level, BoardSession session, BoardParticipant participant, int steps, int delayTicks) {
+        CharacterManager.INSTANCE.character(participant.characterId()).onBoardMoveStarted(level, session, participant);
         session.setMovement(BoardSession.MovementState.begin(participant.slotUuid(), Math.max(0, steps), AstralServerTickClock.now(level) + Math.max(0, delayTicks)));
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
@@ -1134,6 +1143,7 @@ public class BoardSessionManager {
             BoardParticipant current = session.participant(participant.slotUuid()).orElse(participant);
             BoardParticipant used = current.removeCard(handIndex).useCardPlay();
             updateParticipant(level, session, used);
+            CharacterManager.INSTANCE.character(used.characterId()).onBoardEffectCardUsed(level, session, used, stack);
             long executeTick = AstralServerTickClock.now(level) + CardUseService.CARD_REVEAL_DURATION_TICKS + 2L;
             PENDING_BOT_EFFECTS.put(session.id(), new PendingBotEffect(
                     used.slotUuid(), cardId, targetSlotIds, executeTick));
@@ -1326,16 +1336,13 @@ public class BoardSessionManager {
         }
     }
 
-    private static BoardParticipant applyMovementBuffs(ServerLevel level, BoardSession session, BoardSession.MovementState movement, BoardParticipant participant) {
+    private static BoardParticipant applyMovementBuffs(ServerLevel level, BoardSession session,
+                                                       BoardSession.MovementState movement, BoardParticipant participant) {
         BoardParticipant updated = participant;
         for (Map.Entry<BoardBuff, BoardBuffInstance> entry : participant.stats().buffs().entrySet()) {
             updated = entry.getKey().onMovementFinished(level, session, movement, updated, entry.getValue());
         }
-
-        if (!updated.equals(participant)) {
-            updateParticipant(level, session, updated);
-        }
-
+        if (!updated.equals(participant)) updateParticipant(level, session, updated);
         return updated;
     }
 
@@ -1343,9 +1350,7 @@ public class BoardSessionManager {
         BoardSession.MovementState movement = session.movement();
         if (movement == null) return;
         BoardParticipant participant = session.participant(movement.slotId()).orElse(null);
-        if (participant != null) {
-            participant = applyMovementBuffs(level, session, movement, participant);
-        }
+        if (participant != null) participant = applyMovementBuffs(level, session, movement, participant);
 
         session.setMovement(null);
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
@@ -1356,6 +1361,7 @@ public class BoardSessionManager {
 
         AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
         if (entity != null) entity.setAnimationAction("idle");
+        CharacterManager.INSTANCE.character(participant.characterId()).onBoardMoveFinished(level, session, participant);
         int extra = Math.max(0, participant.hand().size() - participant.maxHandSize());
         if (extra > 0) {
             int durationTicks = participant.decisionDurationTicks(DISCARD_TIMEOUT_TICKS);
@@ -1394,8 +1400,8 @@ public class BoardSessionManager {
         if (session.round() != previousRound) {
             int roundNumber = session.round() + 1;
             BoardHudSyncManager.announce(level, session,
-                    Component.translatable("message.astral_craft.board.announcement.round_start", roundNumber),
-                    Component.empty(), BoardHudSyncManager.ROUND_START_SOUND, 50);
+                    Component.translatable("message.astral_craft.board.announcement.round_start", roundNumber), Component.empty(),
+                    BoardHudSyncManager.ROUND_START_SOUND, 50);
             HandcardSoulLink.tickBoardLinks(level, session);
             if (BoardEventService.beginRoundEffects(level, session)) {
                 markChanged(level);
@@ -1429,8 +1435,9 @@ public class BoardSessionManager {
             int coinsPerReward = roundNumber >= 15 ? 7 + Math.min(orderIndex, 3) : 5;
             BoardParticipant updated = participant;
             int totalCards = 0;
+            int coinsPerEvent = coinsPerReward + participant.stats().roundRewardBonus();
             for (int eventIndex = 0; eventIndex < rewardEvents; eventIndex++) {
-                updated = updated.withStats(updated.stats().addCoins(coinsPerReward));
+                updated = updated.withStats(updated.stats().addCoins(coinsPerEvent));
                 Optional<Identifier> card = randomCardId(level, BoardSessionManager::validPvpCard);
                 if (card.isPresent()) {
                     updated = updated.addCard(card.get());
@@ -1439,10 +1446,10 @@ public class BoardSessionManager {
             }
 
             updateParticipant(level, session, updated);
-            int totalCoins = coinsPerReward * rewardEvents;
+            int totalCoins = coinsPerEvent * rewardEvents;
             int finalTotalCards = totalCards;
-            updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
-                    .ifPresent(player -> player.sendSystemMessage(Component.translatable(
+            updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(player ->
+                    player.sendSystemMessage(Component.translatable(
                             "message.astral_craft.board.round_reward", roundNumber, totalCoins, finalTotalCards)
                             .withStyle(ChatFormatting.GOLD), true));
         }
@@ -1621,7 +1628,7 @@ public class BoardSessionManager {
         BoardParticipant participant = session == null ? null : session.participant(slotId).orElse(null);
         if (participant == null || participant.knockedDown()) return false;
         updateParticipant(level, session, participant.withStats(participant.stats()
-                .setBuff(AstralBoardBuffs.ALL_OR_NOTHING.get(), BoardBuffInstance.PERMANENT, 0)));
+                .addPermanentBuff(AstralBoardBuffs.ALL_OR_NOTHING.get(), 1)));
         return true;
     }
 

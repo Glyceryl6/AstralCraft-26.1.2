@@ -7,7 +7,6 @@ import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
-import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.stats.AstralPlayerStats;
@@ -151,9 +150,7 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
 
     private void applyDamage(BoardParticipant attacker, BoardParticipant target, int damage, boolean rewardKnockout) {
         if (BoardSessionManager.isHospitalProtected(this.session, target)) return;
-        int rawDamage = Math.max(0, damage + target.stats().incomingDamageBonus()
-                + Math.min(1, target.stats().buff(AstralBoardBuffs.MARK.get())));
-        int resolvedDamage = BoardSessionManager.resolveIncomingDamage(this.level, this.session, target, rawDamage);
+        int resolvedDamage = BoardSessionManager.resolveIncomingDamage(this.level, this.session, target, Math.max(0, damage));
         target = this.session.participant(target.slotUuid()).orElse(target);
         if (resolvedDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
             AstralCharacterEntity targetEntity = BoardEntityService.entity(this.level, target);
