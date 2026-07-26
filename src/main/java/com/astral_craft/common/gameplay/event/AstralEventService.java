@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.event;
 
 import com.astral_craft.common.config.AstralGameplayConfig;
+import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
@@ -45,6 +46,7 @@ public class AstralEventService {
 
     public static boolean triggerById(ServerPlayer player, Identifier id) {
         if (player == null || id == null || !AstralEventManager.INSTANCE.contains(id)) return false;
+        if (BoardEventService.isBoardEvent(id)) return BoardEventService.triggerById(player, id);
         return tryTrigger(player, AstralEventManager.INSTANCE.get(id), true);
     }
 
@@ -53,7 +55,7 @@ public class AstralEventService {
     }
 
     public static boolean tryTrigger(ServerPlayer player, AstralEventDefinition definition, boolean force) {
-        if (player == null || definition == null) return false;
+        if (player == null || definition == null || BoardEventService.isBoardEvent(definition.id())) return false;
         if (!force && !definition.canAutoTrigger()) return false;
         if (!definition.canTriggerInDifficulty(player.level().getDifficulty())) return false;
         if (PendingCardActionManager.isExclusiveBusy(player)) return false;

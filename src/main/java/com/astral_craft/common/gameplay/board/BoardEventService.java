@@ -1,7 +1,8 @@
 package com.astral_craft.common.gameplay.board;
 
-import com.astral_craft.common.util.AstralServerTickClock;
+import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
@@ -10,9 +11,9 @@ import com.astral_craft.common.gameplay.event.AstralEventService;
 import com.astral_craft.common.gameplay.event.effects.BoardEventEffect;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
 import com.astral_craft.common.registry.bootstrap.AstralEventBootstrap;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -29,14 +30,38 @@ public class BoardEventService {
     public static boolean trigger(ServerLevel level, BoardSession session, BoardParticipant source) {
         if (level == null || session == null || source == null || PANEL_EVENTS.containsKey(session.id())) return false;
         List<AstralEventDefinition> candidates = AstralEventBootstrap.BOARD_EVENTS.stream()
-                .map(ResourceKey::identifier).map(AstralEventManager.INSTANCE::get)
+                .map(key -> key.identifier()).map(AstralEventManager.INSTANCE::get)
                 .filter(Objects::nonNull).toList();
         if (candidates.isEmpty()) return false;
-        AstralEventDefinition definition = candidates.get(level.getRandom().nextInt(candidates.size()));
+        return begin(level, session, source, candidates.get(level.getRandom().nextInt(candidates.size())));
+    }
+
+    public static boolean triggerById(ServerPlayer player, Identifier eventId) {
+        if (player == null || !isBoardEvent(eventId)) return false;
+        BoardSession session = BoardSessionManager.findByController(player).orElse(null);
+        BoardParticipant source = session == null ? null : session.participantByController(player.getUUID()).orElse(null);
+        AstralEventDefinition definition = AstralEventManager.INSTANCE.get(eventId);
+        if (source == null || definition == null || BasePlatform.hasActiveBoardEffect(session.id())
+                || BoardLotteryService.active(session.id()) || BoardBattleService.active(session.id())
+                || session.encounter() != null || session.discard() != null || session.movement() != null) return false;
+        return begin(player.level(), session, source, definition);
+    }
+
+    public static boolean isBoardEvent(Identifier eventId) {
+        return eventId != null && AstralEventBootstrap.BOARD_EVENTS.stream()
+                .anyMatch(key -> key.identifier().equals(eventId));
+    }
+
+    private static boolean begin(ServerLevel level, BoardSession session, BoardParticipant source,
+                                 AstralEventDefinition definition) {
+        if (PANEL_EVENTS.containsKey(session.id()) || ROUND_EVENTS.containsKey(session.id())
+                || BoardLotteryService.active(session.id())) return false;
         int revealTicks = AstralEventService.DEFAULT_EVENT_REVEAL_DURATION_TICKS;
         BoardEventContext context = new BoardEventContext(level, session, source, definition);
-        PANEL_EVENTS.put(session.id(), EventExecution.revealed(context, AstralServerTickClock.now(level) + revealTicks + 2L));
+        PANEL_EVENTS.put(session.id(), EventExecution.revealed(context,
+                AstralServerTickClock.now(level) + revealTicks + 2L));
         broadcastReveal(context, revealTicks);
+        BoardSessionManager.markChanged(level);
         return true;
     }
 
