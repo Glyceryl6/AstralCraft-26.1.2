@@ -21,10 +21,10 @@ import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 public class BoardTemplatePreviewRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int VALID_GLOW_COLOR = 0xE05CFF86;
-    private static final int VALID_CORE_COLOR = 0xFFFFFFFF;
-    private static final int INVALID_GLOW_COLOR = 0xE0FF5F64;
-    private static final int INVALID_CORE_COLOR = 0xFFFFFFFF;
+    private static final int VALID_GLOW_COLOR = 0xA040FF72;
+    private static final int VALID_CORE_COLOR = 0xFFB8FFC9;
+    private static final int INVALID_GLOW_COLOR = 0xA0FF3D4F;
+    private static final int INVALID_CORE_COLOR = 0xFFFFB8C0;
     private static final double GLOW_HALF_WIDTH = 0.055D;
     private static final double CORE_HALF_WIDTH = 0.018D;
 
@@ -85,7 +85,7 @@ public class BoardTemplatePreviewRenderer {
         Vec3 c = end.add(side).subtract(cameraPos);
         Vec3 d = start.add(side).subtract(cameraPos);
         event.getSubmitNodeCollector().order(8).submitCustomGeometry(
-                poseStack, RenderTypes.textSeeThrough(TEXTURE), (pose, consumer) -> {
+                poseStack, RenderTypes.entityTranslucentEmissive(TEXTURE), (pose, consumer) -> {
                     Vec3 normal = new Vec3(0.0D, 1.0D, 0.0D);
                     EffectRenderGeometry.vertex(consumer, pose, a, color, 0.0F, 0.0F, normal);
                     EffectRenderGeometry.vertex(consumer, pose, b, color, 1.0F, 0.0F, normal);

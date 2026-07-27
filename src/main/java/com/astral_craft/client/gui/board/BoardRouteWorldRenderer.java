@@ -21,12 +21,12 @@ import java.util.UUID;
 public class BoardRouteWorldRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int ROUTE_GLOW_COLOR = 0xE060E8FF;
-    private static final int ROUTE_COLOR = 0xFFFFFFFF;
-    private static final int STAR_ROUTE_GLOW_COLOR = 0xE0FFE86A;
-    private static final int STAR_ROUTE_COLOR = 0xFFFFFFFF;
-    private static final int BRANCH_COLOR = 0xFFFFE6A0;
-    private static final int STAR_BRANCH_COLOR = 0xFFFFFFE0;
+    private static final int ROUTE_GLOW_COLOR = 0xA040C8FF;
+    private static final int ROUTE_COLOR = 0xFFB8F4FF;
+    private static final int STAR_ROUTE_GLOW_COLOR = 0xA0FFD83D;
+    private static final int STAR_ROUTE_COLOR = 0xFFFFF4A3;
+    private static final int BRANCH_COLOR = 0xFFFFDA70;
+    private static final int STAR_BRANCH_COLOR = 0xFFFFFFC4;
     private static final float ROUTE_Y_OFFSET = 0.72F;
     private static final float ROUTE_GLOW_HALF_WIDTH = 0.18F;
     private static final float ROUTE_HALF_WIDTH = 0.06F;
@@ -157,7 +157,7 @@ public class BoardRouteWorldRenderer {
                                    Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color) {
         event.getSubmitNodeCollector().order(8).submitCustomGeometry(
                 poseStack,
-                RenderTypes.textSeeThrough(TEXTURE),
+                RenderTypes.entityTranslucentEmissive(TEXTURE),
                 (pose, consumer) -> {
                     EffectRenderGeometry.vertex(consumer, pose, a, color, 0.0F, 0.0F,
                             new Vec3(0.0D, 1.0D, 0.0D));
