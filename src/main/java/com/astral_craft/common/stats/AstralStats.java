@@ -49,7 +49,7 @@ public class AstralStats {
     private static AstralPlayerStats fallback(LivingEntity entity) {
         int max = Math.max(1, Mth.ceil(entity.getMaxHealth()));
         int hp = Math.max(0, Mth.ceil(entity.getHealth()));
-        return new AstralPlayerStats(1, 0, 0, max, hp, 0, 0, 1, 1, 0, 0, 0,
+        return new AstralPlayerStats(1, 0, max, hp, 0, 0, 1, 1, 0,
                 java.util.Map.of(), java.util.List.of());
     }
 

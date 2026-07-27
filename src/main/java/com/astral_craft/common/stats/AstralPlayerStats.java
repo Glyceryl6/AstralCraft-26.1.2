@@ -21,27 +21,24 @@ import java.util.Map;
 public record AstralPlayerStats(
         int baseAttack,
         int baseDefense,
-        int baseSpeed,
         int maxHealth,
         int health,
         int starCoins,
         int stars,
         int cardPlaysPerTurn,
         int cardPlaysRemaining,
-        int skillCooldownReduction,
         int nextMoveFixed,
-        int nextMoveExtraDice,
         Map<Identifier, BoardBuffInstance> buffs,
         List<TimedStatModifier> modifiers) {
 
     public static final AstralPlayerStats DEFAULT = new AstralPlayerStats(
-            1, 0, 0, 10, 10, 0, 0, 1, 1, 0, 0, 0, Map.of(), List.of());
+            1, 0, 10, 10, 0, 0, 1, 1, 0, Map.of(), List.of());
 
     public static AstralPlayerStats initial(CharacterStatsDefinition definition) {
         CharacterStatsDefinition stats = definition == null ? CharacterStatsDefinition.defaultStats() : definition;
         int health = Math.max(1, stats.health());
-        return new AstralPlayerStats(stats.attack(), stats.defense(), 0, health, health,
-                Math.max(0, stats.initialStarCoins()), 0, 1, 1, 0, 0, 0, Map.of(), List.of());
+        return new AstralPlayerStats(stats.attack(), stats.defense(), health, health,
+                Math.max(0, stats.initialStarCoins()), 0, 1, 1, 0, Map.of(), List.of());
     }
 
     private static final Codec<Map<Identifier, BoardBuffInstance>> BUFF_MAP_CODEC = Codec.unboundedMap(Identifier.CODEC, BoardBuffInstance.CODEC);
@@ -49,16 +46,16 @@ public record AstralPlayerStats(
     public static final Codec<AstralPlayerStats> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.INT.optionalFieldOf("base_attack", 1).forGetter(AstralPlayerStats::baseAttack),
             Codec.INT.optionalFieldOf("base_defense", 0).forGetter(AstralPlayerStats::baseDefense),
-            Codec.INT.optionalFieldOf("base_speed", 0).forGetter(AstralPlayerStats::baseSpeed),
+            Codec.INT.optionalFieldOf("base_speed", 0).forGetter(stats -> 0),
             Codec.INT.optionalFieldOf("max_health", 10).forGetter(AstralPlayerStats::maxHealth),
             Codec.INT.optionalFieldOf("health", 10).forGetter(AstralPlayerStats::health),
             Codec.INT.optionalFieldOf("star_coins", 0).forGetter(AstralPlayerStats::starCoins),
             Codec.INT.optionalFieldOf("stars", 0).forGetter(AstralPlayerStats::stars),
             Codec.INT.optionalFieldOf("card_plays_per_turn", 1).forGetter(AstralPlayerStats::cardPlaysPerTurn),
             Codec.INT.optionalFieldOf("card_plays_remaining", 1).forGetter(AstralPlayerStats::cardPlaysRemaining),
-            Codec.INT.optionalFieldOf("skill_cooldown_reduction", 0).forGetter(AstralPlayerStats::skillCooldownReduction),
+            Codec.INT.optionalFieldOf("skill_cooldown_reduction", 0).forGetter(stats -> 0),
             Codec.INT.optionalFieldOf("next_move_fixed", 0).forGetter(AstralPlayerStats::nextMoveFixed),
-            Codec.INT.optionalFieldOf("next_move_extra_dice", 0).forGetter(AstralPlayerStats::nextMoveExtraDice),
+            Codec.INT.optionalFieldOf("next_move_extra_dice", 0).forGetter(stats -> 0),
             BUFF_MAP_CODEC.optionalFieldOf("buff_instances", Map.of()).forGetter(AstralPlayerStats::buffs),
             LEGACY_BUFF_MAP_CODEC.optionalFieldOf("board_buffs", Map.of()).forGetter(stats -> Map.of()),
             Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("buffs", Map.of()).forGetter(stats -> Map.of()),
@@ -67,24 +64,33 @@ public record AstralPlayerStats(
 
     public static final StreamCodec<ByteBuf, AstralPlayerStats> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
-    private static AstralPlayerStats fromCodec(int baseAttack, int baseDefense, int baseSpeed, int maxHealth, int health,
-                                               int starCoins, int stars, int cardPlaysPerTurn, int cardPlaysRemaining,
-                                               int skillCooldownReduction, int nextMoveFixed, int nextMoveExtraDice,
+    private static AstralPlayerStats fromCodec(int baseAttack, int baseDefense, int legacyBaseSpeed, int maxHealth,
+                                               int health, int starCoins, int stars, int cardPlaysPerTurn,
+                                               int cardPlaysRemaining, int legacySkillCooldownReduction,
+                                               int nextMoveFixed, int legacyNextMoveExtraDice,
                                                Map<Identifier, BoardBuffInstance> buffs,
                                                Map<Identifier, LegacyBuffInstance> registeredLegacyBuffs,
                                                Map<String, Integer> legacyBuffs, List<TimedStatModifier> modifiers) {
         Map<Identifier, BoardBuffInstance> migrated = new HashMap<>(buffs);
-        registeredLegacyBuffs.forEach((id, legacy) -> AstralBoardBuffs.legacyInstances(id, legacy.duration(),
-                legacy.amplifier(), legacy.intrinsicLevels(), legacy.fresh()).forEach(buff -> migrated.putIfAbsent(buff.id(), buff)));
+        registeredLegacyBuffs.forEach((id, legacy) -> {
+            BoardBuffInstance instance = AstralBoardBuffs.legacyInstance(id, legacy.duration(), legacy.amplifier(), legacy.intrinsicLevels(), legacy.fresh());
+            if (instance != null) migrated.putIfAbsent(instance.id(), instance);
+        });
         legacyBuffs.forEach((name, level) -> {
             if (level <= 0) return;
-            Identifier id = AstralCraft.prefix(name);
-            AstralBoardBuffs.legacyInstances(id, BoardBuffInstance.PERMANENT, level - 1, 0, false)
-                    .forEach(buff -> migrated.putIfAbsent(buff.id(), buff));
+            BoardBuffInstance instance = AstralBoardBuffs.legacyInstance(AstralCraft.prefix(name), BoardBuffInstance.PERMANENT, level - 1, 0, false);
+            if (instance != null) migrated.putIfAbsent(instance.id(), instance);
         });
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
-                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice,
-                migrated, modifiers);
+        if (legacyNextMoveExtraDice > 0) {
+            migrated.putIfAbsent(AstralBoardBuffs.HASTE_ID, AstralBoardBuffs.instance(AstralBoardBuffs.HASTE_ID, AstralBoardBuffs.HASTE.get())
+                    .permanent().level(legacyNextMoveExtraDice).build());
+        }
+        if (legacyBaseSpeed > 0) {
+            migrated.putIfAbsent(AstralCraft.prefix("legacy_speed"), AstralBoardBuffs.speed(AstralCraft.prefix("legacy_speed"), legacyBaseSpeed)
+                    .permanent().build());
+        }
+        return new AstralPlayerStats(baseAttack, baseDefense, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, nextMoveFixed, migrated, modifiers);
     }
 
     public AstralPlayerStats {
@@ -109,7 +115,7 @@ public record AstralPlayerStats(
     }
 
     public int speed() {
-        int value = this.baseSpeed + this.modifierSum("speed");
+        int value = this.modifierSum("speed");
         for (BoardBuffInstance instance : this.buffs.values()) value += instance.buff().speedModifier(instance);
         return Math.max(0, value);
     }
@@ -122,19 +128,22 @@ public record AstralPlayerStats(
 
     public int incomingDamageBonus() {
         int value = 0;
-        for (BoardBuffInstance instance : this.buffs.values()) value += instance.buff().incomingDamageModifier(instance);
+        for (BoardBuffInstance instance : this.buffs.values())
+            value += instance.buff().incomingDamageModifier(instance);
         return value;
     }
 
     public int turnStartHealing() {
         int value = 0;
-        for (BoardBuffInstance instance : this.buffs.values()) value += Math.max(0, instance.buff().turnStartHealing(instance));
+        for (BoardBuffInstance instance : this.buffs.values())
+            value += Math.max(0, instance.buff().turnStartHealing(instance));
         return value;
     }
 
     public int turnStartDamage() {
         int value = 0;
-        for (BoardBuffInstance instance : this.buffs.values()) value += Math.max(0, instance.buff().turnStartDamage(instance));
+        for (BoardBuffInstance instance : this.buffs.values())
+            value += Math.max(0, instance.buff().turnStartDamage(instance));
         return value;
     }
 
@@ -159,6 +168,7 @@ public record AstralPlayerStats(
             else next.put(entry.getKey(), retained);
             changed = true;
         }
+
         return changed ? this.withBuffs(next) : this;
     }
 
@@ -173,6 +183,7 @@ public record AstralPlayerStats(
             else next.put(entry.getKey(), retained);
             changed = true;
         }
+
         return changed ? this.withBuffs(next) : this;
     }
 
@@ -184,8 +195,17 @@ public record AstralPlayerStats(
     }
 
     public int buff(Identifier id) {
-        BoardBuffInstance instance = this.buffs.get(id);
-        return instance == null ? 0 : instance.level();
+        int levels = 0;
+        if (id == null) return 0;
+        for (Map.Entry<Identifier, BoardBuffInstance> entry : this.buffs.entrySet()) {
+            if (entry.getKey().equals(id)
+                    || entry.getValue().id().equals(id)
+                    || entry.getKey().toString().startsWith(id + "/")) {
+                levels += entry.getValue().level();
+            }
+        }
+
+        return levels;
     }
 
     public BoardBuffInstance buffInstance(BoardBuff buff) {
@@ -206,12 +226,14 @@ public record AstralPlayerStats(
         return id != null && this.buffs.containsKey(id);
     }
 
-    public boolean anyBuffPreventsEvade() {
-        return this.buffs.values().stream().anyMatch(instance -> instance.buff().preventsEvade());
-    }
+    public Identifier nextBuffInstanceId(Identifier baseId) {
+        if (!this.buffs.containsKey(baseId)) return baseId;
+        for (int index = 2; index < 1024; index++) {
+            Identifier candidate = Identifier.fromNamespaceAndPath(baseId.getNamespace(), baseId.getPath() + "/" + index);
+            if (!this.buffs.containsKey(candidate)) return candidate;
+        }
 
-    public boolean anyBuffKnocksDownOwnerWhenAttackFails() {
-        return this.buffs.values().stream().anyMatch(instance -> instance.buff().knocksDownOwnerWhenAttackFails());
+        return Identifier.fromNamespaceAndPath(baseId.getNamespace(), baseId.getPath() + "/" + System.currentTimeMillis());
     }
 
     public AstralPlayerStats heal(int amount) {
@@ -223,9 +245,9 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats addCoins(int amount) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health,
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health,
                 Math.max(0, this.starCoins + amount), this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining,
-                this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
+                this.nextMoveFixed, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats spendCoins(int amount) {
@@ -233,23 +255,22 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats addStars(int amount) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
                 Math.max(0, this.stars + amount), this.cardPlaysPerTurn, this.cardPlaysRemaining,
-                this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
+                this.nextMoveFixed, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats addBaseAttack(int amount) {
-        return this.copy(this.baseAttack + amount, this.baseDefense, this.baseSpeed, this.maxHealth, this.health,
+        return this.copy(this.baseAttack + amount, this.baseDefense, this.maxHealth, this.health,
                 this.starCoins, this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining,
-                this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
+                this.nextMoveFixed, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats addTemporary(String stat, int amount, int turns) {
         List<TimedStatModifier> next = new ArrayList<>(this.modifiers);
         next.add(new TimedStatModifier(stat, amount, turns));
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
-                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
-                this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, next);
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
+                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.nextMoveFixed, this.buffs, next);
     }
 
     public AstralPlayerStats addBuff(BoardBuff buff, int duration, int amplifier) {
@@ -266,12 +287,6 @@ public record AstralPlayerStats(
         if (buff == null || levels <= 0) return this;
         Identifier id = AstralBoardBuffs.REGISTRY.getKey(buff);
         return id == null ? this : this.addBuff(AstralBoardBuffs.instance(id, buff).permanent().level(levels).build());
-    }
-
-    public AstralPlayerStats addIntrinsicBuff(BoardBuff buff, int levels) {
-        if (buff == null || levels <= 0) return this;
-        Identifier id = AstralBoardBuffs.REGISTRY.getKey(buff);
-        return id == null ? this : this.addBuff(AstralBoardBuffs.instance(id, buff).level(levels).intrinsic().build());
     }
 
     public AstralPlayerStats changeBuffLevel(BoardBuff buff, int amount) {
@@ -309,20 +324,6 @@ public record AstralPlayerStats(
         return this.withBuffs(next);
     }
 
-    public AstralPlayerStats consumeAttackBuffs() {
-        Map<Identifier, BoardBuffInstance> next = new HashMap<>(this.buffs);
-        boolean changed = false;
-        for (Map.Entry<Identifier, BoardBuffInstance> entry : new ArrayList<>(next.entrySet())) {
-            BoardBuffInstance instance = entry.getValue();
-            if (!instance.buff().consumedAfterAttack()) continue;
-            BoardBuffInstance retained = instance.withoutAcquiredLevels();
-            if (retained == null) next.remove(entry.getKey());
-            else next.put(entry.getKey(), retained);
-            changed = true;
-        }
-        return changed ? this.withBuffs(next) : this;
-    }
-
     public AstralPlayerStats clearAcquiredBuffs() {
         Map<Identifier, BoardBuffInstance> next = new HashMap<>(this.buffs);
         boolean changed = false;
@@ -334,58 +335,65 @@ public record AstralPlayerStats(
             else next.put(entry.getKey(), retained);
             changed = true;
         }
+
         return changed ? this.withBuffs(next) : this;
     }
 
     public AstralPlayerStats applyChip(StatBundle stats) {
+        if (stats == null) return this;
         AstralPlayerStats next = this.copy(this.baseAttack + stats.attack(), this.baseDefense + stats.defense(),
-                this.baseSpeed + stats.speed(), this.maxHealth + stats.maxHealth(), this.health + stats.health(),
-                this.starCoins + stats.starCoins(), this.stars, this.cardPlaysPerTurn + stats.cardPlays(),
-                this.cardPlaysRemaining + stats.cardPlays(), this.skillCooldownReduction + stats.skillCooldownReduction(),
-                this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
-        if (stats.healStacks() > 0) next = next.addPermanentBuff(AstralBoardBuffs.HEAL.get(), stats.healStacks());
-        if (stats.starlightStacks() > 0) next = next.addPermanentBuff(AstralBoardBuffs.STARLIGHT.get(), stats.starlightStacks());
-        if (stats.markStacks() > 0) next = next.addPermanentBuff(AstralBoardBuffs.MARK.get(), stats.markStacks());
+                this.maxHealth + stats.maxHealth(), this.health + stats.health(), this.starCoins + stats.starCoins(),
+                this.stars, this.cardPlaysPerTurn + stats.cardPlays(),
+                this.cardPlaysRemaining + stats.cardPlays(), this.nextMoveFixed, this.buffs, this.modifiers);
+        if (stats.healStacks() > 0) {
+            next = next.addPermanentBuff(AstralBoardBuffs.HEAL.get(), stats.healStacks());
+        }
+
+        if (stats.starlightStacks() > 0) {
+            next = next.addPermanentBuff(AstralBoardBuffs.STARLIGHT.get(), stats.starlightStacks());
+        }
+
+        if (stats.markStacks() > 0) {
+            next = next.addPermanentBuff(AstralBoardBuffs.MARK.get(), stats.markStacks());
+        }
+
+        if (stats.speed() != 0) {
+            next = next.addBuff(AstralBoardBuffs.speed(AstralCraft.prefix("chip_speed"), stats.speed()).permanent().build());
+        }
+
         return next;
     }
 
     public AstralPlayerStats useCardPlay() {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
                 this.stars, this.cardPlaysPerTurn, Math.max(0, this.cardPlaysRemaining - 1),
-                this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
+                this.nextMoveFixed, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats addCardPlaysThisTurn(int amount) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
                 this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining + Math.max(0, amount),
-                this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice, this.buffs, this.modifiers);
+                this.nextMoveFixed, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats setNextMoveFixed(int value) {
         int safeValue = Math.max(0, value);
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
-                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction, safeValue,
-                safeValue > 0 ? 0 : this.nextMoveExtraDice, this.buffs, this.modifiers);
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
+                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, safeValue, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats addNextMoveDice(int dice) {
         int safeDice = Math.max(0, dice);
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
-                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
-                safeDice > 0 ? 0 : this.nextMoveFixed, this.nextMoveExtraDice + safeDice, this.buffs, this.modifiers);
+        return safeDice == 0 ? this : this.addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.HASTE_ID, AstralBoardBuffs.HASTE.get()).permanent().level(safeDice).build());
     }
 
     public AstralPlayerStats setNextMoveExtraDice(int dice) {
-        int safeDice = Math.max(0, dice);
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
-                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
-                safeDice > 0 ? 0 : this.nextMoveFixed, safeDice, this.buffs, this.modifiers);
+        return this.addNextMoveDice(dice);
     }
 
     public AstralPlayerStats clearNextMoveDiceEffects() {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
-                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
-                0, 0, this.buffs, this.modifiers);
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
+                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, 0, this.buffs, this.modifiers);
     }
 
     public AstralPlayerStats beginTurn() {
@@ -395,9 +403,9 @@ public record AstralPlayerStats(
             if (current != null) next = current.buff().onTurnStart(next, current);
         }
 
-        return next.copy(next.baseAttack, next.baseDefense, next.baseSpeed, next.maxHealth, next.health, next.starCoins,
-                next.stars, next.cardPlaysPerTurn, next.cardPlaysPerTurn, next.skillCooldownReduction,
-                next.nextMoveFixed, next.nextMoveExtraDice, next.buffs, next.tickModifiers());
+        return next.copy(next.baseAttack, next.baseDefense, next.maxHealth, next.health, next.starCoins,
+                next.stars, next.cardPlaysPerTurn, next.cardPlaysPerTurn, next.nextMoveFixed, next.buffs,
+                next.tickModifiers());
     }
 
     public AstralPlayerStats endTurn() {
@@ -406,6 +414,7 @@ public record AstralPlayerStats(
             BoardBuffInstance current = next.buffInstance(original.id());
             if (current != null) next = current.buff().onTurnEnd(next, current);
         }
+
         Map<Identifier, BoardBuffInstance> ticked = new HashMap<>();
         for (Map.Entry<Identifier, BoardBuffInstance> entry : next.buffs.entrySet()) {
             BoardBuffInstance instance = entry.getValue();
@@ -422,21 +431,20 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats withHealth(int value) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth,
-                Math.clamp(value, 0, this.maxHealth), this.starCoins, this.stars, this.cardPlaysPerTurn,
-                this.cardPlaysRemaining, this.skillCooldownReduction, this.nextMoveFixed, this.nextMoveExtraDice,
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, Math.clamp(value, 0, this.maxHealth),
+                this.starCoins, this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.nextMoveFixed,
                 this.buffs, this.modifiers);
     }
 
     private AstralPlayerStats withBuffs(Map<Identifier, BoardBuffInstance> buffs) {
-        return this.copy(this.baseAttack, this.baseDefense, this.baseSpeed, this.maxHealth, this.health, this.starCoins,
-                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.skillCooldownReduction,
-                this.nextMoveFixed, this.nextMoveExtraDice, buffs, this.modifiers);
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health, this.starCoins,
+                this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining, this.nextMoveFixed, buffs, this.modifiers);
     }
 
     private int modifierSum(String stat) {
         int value = 0;
-        for (TimedStatModifier modifier : this.modifiers) if (modifier.active() && modifier.stat().equals(stat)) value += modifier.amount();
+        for (TimedStatModifier modifier : this.modifiers)
+            if (modifier.active() && modifier.stat().equals(stat)) value += modifier.amount();
         return value;
     }
 
@@ -449,13 +457,11 @@ public record AstralPlayerStats(
         return next;
     }
 
-    private AstralPlayerStats copy(int baseAttack, int baseDefense, int baseSpeed, int maxHealth, int health,
-                                   int starCoins, int stars, int cardPlaysPerTurn, int cardPlaysRemaining,
-                                   int skillCooldownReduction, int nextMoveFixed, int nextMoveExtraDice,
+    private AstralPlayerStats copy(int baseAttack, int baseDefense, int maxHealth, int health, int starCoins,
+                                   int stars, int cardPlaysPerTurn, int cardPlaysRemaining, int nextMoveFixed,
                                    Map<Identifier, BoardBuffInstance> buffs, List<TimedStatModifier> modifiers) {
-        return new AstralPlayerStats(baseAttack, baseDefense, baseSpeed, maxHealth, health, starCoins, stars,
-                cardPlaysPerTurn, cardPlaysRemaining, skillCooldownReduction, nextMoveFixed, nextMoveExtraDice,
-                buffs, modifiers);
+        return new AstralPlayerStats(baseAttack, baseDefense, maxHealth, health, starCoins, stars,
+                cardPlaysPerTurn, cardPlaysRemaining, nextMoveFixed, buffs, modifiers);
     }
 
     private static Map<Identifier, BoardBuffInstance> copyBuffs(Map<Identifier, BoardBuffInstance> input) {
@@ -465,12 +471,14 @@ public record AstralPlayerStats(
             if (id != null && instance != null) result.put(id, instance.id().equals(id) ? instance
                     : new BoardBuffInstance(id, instance.buff(), instance.duration(), instance.amplifier(),
                     instance.intrinsicLevels(), instance.fresh(), instance.value(), instance.customName(),
-                    instance.customIcon(), instance.consumeAfterIncomingDamage(), instance.consumeAfterMoveRoll()));
+                    instance.customIcon(), instance.customColor(), instance.consumeAfterIncomingDamage(),
+                    instance.consumeAfterMoveRoll()));
         });
         return Map.copyOf(result);
     }
 
     private record LegacyBuffInstance(int duration, int amplifier, int intrinsicLevels, boolean fresh) {
+
         private static final Codec<LegacyBuffInstance> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.INT.optionalFieldOf("duration", 1).forGetter(LegacyBuffInstance::duration),
                 Codec.INT.optionalFieldOf("amplifier", 0).forGetter(LegacyBuffInstance::amplifier),
@@ -479,8 +487,7 @@ public record AstralPlayerStats(
                 Codec.BOOL.optionalFieldOf("fresh", false).forGetter(LegacyBuffInstance::fresh)
         ).apply(instance, LegacyBuffInstance::fromCodec));
 
-        private static LegacyBuffInstance fromCodec(int duration, int amplifier, int intrinsicLevels,
-                                                    boolean intrinsic, boolean fresh) {
+        private static LegacyBuffInstance fromCodec(int duration, int amplifier, int intrinsicLevels, boolean intrinsic, boolean fresh) {
             int levels = Math.max(0, amplifier) + 1;
             return new LegacyBuffInstance(duration, amplifier, intrinsicLevels > 0 ? intrinsicLevels : intrinsic ? levels : 0, fresh);
         }
@@ -488,6 +495,7 @@ public record AstralPlayerStats(
         private boolean fullyIntrinsic() {
             return this.intrinsicLevels >= this.amplifier + 1;
         }
+
     }
 
 }

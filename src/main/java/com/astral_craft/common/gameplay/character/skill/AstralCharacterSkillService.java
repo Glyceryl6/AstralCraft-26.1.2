@@ -5,14 +5,9 @@ import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
-import com.astral_craft.common.gameplay.character.ActiveCharacterState;
-import com.astral_craft.common.gameplay.character.AstralCharacter;
-import com.astral_craft.common.gameplay.character.CharacterDefinition;
-import com.astral_craft.common.gameplay.character.CharacterManager;
-import com.astral_craft.common.gameplay.character.CharacterProgressManager;
+import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.network.s2c.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralAttachments;
-import com.astral_craft.common.stats.AstralStats;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -79,7 +74,7 @@ public class AstralCharacterSkillService {
         player.sendSystemMessage(Component.translatable("message.astral_craft.skill.used",
                 Component.translatable(definition.skillNameKey(character.activeSkill().view(), CharacterSkillView.SkillMode.PVP)))
                 .withStyle(ChatFormatting.AQUA), true);
-        return Math.max(0, skill.pvpCooldown() - AstralStats.getOrDefault(actor).skillCooldownReduction());
+        return Math.max(0, skill.pvpCooldown());
     }
 
     public static void serverTick(ServerPlayer player) {
