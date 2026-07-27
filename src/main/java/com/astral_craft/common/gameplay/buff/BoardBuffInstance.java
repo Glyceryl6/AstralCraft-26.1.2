@@ -47,9 +47,6 @@ public record BoardBuffInstance(
         duration = intrinsicLevels >= amplifier + 1 ? PERMANENT
                 : duration == PERMANENT ? PERMANENT : Math.max(1, duration);
         fresh = intrinsicLevels < amplifier + 1 && fresh;
-        customName = customName == null ? Optional.empty() : customName;
-        customIcon = customIcon == null ? Optional.empty() : customIcon;
-        customColor = customColor == null ? Optional.empty() : customColor;
     }
 
     public static Builder builder(Identifier id, BoardBuff buff) {
@@ -73,11 +70,11 @@ public record BoardBuffInstance(
     }
 
     public Component displayName() {
-        return this.customName.orElseGet(() -> this.buff.displayName());
+        return this.customName.orElseGet(this.buff::displayName);
     }
 
     public Identifier icon() {
-        return this.customIcon.orElseGet(() -> this.buff.icon());
+        return this.customIcon.orElseGet(this.buff::icon);
     }
 
     public Optional<Integer> color() {
@@ -99,7 +96,7 @@ public record BoardBuffInstance(
     public BoardBuffInstance withAcquiredLevels(int levels) {
         int safeLevels = Math.max(0, levels);
         int total = this.intrinsicLevels + safeLevels;
-        return total <= 0 ? null : this.copy(this.id, safeLevels <= 0 ? PERMANENT : this.duration, total - 1,
+        return total <= 0 ? null : this.copy(this.id, safeLevels == 0 ? PERMANENT : this.duration, total - 1,
                 this.intrinsicLevels, safeLevels > 0 && this.fresh);
     }
 

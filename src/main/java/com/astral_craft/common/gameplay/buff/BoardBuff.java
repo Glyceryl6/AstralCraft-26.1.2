@@ -45,6 +45,7 @@ public class BoardBuff {
         if (this.properties.separateStacks && stats.hasBuff(incoming.id())) {
             incoming = incoming.withId(stats.nextBuffInstanceId(incoming.id()));
         }
+
         BoardBuffInstance merged = this.merge(stats.buffInstance(incoming.id()), incoming);
         return merged == null ? stats.removeBuff(incoming.id()) : stats.setBuff(merged);
     }
@@ -58,9 +59,11 @@ public class BoardBuff {
                 ? current.intrinsicLevels() + incoming.intrinsicLevels()
                 : Math.max(current.intrinsicLevels(), incoming.intrinsicLevels());
         if (this.properties.maximumLevel > 0) {
-            level = this.properties.loopLevels ? (level - 1) % this.properties.maximumLevel + 1
+            level = this.properties.loopLevels
+                    ? (level - 1) % this.properties.maximumLevel + 1
                     : Math.min(level, this.properties.maximumLevel);
         }
+
         intrinsicLevels = Math.min(intrinsicLevels, level);
         int duration = this.mergeDuration(current, incoming);
         boolean fresh = level > intrinsicLevels && (current.fresh() || incoming.fresh());
@@ -98,6 +101,7 @@ public class BoardBuff {
             BoardBuffInstance next = instance.withAcquiredLevels(acquiredLevels / 2);
             return next == null ? stats.removeBuff(instance.id()) : stats.setBuff(next);
         }
+
         if (this.properties.levelDecayAtTurnEnd <= 0) return stats;
         BoardBuffInstance next = instance.withAcquiredLevels(acquiredLevels - this.properties.levelDecayAtTurnEnd);
         return next == null ? stats.removeBuff(instance.id()) : stats.setBuff(next);
@@ -172,8 +176,7 @@ public class BoardBuff {
         protected boolean consumeAfterMoveRoll;
         protected boolean clearOnKnockout = true;
 
-        protected Properties() {
-        }
+        protected Properties() {}
 
         public static Properties of() {
             return new Properties();
@@ -183,22 +186,84 @@ public class BoardBuff {
             return new Properties().color(color);
         }
 
-        public Properties color(int value) { this.color = value; return this; }
-        public Properties healAtTurnStart(int value) { this.turnStartHealingPerLevel = Math.max(0, value); return this; }
-        public Properties damageAtTurnStart(int value) { this.turnStartDamagePerLevel = Math.max(0, value); return this; }
-        public Properties roundReward(int value) { this.roundRewardPerLevel = Math.max(0, value); return this; }
-        public Properties flatIncomingDamage(int value) { this.flatIncomingDamage = value; return this; }
-        public Properties stacking() { this.addLevels = true; return this; }
-        public Properties separateStacks() { this.separateStacks = true; return this; }
-        public Properties maximumLevel(int value) { this.maximumLevel = Math.max(0, value); return this; }
-        public Properties loopLevels() { this.loopLevels = true; return this; }
-        public Properties permanent() { this.permanent = true; return this; }
-        public Properties decayLevelsAtTurnEnd() { return this.decayLevelsAtTurnEnd(1); }
-        public Properties decayLevelsAtTurnEnd(int value) { this.levelDecayAtTurnEnd = Math.max(0, value); return this; }
-        public Properties halveLevelsAtTurnEnd() { this.halveLevelsAtTurnEnd = true; return this; }
-        public Properties consumeAfterIncomingDamage() { this.consumeAfterIncomingDamage = true; return this; }
-        public Properties consumeAfterMoveRoll() { this.consumeAfterMoveRoll = true; return this; }
-        public Properties keepOnKnockout() { this.clearOnKnockout = false; return this; }
+        public Properties color(int value) {
+            this.color = value;
+            return this;
+        }
+
+        public Properties healAtTurnStart(int value) {
+            this.turnStartHealingPerLevel = Math.max(0, value);
+            return this;
+        }
+
+        public Properties damageAtTurnStart(int value) {
+            this.turnStartDamagePerLevel = Math.max(0, value);
+            return this;
+        }
+
+        public Properties roundReward(int value) {
+            this.roundRewardPerLevel = Math.max(0, value);
+            return this;
+        }
+
+        public Properties flatIncomingDamage(int value) {
+            this.flatIncomingDamage = value;
+            return this;
+        }
+
+        public Properties stacking() {
+            this.addLevels = true;
+            return this;
+        }
+
+        public Properties separateStacks() {
+            this.separateStacks = true;
+            return this;
+        }
+
+        public Properties maximumLevel(int value) {
+            this.maximumLevel = Math.max(0, value);
+            return this;
+        }
+
+        public Properties loopLevels() {
+            this.loopLevels = true;
+            return this;
+        }
+
+        public Properties permanent() {
+            this.permanent = true;
+            return this;
+        }
+
+        public Properties decayLevelsAtTurnEnd() {
+            return this.decayLevelsAtTurnEnd(1);
+        }
+
+        public Properties decayLevelsAtTurnEnd(int value) {
+            this.levelDecayAtTurnEnd = Math.max(0, value);
+            return this;
+        }
+
+        public Properties halveLevelsAtTurnEnd() {
+            this.halveLevelsAtTurnEnd = true;
+            return this;
+        }
+
+        public Properties consumeAfterIncomingDamage() {
+            this.consumeAfterIncomingDamage = true;
+            return this;
+        }
+
+        public Properties consumeAfterMoveRoll() {
+            this.consumeAfterMoveRoll = true;
+            return this;
+        }
+
+        public Properties keepOnKnockout() {
+            this.clearOnKnockout = false;
+            return this;
+        }
 
         protected Properties copy() {
             Properties result = new Properties();
@@ -219,5 +284,7 @@ public class BoardBuff {
             result.clearOnKnockout = this.clearOnKnockout;
             return result;
         }
+
     }
+
 }

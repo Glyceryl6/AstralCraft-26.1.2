@@ -446,6 +446,7 @@
   "event.astral_craft.server_bug.name": "服务器Bug",
   "event.astral_craft.switcheroo.description": "获得上一行动顺位角色的手牌。",
   "event.astral_craft.switcheroo.name": "手牌转移",
+  "fml.menu.mods.info.description.astral_craft": "将游戏《吉星派对》中的部分玩法给还原到Minecraft中。",
   "gui.astral_craft.battle.attacker": "攻击方",
   "gui.astral_craft.battle.cost": "费用：%s",
   "gui.astral_craft.battle.defender": "防御方",
@@ -558,6 +559,8 @@
   "gui.astral_craft.board.turn": "棋盘手牌",
   "gui.astral_craft.board.waiting": "等待中",
   "gui.astral_craft.board_dismantle.confirm.details": "将移除%s个地块；垫层、装饰和植物不会受影响。",
+  "gui.astral_craft.board_dismantle.confirm.remove_all": "移除数据和地块",
+  "gui.astral_craft.board_dismantle.confirm.remove_data_only": "移除数据但保留地块",
   "gui.astral_craft.board_dismantle.confirm.title": "彻底移除棋盘",
   "gui.astral_craft.board_dismantle.confirm.warning": "是否同时移除棋盘的地块方块？",
   "gui.astral_craft.board_projector.confirm.cancel": "取消",
@@ -702,6 +705,7 @@
   "message.astral_craft.board.choose_branch": "请右键高亮的岔路地块选择移动方向。",
   "message.astral_craft.board.counter.prompt": "你被 %s 的效果牌指定，请在手牌栏中选择反制牌或取消",
   "message.astral_craft.board.deleted": "棋盘定义及保护数据已删除。",
+  "message.astral_craft.board.deleted_data_only": "棋盘数据已移除，地块方块已保留。",
   "message.astral_craft.board.deleted_with_panels": "棋盘数据及地块方块已移除。",
   "message.astral_craft.board.gamble.no_winner": "无人中奖，价值%s枚星币的总奖励已被丢弃",
   "message.astral_craft.board.gamble.not_enough_players": "至少需要两名未被击倒且持有超过3枚星币的角色",
@@ -995,6 +999,5 @@
   "tooltips.astral_craft.platform_shop": "经过或停留时，可以购买卡牌",
   "tooltips.astral_craft.platform_start": "经过时可以停留，停留后恢复2点生命值。如果星币达标将获得一颗星星",
   "tooltips.astral_craft.platform_teleport": "随机传送到其他传送门",
-  "tooltips.astral_craft.platform_teleport_point": "可以指定一个敌方角色，进行突击挑战",
-  "fml.menu.mods.info.description.astral_craft": "将游戏《吉星派对》中的部分玩法给还原到Minecraft中。"
+  "tooltips.astral_craft.platform_teleport_point": "可以指定一个敌方角色，进行突击挑战"
 }

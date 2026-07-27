@@ -234,9 +234,13 @@ public class ClientEventSubscriber {
                 Component.translatable("gui.astral_craft.board_dismantle.confirm.title"),
                 List.of(Component.translatable("gui.astral_craft.board_dismantle.confirm.warning"),
                         Component.translatable("gui.astral_craft.board_dismantle.confirm.details", payload.panelCount())),
-                Component.translatable("gui.astral_craft.confirm.remove"),
+                Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_all"),
+                Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_data_only"),
                 Component.translatable("gui.astral_craft.confirm.cancel"),
-                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId())))));
+                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
+                        BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS)),
+                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
+                        BoardDismantleConfirmPayload.Action.REMOVE_DATA_ONLY)))));
     }
 
     @SubscribeEvent

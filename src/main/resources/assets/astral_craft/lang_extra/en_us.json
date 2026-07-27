@@ -446,6 +446,7 @@
   "event.astral_craft.server_bug.name": "BUG",
   "event.astral_craft.switcheroo.description": "Get cards from the player before you.",
   "event.astral_craft.switcheroo.name": "Switcheroo",
+  "fml.menu.mods.info.description.astral_craft": "Bring some gameplay of Astral Party to Minecraft.",
   "gui.astral_craft.battle.attacker": "Attacker",
   "gui.astral_craft.battle.cost": "Cost: %s",
   "gui.astral_craft.battle.defender": "Defender",
@@ -558,6 +559,8 @@
   "gui.astral_craft.board.turn": "Board Hand",
   "gui.astral_craft.board.waiting": "Waiting",
   "gui.astral_craft.board_dismantle.confirm.details": "%s panel blocks will be removed; supports, decorations, and plants are preserved.",
+  "gui.astral_craft.board_dismantle.confirm.remove_all": "Remove Data and Panels",
+  "gui.astral_craft.board_dismantle.confirm.remove_data_only": "Remove Data, Keep Panels",
   "gui.astral_craft.board_dismantle.confirm.title": "Remove Board Completely",
   "gui.astral_craft.board_dismantle.confirm.warning": "Also remove the board panel blocks?",
   "gui.astral_craft.board_projector.confirm.cancel": "Cancel",
@@ -702,6 +705,7 @@
   "message.astral_craft.board.choose_branch": "Right-click a highlighted branch panel to choose the route.",
   "message.astral_craft.board.counter.prompt": "You were targeted by %s's effect card. Choose a counter card or cancel in the board hand bar",
   "message.astral_craft.board.deleted": "Deleted the board definition and protection data.",
+  "message.astral_craft.board.deleted_data_only": "The board data was removed and the panel blocks were kept.",
   "message.astral_craft.board.deleted_with_panels": "The board data and panel blocks were removed.",
   "message.astral_craft.board.gamble.no_winner": "No winner. The %s-Star-Coin prize pool was discarded",
   "message.astral_craft.board.gamble.not_enough_players": "At least two active players with more than 3 Star Coins are required",
@@ -995,6 +999,5 @@
   "tooltips.astral_craft.platform_shop": "Buy cards when stay on or pass by this panel.",
   "tooltips.astral_craft.platform_start": "Heal 2 HP when staying on Start Point. Gain 1 star with enough coins.",
   "tooltips.astral_craft.platform_teleport": "Randomly warp to other Portals.",
-  "tooltips.astral_craft.platform_teleport_point": "Select a player to battle.",
-  "fml.menu.mods.info.description.astral_craft": "Bring some gameplay of Astral Party to Minecraft."
+  "tooltips.astral_craft.platform_teleport_point": "Select a player to battle."
 }

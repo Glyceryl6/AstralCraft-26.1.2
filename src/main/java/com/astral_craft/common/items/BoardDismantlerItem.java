@@ -2,6 +2,7 @@ package com.astral_craft.common.items;
 
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.*;
+import com.astral_craft.common.network.c2s.BoardDismantleConfirmPayload;
 import com.astral_craft.common.network.s2c.OpenBoardDismantleConfirmPayload;
 import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.ChatFormatting;
@@ -51,24 +52,29 @@ public class BoardDismantlerItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
-    public static void confirmDelete(ServerPlayer player, UUID boardId) {
+    public static void confirmDelete(ServerPlayer player, UUID boardId, BoardDismantleConfirmPayload.Action action) {
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
-        if (session == null || !holdsDismantler(player)) return;
+        if (session == null || action == null || !holdsDismantler(player)) return;
         BlockPos center = session.protectedArea().center();
         if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) > 64.0D * 64.0D) return;
         ServerLevel level = player.level();
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
         BoardSessionManager.resetForLobby(level, session);
         session.setProtectionEnabled(false);
-        for (BlockPos pos : session.positions().values()) {
-            if (level.getBlockState(pos).getBlock() instanceof BasePlatform) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        if (action == BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS) {
+            for (BlockPos pos : session.positions().values()) {
+                if (level.getBlockState(pos).getBlock() instanceof BasePlatform) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+            }
         }
+
         BoardSavedData data = BoardSavedData.get(level);
         BoardSessionManager.syncBoardSnapshot(level, session);
         data.remove(session.id());
         BoardProtectionService.refreshProtectedAreas(level, data);
-        player.sendSystemMessage(Component.translatable("message.astral_craft.board.deleted_with_panels")
-                .withStyle(ChatFormatting.YELLOW), true);
+        String messageKey = action == BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS
+                ? "message.astral_craft.board.deleted_with_panels"
+                : "message.astral_craft.board.deleted_data_only";
+        player.sendSystemMessage(Component.translatable(messageKey).withStyle(ChatFormatting.YELLOW), true);
     }
 
     private static boolean holdsDismantler(ServerPlayer player) {

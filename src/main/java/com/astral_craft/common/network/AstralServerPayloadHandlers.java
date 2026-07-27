@@ -168,7 +168,9 @@ public class AstralServerPayloadHandlers {
 
     public static void handleBoardDismantleConfirm(BoardDismantleConfirmPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) BoardDismantlerItem.confirmDelete(player, payload.boardId());
+            if (context.player() instanceof ServerPlayer player) {
+                BoardDismantlerItem.confirmDelete(player, payload.boardId(), payload.action());
+            }
         });
     }
 
