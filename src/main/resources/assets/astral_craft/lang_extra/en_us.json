@@ -995,5 +995,6 @@
   "tooltips.astral_craft.platform_shop": "Buy cards when stay on or pass by this panel.",
   "tooltips.astral_craft.platform_start": "Heal 2 HP when staying on Start Point. Gain 1 star with enough coins.",
   "tooltips.astral_craft.platform_teleport": "Randomly warp to other Portals.",
-  "tooltips.astral_craft.platform_teleport_point": "Select a player to battle."
+  "tooltips.astral_craft.platform_teleport_point": "Select a player to battle.",
+  "fml.menu.mods.info.description.astral_craft": "Bring some gameplay of Astral Party to Minecraft."
 }

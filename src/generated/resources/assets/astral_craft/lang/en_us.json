@@ -664,6 +664,7 @@
   "event.astral_craft.server_bug.name": "BUG",
   "event.astral_craft.switcheroo.description": "Get cards from the player before you.",
   "event.astral_craft.switcheroo.name": "Switcheroo",
+  "fml.menu.mods.info.description.astral_craft": "Bring some gameplay of Astral Party to Minecraft.",
   "gui.astral_craft.battle.attacker": "Attacker",
   "gui.astral_craft.battle.cost": "Cost: %s",
   "gui.astral_craft.battle.defender": "Defender",

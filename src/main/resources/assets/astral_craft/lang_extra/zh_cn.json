@@ -995,5 +995,6 @@
   "tooltips.astral_craft.platform_shop": "经过或停留时，可以购买卡牌",
   "tooltips.astral_craft.platform_start": "经过时可以停留，停留后恢复2点生命值。如果星币达标将获得一颗星星",
   "tooltips.astral_craft.platform_teleport": "随机传送到其他传送门",
-  "tooltips.astral_craft.platform_teleport_point": "可以指定一个敌方角色，进行突击挑战"
+  "tooltips.astral_craft.platform_teleport_point": "可以指定一个敌方角色，进行突击挑战",
+  "fml.menu.mods.info.description.astral_craft": "将游戏《吉星派对》中的部分玩法给还原到Minecraft中。"
 }

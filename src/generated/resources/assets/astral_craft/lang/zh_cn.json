@@ -664,6 +664,7 @@
   "event.astral_craft.server_bug.name": "服务器Bug",
   "event.astral_craft.switcheroo.description": "获得上一行动顺位角色的手牌。",
   "event.astral_craft.switcheroo.name": "手牌转移",
+  "fml.menu.mods.info.description.astral_craft": "将游戏《吉星派对》中的部分玩法给还原到Minecraft中。",
   "gui.astral_craft.battle.attacker": "攻击方",
   "gui.astral_craft.battle.cost": "费用：%s",
   "gui.astral_craft.battle.defender": "防御方",
