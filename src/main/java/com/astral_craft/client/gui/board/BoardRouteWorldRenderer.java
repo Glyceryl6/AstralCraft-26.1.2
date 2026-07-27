@@ -21,13 +21,13 @@ import java.util.UUID;
 public class BoardRouteWorldRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int ROUTE_GLOW_COLOR = 0xA046CCFF;
-    private static final int ROUTE_COLOR = 0xFFD4F8FF;
-    private static final int STAR_ROUTE_GLOW_COLOR = 0xB0FFE46A;
-    private static final int STAR_ROUTE_COLOR = 0xFFFFFFDD;
+    private static final int ROUTE_GLOW_COLOR = 0xE060E8FF;
+    private static final int ROUTE_COLOR = 0xFFFFFFFF;
+    private static final int STAR_ROUTE_GLOW_COLOR = 0xE0FFE86A;
+    private static final int STAR_ROUTE_COLOR = 0xFFFFFFFF;
     private static final int BRANCH_COLOR = 0xFFFFE6A0;
     private static final int STAR_BRANCH_COLOR = 0xFFFFFFE0;
-    private static final float ROUTE_Y_OFFSET = 0.61F;
+    private static final float ROUTE_Y_OFFSET = 0.72F;
     private static final float ROUTE_GLOW_HALF_WIDTH = 0.18F;
     private static final float ROUTE_HALF_WIDTH = 0.06F;
     private static final float STAR_ROUTE_GLOW_HALF_WIDTH = 0.21F;
@@ -120,7 +120,8 @@ public class BoardRouteWorldRenderer {
         }
     }
 
-    private static void submitSolidEdge(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos, Edge edge, int color, float halfWidth) {
+    private static void submitSolidEdge(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
+                                        Edge edge, int color, float halfWidth) {
         Vec3 start = edge.start().add(0.5D, ROUTE_Y_OFFSET + 0.006D, 0.5D);
         Vec3 end = edge.end().add(0.5D, ROUTE_Y_OFFSET + 0.006D, 0.5D);
         Vec3 delta = end.subtract(start);
@@ -154,9 +155,9 @@ public class BoardRouteWorldRenderer {
 
     private static void submitQuad(SubmitCustomGeometryEvent event, PoseStack poseStack,
                                    Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color) {
-        event.getSubmitNodeCollector().order(4).submitCustomGeometry(
+        event.getSubmitNodeCollector().order(8).submitCustomGeometry(
                 poseStack,
-                RenderTypes.entityTranslucentEmissive(TEXTURE),
+                RenderTypes.textSeeThrough(TEXTURE),
                 (pose, consumer) -> {
                     EffectRenderGeometry.vertex(consumer, pose, a, color, 0.0F, 0.0F,
                             new Vec3(0.0D, 1.0D, 0.0D));

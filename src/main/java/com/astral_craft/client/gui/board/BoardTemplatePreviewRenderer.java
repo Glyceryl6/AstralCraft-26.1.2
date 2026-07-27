@@ -21,10 +21,10 @@ import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 public class BoardTemplatePreviewRenderer {
 
     private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int VALID_GLOW_COLOR = 0xA05CFF86;
-    private static final int VALID_CORE_COLOR = 0xFFD8FFE1;
-    private static final int INVALID_GLOW_COLOR = 0xA0FF5F64;
-    private static final int INVALID_CORE_COLOR = 0xFFFFD5D7;
+    private static final int VALID_GLOW_COLOR = 0xE05CFF86;
+    private static final int VALID_CORE_COLOR = 0xFFFFFFFF;
+    private static final int INVALID_GLOW_COLOR = 0xE0FF5F64;
+    private static final int INVALID_CORE_COLOR = 0xFFFFFFFF;
     private static final double GLOW_HALF_WIDTH = 0.055D;
     private static final double CORE_HALF_WIDTH = 0.018D;
 
@@ -45,7 +45,7 @@ public class BoardTemplatePreviewRenderer {
         Vec3 axisZ = new Vec3(facing.getStepX(), 0.0D, facing.getStepZ());
         Vec3 firstCenter = Vec3.atCenterOf(origin);
         Vec3 corner = firstCenter.subtract(axisX.scale(0.5D)).subtract(axisZ.scale(0.5D));
-        corner = new Vec3(corner.x, origin.getY() + 0.085D, corner.z);
+        corner = new Vec3(corner.x, origin.getY() + 0.145D, corner.z);
         boolean valid = BoardTemplatePlacement.canPlace(minecraft.level, groundPos, facing, template)
                 && !BoardProtectionWorldRenderer.intersects(BoardTemplatePlacement.boardArea(groundPos, facing, template));
         int glowColor = valid ? VALID_GLOW_COLOR : INVALID_GLOW_COLOR;
@@ -74,7 +74,8 @@ public class BoardTemplatePreviewRenderer {
         return offhand.is(AstralItems.BOARD_PROJECTOR.get()) ? offhand : ItemStack.EMPTY;
     }
 
-    private static void submitLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos, Vec3 start, Vec3 end, int color, double halfWidth) {
+    private static void submitLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
+                                   Vec3 start, Vec3 end, int color, double halfWidth) {
         Vec3 direction = end.subtract(start);
         if (direction.lengthSqr() < 1.0E-8D) return;
         direction = direction.normalize();
@@ -83,8 +84,8 @@ public class BoardTemplatePreviewRenderer {
         Vec3 b = end.subtract(side).subtract(cameraPos);
         Vec3 c = end.add(side).subtract(cameraPos);
         Vec3 d = start.add(side).subtract(cameraPos);
-        event.getSubmitNodeCollector().order(4).submitCustomGeometry(
-                poseStack, RenderTypes.entityTranslucentEmissive(TEXTURE), (pose, consumer) -> {
+        event.getSubmitNodeCollector().order(8).submitCustomGeometry(
+                poseStack, RenderTypes.textSeeThrough(TEXTURE), (pose, consumer) -> {
                     Vec3 normal = new Vec3(0.0D, 1.0D, 0.0D);
                     EffectRenderGeometry.vertex(consumer, pose, a, color, 0.0F, 0.0F, normal);
                     EffectRenderGeometry.vertex(consumer, pose, b, color, 1.0F, 0.0F, normal);
