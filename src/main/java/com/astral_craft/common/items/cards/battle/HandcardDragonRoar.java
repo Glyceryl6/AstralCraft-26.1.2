@@ -10,6 +10,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -19,7 +20,7 @@ import java.util.List;
 public class HandcardDragonRoar extends BaseHandCard {
 
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.ATTACK, CardTargetTypes.PLAYERS_AND_MOBS, 32)
-            .withRestrictions(new CardUseRestriction(List.of(AstralCraft.prefix("mamushi")), true, true));
+            .withRestrictions(new CardUseRestriction(List.of(AstralCraft.prefix("mamushi")), Boolean.TRUE, Boolean.TRUE));
 
     public HandcardDragonRoar(Properties properties) {
         super(properties);
@@ -28,16 +29,16 @@ public class HandcardDragonRoar extends BaseHandCard {
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         AstralCardEffects.update(user, AstralStats.get(user).addBuff(
-                AstralBoardBuffs.instance(AstralBoardBuffs.DRAGON_ROAR_POWER_ID, AstralBoardBuffs.ATTACK.get())
-                        .duration(1).value(3).build()));
+                AstralBoardBuffs.attack(AstralCraft.prefix("dragon_roar_power"), 3).duration(1).build()));
         AstralCardEffects.target(targets).ifPresent(target ->
                 AstralCardEffects.update(target, applyWeakness(AstralStats.getOrDefault(target))));
         return true;
     }
 
     private static AstralPlayerStats applyWeakness(AstralPlayerStats stats) {
-        return stats.addBuff(AstralBoardBuffs.partInstance(AstralBoardBuffs.DRAGON_ROAR_WEAKNESS_ID, "defense", AstralBoardBuffs.DEFENSE.get()).duration(1).value(-3).build())
-                .addBuff(AstralBoardBuffs.partInstance(AstralBoardBuffs.DRAGON_ROAR_WEAKNESS_ID, "speed", AstralBoardBuffs.SPEED.get()).duration(1).value(-9).build());
+        Identifier id = AstralCraft.prefix("dragon_roar_weakness");
+        return stats.addBuff(AstralBoardBuffs.defense(id, -3).duration(1).build())
+                .addBuff(AstralBoardBuffs.speed(id, -9).duration(1).build());
     }
 
 }

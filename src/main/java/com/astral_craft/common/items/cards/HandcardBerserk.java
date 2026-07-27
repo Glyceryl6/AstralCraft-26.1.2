@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -10,6 +11,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,6 +22,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
+
+    private static final Identifier BUFF_ID = AstralCraft.prefix("berserk");
 
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.PLAYERS_AND_MOBS, 10);
 
@@ -57,10 +61,8 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
     }
 
     private static AstralPlayerStats applyBuffs(AstralPlayerStats stats) {
-        return stats.addBuff(AstralBoardBuffs.partInstance(AstralBoardBuffs.BERSERK_ID, "attack", AstralBoardBuffs.ATTACK.get())
-                        .duration(2).value(3).build())
-                .addBuff(AstralBoardBuffs.partInstance(AstralBoardBuffs.BERSERK_ID, "damage", AstralBoardBuffs.INCOMING_DAMAGE.get())
-                        .duration(2).value(1).build());
+        return stats.addBuff(AstralBoardBuffs.attack(BUFF_ID, 3).duration(2).build())
+                .addBuff(AstralBoardBuffs.incomingDamage(BUFF_ID, 1).duration(2).build());
     }
 
     @ParametersAreNullableByDefault
@@ -74,4 +76,5 @@ public class HandcardBerserk extends BaseHandCard implements BoardBotEffect {
         UUID slotId = character.boardParticipantUuid().orElse(null);
         return session != null && source != null && session.id().equals(boardId) && source.slotUuid().equals(slotId);
     }
+
 }

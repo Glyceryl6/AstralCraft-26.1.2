@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.board.BoardBotEffect;
@@ -10,6 +11,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,6 +20,7 @@ import java.util.List;
 
 public class HandcardFightFireWithFire extends BaseHandCard implements BoardBotEffect {
 
+    private static final Identifier BUFF_ID = AstralCraft.prefix("fight_fire_with_fire");
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, -1);
 
     public HandcardFightFireWithFire(Properties properties) {
@@ -43,7 +46,7 @@ public class HandcardFightFireWithFire extends BaseHandCard implements BoardBotE
     }
 
     private static AstralPlayerStats applyBuff(AstralPlayerStats stats) {
-        return stats.addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.FIGHT_FIRE_WITH_FIRE_ID, AstralBoardBuffs.TURN_START_HEAL.get()).duration(2).value(3).build());
+        return stats.addBuff(AstralBoardBuffs.turnStartHeal(BUFF_ID, 3).duration(2).build());
     }
 
 }

@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.character.skill.*;
+import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -25,10 +26,6 @@ public class AstralCharacter {
 
     protected final Properties properties;
     protected final CharacterProgressionDefinition progression;
-
-    public AstralCharacter(Properties properties) {
-        this(properties, CharacterProgressionDefinition.of(1000));
-    }
 
     public AstralCharacter(Properties properties, CharacterProgressionDefinition progression) {
         this.properties = properties.copy();
@@ -68,11 +65,10 @@ public class AstralCharacter {
         AstralPlayerStats result = stats;
         for (IntrinsicBuff value : this.properties.intrinsicBuffs) {
             BoardBuff buff = value.buff().get();
-            if (buff != null) {
-                result = result.addIntrinsicBuff(buff, value.level());
-            }
+            Identifier id = buff == null ? null : AstralBoardBuffs.REGISTRY.getKey(buff);
+            if (id != null)
+                result = result.addBuff(AstralBoardBuffs.instance(id, buff).level(value.level()).intrinsic().build());
         }
-
         return result;
     }
 
@@ -187,13 +183,10 @@ public class AstralCharacter {
 
         public Properties passiveSkill(PassiveCharacterSkillDefinition value) {
             if (value != null) {
-                if (this.passiveSkills.size() == 1 && "passive".equals(this.passiveSkills.getFirst().id())) {
+                if (this.passiveSkills.size() == 1 && "passive".equals(this.passiveSkills.getFirst().id()))
                     this.passiveSkills.clear();
-                }
-
                 this.passiveSkills.add(value);
             }
-
             return this;
         }
 

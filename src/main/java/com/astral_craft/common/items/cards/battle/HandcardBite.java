@@ -10,6 +10,7 @@ import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.AstralStats;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,8 +19,11 @@ import java.util.List;
 
 public class HandcardBite extends BaseHandCard {
 
+    private static final Identifier AWAKENING_ID = AstralCraft.prefix("awakening");
+    private static final Identifier AWAKENED_ATTACK_ID = AstralCraft.prefix("awakened_attack");
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.ATTACK, CardTargetTypes.NONE, -1)
-            .withRestrictions(new CardUseRestriction(List.of(AstralCraft.prefix("mamushi")), true, true));
+            .withRestrictions(new CardUseRestriction(List.of(AstralCraft.prefix("mamushi")), Boolean.TRUE, Boolean.TRUE));
 
     public HandcardBite(Properties properties) {
         super(properties);
@@ -32,10 +36,9 @@ public class HandcardBite extends BaseHandCard {
     }
 
     private static AstralPlayerStats applyBuffs(AstralPlayerStats stats) {
-        int awakening = stats.buff(AstralBoardBuffs.AWAKENING_ID) + 1;
-        return stats.addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.AWAKENING_ID, AstralBoardBuffs.STATE.get())
-                        .permanent().build())
-                .addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.AWAKENED_ATTACK_ID, AstralBoardBuffs.ATTACK.get())
-                        .duration(1).value(Math.min(4, awakening)).build());
+        int awakening = stats.buff(AWAKENING_ID) + 1;
+        return stats.addBuff(AstralBoardBuffs.state(AWAKENING_ID).permanent().build())
+                .addBuff(AstralBoardBuffs.attack(AWAKENED_ATTACK_ID, Math.min(4, awakening)).duration(1).build());
     }
+
 }

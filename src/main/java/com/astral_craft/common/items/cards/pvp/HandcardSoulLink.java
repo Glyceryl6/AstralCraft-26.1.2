@@ -1,16 +1,14 @@
 package com.astral_craft.common.items.cards.pvp;
 
-import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.SoulLinkEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.gameplay.board.*;
-import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
 import com.astral_craft.common.items.BaseHandCard;
-import com.astral_craft.common.stats.AstralStats;
+import com.astral_craft.common.registry.AstralBoardBuffs;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -77,10 +75,7 @@ public class HandcardSoulLink extends BaseHandCard implements BoardBotEffect {
             user.sendSystemMessage(Component.translatable("message.astral_craft.soul_link.already_linked"), true);
             return false;
         }
-        AstralCardEffects.update(first, AstralStats.getOrDefault(first).addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.CUSTOM_ID, AstralBoardBuffs.STATE.get())
-                .permanent().build()));
-        AstralCardEffects.update(second, AstralStats.getOrDefault(second).addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.CUSTOM_ID, AstralBoardBuffs.STATE.get())
-                .permanent().build()));
+
         return true;
     }
 

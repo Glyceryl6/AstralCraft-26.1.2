@@ -8,7 +8,7 @@ public class AttributeBoardBuff extends BoardBuff {
     private final Attribute attribute;
 
     public AttributeBoardBuff(int color, Attribute attribute) {
-        super(Properties.of(color));
+        super(Properties.of(color).separateStacks());
         this.attribute = attribute;
     }
 
@@ -38,5 +38,4 @@ public class AttributeBoardBuff extends BoardBuff {
         INCOMING_DAMAGE,
         SPEED
     }
-
 }

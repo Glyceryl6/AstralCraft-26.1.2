@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards.pve;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.LivingEntity;
 import java.util.List;
 
 public class HandcardImmovable extends BaseHandCard {
+
     public static final CardDefinition DEFINITION = CardDefinition.create(CardType.EFFECT, CardTargetTypes.NONE, -1);
 
     public HandcardImmovable(Properties properties) {
@@ -23,8 +25,8 @@ public class HandcardImmovable extends BaseHandCard {
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         AstralCardEffects.update(user, AstralStats.get(user).addBuff(
-                AstralBoardBuffs.instance(AstralBoardBuffs.IMMOVABLE_ID, AstralBoardBuffs.DEFENSE.get())
-                        .duration(2).value(6).build()));
+                AstralBoardBuffs.defense(AstralCraft.prefix("immovable"), 6).duration(2).build()));
         return true;
     }
+
 }

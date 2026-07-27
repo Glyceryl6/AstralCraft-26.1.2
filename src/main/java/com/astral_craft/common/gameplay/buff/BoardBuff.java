@@ -16,16 +16,12 @@ public class BoardBuff {
 
     protected final Properties properties;
 
-    public BoardBuff(int color) {
-        this(Properties.of(color));
+    public BoardBuff() {
+        this(Properties.of());
     }
 
     public BoardBuff(Properties properties) {
         this.properties = properties.copy();
-    }
-
-    public int color() {
-        return this.properties.color;
     }
 
     public Component displayName() {
@@ -37,6 +33,20 @@ public class BoardBuff {
         Identifier id = AstralBoardBuffs.REGISTRY.getKey(this);
         return id == null ? AstralCraft.prefix("textures/gui/board_buff/custom.png")
                 : Identifier.fromNamespaceAndPath(id.getNamespace(), "textures/gui/board_buff/" + id.getPath() + ".png");
+    }
+
+    public int color(BoardBuffInstance instance) {
+        return instance == null ? this.properties.color : instance.color().orElse(this.properties.color);
+    }
+
+    public AstralPlayerStats apply(AstralPlayerStats stats, BoardBuffInstance incoming) {
+        if (incoming == null) return stats;
+        incoming = this.normalize(incoming);
+        if (this.properties.separateStacks && stats.hasBuff(incoming.id())) {
+            incoming = incoming.withId(stats.nextBuffInstanceId(incoming.id()));
+        }
+        BoardBuffInstance merged = this.merge(stats.buffInstance(incoming.id()), incoming);
+        return merged == null ? stats.removeBuff(incoming.id()) : stats.setBuff(merged);
     }
 
     public BoardBuffInstance merge(BoardBuffInstance current, BoardBuffInstance incoming) {
@@ -57,6 +67,7 @@ public class BoardBuff {
         return new BoardBuffInstance(incoming.id(), this, duration, level - 1, intrinsicLevels, fresh,
                 incoming.value(), incoming.customName().isPresent() ? incoming.customName() : current.customName(),
                 incoming.customIcon().isPresent() ? incoming.customIcon() : current.customIcon(),
+                incoming.customColor().isPresent() ? incoming.customColor() : current.customColor(),
                 current.consumeAfterIncomingDamage() || incoming.consumeAfterIncomingDamage(),
                 current.consumeAfterMoveRoll() || incoming.consumeAfterMoveRoll());
     }
@@ -73,12 +84,7 @@ public class BoardBuff {
         if (!this.properties.permanent || instance.acquiredLevels() <= 0 || instance.permanent()) return instance;
         return new BoardBuffInstance(instance.id(), instance.buff(), BoardBuffInstance.PERMANENT, instance.amplifier(),
                 instance.intrinsicLevels(), instance.fresh(), instance.value(), instance.customName(), instance.customIcon(),
-                instance.consumeAfterIncomingDamage(), instance.consumeAfterMoveRoll());
-    }
-
-    public AstralPlayerStats apply(AstralPlayerStats stats, BoardBuffInstance incoming) {
-        BoardBuffInstance merged = this.merge(stats.buffInstance(incoming.id()), incoming);
-        return merged == null ? stats.removeBuff(incoming.id()) : stats.setBuff(merged);
+                instance.customColor(), instance.consumeAfterIncomingDamage(), instance.consumeAfterMoveRoll());
     }
 
     public AstralPlayerStats onTurnStart(AstralPlayerStats stats, BoardBuffInstance instance) {
@@ -118,11 +124,11 @@ public class BoardBuff {
     }
 
     public int moveDiceModifier(BoardBuffInstance instance) {
-        return Math.max(0, this.properties.extraMoveDicePerLevel * instance.value() * instance.level());
+        return 0;
     }
 
     public int incomingDamageModifier(BoardBuffInstance instance) {
-        return 0;
+        return this.properties.flatIncomingDamage;
     }
 
     public int roundRewardBonus(BoardBuffInstance instance) {
@@ -137,47 +143,28 @@ public class BoardBuff {
         return this.properties.consumeAfterMoveRoll || instance.consumeAfterMoveRoll();
     }
 
-    public BoardParticipant onMovementFinished(ServerLevel level, BoardSession session, BoardSession.MovementState movement,
-                                               BoardParticipant participant, BoardBuffInstance instance) {
+    public BoardParticipant onMovementFinished(
+            ServerLevel level, BoardSession session,
+            BoardSession.MovementState movement,
+            BoardParticipant participant,
+            BoardBuffInstance instance) {
         return participant;
-    }
-
-    public BattleFollowUp onDefendedBattle(ServerLevel level, BoardSession session, BoardParticipant defender,
-                                           BoardParticipant attacker, BoardBuffInstance instance) {
-        return BattleFollowUp.none(defender);
-    }
-
-    public boolean preventsEvade() {
-        return false;
-    }
-
-    public boolean knocksDownOwnerWhenAttackFails() {
-        return false;
-    }
-
-    public boolean consumedAfterAttack() {
-        return false;
     }
 
     public BoardBuffInstance afterKnockout(BoardBuffInstance instance) {
         return this.properties.clearOnKnockout ? instance.withoutAcquiredLevels() : instance;
     }
 
-    public record BattleFollowUp(BoardParticipant defender, boolean counterAttack) {
-        public static BattleFollowUp none(BoardParticipant defender) {
-            return new BattleFollowUp(defender, false);
-        }
-    }
-
     public static class Properties {
-        protected int color;
-        protected int extraMoveDicePerLevel;
+        protected int color = 0xFFBBBBBB;
         protected int turnStartHealingPerLevel;
         protected int turnStartDamagePerLevel;
         protected int roundRewardPerLevel;
+        protected int flatIncomingDamage;
         protected int levelDecayAtTurnEnd;
         protected int maximumLevel;
         protected boolean addLevels;
+        protected boolean separateStacks;
         protected boolean loopLevels;
         protected boolean permanent;
         protected boolean halveLevelsAtTurnEnd;
@@ -185,19 +172,24 @@ public class BoardBuff {
         protected boolean consumeAfterMoveRoll;
         protected boolean clearOnKnockout = true;
 
-        protected Properties(int color) {
-            this.color = color;
+        protected Properties() {
+        }
+
+        public static Properties of() {
+            return new Properties();
         }
 
         public static Properties of(int color) {
-            return new Properties(color);
+            return new Properties().color(color);
         }
 
-        public Properties extraMoveDice(int value) { this.extraMoveDicePerLevel = Math.max(0, value); return this; }
+        public Properties color(int value) { this.color = value; return this; }
         public Properties healAtTurnStart(int value) { this.turnStartHealingPerLevel = Math.max(0, value); return this; }
         public Properties damageAtTurnStart(int value) { this.turnStartDamagePerLevel = Math.max(0, value); return this; }
         public Properties roundReward(int value) { this.roundRewardPerLevel = Math.max(0, value); return this; }
+        public Properties flatIncomingDamage(int value) { this.flatIncomingDamage = value; return this; }
         public Properties stacking() { this.addLevels = true; return this; }
+        public Properties separateStacks() { this.separateStacks = true; return this; }
         public Properties maximumLevel(int value) { this.maximumLevel = Math.max(0, value); return this; }
         public Properties loopLevels() { this.loopLevels = true; return this; }
         public Properties permanent() { this.permanent = true; return this; }
@@ -209,14 +201,16 @@ public class BoardBuff {
         public Properties keepOnKnockout() { this.clearOnKnockout = false; return this; }
 
         protected Properties copy() {
-            Properties result = new Properties(this.color);
-            result.extraMoveDicePerLevel = this.extraMoveDicePerLevel;
+            Properties result = new Properties();
+            result.color = this.color;
             result.turnStartHealingPerLevel = this.turnStartHealingPerLevel;
             result.turnStartDamagePerLevel = this.turnStartDamagePerLevel;
             result.roundRewardPerLevel = this.roundRewardPerLevel;
+            result.flatIncomingDamage = this.flatIncomingDamage;
             result.levelDecayAtTurnEnd = this.levelDecayAtTurnEnd;
             result.maximumLevel = this.maximumLevel;
             result.addLevels = this.addLevels;
+            result.separateStacks = this.separateStacks;
             result.loopLevels = this.loopLevels;
             result.permanent = this.permanent;
             result.halveLevelsAtTurnEnd = this.halveLevelsAtTurnEnd;

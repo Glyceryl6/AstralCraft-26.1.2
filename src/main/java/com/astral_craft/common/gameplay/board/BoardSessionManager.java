@@ -25,7 +25,6 @@ import com.astral_craft.common.items.cards.pvp.HandcardSoulLink;
 import com.astral_craft.common.network.BoardCardView;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.s2c.*;
-import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
@@ -909,7 +908,7 @@ public class BoardSessionManager {
 
         int fixed = participant.stats().nextMoveFixed();
         int diceCount = fixed > 0 ? 1
-                : Math.clamp(1 + participant.stats().nextMoveExtraDice() + participant.stats().moveDiceBonus(), 1, 8);
+                : Math.clamp(1 + participant.stats().moveDiceBonus(), 1, 8);
         int total = 0;
         for (int index = 0; index < diceCount; index++) {
             total += fixed > 0 ? fixed : level.getRandom().nextInt(10) + 1;
@@ -961,6 +960,7 @@ public class BoardSessionManager {
                     SoundEvents.NOTE_BLOCK_PLING.value(),
                     SoundSource.PLAYERS, 0.9F, 1.35F);
         }
+
         if (participant == null) {
             session.mechanics().setTimeBombSlot(Optional.empty());
             markChanged(level);
@@ -1566,7 +1566,7 @@ public class BoardSessionManager {
     }
 
     public static boolean isAutomated(ServerLevel level, BoardParticipant participant) {
-        return participant.bot() || participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null) == null;
+        return participant != null && participant.bot();
     }
 
     private static void fillBots(ServerLevel level, BoardSession session) {
@@ -1643,22 +1643,6 @@ public class BoardSessionManager {
         session.setProtectionEnabled(true);
         markChanged(level);
         BoardProtectionService.refreshProtectedAreas(level, data(level));
-    }
-
-    public static boolean activateAllOrNothing(ServerLevel level, BoardSession session, UUID slotId) {
-        BoardParticipant participant = session == null ? null : session.participant(slotId).orElse(null);
-        if (participant == null || participant.knockedDown()) return false;
-        updateParticipant(level, session, participant.withStats(participant.stats()
-                .addPermanentBuff(AstralBoardBuffs.ALL_OR_NOTHING.get(), 1)));
-        return true;
-    }
-
-    public static boolean attackBuffPreventsEvade(BoardParticipant participant) {
-        return participant != null && participant.stats().anyBuffPreventsEvade();
-    }
-
-    public static boolean attackBuffKnocksDownOnFailure(BoardParticipant participant) {
-        return participant != null && participant.stats().anyBuffKnocksDownOwnerWhenAttackFails();
     }
 
     public static void knockDownFromEffect(ServerLevel level, BoardSession session, UUID slotId) {

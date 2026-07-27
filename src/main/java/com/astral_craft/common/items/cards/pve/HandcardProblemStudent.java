@@ -1,5 +1,6 @@
 package com.astral_craft.common.items.cards.pve;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.registry.AstralBoardBuffs;
@@ -25,8 +26,9 @@ public class HandcardProblemStudent extends BaseHandCard {
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         AstralCardEffects.damage(user, targets, 2);
         AstralCardEffects.update(user, AstralStats.get(user).addCoins(3));
-        AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(target, AstralStats.get(target).addBuff(AstralBoardBuffs.instance(AstralBoardBuffs.PROBLEM_STUDENT_ID, AstralBoardBuffs.STATE.get())
-                .permanent().build())));
+        AstralCardEffects.targetPlayer(targets).ifPresent(target -> AstralCardEffects.update(
+                target, AstralStats.get(target).addBuff(AstralBoardBuffs.state(
+                        AstralCraft.prefix("problem_student")).permanent().build())));
         return !targets.isEmpty();
     }
 
