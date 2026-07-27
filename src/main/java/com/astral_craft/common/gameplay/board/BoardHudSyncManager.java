@@ -122,7 +122,7 @@ public class BoardHudSyncManager {
         if (movement != null || session.encounter() != null || BoardBattleService.active(session.id())
                 || BoardEventService.active(session.id())) return Component.empty();
 
-        return Component.translatable(session.actionDurationTicks() < 0
+        return Component.translatable(session.actionPromptDeadlineTick() > 0L
                 ? "message.astral_craft.board.prompt.turn_start"
                 : "message.astral_craft.board.prompt.thinking", name);
     }

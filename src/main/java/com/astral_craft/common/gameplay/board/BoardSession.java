@@ -32,6 +32,7 @@ public class BoardSession {
     private int round;
     private boolean turnStarted;
     private long lobbyDeadlineTick;
+    private long actionPromptDeadlineTick;
     private long actionDeadlineTick;
     private int actionDurationTicks;
     private boolean protectionEnabled;
@@ -221,6 +222,9 @@ public class BoardSession {
         this.movement = null;
         this.encounter = null;
         this.discard = null;
+        this.actionPromptDeadlineTick = 0L;
+        this.actionDeadlineTick = 0L;
+        this.actionDurationTicks = 0;
         this.mechanics.clearRuntimeGameState();
     }
 
@@ -273,6 +277,9 @@ public class BoardSession {
         this.movement = null;
         this.encounter = null;
         this.discard = null;
+        this.actionPromptDeadlineTick = 0L;
+        this.actionDeadlineTick = 0L;
+        this.actionDurationTicks = 0;
     }
 
     public long lobbyDeadlineTick() {
@@ -281,6 +288,14 @@ public class BoardSession {
 
     public void setLobbyDeadlineTick(long tick) {
         this.lobbyDeadlineTick = Math.max(0L, tick);
+    }
+
+    public long actionPromptDeadlineTick() {
+        return this.actionPromptDeadlineTick;
+    }
+
+    public void setActionPromptDeadlineTick(long tick) {
+        this.actionPromptDeadlineTick = Math.max(0L, tick);
     }
 
     public long actionDeadlineTick() {
@@ -363,7 +378,9 @@ public class BoardSession {
                 turnOrder, snapshot.turnIndex(), snapshot.round(), snapshot.turnStarted(), snapshot.protectionEnabled(),
                 snapshot.keepAfterGame(), snapshot.arrivalSequence(), snapshot.mechanics());
         if (session.phase == BoardPhase.PLAYING) {
+            session.actionPromptDeadlineTick = 0L;
             session.actionDeadlineTick = 0L;
+            session.actionDurationTicks = 0;
         }
         if (session.phase == BoardPhase.CHARACTER_SELECTION) {
             session.lobbyDeadlineTick = 0L;

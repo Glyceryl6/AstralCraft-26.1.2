@@ -283,6 +283,7 @@ public class BoardSessionManager {
         }
 
         if (session.currentParticipant().map(value -> value.slotUuid().equals(botParticipant.slotUuid())).orElse(false)) {
+            session.setActionPromptDeadlineTick(0L);
             session.setActionDeadlineTick(AstralServerTickClock.now(player.level()));
         }
 
@@ -589,6 +590,7 @@ public class BoardSessionManager {
         BoardEntityService.clearBoardDice(level, session);
         BoardEntityService.clearRuntimeEntities(level, session);
         session.clearParticipants();
+        session.setActionPromptDeadlineTick(0L);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         session.setPhase(keepBoard ? BoardPhase.READY : BoardPhase.FINISHED);
@@ -779,6 +781,7 @@ public class BoardSessionManager {
         BoardLobbyService.closeScreens(level, session.id());
         session.setPhase(BoardPhase.PLAYING);
         session.setLobbyDeadlineTick(0L);
+        session.setActionPromptDeadlineTick(0L);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         markChanged(level);
@@ -816,6 +819,7 @@ public class BoardSessionManager {
         AstralCharacterEntity turnEntity = BoardEntityService.entity(level, next);
         if (turnEntity != null) CharacterManager.INSTANCE.character(next.characterId()).onBoardTurnStart(turnEntity);
         session.setTurnStarted(true);
+        session.setActionPromptDeadlineTick(0L);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         markChanged(level);
@@ -836,30 +840,33 @@ public class BoardSessionManager {
     }
 
     private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        boolean automated = participant.bot();
-        int durationTicks = automated ? 1 : participant.decisionDurationTicks(TURN_TIMEOUT_TICKS);
-        // A negative duration retains the later decision duration while the turn-start prompt blocks input.
-        session.setActionDurationTicks(-durationTicks);
-        session.setActionDeadlineTick(AstralServerTickClock.now(level) + TURN_START_PROMPT_TICKS);
+        int durationTicks = participant.bot() ? 1 : participant.decisionDurationTicks(TURN_TIMEOUT_TICKS);
+        session.setActionDurationTicks(durationTicks);
+        session.setActionDeadlineTick(0L);
+        session.setActionPromptDeadlineTick(AstralServerTickClock.now(level) + TURN_START_PROMPT_TICKS);
         markChanged(level);
         BoardHudSyncManager.send(level, session);
     }
 
     private static boolean activateCurrentTurnAfterPrompt(ServerLevel level, BoardSession session) {
-        if (session.actionDurationTicks() >= 0) return true;
-        if (session.actionDeadlineTick() > AstralServerTickClock.now(level)) return false;
+        long promptDeadlineTick = session.actionPromptDeadlineTick();
+        if (promptDeadlineTick <= 0L) return true;
+        long currentTick = AstralServerTickClock.now(level);
+        if (currentTick < promptDeadlineTick) return false;
         BoardParticipant participant = session.currentParticipant().orElse(null);
-        if (participant == null || participant.knockedDown()) return true;
-        int durationTicks = Math.max(1, -session.actionDurationTicks());
+        if (participant == null || participant.knockedDown()) {
+            session.setActionPromptDeadlineTick(0L);
+            return true;
+        }
         ServerPlayer controller = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (!participant.bot() && controller == null) {
-            session.setActionDeadlineTick(AstralServerTickClock.now(level) + 20L);
+            session.setActionPromptDeadlineTick(currentTick + 20L);
             markChanged(level);
             return false;
         }
-        session.setActionDurationTicks(durationTicks);
-        session.setActionDeadlineTick(participant.bot() ? AstralServerTickClock.now(level)
-                : AstralServerTickClock.now(level) + durationTicks);
+        int durationTicks = Math.max(1, session.actionDurationTicks());
+        session.setActionPromptDeadlineTick(0L);
+        session.setActionDeadlineTick(participant.bot() ? currentTick : currentTick + durationTicks);
         markChanged(level);
         BoardHudSyncManager.send(level, session);
         AstralCharacterEntity character = BoardEntityService.entity(level, participant);
@@ -871,7 +878,7 @@ public class BoardSessionManager {
     }
 
     public static boolean isTurnActionReady(BoardSession session, ServerLevel level) {
-        return session.turnStarted() && session.actionDurationTicks() >= 0
+        return session.turnStarted() && session.actionPromptDeadlineTick() <= 0L
                 && (session.actionDeadlineTick() <= 0L || AstralServerTickClock.now(level) <= session.actionDeadlineTick());
     }
 
@@ -1023,6 +1030,7 @@ public class BoardSessionManager {
     private static void beginMovement(ServerLevel level, BoardSession session, BoardParticipant participant, int steps, int delayTicks) {
         CharacterManager.INSTANCE.character(participant.characterId()).onBoardMoveStarted(level, session, participant);
         session.setMovement(BoardSession.MovementState.begin(participant.slotUuid(), Math.max(0, steps), AstralServerTickClock.now(level) + Math.max(0, delayTicks)));
+        session.setActionPromptDeadlineTick(0L);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         markChanged(level);
@@ -1407,6 +1415,7 @@ public class BoardSessionManager {
             HandcardSoulLink.tickBoardLinks(level, session);
         }
 
+        session.setActionPromptDeadlineTick(0L);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         int previousRound = session.round();
@@ -1638,6 +1647,7 @@ public class BoardSessionManager {
         session.clearParticipants();
         session.setPhase(BoardPhase.READY);
         session.setLobbyDeadlineTick(0L);
+        session.setActionPromptDeadlineTick(0L);
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
         session.setProtectionEnabled(true);
