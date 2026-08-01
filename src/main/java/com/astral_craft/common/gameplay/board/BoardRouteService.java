@@ -7,6 +7,7 @@ import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.network.s2c.BoardRouteStatePayload;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -44,6 +45,86 @@ public class BoardRouteService {
         if (!participant.hasPreviousNode() && choices.size() > 1) return List.of(choices.getFirst());
         if (participant.hasPreviousNode() && choices.size() > 1) choices.remove(participant.previousNodeKey());
         return choices.isEmpty() ? node.next() : List.copyOf(choices);
+    }
+
+    public static String initialPreviousNode(BoardSession session, String currentNodeId) {
+        return preferredNeighbor(session, currentNodeId, session.travelDirection().opposite()).orElse("");
+    }
+
+    public static Direction travelDirection(BoardSession session, BoardParticipant participant) {
+        BlockPos current = session.positions().get(participant.currentNodeKey());
+        if (current == null) return Direction.NORTH;
+        if (participant.hasPreviousNode()) {
+            BlockPos previous = session.positions().get(participant.previousNodeKey());
+            if (previous != null && !previous.equals(current)) return BoardEntityService.directionBetween(previous, current);
+        }
+
+        return preferredNeighbor(session, participant.currentNodeKey(), session.travelDirection())
+                .map(session.positions()::get).filter(Objects::nonNull)
+                .map(target -> BoardEntityService.directionBetween(current, target)).orElse(Direction.NORTH);
+    }
+
+    public static String previousNodeForTravelDirection(BoardSession session, String destinationNodeId, Direction travelDirection) {
+        BlockPos destination = session.positions().get(destinationNodeId);
+        if (destination == null || travelDirection == null) return "";
+        Direction backward = travelDirection.getOpposite();
+        String best = "";
+        int bestDot = Integer.MIN_VALUE;
+        int bestDistance = Integer.MAX_VALUE;
+        for (String neighborId : neighbors(session, destinationNodeId)) {
+            BlockPos neighbor = session.positions().get(neighborId);
+            if (neighbor == null) continue;
+            int dx = neighbor.getX() - destination.getX();
+            int dz = neighbor.getZ() - destination.getZ();
+            int dot = dx * backward.getStepX() + dz * backward.getStepZ();
+            int distance = Math.abs(dx) + Math.abs(dz);
+            if (dot > bestDot || dot == bestDot && distance < bestDistance) {
+                best = neighborId;
+                bestDot = dot;
+                bestDistance = distance;
+            }
+        }
+
+        return best;
+    }
+
+    private static Optional<String> preferredNeighbor(BoardSession session, String currentNodeId, BoardTravelDirection travelDirection) {
+        BlockPos current = session.positions().get(currentNodeId);
+        if (current == null) return Optional.empty();
+        double centerX = session.positions().values().stream().mapToDouble(BlockPos::getX).average().orElse(current.getX());
+        double centerZ = session.positions().values().stream().mapToDouble(BlockPos::getZ).average().orElse(current.getZ());
+        double currentAngle = Math.atan2(current.getZ() - centerZ, current.getX() - centerX);
+        String best = null;
+        double bestDelta = Double.MAX_VALUE;
+        for (String neighborId : neighbors(session, currentNodeId)) {
+            BlockPos neighbor = session.positions().get(neighborId);
+            if (neighbor == null) continue;
+            double neighborAngle = Math.atan2(neighbor.getZ() - centerZ, neighbor.getX() - centerX);
+            double delta = normalizeAngle(neighborAngle - currentAngle) * travelDirection.angularSign();
+            if (delta <= 1.0E-6D) delta += Math.PI * 2.0D;
+            if (delta < bestDelta) {
+                best = neighborId;
+                bestDelta = delta;
+            }
+        }
+
+        return Optional.ofNullable(best);
+    }
+
+    private static List<String> neighbors(BoardSession session, String nodeId) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        BoardNode node = session.nodes().get(nodeId);
+        if (node != null) result.addAll(node.next());
+        session.nodes().values().stream()
+                .filter(candidate -> candidate.next().contains(nodeId))
+                .map(BoardNode::id).forEach(result::add);
+        return List.copyOf(result);
+    }
+
+    private static double normalizeAngle(double angle) {
+        while (angle <= -Math.PI) angle += Math.PI * 2.0D;
+        while (angle > Math.PI) angle -= Math.PI * 2.0D;
+        return angle;
     }
 
     public static int graphDistance(BoardSession session, String start, String target, int maximum) {

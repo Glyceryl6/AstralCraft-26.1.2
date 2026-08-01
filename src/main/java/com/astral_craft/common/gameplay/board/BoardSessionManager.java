@@ -757,6 +757,7 @@ public class BoardSessionManager {
             return;
         }
 
+        session.setTravelDirection(BoardTravelDirection.random(level.getRandom()));
         List<String> starts = session.startNodes();
         List<UUID> order = new ArrayList<>();
         for (int index = 0; index < participants.size(); index++) {
@@ -767,9 +768,12 @@ public class BoardSessionManager {
                     .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
             stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
             List<Identifier> hand = randomInitialHand(level, 4 + level.getRandom().nextInt(2));
+            String previousNode = BoardRouteService.initialPreviousNode(session, startNode);
+            Identifier previousNodeId = previousNode.isBlank() ? BoardParticipant.EMPTY_NODE_ID
+                    : BoardParticipant.nodeIdentifier(previousNode);
             BoardParticipant initialized = new BoardParticipant(participant.slotId(), participant.controllerId(),
                     participant.bot(), participant.characterId(), participant.skinId(),
-                    BoardParticipant.nodeIdentifier(startNode), BoardParticipant.EMPTY_NODE_ID, Optional.empty(),
+                    BoardParticipant.nodeIdentifier(startNode), previousNodeId, Optional.empty(),
                     stats, hand, Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
             session.putParticipant(initialized);
             session.setHomeNode(initialized.slotUuid(), startNode);
@@ -1543,12 +1547,22 @@ public class BoardSessionManager {
     }
 
     public static void relocateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant, String destinationNodeId) {
+        relocateParticipant(level, session, participant, destinationNodeId, BoardRouteService.travelDirection(session, participant));
+    }
+
+    public static void relocateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant,
+                                           String destinationNodeId, Direction travelDirection) {
         if (!session.nodes().containsKey(destinationNodeId)) return;
-        String previousNodeId = participant.currentNodeKey();
-        BoardParticipant relocated = participant.withNode(participant.currentNodeId(),
-                BoardParticipant.nodeIdentifier(destinationNodeId), session.nextArrivalOrder());
+        String oldNodeId = participant.currentNodeKey();
+        String previousNodeId = BoardRouteService.previousNodeForTravelDirection(session, destinationNodeId, travelDirection);
+        Identifier previous = previousNodeId.isBlank() ? BoardParticipant.EMPTY_NODE_ID
+                : BoardParticipant.nodeIdentifier(previousNodeId);
+        BoardParticipant relocated = participant.withNode(previous, BoardParticipant.nodeIdentifier(destinationNodeId),
+                session.nextArrivalOrder());
         updateParticipant(level, session, relocated);
-        BoardEntityService.arrangeNode(level, session, previousNodeId);
+        AstralCharacterEntity entity = BoardEntityService.entity(level, relocated);
+        if (entity != null) entity.setBoardDirection(travelDirection);
+        BoardEntityService.arrangeNode(level, session, oldNodeId);
         BoardEntityService.arrangeNode(level, session, destinationNodeId);
     }
 

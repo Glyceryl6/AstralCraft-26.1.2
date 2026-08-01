@@ -24,6 +24,7 @@ public class BoardSession {
     private final BoardArea protectedArea;
     private final List<String> startNodes;
     private final BoardMechanicsState mechanics;
+    private BoardTravelDirection travelDirection;
     private final LinkedHashMap<UUID, BoardParticipant> participants = new LinkedHashMap<>();
     private final LinkedHashMap<UUID, String> homeNodes = new LinkedHashMap<>();
     private final List<UUID> turnOrder = new ArrayList<>();
@@ -44,13 +45,13 @@ public class BoardSession {
 
     public BoardSession(UUID id, ResourceKey<Level> dimension, ScannedBoard board) {
         this(id, dimension, board.nodes(), board.positions(), board.area(), board.startNodes(),
-                BoardPhase.READY, List.of(), Map.of(), List.of(), 0, 0, false, true, true, 0,
+                BoardTravelDirection.CLOCKWISE, BoardPhase.READY, List.of(), Map.of(), List.of(), 0, 0, false, true, true, 0,
                 BoardMechanicsState.Snapshot.EMPTY);
     }
 
     private BoardSession(UUID id, ResourceKey<Level> dimension,
                          Map<String, BoardNode> nodes, Map<String, BlockPos> positions,
-                         BoardArea protectedArea, List<String> startNodes,
+                         BoardArea protectedArea, List<String> startNodes, BoardTravelDirection travelDirection,
                          BoardPhase phase, List<BoardParticipant> participants, Map<UUID, String> homeNodes,
                          List<UUID> turnOrder, int turnIndex, int round, boolean turnStarted,
                          boolean protectionEnabled, boolean keepAfterGame, int arrivalSequence,
@@ -64,6 +65,7 @@ public class BoardSession {
         this.startNodes = canonicalNodes.startNodes();
         this.mechanics = BoardMechanicsState.fromSnapshot(mechanicsSnapshot);
         this.mechanics.retainCharacterStarts(this.startNodes);
+        this.travelDirection = travelDirection == null ? BoardTravelDirection.CLOCKWISE : travelDirection;
         this.phase = phase == null ? BoardPhase.READY : phase;
         for (BoardParticipant participant : participants) {
             this.participants.put(participant.slotUuid(), canonicalNodes.remapParticipant(participant));
@@ -112,6 +114,14 @@ public class BoardSession {
 
     public BoardMechanicsState mechanics() {
         return this.mechanics;
+    }
+
+    public BoardTravelDirection travelDirection() {
+        return this.travelDirection;
+    }
+
+    public void setTravelDirection(BoardTravelDirection travelDirection) {
+        this.travelDirection = travelDirection == null ? BoardTravelDirection.CLOCKWISE : travelDirection;
     }
 
     public BoardPhase phase() {
@@ -344,7 +354,7 @@ public class BoardSession {
 
     public Snapshot snapshot() {
         return new Snapshot(this.id.toString(), this.dimension.identifier(), this.nodes, this.positions,
-                this.protectedArea, this.startNodes, this.phase, this.participants(),
+                this.protectedArea, this.startNodes, this.travelDirection, this.phase, this.participants(),
                 this.turnOrder.stream().map(UUID::toString).toList(), this.turnIndex, this.round, this.turnStarted,
                 this.protectionEnabled, this.keepAfterGame, this.arrivalSequence, this.snapshotHomeNodes(),
                 this.mechanics.snapshot());
@@ -374,7 +384,7 @@ public class BoardSession {
         });
 
         BoardSession session = new BoardSession(id, dimension, snapshot.nodes(), snapshot.positions(),
-                snapshot.protectedArea(), snapshot.startNodes(), snapshot.phase(), snapshot.participants(), homeNodes,
+                snapshot.protectedArea(), snapshot.startNodes(), snapshot.travelDirection(), snapshot.phase(), snapshot.participants(), homeNodes,
                 turnOrder, snapshot.turnIndex(), snapshot.round(), snapshot.turnStarted(), snapshot.protectionEnabled(),
                 snapshot.keepAfterGame(), snapshot.arrivalSequence(), snapshot.mechanics());
         if (session.phase == BoardPhase.PLAYING) {
@@ -450,6 +460,7 @@ public class BoardSession {
             Map<String, BlockPos> positions,
             BoardArea protectedArea,
             List<String> startNodes,
+            BoardTravelDirection travelDirection,
             BoardPhase phase,
             List<BoardParticipant> participants,
             List<String> turnOrder,
@@ -464,9 +475,10 @@ public class BoardSession {
 
         private static final Codec<Map<String, BoardNode>> NODE_MAP_CODEC = Codec.unboundedMap(Codec.STRING, BoardNode.CODEC);
         private static final Codec<Map<String, BlockPos>> POSITION_MAP_CODEC = Codec.unboundedMap(Codec.STRING, BlockPos.CODEC);
-        private static final MapCodec<Pair<Map<String, String>, BoardMechanicsState.Snapshot>> RUNTIME_STATE_CODEC =
-                Codec.mapPair(Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("home_nodes", Map.of()),
-                        BoardMechanicsState.Snapshot.CODEC.optionalFieldOf("mechanics", BoardMechanicsState.Snapshot.EMPTY));
+        private static final MapCodec<Pair<BoardTravelDirection, Pair<Map<String, String>, BoardMechanicsState.Snapshot>>> RUNTIME_STATE_CODEC =
+                Codec.mapPair(BoardTravelDirection.CODEC.optionalFieldOf("travel_direction", BoardTravelDirection.CLOCKWISE),
+                        Codec.mapPair(Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("home_nodes", Map.of()),
+                                BoardMechanicsState.Snapshot.CODEC.optionalFieldOf("mechanics", BoardMechanicsState.Snapshot.EMPTY)));
 
         public static final Codec<Snapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.fieldOf("id").forGetter(Snapshot::id),
@@ -484,18 +496,20 @@ public class BoardSession {
                 Codec.BOOL.optionalFieldOf("protection_enabled", true).forGetter(Snapshot::protectionEnabled),
                 Codec.BOOL.optionalFieldOf("keep_after_game", true).forGetter(Snapshot::keepAfterGame),
                 Codec.INT.optionalFieldOf("arrival_sequence", 0).forGetter(Snapshot::arrivalSequence),
-                RUNTIME_STATE_CODEC.forGetter(snapshot -> Pair.of(snapshot.homeNodes(), snapshot.mechanics()))
+                RUNTIME_STATE_CODEC.forGetter(snapshot -> Pair.of(snapshot.travelDirection(),
+                        Pair.of(snapshot.homeNodes(), snapshot.mechanics())))
         ).apply(instance, (id, dimension, nodes, positions, protectedArea, startNodes, phase, participants,
                            turnOrder, turnIndex, round, turnStarted, protectionEnabled, keepAfterGame,
                            arrivalSequence, runtimeState) -> new Snapshot(
-                id, dimension, nodes, positions, protectedArea, startNodes, phase, participants, turnOrder,
+                id, dimension, nodes, positions, protectedArea, startNodes, runtimeState.getFirst(), phase, participants, turnOrder,
                 turnIndex, round, turnStarted, protectionEnabled, keepAfterGame, arrivalSequence,
-                runtimeState.getFirst(), runtimeState.getSecond())));
+                runtimeState.getSecond().getFirst(), runtimeState.getSecond().getSecond())));
 
         public Snapshot {
             nodes = Map.copyOf(nodes);
             positions = Map.copyOf(positions);
             startNodes = List.copyOf(startNodes);
+            travelDirection = travelDirection == null ? BoardTravelDirection.CLOCKWISE : travelDirection;
             participants = List.copyOf(participants);
             turnOrder = List.copyOf(turnOrder);
             homeNodes = Map.copyOf(homeNodes);

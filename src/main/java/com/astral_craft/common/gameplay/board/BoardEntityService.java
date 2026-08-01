@@ -61,11 +61,7 @@ public class BoardEntityService {
         if (instance != null) instance.setBaseValue(participant.stats().maxHealth());
         entity.setHealth(Math.max(1.0F, participant.stats().health()));
         entity.setPos(pos.getX() + 0.5D, pos.getY() + 0.12D, pos.getZ() + 0.5D);
-        BoardNode spawnNode = session.nodes().get(participant.currentNodeKey());
-        if (spawnNode != null && !spawnNode.next().isEmpty()) {
-            BlockPos firstTarget = session.positions().get(spawnNode.next().getFirst());
-            if (firstTarget != null) entity.setBoardDirection(directionBetween(pos, firstTarget));
-        }
+        entity.setBoardDirection(BoardRouteService.travelDirection(session, participant));
         entity.setPersistenceRequired();
         level.addFreshEntity(entity);
         BoardParticipant spawned = participant.withEntity(entity.getUUID());
