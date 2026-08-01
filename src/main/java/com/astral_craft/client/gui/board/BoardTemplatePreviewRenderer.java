@@ -1,34 +1,29 @@
 package com.astral_craft.client.gui.board;
 
-import com.astral_craft.client.render.effect.EffectRenderGeometry;
 import com.astral_craft.common.gameplay.board.BoardTemplateData;
 import com.astral_craft.common.gameplay.board.BoardTemplatePlacement;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.Identifier;
+import net.minecraft.gizmos.Gizmos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 
 /** Ground footprint preview for a saved one-use board projector. */
 public class BoardTemplatePreviewRenderer {
 
-    private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final int VALID_GLOW_COLOR = 0xA040FF72;
+    private static final int VALID_GLOW_COLOR = 0x8040FF72;
     private static final int VALID_CORE_COLOR = 0xFFB8FFC9;
-    private static final int INVALID_GLOW_COLOR = 0xA0FF3D4F;
+    private static final int INVALID_GLOW_COLOR = 0x80FF3D4F;
     private static final int INVALID_CORE_COLOR = 0xFFFFB8C0;
-    private static final double GLOW_HALF_WIDTH = 0.055D;
-    private static final double CORE_HALF_WIDTH = 0.018D;
+    private static final float GLOW_WIDTH = 5.0F;
+    private static final float CORE_WIDTH = 2.25F;
 
-    public static void submit(SubmitCustomGeometryEvent event) {
+    public static void submit() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui
                 || minecraft.screen != null || !(minecraft.hitResult instanceof BlockHitResult hitResult)
@@ -50,20 +45,18 @@ public class BoardTemplatePreviewRenderer {
                 && !BoardProtectionWorldRenderer.intersects(BoardTemplatePlacement.boardArea(groundPos, facing, template));
         int glowColor = valid ? VALID_GLOW_COLOR : INVALID_GLOW_COLOR;
         int coreColor = valid ? VALID_CORE_COLOR : INVALID_CORE_COLOR;
-        Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
-        PoseStack poseStack = event.getPoseStack();
         for (int x = 0; x <= template.width(); x++) {
             Vec3 start = corner.add(axisX.scale(x));
             Vec3 end = start.add(axisZ.scale(template.depth()));
-            submitLine(event, poseStack, cameraPos, start, end, glowColor, GLOW_HALF_WIDTH);
-            submitLine(event, poseStack, cameraPos, start, end, coreColor, CORE_HALF_WIDTH);
+            submitLine(start, end, glowColor, GLOW_WIDTH);
+            submitLine(start, end, coreColor, CORE_WIDTH);
         }
 
         for (int z = 0; z <= template.depth(); z++) {
             Vec3 start = corner.add(axisZ.scale(z));
             Vec3 end = start.add(axisX.scale(template.width()));
-            submitLine(event, poseStack, cameraPos, start, end, glowColor, GLOW_HALF_WIDTH);
-            submitLine(event, poseStack, cameraPos, start, end, coreColor, CORE_HALF_WIDTH);
+            submitLine(start, end, glowColor, GLOW_WIDTH);
+            submitLine(start, end, coreColor, CORE_WIDTH);
         }
     }
 
@@ -74,24 +67,9 @@ public class BoardTemplatePreviewRenderer {
         return offhand.is(AstralItems.BOARD_PROJECTOR.get()) ? offhand : ItemStack.EMPTY;
     }
 
-    private static void submitLine(SubmitCustomGeometryEvent event, PoseStack poseStack, Vec3 cameraPos,
-                                   Vec3 start, Vec3 end, int color, double halfWidth) {
-        Vec3 direction = end.subtract(start);
-        if (direction.lengthSqr() < 1.0E-8D) return;
-        direction = direction.normalize();
-        Vec3 side = new Vec3(-direction.z, 0.0D, direction.x).scale(halfWidth);
-        Vec3 a = start.subtract(side).subtract(cameraPos);
-        Vec3 b = end.subtract(side).subtract(cameraPos);
-        Vec3 c = end.add(side).subtract(cameraPos);
-        Vec3 d = start.add(side).subtract(cameraPos);
-        event.getSubmitNodeCollector().order(8).submitCustomGeometry(
-                poseStack, RenderTypes.entityTranslucentEmissive(TEXTURE), (pose, consumer) -> {
-                    Vec3 normal = new Vec3(0.0D, 1.0D, 0.0D);
-                    EffectRenderGeometry.vertex(consumer, pose, a, color, 0.0F, 0.0F, normal);
-                    EffectRenderGeometry.vertex(consumer, pose, b, color, 1.0F, 0.0F, normal);
-                    EffectRenderGeometry.vertex(consumer, pose, c, color, 1.0F, 1.0F, normal);
-                    EffectRenderGeometry.vertex(consumer, pose, d, color, 0.0F, 1.0F, normal);
-                });
+    private static void submitLine(Vec3 start, Vec3 end, int color, float width) {
+        if (start.distanceToSqr(end) < 1.0E-8D) return;
+        Gizmos.line(start, end, color, width).setAlwaysOnTop();
     }
 
 }

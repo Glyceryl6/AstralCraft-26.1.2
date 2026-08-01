@@ -32,6 +32,7 @@ import com.astral_craft.common.network.c2s.RequestCharacterSkillPayload;
 import com.astral_craft.common.network.c2s.RequestHandCardDeckPayload;
 import com.astral_craft.common.network.s2c.*;
 import com.astral_craft.common.registry.AstralEntities;
+import net.minecraft.gizmos.Gizmos;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -136,10 +137,15 @@ public class ClientEventSubscriber {
     public static void submitWorldGeometry(SubmitCustomGeometryEvent event) {
         CardRevealWorldRenderer.submit(event);
         PlatformTooltipWorldRenderer.submit(event);
-        BoardRouteWorldRenderer.submit(event);
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level != null) {
+            try (Gizmos.TemporaryCollection ignored = minecraft.levelRenderer.collectPerFrameGizmos()) {
+                BoardRouteWorldRenderer.submit();
+                BoardTemplatePreviewRenderer.submit();
+            }
+        }
         BoardProtectionWorldRenderer.submit(event);
         BoardCharacterMarkerRenderer.submit(event);
-        BoardTemplatePreviewRenderer.submit(event);
         CustomPaintingPreviewRenderer.submit(event);
     }
 
