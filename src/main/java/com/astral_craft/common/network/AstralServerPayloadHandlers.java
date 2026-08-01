@@ -3,6 +3,7 @@ package com.astral_craft.common.network;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.blocks.platform.GamblePlatform;
 import com.astral_craft.common.blocks.platform.LotteryPlatform;
+import com.astral_craft.common.blocks.platform.RelicPlatform;
 import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.components.CustomPaintingData;
@@ -65,7 +66,7 @@ public class AstralServerPayloadHandlers {
     public static void handleChipSelection(ChipSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                ChipSelectionService.choose(player, payload.chipId());
+                ChipSelectionService.choose(player, payload.boardId(), payload.chipId());
             }
         });
     }
@@ -81,7 +82,7 @@ public class AstralServerPayloadHandlers {
     public static void handleCardBackSelection(CardBackSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                CardBackPreferenceManager.select(player, payload.selectedId());
+                CardBackPreferenceManager.select(player, payload.selectedCardBackId(), payload.selectedDiceSkinId());
             }
         });
     }
@@ -265,6 +266,14 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 ShopPlatform.handleAction(player, payload.boardId(), payload.offerIndexes(), payload.leave());
+            }
+        });
+    }
+
+    public static void handleBoardRelicShop(BoardRelicShopActionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                RelicPlatform.handleAction(player, payload.boardId(), payload.buy());
             }
         });
     }

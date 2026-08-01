@@ -99,6 +99,11 @@ public class ClientEventSubscriber {
     }
 
     @SubscribeEvent
+    public static void registerSpecialModelRenderers(RegisterSpecialModelRendererEvent event) {
+        event.register(AstralCraft.prefix("dice"), AstralDiceSpecialRenderer.Unbaked.MAP_CODEC);
+    }
+
+    @SubscribeEvent
     public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
         event.register(LargeCuboidModelLoader.ID, LargeCuboidModelLoader.INSTANCE);
     }
@@ -205,6 +210,8 @@ public class ClientEventSubscriber {
             BoardGambleScreen.closePresentation(payload.boardId());
             BoardLotteryDrawScreen.closePresentation(payload.boardId());
             BoardHospitalScreen.closePresentation(payload.boardId());
+            BoardRelicShopScreen.closePresentation(payload.boardId());
+            ChipSelectionScreen.closePresentation(payload.boardId());
             TargetSelectionScreen.closePresentation(payload.boardId());
             BoardLotteryNumberScreen.closePresentation(payload.boardId());
             CardRevealOverlay.clear();
@@ -222,6 +229,7 @@ public class ClientEventSubscriber {
         event.register(CloseBoardPlatformTargetPayload.TYPE, TargetSelectionScreen::close);
         event.register(CloseBoardLotteryDrawPayload.TYPE, BoardLotteryDrawScreen::close);
         event.register(OpenBoardShopPayload.TYPE, BoardShopScreen::open);
+        event.register(OpenBoardRelicShopPayload.TYPE, BoardRelicShopScreen::open);
         event.register(OpenBoardPanelSelectionPayload.TYPE, BoardPanelSelectionScreen::open);
         event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
         event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);

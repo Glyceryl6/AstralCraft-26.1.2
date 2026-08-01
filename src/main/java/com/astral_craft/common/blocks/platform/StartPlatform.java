@@ -1,18 +1,23 @@
 package com.astral_craft.common.blocks.platform;
 
-import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
+import com.astral_craft.common.gameplay.board.BoardEntityService;
+import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
-import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
-import com.astral_craft.common.gameplay.board.BoardEntityService;
+import com.astral_craft.common.gameplay.chip.ChipDefinition;
+import com.astral_craft.common.gameplay.chip.ChipSelectionService;
+import com.astral_craft.common.network.s2c.CloseBoardPresentationPayload;
 import com.astral_craft.common.network.s2c.OpenBoardStartChoicePayload;
+import com.astral_craft.common.network.s2c.OpenChipSelectionPayload;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -21,12 +26,15 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class StartPlatform extends BasePlatform {
 
     public static final int TIMEOUT_TICKS = 20 * 10;
+    private static final int CHIP_TIMEOUT_TICKS = 20 * 25;
     private static final int[] STAR_COSTS = {0, 15, 30, 50};
     private final Map<UUID, StartChoiceState> choices = new HashMap<>();
     private final boolean checkpoint;
@@ -56,12 +64,13 @@ public class StartPlatform extends BasePlatform {
     }
 
     public static void choose(ServerPlayer player, UUID boardId, boolean stop) {
-        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> choose(player, session, stop));
+        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> active(session)
+                .ifPresent(platform -> platform.chooseInternal(player, session, stop)));
     }
 
-    private static void choose(ServerPlayer player, BoardSession session, boolean stop) {
-        BasePlatform.activeBoardEffect(session.id()).filter(StartPlatform.class::isInstance)
-                .map(StartPlatform.class::cast).ifPresent(platform -> platform.chooseInternal(player, session, stop));
+    @Override
+    public void handleBoardChipSelection(ServerPlayer player, BoardSession session, Identifier chipId) {
+        this.chooseChipInternal(player, session, chipId);
     }
 
     @Override
@@ -71,24 +80,41 @@ public class StartPlatform extends BasePlatform {
             this.deactivateBoardEffect(session.id());
             return;
         }
-
         if (AstralServerTickClock.now(level) < state.deadlineTick()) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
-        if (participant != null) {
-            BoardParticipant timedOut = participant.recordTimedOutDecision();
-            if (timedOut != participant) BoardSessionManager.updateParticipant(level, session, timedOut);
-            this.resolve(level, session, timedOut, false, false);
-        } else {
-            this.choices.remove(session.id());
-            this.deactivateBoardEffect(session.id());
+        if (participant == null) {
+            this.finish(level, session);
+            return;
         }
+        if (!BoardSessionManager.isAutomated(level, participant)) participant = participant.recordTimedOutDecision();
+        if (state.stage() == Stage.CHIP_SELECTION && !state.offers().isEmpty()) {
+            Identifier choice = state.offers().get(level.getRandom().nextInt(state.offers().size()));
+            participant = ChipSelectionService.applyBoardChoice(participant, state.offers(), choice, false);
+            BoardSessionManager.updateParticipant(level, session, participant);
+            this.finish(level, session);
+            return;
+        }
+        BoardSessionManager.updateParticipant(level, session, participant);
+        this.resolve(level, session, participant, false, false);
     }
 
     @Override
     protected void pendingParticipantBecameAutomated(ServerLevel level, BoardSession session, UUID slotId) {
         StartChoiceState state = this.choices.get(session.id());
         if (state == null || !state.slotId().equals(slotId)) return;
-        session.participant(slotId).ifPresent(participant -> this.resolve(level, session, participant, true, true));
+        BoardParticipant participant = session.participant(slotId).orElse(null);
+        if (participant == null) {
+            this.finish(level, session);
+            return;
+        }
+        if (state.stage() == Stage.CHIP_SELECTION && !state.offers().isEmpty()) {
+            Identifier choice = state.offers().get(level.getRandom().nextInt(state.offers().size()));
+            BoardSessionManager.updateParticipant(level, session,
+                    ChipSelectionService.applyBoardChoice(participant, state.offers(), choice, false));
+            this.finish(level, session);
+            return;
+        }
+        this.resolve(level, session, participant, true, true);
     }
 
     @Override
@@ -98,16 +124,23 @@ public class StartPlatform extends BasePlatform {
 
     private void chooseInternal(ServerPlayer player, BoardSession session, boolean stop) {
         StartChoiceState state = this.choices.get(session.id());
-        if (state == null) return;
+        if (state == null || state.stage() != Stage.STOP_CHOICE) return;
         BoardParticipant participant = session.participant(state.slotId()).orElse(null);
         if (participant == null || !participant.controlledBy(player.getUUID())) return;
-        BoardParticipant manual = participant.recordManualDecision();
-        if (manual != participant) {
-            BoardSessionManager.updateParticipant(player.level(), session, manual);
-            participant = manual;
-        }
-
+        participant = participant.recordManualDecision();
+        BoardSessionManager.updateParticipant(player.level(), session, participant);
         this.resolve(player.level(), session, participant, stop, stop);
+    }
+
+    private void chooseChipInternal(ServerPlayer player, BoardSession session, Identifier chipId) {
+        StartChoiceState state = this.choices.get(session.id());
+        if (state == null || state.stage() != Stage.CHIP_SELECTION || !state.offers().contains(chipId)) return;
+        BoardParticipant participant = session.participant(state.slotId()).orElse(null);
+        if (participant == null || !participant.controlledBy(player.getUUID())) return;
+        BoardParticipant updated = ChipSelectionService.applyBoardChoice(participant.recordManualDecision(),
+                state.offers(), chipId, false);
+        BoardSessionManager.updateParticipant(player.level(), session, updated);
+        this.finish(player.level(), session);
     }
 
     private void arrive(BoardPanelContext context) {
@@ -117,7 +150,6 @@ public class StartPlatform extends BasePlatform {
             this.resolve(context.level(), context.session(), context.participant(), true, false);
             return;
         }
-
         if (!this.checkpoint && !context.session().canStopAtStart(context.participant(), context.participant().currentNodeKey())) return;
         if (BoardSessionManager.isAutomated(context.level(), context.participant())) {
             this.resolve(context.level(), context.session(), context.participant(), true, true);
@@ -128,15 +160,13 @@ public class StartPlatform extends BasePlatform {
 
     private void open(ServerLevel level, BoardSession session, BoardParticipant participant) {
         if (this.choices.containsKey(session.id())) return;
-        ServerPlayer player = participant.controllerUuid()
-                .map(level.getServer().getPlayerList()::getPlayer).orElse(null);
+        ServerPlayer player = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (player == null) {
             this.resolve(level, session, participant, true, true);
             return;
         }
-
         int duration = participant.decisionDurationTicks(TIMEOUT_TICKS);
-        this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(),
+        this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(), Stage.STOP_CHOICE, List.of(),
                 AstralServerTickClock.now(level) + duration, duration));
         this.activateBoardEffect(session);
         PacketDistributor.sendToPlayer(player, new OpenBoardStartChoicePayload(session.id(),
@@ -146,10 +176,11 @@ public class StartPlatform extends BasePlatform {
     }
 
     private void resolve(ServerLevel level, BoardSession session, BoardParticipant participant, boolean stop, boolean settleArrival) {
-        this.choices.remove(session.id());
-        this.deactivateBoardEffect(session.id());
         BoardSession.MovementState movement = session.movement();
-        if (movement == null || !movement.slotId().equals(participant.slotUuid())) return;
+        if (movement == null || !movement.slotId().equals(participant.slotUuid())) {
+            this.finish(level, session);
+            return;
+        }
         if (stop) {
             session.setMovement(movement.stop());
             if (settleArrival) {
@@ -160,17 +191,16 @@ public class StartPlatform extends BasePlatform {
                     participant = session.participant(participant.slotUuid()).orElse(participant);
                 }
             }
-
             if (!participant.knockedDown()) {
-                BoardParticipant updated = this.applyBenefits(level, session, participant);
-                if (this.checkVictory(level, session, updated)) return;
+                BenefitResult result = this.applyBenefits(level, session, participant);
+                if (this.checkVictory(level, session, result.participant())) return;
+                if (result.leveled() && this.beginChipSelection(level, session, result.participant())) return;
             }
         }
-
-        BoardSessionManager.resumeMovementAfterPanel(level, session);
+        this.finish(level, session);
     }
 
-    private BoardParticipant applyBenefits(ServerLevel level, BoardSession session, BoardParticipant participant) {
+    private BenefitResult applyBenefits(ServerLevel level, BoardSession session, BoardParticipant participant) {
         var stats = participant.stats().heal(2);
         int cost = nextStarCost(stats.stars());
         boolean leveled = cost > 0 && stats.starCoins() >= cost && stats.stars() < 3;
@@ -180,18 +210,37 @@ public class StartPlatform extends BasePlatform {
         ServerPlayer player = updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (leveled) {
             var entity = BoardEntityService.entity(level, updated);
-            if (entity != null) level.playSound(null, entity.blockPosition(),
-                    SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.05F);
+            if (entity != null) level.playSound(null, entity.blockPosition(), SoundEvents.PLAYER_LEVELUP,
+                    SoundSource.PLAYERS, 1.0F, 1.05F);
         }
-
         if (player != null) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_healed", 2), true);
-            if (leveled) {
-                player.sendSystemMessage(Component.translatable("message.astral_craft.board.star_up_with_cost", stats.stars(), cost).withStyle(ChatFormatting.GOLD), true);
-            }
+            if (leveled) player.sendSystemMessage(Component.translatable(
+                    "message.astral_craft.board.star_up_with_cost", stats.stars(), cost).withStyle(ChatFormatting.GOLD), true);
         }
+        return new BenefitResult(updated, leveled);
+    }
 
-        return updated;
+    private boolean beginChipSelection(ServerLevel level, BoardSession session, BoardParticipant participant) {
+        List<ChipDefinition> choices = ChipSelectionService.rollBoardChoices(level.getRandom(), participant,
+                true, Optional.empty());
+        if (choices.isEmpty()) return false;
+        List<Identifier> offers = choices.stream().map(ChipDefinition::registryId).toList();
+        if (BoardSessionManager.isAutomated(level, participant)) {
+            Identifier choice = offers.get(level.getRandom().nextInt(offers.size()));
+            BoardSessionManager.updateParticipant(level, session,
+                    ChipSelectionService.applyBoardChoice(participant, offers, choice, false));
+            return false;
+        }
+        ServerPlayer player = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
+        if (player == null) return false;
+        int duration = participant.decisionDurationTicks(CHIP_TIMEOUT_TICKS);
+        this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(), Stage.CHIP_SELECTION, offers,
+                AstralServerTickClock.now(level) + duration, duration));
+        this.activateBoardEffect(session);
+        PacketDistributor.sendToPlayer(player, new OpenChipSelectionPayload(session.id(),
+                ChipSelectionService.toViews(choices), duration, duration));
+        return true;
     }
 
     private boolean checkVictory(ServerLevel level, BoardSession session, BoardParticipant participant) {
@@ -201,18 +250,30 @@ public class StartPlatform extends BasePlatform {
             MutableComponent component = Component.translatable("message.astral_craft.board.victory", winner);
             player.sendSystemMessage(component.withStyle(ChatFormatting.GOLD), false);
         }
-
         var winnerEntity = BoardEntityService.entity(level, participant);
-        if (winnerEntity != null) {
-            level.playSound(null, winnerEntity.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2F, 0.95F);
-        }
-
+        if (winnerEntity != null) level.playSound(null, winnerEntity.blockPosition(), SoundEvents.PLAYER_LEVELUP,
+                SoundSource.PLAYERS, 1.2F, 0.95F);
         BoardHudSyncManager.announce(level, session,
                 Component.translatable("message.astral_craft.board.announcement.victory",
                         Component.literal(winner).withStyle(ChatFormatting.GOLD)), Component.empty(),
                 BoardHudSyncManager.VICTORY_SOUND, 80);
+        this.choices.remove(session.id());
+        this.deactivateBoardEffect(session.id());
         BoardSessionManager.endGame(level, session, true);
         return true;
+    }
+
+    private void finish(ServerLevel level, BoardSession session) {
+        this.choices.remove(session.id());
+        this.deactivateBoardEffect(session.id());
+        for (ServerPlayer player : BoardSessionManager.humanPlayers(level, session)) {
+            PacketDistributor.sendToPlayer(player, new CloseBoardPresentationPayload(session.id()));
+        }
+        BoardSessionManager.resumeMovementAfterPanel(level, session);
+    }
+
+    private static Optional<StartPlatform> active(BoardSession session) {
+        return activeBoardEffect(session.id()).filter(StartPlatform.class::isInstance).map(StartPlatform.class::cast);
     }
 
     public static int nextStarCost(int stars) {
@@ -220,6 +281,18 @@ public class StartPlatform extends BasePlatform {
         return next >= 3 && stars >= 3 ? 0 : STAR_COSTS[next];
     }
 
-    private record StartChoiceState(UUID slotId, long deadlineTick, int durationTicks) {}
+    private enum Stage {
+        STOP_CHOICE,
+        CHIP_SELECTION
+    }
+
+    private record StartChoiceState(UUID slotId, Stage stage, List<Identifier> offers,
+                                    long deadlineTick, int durationTicks) {
+        private StartChoiceState {
+            offers = List.copyOf(offers);
+        }
+    }
+
+    private record BenefitResult(BoardParticipant participant, boolean leveled) {}
 
 }

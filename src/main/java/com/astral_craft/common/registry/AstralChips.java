@@ -4,6 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.chip.AstralBuiltinChips;
 import com.astral_craft.common.gameplay.chip.ChipDefinition;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -28,7 +29,11 @@ public class AstralChips {
     }
 
     public static Optional<ChipDefinition> get(String id) {
-        return Optional.ofNullable(REGISTRY.getValue(AstralCraft.prefix(id)));
+        return get(AstralCraft.prefix(id));
+    }
+
+    public static Optional<ChipDefinition> get(Identifier id) {
+        return Optional.ofNullable(id == null ? null : REGISTRY.getValue(id));
     }
 
     public static Collection<DeferredHolder<ChipDefinition, ? extends ChipDefinition>> allHolders() {

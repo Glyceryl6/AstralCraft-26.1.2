@@ -14,7 +14,9 @@ import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
+import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.dice.AstralDiceRollService;
+import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
@@ -346,7 +348,8 @@ public class BoardSessionManager {
                 humanPlayers(player.level(), session));
         if (cooldown < 0) return;
         BoardParticipant refreshed = session.participant(participant.slotUuid()).orElse(participant);
-        BoardParticipant updated = refreshed.recordManualDecision().withSkillCooldown(cooldown);
+        int adjustedCooldown = Math.max(0, cooldown - ChipSelectionService.skillCooldownReduction(refreshed));
+        BoardParticipant updated = refreshed.recordManualDecision().withSkillCooldown(adjustedCooldown);
         updateParticipant(player.level(), session, updated);
         sendTurnScreen(player, session, updated, entity);
     }
@@ -421,6 +424,7 @@ public class BoardSessionManager {
         Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
         ItemStack stack = new ItemStack(item);
         BoardParticipant updated = participant.recordManualDecision().removeCard(index).useCardPlay();
+        updated = ChipSelectionService.afterEffectCardPlayed(updated);
         updateParticipant(player.level(), session, updated);
         CharacterManager.INSTANCE.character(updated.characterId()).onBoardEffectCardUsed(player.level(), session, updated, stack);
     }
@@ -805,9 +809,10 @@ public class BoardSessionManager {
         if (current == null) return;
         boolean wasKnockedDown = current.knockedDown();
         boolean hospitalized = current.hasRoundStatusEffect(HospitalPlatform.HOSPITALIZED_STATUS);
-        int turnStartHealing = current.stats().turnStartHealing();
-        int turnStartDamage = current.stats().turnStartDamage();
-        BoardParticipant next = current.beginTurn();
+        BoardParticipant prepared = ChipSelectionService.beforeTurnStart(current);
+        int turnStartHealing = prepared.stats().turnStartHealing();
+        int turnStartDamage = prepared.stats().turnStartDamage();
+        BoardParticipant next = prepared.beginTurn();
         updateParticipant(level, session, next);
         if (!wasKnockedDown && !next.knockedDown() && turnStartHealing > 0) {
             int previousHealth = next.stats().health();
@@ -920,6 +925,8 @@ public class BoardSessionManager {
         total = Math.max(0, total + participant.stats().speed());
         AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
                 entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
+        participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
+                .ifPresent(player -> dice.setTexture(DiceSkinPreferenceManager.selectedTexture(player)));
         dice.setBoardSessionId(session.id());
         dice.startRoll(1, fixed > 0 ? fixed : 10, AstralDiceRollService.DEFAULT_ROLL_TICKS,
                 AstralDiceRollService.DEFAULT_SPIN_SPEED, fixed > 0 ? fixed : Math.max(1, total / diceCount),
@@ -938,6 +945,8 @@ public class BoardSessionManager {
         int result = Mth.nextInt(level.getRandom(), 1, 6);
         AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
                 entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
+        participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
+                .ifPresent(player -> dice.setTexture(DiceSkinPreferenceManager.selectedTexture(player)));
         dice.setBoardSessionId(session.id());
         dice.startRoll(1, 6, AstralDiceRollService.DEFAULT_ROLL_TICKS,
                 AstralDiceRollService.DEFAULT_SPIN_SPEED, result, result, 0,
@@ -1155,6 +1164,7 @@ public class BoardSessionManager {
             if (definition.needsTarget() && targetSlotIds.isEmpty()) continue;
             BoardParticipant current = session.participant(participant.slotUuid()).orElse(participant);
             BoardParticipant used = current.removeCard(handIndex).useCardPlay();
+            used = ChipSelectionService.afterEffectCardPlayed(used);
             updateParticipant(level, session, used);
             CharacterManager.INSTANCE.character(used.characterId()).onBoardEffectCardUsed(level, session, used, stack);
             long executeTick = AstralServerTickClock.now(level) + CardUseService.CARD_REVEAL_DURATION_TICKS + 2L;
@@ -1405,7 +1415,7 @@ public class BoardSessionManager {
         if (participant != null) {
             AstralCharacterEntity turnEntity = BoardEntityService.entity(level, participant);
             if (turnEntity != null) CharacterManager.INSTANCE.character(participant.characterId()).onBoardTurnEnd(turnEntity);
-            BoardParticipant ended = participant.endTurn();
+            BoardParticipant ended = ChipSelectionService.afterTurnEnd(level, participant.endTurn());
             session.putParticipant(ended);
             BoardEntityService.syncState(level, ended);
             HandcardSoulLink.tickBoardLinks(level, session);

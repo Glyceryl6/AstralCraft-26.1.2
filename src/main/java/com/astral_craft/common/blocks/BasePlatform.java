@@ -120,6 +120,8 @@ public class BasePlatform extends Block {
 
     public void handleBoardTargetSelection(ServerPlayer player, BoardSession session, int entityId) {}
 
+    public void handleBoardChipSelection(ServerPlayer player, BoardSession session, Identifier chipId) {}
+
     public boolean protectsBoardParticipant() {
         return false;
     }
