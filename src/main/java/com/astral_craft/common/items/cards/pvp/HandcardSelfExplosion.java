@@ -32,6 +32,7 @@ public class HandcardSelfExplosion extends BaseHandCard implements BoardBotEffec
             if (entity != null) {
                 BoardWorldObjectService.playExplosion(user.level(), entity.getX(), entity.getY() + 0.8D, entity.getZ());
             }
+
             for (BoardParticipant target : session.participants()) {
                 if (target.slotUuid().equals(source.slotUuid()) || target.knockedDown()) continue;
                 int distance = BoardRouteService.graphDistance(session, source.currentNodeKey(),
@@ -40,6 +41,7 @@ public class HandcardSelfExplosion extends BaseHandCard implements BoardBotEffec
                     BoardSessionManager.damageFromEffect(user.level(), session, target.slotUuid(), 5);
                 }
             }
+
             BoardSessionManager.damageFromEffect(user.level(), session, source.slotUuid(), 3);
             return true;
         }
@@ -52,7 +54,7 @@ public class HandcardSelfExplosion extends BaseHandCard implements BoardBotEffec
 
     @Override
     public List<UUID> selectBoardBotTargets(BoardBotEffectContext context) {
-        return context.opponentSlotsInRange(DEFINITION.range());
+        return List.of();
     }
 
     @Override
@@ -61,8 +63,10 @@ public class HandcardSelfExplosion extends BaseHandCard implements BoardBotEffec
         if (source != null) {
             BoardWorldObjectService.playExplosion(context.level(), source.getX(), source.getY() + 0.8D, source.getZ());
         }
-        for (UUID targetSlotId : context.targetSlotIds()) context.damageTarget(targetSlotId, 5, false);
+
+        for (UUID targetSlotId : context.opponentSlotsInRange(DEFINITION.range())) context.damageTarget(targetSlotId, 5, false);
         context.damageUser(3);
         return 0;
     }
+
 }

@@ -64,8 +64,7 @@ public class PendingCounterEffectManager {
         if (source == null || sourceStack.isEmpty() || definition == null || resolver == null) return false;
         List<LivingEntity> capturedTargets = List.copyOf(targets == null ? List.of() : targets);
         int delay = Math.max(0, effectDelayTicks);
-        if (capturedTargets.size() != 1 || !(capturedTargets.getFirst() instanceof AstralCharacterEntity target)
-                || !target.isBoardPawn()) {
+        if (capturedTargets.size() != 1 || !(capturedTargets.getFirst() instanceof AstralCharacterEntity target)) {
             scheduleBoardEffect(source, capturedTargets, resolver, delay);
             return false;
         }
@@ -276,8 +275,8 @@ public class PendingCounterEffectManager {
         releaseReveal(chain);
         BoardCounterContext context = new BoardCounterContext(chain, target, responder, responderEntity,
                 counterStack, counterDefinition);
-        counter.resolveBoardCounter(context);
-        return context.handled();
+        context.present(counter);
+        return true;
     }
 
     private static void scheduleBoardEffect(ServerPlayer source, List<LivingEntity> targets, BoardCardResolver resolver, int delayTicks) {
@@ -523,16 +522,21 @@ public class PendingCounterEffectManager {
             this.finish(randomOtherBoardTarget(this.chain, this.responder));
         }
 
+        private void present(CounterCardBehavior counter) {
+            broadcastCounterReveal(this.chain, this.controller, this.responderEntity, this.stack,
+                    this.definition, null);
+            this.handled = true;
+            schedule(this.chain, CardUseService.CARD_REVEAL_DURATION_TICKS, () -> counter.resolveBoardCounter(this));
+        }
+
         private void finish(BoardParticipant redirectedTarget) {
             AstralCharacterEntity redirectedEntity = redirectedTarget == null ? null
                     : BoardEntityService.entity(this.chain.level(), redirectedTarget);
-            broadcastCounterReveal(this.chain, this.controller, this.responderEntity, this.stack,
-                    this.definition, redirectedEntity);
             if (redirectedTarget == null || redirectedEntity == null) {
-                schedule(this.chain, CardUseService.CARD_REVEAL_DURATION_TICKS, () -> completeBoardCard(this.chain));
+                completeBoardCard(this.chain);
             } else {
                 PendingBoardCounter redirected = this.chain.withTarget(redirectedTarget.slotUuid(), true);
-                schedule(this.chain, CardUseService.CARD_REVEAL_DURATION_TICKS, () -> presentBoardTarget(redirected, true));
+                presentBoardTarget(redirected, true);
             }
             this.handled = true;
         }
