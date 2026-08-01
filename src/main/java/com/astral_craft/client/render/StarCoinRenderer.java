@@ -18,7 +18,7 @@ public class StarCoinRenderer extends EntityRenderer<StarCoinEntity, StarCoinRen
 
     public StarCoinRenderer(EntityRendererProvider.Context context) {
         super(context);
-        this.shadowRadius = 0.12F;
+        this.shadowRadius = 0.22F;
     }
 
     @Override
@@ -37,18 +37,25 @@ public class StarCoinRenderer extends EntityRenderer<StarCoinEntity, StarCoinRen
 
     @Override
     public void submit(StarCoinRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState cameraState) {
-        int layers = state.kind == StarCoinEntity.Kind.PILE ? Math.clamp(state.amount, 1, 6) : 1;
-        float size = state.kind == StarCoinEntity.Kind.PILE ? Math.min(0.18F, 0.11F + Math.max(0, state.amount - 1) * 0.008F) : 0.12F;
+        int layers = state.kind == StarCoinEntity.Kind.PILE ? Math.clamp(state.amount, 1, 5) : 1;
+        float size = state.kind == StarCoinEntity.Kind.PILE
+                ? Math.min(0.24F, 0.20F + Math.max(0, state.amount - 1) * 0.004F) : 0.15F;
         int alpha = state.kind == StarCoinEntity.Kind.LOSS
                 ? Math.clamp(Math.round((1.0F - state.progress) * 255.0F), 0, 255) : 255;
         if (state.kind == StarCoinEntity.Kind.LOSS) size *= 1.0F - state.progress * 0.4F;
         for (int layer = 0; layer < layers; layer++) {
             poseStack.pushPose();
             double bob = state.kind == StarCoinEntity.Kind.PILE
-                    ? Math.sin((state.age + layer * 2.0F) * 0.12F) * 0.006D
+                    ? Math.sin((state.age + layer * 2.0F) * 0.12F) * 0.008D
                     : Math.sin(state.age * 0.16F) * 0.045D;
-            poseStack.translate(0.0D, layer * 0.034D + bob, 0.0D);
-            poseStack.mulPose(Axis.YP.rotationDegrees(state.age * (state.kind == StarCoinEntity.Kind.PILE ? 2.0F : 7.0F) + layer * 23.0F));
+            if (state.kind == StarCoinEntity.Kind.PILE && layers > 1) {
+                double angle = Math.PI * 2.0D * layer / layers + state.age * 0.008D;
+                double radius = layers == 2 ? 0.16D : 0.21D;
+                poseStack.translate(Math.cos(angle) * radius, bob + layer % 2 * 0.035D, Math.sin(angle) * radius);
+            } else {
+                poseStack.translate(0.0D, bob, 0.0D);
+            }
+            poseStack.mulPose(Axis.YP.rotationDegrees(state.age * (state.kind == StarCoinEntity.Kind.PILE ? 2.0F : 7.0F) + layer * 29.0F));
             submitCoin(poseStack, collector, size, alpha);
             poseStack.popPose();
         }
