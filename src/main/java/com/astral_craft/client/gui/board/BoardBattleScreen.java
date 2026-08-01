@@ -434,7 +434,7 @@ public class BoardBattleScreen extends Screen {
     private void renderFraction(GuiGraphicsExtractor graphics, int numerator, int denominator, int centerX,
                                 int centerY, boolean attack, int flashTicks) {
         this.renderNumberBox(graphics, centerX, centerY, attack);
-        int drawColor = flashTicks > 0 && Math.floorMod(flashTicks / 2, 2) == 0 ? 0xFFFFFFFF : 0xFF080808;
+        int drawColor = 0xFF080808;
         float scale = 1.0F + (flashTicks > 0 ? 0.08F * flashTicks / 7.0F : 0.0F);
         Component top = Component.literal(Integer.toString(numerator)).withStyle(ChatFormatting.BOLD);
         Component bottom = Component.literal(Integer.toString(denominator)).withStyle(ChatFormatting.BOLD);
@@ -484,19 +484,9 @@ public class BoardBattleScreen extends Screen {
     }
 
     private int animatedValueColor(boolean attack) {
-        boolean flash = false;
-        if (this.view.defenderRolling()) {
-            int rollAge = this.defenderRollAge();
-            if (!attack && rollAge >= 0 && rollAge < DICE_FLASH_END_TICK) {
-                flash = Math.floorMod(rollAge, 4) < 2;
-            } else if (this.view.defenseMode() == DefenseMode.EVADE) {
-                flash = !this.view.evaded() && Math.abs(this.phaseAgeTicks - EVADE_FAILURE_STAGE_TICK) <= 4;
-            } else if (rollAge >= DICE_FLASH_END_TICK) {
-                flash = Math.abs(this.phaseAgeTicks - BASE_VALUE_STAGE_TICK) <= 4 || Math.abs(this.phaseAgeTicks - CARD_VALUE_STAGE_TICK) <= 4;
-            }
-        }
-
-        if (flash && Math.floorMod(this.phaseAgeTicks, 4) < 2) return 0xFFFFFFFF;
+        int die = attack ? this.view.attackerDie() : this.view.defenderDie();
+        int age = this.maximumDiceEffectAge(attack);
+        if (die == 6 && age >= 0 && age <= 12 && Math.floorMod(age, 4) < 2) return 0xFFFFFFFF;
         return 0xFF080808;
     }
 
