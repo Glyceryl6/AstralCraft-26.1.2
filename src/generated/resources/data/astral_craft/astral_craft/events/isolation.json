@@ -10,7 +10,7 @@
       "type": "astral_craft:board_for_each_participant",
       "effects": [
         {
-          "type": "astral_craft:board_status",
+          "type": "astral_craft:board_round_status",
           "status": "astral_craft:hospitalized"
         }
       ]

@@ -11,8 +11,18 @@
         },
         {
           "type": "astral_craft:board_status",
-          "status": "astral_craft:event_equality_guard",
-          "turns": 2147483647
+          "buff": {
+            "buff": "astral_craft:incoming_damage",
+            "consume_after_incoming_damage": true,
+            "display_name": {
+              "translate": "board_buff.astral_craft.equality_guard"
+            },
+            "duration": -1,
+            "fresh": true,
+            "icon": "astral_craft:textures/gui/board_buff/equality_guard.png",
+            "id": "astral_craft:equality_guard/incoming_damage",
+            "value": -10
+          }
         }
       ]
     }

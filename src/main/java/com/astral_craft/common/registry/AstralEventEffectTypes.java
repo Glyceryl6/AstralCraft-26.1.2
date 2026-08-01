@@ -40,6 +40,7 @@ public class AstralEventEffectTypes {
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardCoinEventEffect>> BOARD_COINS = register("board_coins", BoardCoinEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardMoveDiceEventEffect>> BOARD_MOVE_DICE = register("board_move_dice", BoardMoveDiceEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardStatusEventEffect>> BOARD_STATUS = register("board_status", BoardStatusEventEffect.CODEC);
+    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardRoundStatusEventEffect>> BOARD_ROUND_STATUS = register("board_round_status", BoardRoundStatusEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardSetHealthEventEffect>> BOARD_SET_HEALTH = register("board_set_health", BoardSetHealthEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardHandEventEffect>> BOARD_HAND = register("board_hand", BoardHandEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardTrapEventEffect>> BOARD_TRAP = register("board_trap", BoardTrapEventEffect.CODEC);

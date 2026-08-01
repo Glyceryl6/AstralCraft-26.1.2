@@ -58,32 +58,40 @@ public record BoardHandEventEffect(Action action, Optional<Holder<Item>> item, i
                         hand.remove(target.level().getRandom().nextInt(hand.size()));
                     }
                 }
+
                 case GIVE_RANDOM -> {
                     for (int index = 0; index < safeCount; index++) {
                         BoardSessionManager.randomPvpCardId(target.level()).ifPresent(hand::add);
                     }
                 }
+
                 case GIVE_FIXED -> this.item.map(Holder::value).map(BuiltInRegistries.ITEM::getKey).ifPresent(cardId -> {
                     for (int index = 0; index < safeCount; index++) hand.add(cardId);
                 });
             }
+
             BoardSessionManager.updateParticipant(target.level(), target.session(), participant.withHand(hand));
         });
     }
 
     public enum Action implements StringRepresentable {
-        GIVE_FIXED("give_fixed"), GIVE_RANDOM("give_random"), DISCARD_RANDOM("discard_random");
+
+        GIVE_FIXED("give_fixed"),
+        GIVE_RANDOM("give_random"),
+        DISCARD_RANDOM("discard_random");
 
         public static final Codec<Action> CODEC = StringRepresentable.fromEnum(Action::values);
-        private final String serializedName;
+        private final String name;
 
-        Action(String serializedName) {
-            this.serializedName = serializedName;
+        Action(String name) {
+            this.name = name;
         }
 
         @Override
         public String getSerializedName() {
-            return this.serializedName;
+            return this.name;
         }
+
     }
+
 }

@@ -7,8 +7,16 @@
       "effects": [
         {
           "type": "astral_craft:board_status",
-          "status": "astral_craft:event_leaking_pocket",
-          "turns": 2147483647
+          "buff": {
+            "buff": "astral_craft:leaking_pocket",
+            "display_name": {
+              "translate": "board_buff.astral_craft.leaking_pocket"
+            },
+            "duration": -1,
+            "fresh": true,
+            "icon": "astral_craft:textures/gui/board_buff/leaking_pocket.png",
+            "id": "astral_craft:leaking_pocket"
+          }
         }
       ]
     }

@@ -40,6 +40,7 @@ public class AstralEventBootstrap {
     public static final ResourceKey<AstralEventDefinition> IT_IS_WAR = key("it_is_war");
     public static final ResourceKey<AstralEventDefinition> EQUALITY = key("equality");
     public static final ResourceKey<AstralEventDefinition> SWITCHEROO = key("switcheroo");
+    private static final Identifier EQUALITY_GUARD_BUFF = AstralCraft.prefix("equality_guard");
     public static final List<ResourceKey<AstralEventDefinition>> BOARD_EVENTS = List.of(
             REDISTRIBUTION, HASTE, PHILANTHROPY, SERVER_BUG, FOOD_SAFETY, LOTTERY,
             MY_GODDESS, DEAFENING_NOISE, CARD_DESTRUCTION, BIG_SALES, CROWD,
@@ -67,15 +68,18 @@ public class AstralEventBootstrap {
                 List.of(all(new BoardCoinEventEffect(3), new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 1))), List.of()));
         context.register(ISOLATION, boardEvent("isolation", AstralEventKinds.BAD,
                 List.of(new BoardTeleportParticipantsEventEffect(BoardTeleportParticipantsEventEffect.Mode.HOSPITAL),
-                        all(new BoardStatusEventEffect(HospitalPlatform.HOSPITALIZED_STATUS, 1))), List.of()));
+                        all(new BoardRoundStatusEventEffect(HospitalPlatform.HOSPITALIZED_STATUS, 1))), List.of()));
         context.register(OVERSPENDING, boardEvent("overspending", AstralEventKinds.BAD,
                 List.of(all(new BoardTrapEventEffect(BoardMechanicsState.BoardTrapType.DEMOLITION))), List.of()));
         context.register(BROKEN_POCKET, boardEvent("broken_pocket", AstralEventKinds.BAD,
-                List.of(all(new BoardStatusEventEffect(AstralBoardBuffs.LEAKING_POCKET_ID, Integer.MAX_VALUE))), List.of()));
+                List.of(all(new BoardStatusEventEffect(AstralBoardBuffs.instance(AstralBoardBuffs.LEAKING_POCKET_ID,
+                        AstralBoardBuffs.LEAKING_POCKET.get()).permanent().build()))), List.of()));
         context.register(IT_IS_WAR, boardEvent("it_is_war", AstralEventKinds.GOOD,
                 List.of(all(new GiveItemEventEffect(AstralItems.HANDCARD_ATTACK_G.get().builtInRegistryHolder(), 1))), List.of()));
         context.register(EQUALITY, boardEvent("equality", AstralEventKinds.NEUTRAL,
-                List.of(all(new BoardSetHealthEventEffect(1), new BoardStatusEventEffect(AstralBoardBuffs.EQUALITY_GUARD_ID, Integer.MAX_VALUE))), List.of()));
+                List.of(all(new BoardSetHealthEventEffect(1), new BoardStatusEventEffect(
+                        AstralBoardBuffs.incomingDamage(EQUALITY_GUARD_BUFF, -10)
+                                .permanent().consumeAfterIncomingDamage().build()))), List.of()));
         context.register(SWITCHEROO, boardEvent("switcheroo", AstralEventKinds.NEUTRAL, List.of(new BoardTransferHandsEventEffect()), List.of()));
     }
 

@@ -4,7 +4,6 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.buff.type.AttributeBoardBuff;
-import com.astral_craft.common.gameplay.buff.type.EqualityGuardBoardBuff;
 import com.astral_craft.common.gameplay.buff.type.HasteBoardBuff;
 import com.astral_craft.common.gameplay.buff.type.LeakingPocketBoardBuff;
 import net.minecraft.core.Registry;
@@ -26,7 +25,6 @@ public class AstralBoardBuffs {
     public static final Identifier COUNTER_ID = AstralCraft.prefix("counter");
     public static final Identifier HASTE_ID = AstralCraft.prefix("haste");
     public static final Identifier SOUL_LINK_ID = AstralCraft.prefix("soul_link");
-    public static final Identifier EQUALITY_GUARD_ID = AstralCraft.prefix("equality_guard");
     public static final Identifier LEAKING_POCKET_ID = AstralCraft.prefix("leaking_pocket");
 
     public static final DeferredHolder<BoardBuff, BoardBuff> ATTACK = register("attack",
@@ -44,15 +42,15 @@ public class AstralBoardBuffs {
     public static final DeferredHolder<BoardBuff, BoardBuff> TURN_START_DAMAGE = register("turn_start_damage",
             BoardBuff.Properties.of(0xFF72B04A).damageAtTurnStart(1));
     public static final DeferredHolder<BoardBuff, BoardBuff> HEAL = register(HEAL_ID.getPath(),
-            BoardBuff.Properties.of(0xFF72D572).stacking().healAtTurnStart(1).halveLevelsAtTurnEnd());
+            BoardBuff.Properties.of(0xFF72D572).stacking().permanent().healAtTurnStart(1).halveLevelsAtTurnEnd());
     public static final DeferredHolder<BoardBuff, BoardBuff> STARLIGHT = register(STARLIGHT_ID.getPath(),
             BoardBuff.Properties.of(0xFFFFE66D).stacking().permanent().roundReward(1));
     public static final DeferredHolder<BoardBuff, BoardBuff> MARK = register(MARK_ID.getPath(),
-            BoardBuff.Properties.of(0xFFFF6B6B).stacking().flatIncomingDamage(1).decayLevelsAtTurnEnd());
-    public static final DeferredHolder<BoardBuff, BoardBuff> COUNTER = register(COUNTER_ID.getPath(), BoardBuff.Properties.of(0xFF6CA0DC).stacking());
+            BoardBuff.Properties.of(0xFFFF6B6B).stacking().permanent().flatIncomingDamage(1).decayLevelsAtTurnEnd());
+    public static final DeferredHolder<BoardBuff, BoardBuff> COUNTER = register(COUNTER_ID.getPath(),
+            BoardBuff.Properties.of(0xFF6CA0DC).stacking().permanent());
     public static final DeferredHolder<BoardBuff, BoardBuff> HASTE = register(HASTE_ID.getPath(), new HasteBoardBuff(0xFF66D9FF));
     public static final DeferredHolder<BoardBuff, BoardBuff> SOUL_LINK = register(SOUL_LINK_ID.getPath(), new BoardBuff(BoardBuff.Properties.of(0xFFD579FF)));
-    public static final DeferredHolder<BoardBuff, BoardBuff> EQUALITY_GUARD = register(EQUALITY_GUARD_ID.getPath(), new EqualityGuardBoardBuff(0xFFFFF2A6));
     public static final DeferredHolder<BoardBuff, BoardBuff> LEAKING_POCKET = register(LEAKING_POCKET_ID.getPath(), new LeakingPocketBoardBuff(0xFFD7A867));
 
     public static BoardBuffInstance.Builder instance(Identifier id, BoardBuff buff) {
@@ -97,12 +95,6 @@ public class AstralBoardBuffs {
 
     public static Identifier part(Identifier id, String part) {
         return Identifier.fromNamespaceAndPath(id.getNamespace(), id.getPath() + "/" + part);
-    }
-
-    public static BoardBuffInstance legacyInstance(Identifier id, int duration, int amplifier, int intrinsicLevels, boolean fresh) {
-        BoardBuff buff = REGISTRY.getValue(id);
-        if (buff == null) return null;
-        return instance(id, buff).duration(duration).amplifier(amplifier).intrinsicLevels(intrinsicLevels).fresh(fresh).build();
     }
 
     private static DeferredHolder<BoardBuff, BoardBuff> register(String name, BoardBuff.Properties properties) {

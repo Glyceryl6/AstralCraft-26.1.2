@@ -6,24 +6,18 @@ import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
+import com.astral_craft.common.gameplay.board.BoardRouteService;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.StringRepresentable;
-import org.jspecify.annotations.NonNull;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEventEffect {
 
@@ -50,12 +44,19 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
                 case CONNECTED_RANDOM -> connectedNodes(context);
                 case HOSPITAL -> hospitalNodes(context, participants.size());
             };
-
             if (destinations.size() < participants.size()) return;
+            Map<String, Direction> originalDirections = new LinkedHashMap<>();
+            for (BoardParticipant participant : participants) {
+                originalDirections.putIfAbsent(participant.currentNodeKey(),
+                        BoardRouteService.travelDirection(context.session(), participant));
+            }
             for (int index = 0; index < participants.size(); index++) {
-                BoardSessionManager.relocateParticipant(
-                        context.level(), context.session(),
-                        participants.get(index), destinations.get(index));
+                BoardParticipant participant = participants.get(index);
+                String destination = destinations.get(index);
+                Direction direction = this.mode == Mode.ROTATE_CURRENT
+                        ? originalDirections.getOrDefault(destination, BoardRouteService.travelDirection(context.session(), participant))
+                        : BoardRouteService.travelDirection(context.session(), participant);
+                BoardSessionManager.relocateParticipant(context.level(), context.session(), participant, destination, direction);
             }
         }, 12));
     }
@@ -96,10 +97,7 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
         if (hospitals.isEmpty()) return List.of();
         List<String> result = new ArrayList<>();
         int start = context.level().getRandom().nextInt(hospitals.size());
-        for (int index = 0; index < count; index++) {
-            result.add(hospitals.get((start + index) % hospitals.size()));
-        }
-
+        for (int index = 0; index < count; index++) result.add(hospitals.get((start + index) % hospitals.size()));
         return result;
     }
 
@@ -107,8 +105,7 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
         Set<String> result = new LinkedHashSet<>();
         BoardNode node = session.nodes().get(nodeId);
         if (node != null) result.addAll(node.next());
-        session.nodes().values().stream()
-                .filter(candidate -> candidate.next().contains(nodeId))
+        session.nodes().values().stream().filter(candidate -> candidate.next().contains(nodeId))
                 .map(BoardNode::id).forEach(result::add);
         return List.copyOf(result);
     }
@@ -127,9 +124,10 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
         }
 
         @Override
-        public @NonNull String getSerializedName() {
+        public String getSerializedName() {
             return this.serializedName;
         }
 
     }
+
 }

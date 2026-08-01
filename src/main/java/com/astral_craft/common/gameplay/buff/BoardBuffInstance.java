@@ -39,6 +39,10 @@ public record BoardBuffInstance(
             Codec.BOOL.optionalFieldOf("consume_after_move_roll", false).forGetter(BoardBuffInstance::consumeAfterMoveRoll)
     ).apply(instance, BoardBuffInstance::new));
 
+    public BoardBuffInstance(Identifier id, BoardBuff buff) {
+        this(id, buff, 1, 0, 0, true, 1, Optional.empty(), Optional.empty(), Optional.empty(), false, false);
+    }
+
     public BoardBuffInstance {
         if (id == null) throw new IllegalArgumentException("Board buff instance id cannot be null");
         if (buff == null) throw new IllegalArgumentException("Board buff behavior cannot be null");
@@ -96,7 +100,7 @@ public record BoardBuffInstance(
     public BoardBuffInstance withAcquiredLevels(int levels) {
         int safeLevels = Math.max(0, levels);
         int total = this.intrinsicLevels + safeLevels;
-        return total <= 0 ? null : this.copy(this.id, safeLevels == 0 ? PERMANENT : this.duration, total - 1,
+        return total <= 0 ? null : this.copy(this.id, safeLevels <= 0 ? PERMANENT : this.duration, total - 1,
                 this.intrinsicLevels, safeLevels > 0 && this.fresh);
     }
 
@@ -116,6 +120,29 @@ public record BoardBuffInstance(
                 value, this.customName, this.customIcon, this.customColor, this.consumeAfterIncomingDamage,
                 this.consumeAfterMoveRoll);
     }
+
+    public BoardBuffInstance withDuration(int duration) {
+        return new BoardBuffInstance(this.id, this.buff, duration, this.amplifier, this.intrinsicLevels, this.fresh,
+                this.value, this.customName, this.customIcon, this.customColor, this.consumeAfterIncomingDamage,
+                this.consumeAfterMoveRoll);
+    }
+
+    public BoardBuffInstance withLevel(int level) {
+        return new BoardBuffInstance(this.id, this.buff, this.duration, Math.max(0, level - 1),
+                Math.min(this.intrinsicLevels, Math.max(0, level)), this.fresh, this.value, this.customName,
+                this.customIcon, this.customColor, this.consumeAfterIncomingDamage, this.consumeAfterMoveRoll);
+    }
+
+    public BoardBuffInstance asPermanent() {
+        return this.withDuration(PERMANENT);
+    }
+
+    public BoardBuffInstance withColor(int color) {
+        return new BoardBuffInstance(this.id, this.buff, this.duration, this.amplifier, this.intrinsicLevels, this.fresh,
+                this.value, this.customName, this.customIcon, Optional.of(color), this.consumeAfterIncomingDamage,
+                this.consumeAfterMoveRoll);
+    }
+
 
     private BoardBuffInstance copy(Identifier id, int duration, int amplifier, int intrinsicLevels, boolean fresh) {
         return new BoardBuffInstance(id, this.buff, duration, amplifier, intrinsicLevels, fresh, this.value,
