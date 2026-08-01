@@ -45,15 +45,14 @@ public class BoardBattleScreen extends Screen {
     private static final int NUMBER_BOX_BORDER = 2;
     private static final int DICE_FLASH_END_TICK = 16;
     private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 10;
-    private static final int BASE_VALUE_STAGE_TICK = 38;
-    private static final int CARD_VALUE_STAGE_TICK = 52;
-    private static final int EVADE_FAILURE_STAGE_TICK = 38;
+    private static final int FINAL_VALUE_STAGE_TICK = 24;
+    private static final int EVADE_FAILURE_STAGE_TICK = FINAL_VALUE_STAGE_TICK;
     private static final int KNOCKOUT_FLIGHT_START_TICK = 1;
-    private static final int KNOCKOUT_FLIGHT_TICKS = 16;
-    private static final int KNOCKOUT_EXPLOSION_TICK = 18;
+    private static final int KNOCKOUT_FLIGHT_TICKS = 12;
+    private static final int KNOCKOUT_EXPLOSION_TICK = 13;
     private static final int KNOCKOUT_EXPLOSION_RENDER_TICKS = 24;
-    private static final int VICTORY_MOVE_START_TICK = 27;
-    private static final int VICTORY_MOVE_TICKS = 34;
+    private static final int VICTORY_MOVE_START_TICK = 14;
+    private static final int VICTORY_MOVE_TICKS = 18;
     private static final Identifier HEART_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full.png");
     private static final Identifier HEART_BLINKING_TEXTURE = Identifier.withDefaultNamespace("textures/gui/sprites/hud/heart/full_blinking.png");
     private static final Identifier CRITICAL_HIT_TEXTURE = Identifier.withDefaultNamespace("textures/particle/critical_hit.png");
@@ -304,23 +303,16 @@ public class BoardBattleScreen extends Screen {
 
         float victoryProgress = Mth.clamp((age - VICTORY_MOVE_START_TICK) / VICTORY_MOVE_TICKS, 0.0F, 1.0F);
         float victory = smootherStep(victoryProgress);
-        int winnerWidth = Math.round(Math.min((attackerRight - attackerLeft) * 1.12F, layout.width() * 0.42F));
-        int winnerHeight = Math.round(Math.min((layout.modelBottom() - layout.modelTop()) * 1.08F, layout.height() * 0.70F));
-        int winnerCenterX = layout.x() + layout.width() / 2;
-        int winnerCenterY = layout.modelTop() + (layout.modelBottom() - layout.modelTop()) / 2;
-        int winnerLeft = winnerCenterX - winnerWidth / 2;
-        int winnerRight = winnerLeft + winnerWidth;
-        int winnerTop = winnerCenterY - winnerHeight / 2;
-        int winnerBottom = winnerTop + winnerHeight;
-        int renderLeft = Math.round(Mth.lerp(victory, attackerLeft, winnerLeft));
-        int renderRight = Math.round(Mth.lerp(victory, attackerRight, winnerRight));
-        int renderTop = Math.round(Mth.lerp(victory, layout.modelTop(), winnerTop));
-        int renderBottom = Math.round(Mth.lerp(victory, layout.modelBottom(), winnerBottom));
-        float attackerOffsetX = Mth.lerp(victory, approachOffset, 0.0F);
-        float attackerOffsetY = -(float) Math.sin(Math.PI * victoryProgress) * 8.0F;
-        BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight,
-                renderBottom, 225.0F, 1.0F,
-                attackerOffsetX, attackerOffsetY, 0.0F);
+        float attackerCenterX = (attackerLeft + attackerRight) * 0.5F;
+        float attackerCenterY = (layout.modelTop() + layout.modelBottom()) * 0.5F;
+        float targetCenterX = layout.x() + layout.width() * 0.5F;
+        float targetCenterY = layout.modelTop() + (layout.modelBottom() - layout.modelTop()) * 0.48F;
+        float attackerOffsetX = Mth.lerp(victory, approachOffset, targetCenterX - attackerCenterX);
+        float attackerOffsetY = Mth.lerp(victory, 0.0F, targetCenterY - attackerCenterY)
+                - (float) Math.sin(Math.PI * victoryProgress) * 7.0F;
+        float winnerScale = 1.0F + victory * 0.14F;
+        BoardScreenEntityRenderer.render(graphics, attacker, attackerLeft, layout.modelTop(), attackerRight,
+                layout.modelBottom(), 225.0F, winnerScale, attackerOffsetX, attackerOffsetY, 0.0F);
     }
 
     private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
@@ -401,7 +393,7 @@ public class BoardBattleScreen extends Screen {
                 pulseDistance = Math.abs(age - EVADE_FAILURE_STAGE_TICK);
             }
         } else if (this.defenderRollAge() >= DICE_FLASH_END_TICK) {
-            pulseDistance = Math.min(Math.abs(age - BASE_VALUE_STAGE_TICK), Math.abs(age - CARD_VALUE_STAGE_TICK));
+            pulseDistance = Math.abs(age - FINAL_VALUE_STAGE_TICK);
         }
 
         float stagePulse = pulseDistance > 4 ? 0.0F : 1.0F - Mth.clamp(pulseDistance / 4.0F, 0.0F, 1.0F);
@@ -476,7 +468,7 @@ public class BoardBattleScreen extends Screen {
 
     private boolean shouldRenderAnimatedValue(boolean attack) {
         if (this.view.result() || !this.view.defenderRolling()) return false;
-        if (this.phaseAgeTicks > CARD_VALUE_STAGE_TICK + 8) return false;
+        if (this.phaseAgeTicks > FINAL_VALUE_STAGE_TICK + 8) return false;
         return attack || this.phaseAgeTicks >= DEFENSE_CHOICE_ANNOUNCE_TICKS;
     }
 
@@ -514,8 +506,7 @@ public class BoardBattleScreen extends Screen {
             return attack ? this.view.attackTotal() : 0;
         }
 
-        if (this.phaseAgeTicks < BASE_VALUE_STAGE_TICK) return die;
-        if (this.phaseAgeTicks < CARD_VALUE_STAGE_TICK) return die + base;
+        if (this.phaseAgeTicks < FINAL_VALUE_STAGE_TICK) return die;
         return attack ? this.view.attackTotal() : this.view.defenseTotal();
     }
 

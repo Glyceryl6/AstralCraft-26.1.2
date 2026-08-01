@@ -29,7 +29,7 @@ public record BattleCardContribution(
                 this.attackMax + other.attackMax,
                 this.defenseMin + other.defenseMin,
                 this.defenseMax + other.defenseMax,
-                this.finalAttackMultiplier * other.finalAttackMultiplier,
+                Math.max(this.finalAttackMultiplier, other.finalAttackMultiplier),
                 this.defenderCannotEvade || other.defenderCannotEvade,
                 this.attackerCannotBeCountered || other.attackerCannotBeCountered
         );
