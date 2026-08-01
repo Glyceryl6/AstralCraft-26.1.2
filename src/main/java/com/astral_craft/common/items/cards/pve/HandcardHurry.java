@@ -2,7 +2,6 @@ package com.astral_craft.common.items.cards.pve;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
-import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
@@ -31,12 +30,8 @@ public class HandcardHurry extends BaseHandCard {
     @Override
     protected boolean apply(ServerPlayer user, InteractionHand hand, List<LivingEntity> targets) {
         return AstralCardEffects.target(targets).map(target -> {
-            if (target instanceof AstralCharacterEntity character && character.isBoardPawn()) {
-                AstralCardEffects.update(target, AstralStats.getOrDefault(target).addBuff(
-                        AstralBoardBuffs.HASTE.get(), BoardBuffInstance.PERMANENT, 0));
-            } else {
-                AstralCardEffects.update(target, AstralStats.getOrDefault(target).setNextMoveExtraDice(1));
-            }
+            AstralCardEffects.update(target, AstralStats.getOrDefault(target).addBuff(
+                    AstralBoardBuffs.HASTE.get(), BoardBuffInstance.PERMANENT, 0));
             return true;
         }).orElse(false);
     }
