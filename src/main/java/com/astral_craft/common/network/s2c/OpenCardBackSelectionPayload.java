@@ -6,11 +6,13 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
-public record OpenCardBackSelectionPayload(Identifier selectedId) implements CustomPacketPayload {
+public record OpenCardBackSelectionPayload(Identifier selectedCardBackId, Identifier selectedDiceSkinId) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<OpenCardBackSelectionPayload> TYPE = new CustomPacketPayload.Type<>(AstralCraft.prefix("open_card_back_selection"));
     public static final StreamCodec<ByteBuf, OpenCardBackSelectionPayload> STREAM_CODEC = StreamCodec.composite(
-            Identifier.STREAM_CODEC, OpenCardBackSelectionPayload::selectedId, OpenCardBackSelectionPayload::new);
+            Identifier.STREAM_CODEC, OpenCardBackSelectionPayload::selectedCardBackId,
+            Identifier.STREAM_CODEC, OpenCardBackSelectionPayload::selectedDiceSkinId,
+            OpenCardBackSelectionPayload::new);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

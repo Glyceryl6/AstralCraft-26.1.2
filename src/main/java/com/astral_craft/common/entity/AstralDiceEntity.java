@@ -1,11 +1,13 @@
 package com.astral_craft.common.entity;
 
+import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -13,6 +15,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -20,7 +23,7 @@ import java.util.UUID;
 public class AstralDiceEntity extends Entity {
 
     public static final int RESULT_HOLD_TICKS = 12;
-    private UUID boardSessionId;
+    private @Nullable UUID boardSessionId;
 
     private static final EntityDataAccessor<Integer> DATA_MIN = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_MAX = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.INT);
@@ -32,6 +35,7 @@ public class AstralDiceEntity extends Entity {
     private static final EntityDataAccessor<Float> DATA_MERGE_OFFSET_X = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_MERGE_OFFSET_Z = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> DATA_PRIMARY = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> DATA_TEXTURE = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.STRING);
 
     public AstralDiceEntity(EntityType<? extends AstralDiceEntity> type, Level level) {
         super(type, level);
@@ -55,6 +59,7 @@ public class AstralDiceEntity extends Entity {
         builder.define(DATA_MERGE_OFFSET_X, 0.0F);
         builder.define(DATA_MERGE_OFFSET_Z, 0.0F);
         builder.define(DATA_PRIMARY, true);
+        builder.define(DATA_TEXTURE, DiceSkinPreferenceManager.DEFAULT_TEXTURE.toString());
     }
 
     public void startRoll(int min, int max, int rollTicks, RandomSource random) {
@@ -100,6 +105,19 @@ public class AstralDiceEntity extends Entity {
         }
 
         if (this.tickCount > mergeEnd + RESULT_HOLD_TICKS) this.discard();
+    }
+
+
+    public void setTexture(Identifier texture) {
+        if (texture != null) this.entityData.set(DATA_TEXTURE, texture.toString());
+    }
+
+    public Identifier texture() {
+        try {
+            return Identifier.parse(this.entityData.get(DATA_TEXTURE));
+        } catch (IllegalArgumentException ignored) {
+            return DiceSkinPreferenceManager.DEFAULT_TEXTURE;
+        }
     }
 
     public void setBoardSessionId(UUID boardSessionId) {
@@ -200,6 +218,7 @@ public class AstralDiceEntity extends Entity {
         this.entityData.set(DATA_MERGE_OFFSET_X, input.getFloatOr("merge_offset_x", 0.0F));
         this.entityData.set(DATA_MERGE_OFFSET_Z, input.getFloatOr("merge_offset_z", 0.0F));
         this.entityData.set(DATA_PRIMARY, input.getBooleanOr("primary", true));
+        this.entityData.set(DATA_TEXTURE, input.getStringOr("texture", DiceSkinPreferenceManager.DEFAULT_TEXTURE.toString()));
         String boardId = input.getStringOr("board_session_id", "");
         try {
             this.boardSessionId = boardId.isBlank() ? null : UUID.fromString(boardId);
@@ -221,6 +240,7 @@ public class AstralDiceEntity extends Entity {
         output.putFloat("merge_offset_x", this.mergeOffsetX());
         output.putFloat("merge_offset_z", this.mergeOffsetZ());
         output.putBoolean("primary", this.isPrimary());
+        output.putString("texture", this.texture().toString());
         output.putString("board_session_id", this.boardSessionId == null ? "" : this.boardSessionId.toString());
         output.putInt("age", this.tickCount);
     }

@@ -1,7 +1,11 @@
 package com.astral_craft.client.gui.cardback;
 
+import com.astral_craft.client.gui.board.BoardScreenEntityRenderer;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
+import com.astral_craft.client.util.ClientAnimationClock;
+import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.network.c2s.CardBackSelectionPayload;
 import com.astral_craft.common.network.s2c.OpenCardBackSelectionPayload;
 import net.minecraft.client.Minecraft;
@@ -17,41 +21,58 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CardBackSelectionScreen extends Screen {
 
-    protected static final int MAX_PANEL_WIDTH = 540;
-    protected static final int MAX_PANEL_HEIGHT = 420;
-    protected static final int CARD_W = 64;
-    protected static final int CARD_H = 90;
-    protected static final int CARD_LABEL_H = 18;
-    protected static final int CARD_GAP = 12;
-    protected static final int HEADER_H = 22;
-    protected static final int BUTTON_W = 112;
-    protected static final int BUTTON_H = 30;
+    private static final int MAX_PANEL_WIDTH = 540;
+    private static final int MAX_PANEL_HEIGHT = 420;
+    private static final int CARD_W = 64;
+    private static final int CARD_H = 90;
+    private static final int CARD_LABEL_H = 18;
+    private static final int CARD_GAP = 12;
+    private static final int HEADER_H = 22;
+    private static final int BUTTON_W = 112;
+    private static final int BUTTON_H = 30;
+    private static final int TAB_W = 112;
+    private static final int TAB_H = 22;
+    private static final int LIST_TOP = 64;
+    private static final int LIST_BOTTOM = 56;
 
-    protected final List<CardBackDefinition> definitions;
-    protected final List<NamespaceSection> sections;
-    protected Identifier selected;
-    protected float scrollY;
-    protected boolean draggingScrollbar;
-    protected double dragStartY;
-    protected float dragStartScrollY;
+    private final List<CardBackDefinition> cardBackDefinitions;
+    private final List<CardBackDefinition> diceDefinitions;
+    private final AstralDiceEntity previewDice;
+    private Identifier selectedCardBack;
+    private Identifier selectedDiceSkin;
+    private AppearanceTab activeTab = AppearanceTab.CARD_BACK;
+    private List<NamespaceSection> sections;
+    private float scrollY;
+    private boolean draggingScrollbar;
+    private double dragStartY;
+    private float dragStartScrollY;
 
-    public CardBackSelectionScreen(Identifier selected) {
-        super(Component.translatable("gui.astral_craft.card_back_selection.title"));
-        this.definitions = CardBackResourceCache.values();
-        this.sections = groupByNamespace(this.definitions);
-        CardBackDefinition selectedDefinition = this.definitions.stream()
-                .filter(definition -> definition.id().equals(selected) || definition.texture().equals(selected))
-                .findFirst().orElse(this.definitions.getFirst());
-        this.selected = selectedDefinition.id();
+    public CardBackSelectionScreen(Identifier selectedCardBack, Identifier selectedDiceSkin) {
+        super(Component.translatable("gui.astral_craft.appearance_selection.title"));
+        this.cardBackDefinitions = CardBackResourceCache.values();
+        this.diceDefinitions = CardBackResourceCache.diceSkins();
+        this.selectedCardBack = resolveSelection(this.cardBackDefinitions, selectedCardBack);
+        this.selectedDiceSkin = resolveSelection(this.diceDefinitions, selectedDiceSkin);
+        this.sections = groupByNamespace(this.cardBackDefinitions);
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) {
+            this.previewDice = null;
+        } else {
+            this.previewDice = new AstralDiceEntity(minecraft.level, 0.0D, 0.0D, 0.0D);
+            this.previewDice.startRoll(1, 6, 1, 1.0F, 6, 6, 0, true, 0.0F, 0.0F);
+        }
     }
 
     public static void open(OpenCardBackSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> Minecraft.getInstance().setScreen(
-                new CardBackSelectionScreen(payload.selectedId())));
+                new CardBackSelectionScreen(payload.selectedCardBackId(), payload.selectedDiceSkinId())));
     }
 
     @Override
@@ -73,12 +94,13 @@ public class CardBackSelectionScreen extends Screen {
         int bottom = y + height;
         graphics.fill(x, y, right, bottom, 0xE00A0A12);
         graphics.fill(x, y, right, y + 2, 0x80FFFFFF);
-        graphics.text(this.font, this.title, x + 16, y + 12, 0xFFFFFFFF, false);
+        graphics.text(this.font, this.title, x + 16, y + 11, 0xFFFFFFFF, false);
+        this.renderTabs(graphics, mouseX, mouseY);
 
         int listX = x + 16;
-        int listY = y + 36;
+        int listY = y + LIST_TOP;
         int listW = width - 32;
-        int listH = height - 92;
+        int listH = height - LIST_TOP - LIST_BOTTOM;
         graphics.enableScissor(listX, listY, listX + listW, listY + listH);
         this.renderSections(graphics, listX, listY, listW, mouseX, mouseY);
         graphics.disableScissor();
@@ -95,20 +117,23 @@ public class CardBackSelectionScreen extends Screen {
                 Component.translatable("gui.astral_craft.card_back_selection.cancel"),
                 confirmX + BUTTON_W + 10, buttonY, BUTTON_W, BUTTON_H, false, cancelHovered,
                 ButtonStyle.button(0xFF9B5360));
-        AstralFancyButton.setHandCursor(confirmHovered || cancelHovered || this.hoveredCard(mouseX, mouseY));
+        AstralFancyButton.setHandCursor(confirmHovered || cancelHovered || this.hoveredEntry(mouseX, mouseY)
+                || this.tabAt(mouseX, mouseY) != null);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
-        int x = this.panelX();
-        int y = this.panelY();
-        int width = this.panelWidth();
-        int height = this.panelHeight();
-        int listX = x + 16;
-        int listY = y + 36;
-        int listW = width - 32;
-        int listH = height - 92;
+        AppearanceTab clickedTab = this.tabAt(event.x(), event.y());
+        if (clickedTab != null) {
+            this.selectTab(clickedTab);
+            return true;
+        }
+
+        int listX = this.panelX() + 16;
+        int listY = this.panelY() + LIST_TOP;
+        int listW = this.panelWidth() - 32;
+        int listH = this.panelHeight() - LIST_TOP - LIST_BOTTOM;
         int scrollbarX = listX + listW - 5;
         if (this.maxScroll() > 0.0F && inside(event.x(), event.y(), scrollbarX - 2, listY, 9, listH)) {
             this.draggingScrollbar = true;
@@ -117,16 +142,21 @@ public class CardBackSelectionScreen extends Screen {
             return true;
         }
 
-        CardBackDefinition clicked = this.cardAt(event.x(), event.y());
+        CardBackDefinition clicked = this.entryAt(event.x(), event.y());
         if (clicked != null) {
-            this.selected = clicked.id();
+            if (this.activeTab == AppearanceTab.CARD_BACK) this.selectedCardBack = clicked.id();
+            else this.selectedDiceSkin = clicked.id();
             return true;
         }
 
+        int x = this.panelX();
+        int y = this.panelY();
+        int width = this.panelWidth();
+        int height = this.panelHeight();
         int confirmX = x + width - 16 - BUTTON_W * 2 - 10;
         int buttonY = y + height - 42;
         if (inside(event.x(), event.y(), confirmX, buttonY, BUTTON_W, BUTTON_H)) {
-            ClientPacketDistributor.sendToServer(new CardBackSelectionPayload(this.selected));
+            ClientPacketDistributor.sendToServer(new CardBackSelectionPayload(this.selectedCardBack, this.selectedDiceSkin));
             this.onClose();
             return true;
         }
@@ -134,21 +164,19 @@ public class CardBackSelectionScreen extends Screen {
             this.onClose();
             return true;
         }
-
         return super.mouseClicked(event, doubleClick);
     }
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (this.draggingScrollbar) {
-            int listH = this.panelHeight() - 92;
+            int listH = this.panelHeight() - LIST_TOP - LIST_BOTTOM;
             int thumbH = this.scrollbarThumbHeight(listH);
             int movable = Math.max(1, listH - thumbH);
             this.scrollY = Mth.clamp(this.dragStartScrollY
                     + (float) ((event.y() - this.dragStartY) / movable * this.maxScroll()), 0.0F, this.maxScroll());
             return true;
         }
-
         return super.mouseDragged(event, dragX, dragY);
     }
 
@@ -164,9 +192,9 @@ public class CardBackSelectionScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         int listX = this.panelX() + 16;
-        int listY = this.panelY() + 36;
+        int listY = this.panelY() + LIST_TOP;
         int listW = this.panelWidth() - 32;
-        int listH = this.panelHeight() - 92;
+        int listH = this.panelHeight() - LIST_TOP - LIST_BOTTOM;
         if (inside(mouseX, mouseY, listX, listY, listW, listH)) {
             this.scrollY = Mth.clamp(this.scrollY - (float) deltaY * 34.0F, 0.0F, this.maxScroll());
             return true;
@@ -189,7 +217,19 @@ public class CardBackSelectionScreen extends Screen {
         super.removed();
     }
 
-    protected void renderSections(GuiGraphicsExtractor graphics, int listX, int listY, int listW, int mouseX, int mouseY) {
+    private void renderTabs(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        int x = this.panelX() + 16;
+        int y = this.panelY() + 34;
+        for (AppearanceTab tab : AppearanceTab.values()) {
+            boolean hovered = inside(mouseX, mouseY, x, y, TAB_W, TAB_H);
+            boolean selected = tab == this.activeTab;
+            AstralFancyButton.renderButton(graphics, this.font, Component.translatable(tab.translationKey),
+                    x, y, TAB_W, TAB_H, false, hovered, ButtonStyle.button(selected ? 0xFF8B68C9 : 0xFF4A4A5A));
+            x += TAB_W + 8;
+        }
+    }
+
+    private void renderSections(GuiGraphicsExtractor graphics, int listX, int listY, int listW, int mouseX, int mouseY) {
         int columns = this.columns(listW);
         int cursorY = listY - Math.round(this.scrollY);
         for (NamespaceSection section : this.sections) {
@@ -198,38 +238,68 @@ public class CardBackSelectionScreen extends Screen {
             for (int index = 0; index < section.definitions().size(); index++) {
                 int column = index % columns;
                 int row = index / columns;
-                int cardX = listX + 4 + column * (CARD_W + CARD_GAP);
-                int cardY = cursorY + row * (CARD_H + CARD_LABEL_H + CARD_GAP);
+                int entryX = listX + 4 + column * (CARD_W + CARD_GAP);
+                int entryY = cursorY + row * (CARD_H + CARD_LABEL_H + CARD_GAP);
                 CardBackDefinition definition = section.definitions().get(index);
-                boolean hovered = inside(mouseX, mouseY, cardX - 3, cardY - 3, CARD_W + 6, CARD_H + CARD_LABEL_H + 6);
-                boolean chosen = definition.id().equals(this.selected);
-                graphics.fill(cardX - 3, cardY - 3, cardX + CARD_W + 3, cardY + CARD_H + CARD_LABEL_H + 3,
+                boolean hovered = inside(mouseX, mouseY, entryX - 3, entryY - 3, CARD_W + 6, CARD_H + CARD_LABEL_H + 6);
+                boolean chosen = definition.id().equals(this.activeSelection());
+                graphics.fill(entryX - 3, entryY - 3, entryX + CARD_W + 3, entryY + CARD_H + CARD_LABEL_H + 3,
                         chosen ? 0xAAFFF0A0 : hovered ? 0x665C5C72 : 0x44202028);
-                graphics.blit(RenderPipelines.GUI_TEXTURED, definition.texture(), cardX, cardY,
-                        0.0F, 0.0F, CARD_W, CARD_H, 256, 360, 256, 360, 0xFFFFFFFF);
-                Component name = this.displayName(definition);
-                Component clipped = this.ellipsize(name, CARD_W + 4);
-                graphics.text(this.font, clipped, cardX + CARD_W / 2 - this.font.width(clipped) / 2,
-                        cardY + CARD_H + 5, 0xFFFFFFFF, false);
+                if (this.activeTab == AppearanceTab.CARD_BACK) {
+                    graphics.blit(RenderPipelines.GUI_TEXTURED, ScopedJpgTextureCache.resolve(definition.texture()), entryX, entryY,
+                            0.0F, 0.0F, CARD_W, CARD_H, 256, 360, 256, 360, 0xFFFFFFFF);
+                } else {
+                    this.renderDicePreview(graphics, definition, entryX, entryY);
+                }
+                Component name = this.ellipsize(this.displayName(definition), CARD_W + 4);
+                graphics.text(this.font, name, entryX + CARD_W / 2 - this.font.width(name) / 2,
+                        entryY + CARD_H + 5, 0xFFFFFFFF, false);
             }
             cursorY += this.rows(section.definitions().size(), columns) * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
         }
     }
 
-    protected CardBackDefinition cardAt(double mouseX, double mouseY) {
+    private void renderDicePreview(GuiGraphicsExtractor graphics, CardBackDefinition definition, int x, int y) {
+        graphics.fill(x, y, x + CARD_W, y + CARD_H, 0xAA15151D);
+        if (this.previewDice == null) return;
+        this.previewDice.setTexture(definition.texture());
+        float yaw = (float) (ClientAnimationClock.nowTicks() * 2.0D % 360.0D);
+        BoardScreenEntityRenderer.render(graphics, this.previewDice, x + 3, y + 8, x + CARD_W - 3, y + CARD_H - 4,
+                yaw, 1.12F, 0.0F, 0.0F, 0.0F);
+    }
+
+    private void selectTab(AppearanceTab tab) {
+        if (tab == this.activeTab) return;
+        this.activeTab = tab;
+        this.sections = groupByNamespace(tab == AppearanceTab.CARD_BACK ? this.cardBackDefinitions : this.diceDefinitions);
+        this.scrollY = 0.0F;
+        this.draggingScrollbar = false;
+    }
+
+    private AppearanceTab tabAt(double mouseX, double mouseY) {
+        int x = this.panelX() + 16;
+        int y = this.panelY() + 34;
+        for (AppearanceTab tab : AppearanceTab.values()) {
+            if (inside(mouseX, mouseY, x, y, TAB_W, TAB_H)) return tab;
+            x += TAB_W + 8;
+        }
+        return null;
+    }
+
+    private CardBackDefinition entryAt(double mouseX, double mouseY) {
         int listX = this.panelX() + 16;
-        int listY = this.panelY() + 36;
+        int listY = this.panelY() + LIST_TOP;
         int listW = this.panelWidth() - 32;
-        int listH = this.panelHeight() - 92;
+        int listH = this.panelHeight() - LIST_TOP - LIST_BOTTOM;
         if (!inside(mouseX, mouseY, listX, listY, listW, listH)) return null;
         int columns = this.columns(listW);
         int cursorY = listY - Math.round(this.scrollY);
         for (NamespaceSection section : this.sections) {
             cursorY += HEADER_H;
             for (int index = 0; index < section.definitions().size(); index++) {
-                int cardX = listX + 4 + index % columns * (CARD_W + CARD_GAP);
-                int cardY = cursorY + index / columns * (CARD_H + CARD_LABEL_H + CARD_GAP);
-                if (inside(mouseX, mouseY, cardX - 3, cardY - 3, CARD_W + 6, CARD_H + CARD_LABEL_H + 6)) {
+                int entryX = listX + 4 + index % columns * (CARD_W + CARD_GAP);
+                int entryY = cursorY + index / columns * (CARD_H + CARD_LABEL_H + CARD_GAP);
+                if (inside(mouseX, mouseY, entryX - 3, entryY - 3, CARD_W + 6, CARD_H + CARD_LABEL_H + 6)) {
                     return section.definitions().get(index);
                 }
             }
@@ -238,11 +308,15 @@ public class CardBackSelectionScreen extends Screen {
         return null;
     }
 
-    protected boolean hoveredCard(double mouseX, double mouseY) {
-        return this.cardAt(mouseX, mouseY) != null;
+    private boolean hoveredEntry(double mouseX, double mouseY) {
+        return this.entryAt(mouseX, mouseY) != null;
     }
 
-    protected Component displayName(CardBackDefinition definition) {
+    private Identifier activeSelection() {
+        return this.activeTab == AppearanceTab.CARD_BACK ? this.selectedCardBack : this.selectedDiceSkin;
+    }
+
+    private Component displayName(CardBackDefinition definition) {
         if (!definition.nameKey().isBlank()) return Component.translatable(definition.nameKey());
         String path = definition.texture().getPath();
         int slash = path.lastIndexOf('/');
@@ -250,7 +324,7 @@ public class CardBackSelectionScreen extends Screen {
         return Component.literal(path.substring(slash + 1, dot > slash ? dot : path.length()));
     }
 
-    protected Component ellipsize(Component input, int maxWidth) {
+    private Component ellipsize(Component input, int maxWidth) {
         String text = input.getString();
         if (this.font.width(text) <= maxWidth) return input;
         String suffix = "...";
@@ -262,7 +336,7 @@ public class CardBackSelectionScreen extends Screen {
         return Component.literal(out + suffix);
     }
 
-    protected float maxScroll() {
+    private float maxScroll() {
         int listW = this.panelWidth() - 32;
         int columns = this.columns(listW);
         int contentHeight = 0;
@@ -270,39 +344,39 @@ public class CardBackSelectionScreen extends Screen {
             contentHeight += HEADER_H + this.rows(section.definitions().size(), columns)
                     * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
         }
-        return Math.max(0, contentHeight - (this.panelHeight() - 92));
+        return Math.max(0, contentHeight - (this.panelHeight() - LIST_TOP - LIST_BOTTOM));
     }
 
-    protected int columns(int listWidth) {
+    private int columns(int listWidth) {
         return Math.max(1, (listWidth - 8 + CARD_GAP) / (CARD_W + CARD_GAP));
     }
 
-    protected int rows(int size, int columns) {
+    private int rows(int size, int columns) {
         return (size + columns - 1) / columns;
     }
 
-    protected int panelWidth() {
+    private int panelWidth() {
         return Math.clamp(this.width - 24, 300, MAX_PANEL_WIDTH);
     }
 
-    protected int panelHeight() {
-        return Math.clamp(this.height - 24, 230, MAX_PANEL_HEIGHT);
+    private int panelHeight() {
+        return Math.clamp(this.height - 24, 250, MAX_PANEL_HEIGHT);
     }
 
-    protected int panelX() {
+    private int panelX() {
         return (this.width - this.panelWidth()) / 2;
     }
 
-    protected int panelY() {
+    private int panelY() {
         return (this.height - this.panelHeight()) / 2;
     }
 
-    protected int scrollbarThumbHeight(int height) {
+    private int scrollbarThumbHeight(int height) {
         int content = Math.max(height, height + Math.round(this.maxScroll()));
         return Mth.clamp(Math.round(height * (height / (float) content)), 24, height);
     }
 
-    protected void renderScrollbar(GuiGraphicsExtractor graphics, int x, int y, int height) {
+    private void renderScrollbar(GuiGraphicsExtractor graphics, int x, int y, int height) {
         if (this.maxScroll() <= 0.0F) return;
         int thumbH = this.scrollbarThumbHeight(height);
         int thumbY = y + Math.round((height - thumbH) * (this.scrollY / this.maxScroll()));
@@ -310,7 +384,12 @@ public class CardBackSelectionScreen extends Screen {
         graphics.fill(x, thumbY, x + 5, thumbY + thumbH, 0xCCFFFFFF);
     }
 
-    protected static List<NamespaceSection> groupByNamespace(List<CardBackDefinition> definitions) {
+    private static Identifier resolveSelection(List<CardBackDefinition> definitions, Identifier selected) {
+        return definitions.stream().filter(definition -> definition.id().equals(selected) || definition.texture().equals(selected))
+                .map(CardBackDefinition::id).findFirst().orElse(definitions.getFirst().id());
+    }
+
+    private static List<NamespaceSection> groupByNamespace(List<CardBackDefinition> definitions) {
         Map<String, List<CardBackDefinition>> grouped = new LinkedHashMap<>();
         for (CardBackDefinition definition : definitions) {
             grouped.computeIfAbsent(definition.texture().getNamespace(), ignored -> new ArrayList<>()).add(definition);
@@ -318,12 +397,23 @@ public class CardBackSelectionScreen extends Screen {
         return grouped.entrySet().stream().map(entry -> new NamespaceSection(entry.getKey(), entry.getValue())).toList();
     }
 
-    protected static boolean inside(double mouseX, double mouseY, int x, int y, int width, int height) {
+    private static boolean inside(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 
-    protected record NamespaceSection(String namespace, List<CardBackDefinition> definitions) {
-        protected NamespaceSection {
+    private enum AppearanceTab {
+        CARD_BACK("gui.astral_craft.appearance_selection.tab.card_back"),
+        DICE("gui.astral_craft.appearance_selection.tab.dice");
+
+        private final String translationKey;
+
+        AppearanceTab(String translationKey) {
+            this.translationKey = translationKey;
+        }
+    }
+
+    private record NamespaceSection(String namespace, List<CardBackDefinition> definitions) {
+        private NamespaceSection {
             definitions = List.copyOf(definitions);
         }
     }

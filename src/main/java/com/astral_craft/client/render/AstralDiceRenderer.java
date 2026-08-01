@@ -1,5 +1,6 @@
 package com.astral_craft.client.render;
 
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -20,18 +21,11 @@ import net.minecraft.util.LightCoordsUtil;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/**
- * 3D dice renderer that does not depend on baked dice-face textures.
- *
- * <p>The cube body is submitted as custom geometry. Face labels are submitted as text so custom dice ranges can be
- * represented without preparing new textures.</p>
- */
+/** 3D dice renderer using a 4x3 six-face unfolded texture. */
 public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralDiceRenderState> {
 
-    private static final Identifier DICE_BODY_TEXTURE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
-    private static final float HALF_SIZE = 0.35F;
+    public static final float HALF_SIZE = 0.35F;
     private static final float TEXT_OFFSET = HALF_SIZE + 0.011F;
-
     private final Font font;
     private final Map<AstralDiceEntity, Double> animationStartTicks = new WeakHashMap<>();
 
@@ -60,16 +54,24 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         state.mergeOffsetX = entity.mergeOffsetX() * mergeProgress;
         state.mergeOffsetZ = entity.mergeOffsetZ() * mergeProgress;
         state.scale = entity.renderScale(ageTicks);
+        state.texture = entity.texture();
     }
 
     @Override
     public void submit(AstralDiceRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState cameraState) {
         poseStack.pushPose();
         applyDiceTransform(state, poseStack);
-        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(DICE_BODY_TEXTURE), AstralDiceRenderer::renderCube);
-        submitFaceTexts(state, poseStack, collector);
+        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(state.texture)),
+                (pose, consumer) -> renderCube(pose, consumer, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY));
+        this.submitFaceTexts(state, poseStack, collector);
         poseStack.popPose();
         super.submit(state, poseStack, collector, cameraState);
+    }
+
+    public static void renderItemCube(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture,
+                                      int lightCoords, int overlayCoords) {
+        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(texture)),
+                (pose, consumer) -> renderCube(pose, consumer, lightCoords, overlayCoords));
     }
 
     private static void applyDiceTransform(AstralDiceRenderState state, PoseStack poseStack) {
@@ -80,35 +82,35 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         poseStack.mulPose(Axis.ZP.rotationDegrees(state.zSpin));
     }
 
-    private static void renderCube(PoseStack.Pose pose, VertexConsumer consumer) {
+    public static void renderCube(PoseStack.Pose pose, VertexConsumer consumer, int lightCoords, int overlayCoords) {
         float h = HALF_SIZE;
-        quad(consumer, pose, -h, -h, h, h, -h, h, h, h, h, -h, h, h, 0.0F, 0.0F, 1.0F);      // front
-        quad(consumer, pose, h, -h, -h, -h, -h, -h, -h, h, -h, h, h, -h, 0.0F, 0.0F, -1.0F); // back
-        quad(consumer, pose, h, -h, h, h, -h, -h, h, h, -h, h, h, h, 1.0F, 0.0F, 0.0F);      // right
-        quad(consumer, pose, -h, -h, -h, -h, -h, h, -h, h, h, -h, h, -h, -1.0F, 0.0F, 0.0F); // left
-        quad(consumer, pose, -h, h, h, h, h, h, h, h, -h, -h, h, -h, 0.0F, 1.0F, 0.0F);      // top
-        quad(consumer, pose, -h, -h, -h, h, -h, -h, h, -h, h, -h, -h, h, 0.0F, -1.0F, 0.0F); // bottom
+        quad(consumer, pose, -h, -h, h, h, -h, h, h, h, h, -h, h, h, 0.0F, 0.0F, 1.0F, 1, 1, lightCoords, overlayCoords);      // front
+        quad(consumer, pose, h, -h, -h, -h, -h, -h, -h, h, -h, h, h, -h, 0.0F, 0.0F, -1.0F, 3, 1, lightCoords, overlayCoords); // back
+        quad(consumer, pose, h, -h, h, h, -h, -h, h, h, -h, h, h, h, 1.0F, 0.0F, 0.0F, 2, 1, lightCoords, overlayCoords);      // right
+        quad(consumer, pose, -h, -h, -h, -h, -h, h, -h, h, h, -h, h, -h, -1.0F, 0.0F, 0.0F, 0, 1, lightCoords, overlayCoords); // left
+        quad(consumer, pose, -h, h, h, h, h, h, h, h, -h, -h, h, -h, 0.0F, 1.0F, 0.0F, 1, 0, lightCoords, overlayCoords);      // top
+        quad(consumer, pose, -h, -h, -h, h, -h, -h, h, -h, h, -h, -h, h, 0.0F, -1.0F, 0.0F, 1, 2, lightCoords, overlayCoords); // bottom
     }
 
-    private static void quad(
-            VertexConsumer consumer, PoseStack.Pose pose,
-            float x0, float y0, float z0, float x1, float y1, float z1,
-            float x2, float y2, float z2, float x3, float y3, float z3,
-            float normalX, float normalY, float normalZ) {
-        vertex(consumer, pose, x0, y0, z0, 0.0F, 0.0F, normalX, normalY, normalZ);
-        vertex(consumer, pose, x1, y1, z1, 1.0F, 0.0F, normalX, normalY, normalZ);
-        vertex(consumer, pose, x2, y2, z2, 1.0F, 1.0F, normalX, normalY, normalZ);
-        vertex(consumer, pose, x3, y3, z3, 0.0F, 1.0F, normalX, normalY, normalZ);
+    private static void quad(VertexConsumer consumer, PoseStack.Pose pose,
+                             float x0, float y0, float z0, float x1, float y1, float z1,
+                             float x2, float y2, float z2, float x3, float y3, float z3,
+                             float normalX, float normalY, float normalZ, int cellX, int cellY,
+                             int lightCoords, int overlayCoords) {
+        float u0 = cellX / 4.0F;
+        float u1 = (cellX + 1) / 4.0F;
+        float v0 = cellY / 3.0F;
+        float v1 = (cellY + 1) / 3.0F;
+        vertex(consumer, pose, x0, y0, z0, u0, v0, normalX, normalY, normalZ, lightCoords, overlayCoords);
+        vertex(consumer, pose, x1, y1, z1, u1, v0, normalX, normalY, normalZ, lightCoords, overlayCoords);
+        vertex(consumer, pose, x2, y2, z2, u1, v1, normalX, normalY, normalZ, lightCoords, overlayCoords);
+        vertex(consumer, pose, x3, y3, z3, u0, v1, normalX, normalY, normalZ, lightCoords, overlayCoords);
     }
 
-    private static void vertex(
-            VertexConsumer consumer, PoseStack.Pose pose,
-            float x, float y, float z, float u, float v,
-            float normalX, float normalY, float normalZ) {
+    private static void vertex(VertexConsumer consumer, PoseStack.Pose pose, float x, float y, float z, float u, float v,
+                               float normalX, float normalY, float normalZ, int lightCoords, int overlayCoords) {
         consumer.addVertex(pose, x, y, z).setColor(0xFFFFFFFF).setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(LightCoordsUtil.FULL_BRIGHT)
-                .setNormal(pose, normalX, normalY, normalZ);
+                .setOverlay(overlayCoords).setLight(lightCoords).setNormal(pose, normalX, normalY, normalZ);
     }
 
     private void submitFaceTexts(AstralDiceRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
@@ -120,9 +122,8 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         submitFaceText(state.text, poseStack, collector, 0.0F, -TEXT_OFFSET, 0.0F, 90.0F, 0.0F, 0.0F);
     }
 
-    private void submitFaceText(
-            String text, PoseStack poseStack, SubmitNodeCollector collector,
-            float x, float y, float z, float xRot, float yRot, float zRot) {
+    private void submitFaceText(String text, PoseStack poseStack, SubmitNodeCollector collector,
+                                float x, float y, float z, float xRot, float yRot, float zRot) {
         FormattedCharSequence sequence = Component.literal(text).getVisualOrderText();
         float width = this.font.width(sequence);
         poseStack.pushPose();

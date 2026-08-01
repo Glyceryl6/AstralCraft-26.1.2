@@ -9,6 +9,7 @@ import com.astral_craft.common.network.BoardNetworkCodecs;
 import com.astral_craft.common.gameplay.board.BoardTemplateData;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -29,5 +30,7 @@ public class AstralDataComponents {
             () -> DataComponentType.<CustomPaintingData>builder().persistent(CustomPaintingData.CODEC).networkSynchronized(CustomPaintingData.STREAM_CODEC).cacheEncoding().build());
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<BoardTemplateData>> BOARD_TEMPLATE = DATA_COMPONENT_TYPE.register("board_template",
             () -> DataComponentType.<BoardTemplateData>builder().persistent(BoardTemplateData.CODEC).networkSynchronized(BoardTemplateData.STREAM_CODEC).cacheEncoding().build());
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Identifier>> DICE_TEXTURE = DATA_COMPONENT_TYPE.register("dice_texture",
+            () -> DataComponentType.<Identifier>builder().persistent(Identifier.CODEC).networkSynchronized(Identifier.STREAM_CODEC).cacheEncoding().build());
 
 }

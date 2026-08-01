@@ -7,24 +7,24 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /** Shared model preview renderer used by board selection, encounter and combat panels. */
 public class BoardScreenEntityRenderer {
 
-    public static void render(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1, float yaw) {
+    public static void render(GuiGraphicsExtractor graphics, Entity entity, int x0, int y0, int x1, int y1, float yaw) {
         render(graphics, entity, x0, y0, x1, y1, yaw, 1.0F, 0.0F, 0.0F, 0.0F);
     }
 
-    public static void render(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1,
+    public static void render(GuiGraphicsExtractor graphics, Entity entity, int x0, int y0, int x1, int y1,
                               float yaw, float scaleMultiplier, int offsetX, int offsetY, float rollDegrees) {
         render(graphics, entity, x0, y0, x1, y1, yaw, scaleMultiplier,
                 (float) offsetX, (float) offsetY, rollDegrees);
     }
 
-    public static void render(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1,
+    public static void render(GuiGraphicsExtractor graphics, Entity entity, int x0, int y0, int x1, int y1,
                               float yaw, float scaleMultiplier, float offsetX, float offsetY, float rollDegrees) {
         if (entity == null) {
             int left = x0 + Math.round(offsetX);
@@ -33,7 +33,7 @@ public class BoardScreenEntityRenderer {
             return;
         }
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        EntityRenderer<? super LivingEntity, ?> renderer = dispatcher.getRenderer(entity);
+        EntityRenderer<? super Entity, ?> renderer = dispatcher.getRenderer(entity);
         EntityRenderState state = renderer.createRenderState(entity, 1.0F);
         state.shadowPieces.clear();
         state.outlineColor = 0;

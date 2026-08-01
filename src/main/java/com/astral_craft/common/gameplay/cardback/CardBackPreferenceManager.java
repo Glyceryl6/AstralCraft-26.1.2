@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.cardback;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.network.s2c.OpenCardBackSelectionPayload;
 import com.astral_craft.common.registry.AstralAttachments;
 import net.minecraft.resources.Identifier;
@@ -9,7 +10,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public class CardBackPreferenceManager {
 
-    public static final Identifier DEFAULT_TEXTURE = AstralCraft.prefix("textures/gui/cards/card_back.png");
+    public static final Identifier DEFAULT_TEXTURE = AstralCraft.prefix("textures/gui/cards/back/card_back_0.jpg");
     private static final String RESOURCE_PREFIX = "textures/gui/cards/back/";
 
     public static Identifier selectedId(ServerPlayer player) {
@@ -22,17 +23,18 @@ public class CardBackPreferenceManager {
         return selectedId(player);
     }
 
-    public static void select(ServerPlayer player, Identifier id) {
-        if (isSelectable(id) || DEFAULT_TEXTURE.equals(id)) player.setData(AstralAttachments.CARD_BACK, id);
+    public static void select(ServerPlayer player, Identifier cardBackId, Identifier diceSkinId) {
+        if (isSelectable(cardBackId) || DEFAULT_TEXTURE.equals(cardBackId)) player.setData(AstralAttachments.CARD_BACK, cardBackId);
+        DiceSkinPreferenceManager.select(player, diceSkinId);
     }
 
     public static void openSelection(ServerPlayer player) {
-        PacketDistributor.sendToPlayer(player, new OpenCardBackSelectionPayload(selectedId(player)));
+        PacketDistributor.sendToPlayer(player, new OpenCardBackSelectionPayload(
+                selectedId(player), DiceSkinPreferenceManager.selectedTexture(player)));
     }
 
     private static boolean isSelectable(Identifier id) {
-        if (id == null || !id.getPath().startsWith(RESOURCE_PREFIX)) return false;
-        return id.getPath().endsWith(".png");
+        return id != null && id.getPath().startsWith(RESOURCE_PREFIX);
     }
 
 }

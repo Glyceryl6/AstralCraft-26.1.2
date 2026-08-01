@@ -85,6 +85,7 @@ public class AstralDiceRollService {
             double offset = (i - center) * spacing;
             Vec3 spawn = origin.add(side.scale(offset));
             AstralDiceEntity dice = new AstralDiceEntity(level, spawn.x, spawn.y, spawn.z);
+            dice.setTexture(DiceSkinPreferenceManager.selectedTexture(player));
             dice.setBoardSessionId(request.boardId());
             dice.startRoll(request.minValue(), request.maxValue(), request.rollTicks(), request.spinSpeed(),
                     result.values().get(i), result.total(), request.mergeTicks(), i == 0,

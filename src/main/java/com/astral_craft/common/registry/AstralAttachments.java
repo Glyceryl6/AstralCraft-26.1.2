@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.skill.CharacterSkillState;
 import com.astral_craft.common.gameplay.event.AstralEventPreferences;
 import com.astral_craft.common.gameplay.event.AstralEventState;
+import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.gameplay.handcard.AstralHandCards;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.resources.Identifier;
@@ -40,6 +41,11 @@ public class AstralAttachments {
             () -> AttachmentType.builder(() -> AstralEventPreferences.DEFAULT).serialize(AstralEventPreferences.CODEC.fieldOf("event_preferences")).copyOnDeath().build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<Identifier>> CARD_BACK = ATTACHMENTS.register("card_back",
-            () -> AttachmentType.builder(() -> AstralCraft.prefix("textures/gui/cards/back/card_back.jpg")).serialize(Identifier.CODEC.fieldOf("card_back")).copyOnDeath().build());
+            () -> AttachmentType.builder(() -> AstralCraft.prefix("textures/gui/cards/back/card_back_0.jpg"))
+                    .serialize(Identifier.CODEC.fieldOf("card_back")).sync(Identifier.STREAM_CODEC).copyOnDeath().build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Identifier>> DICE_SKIN = ATTACHMENTS.register("dice_skin",
+            () -> AttachmentType.builder(() -> DiceSkinPreferenceManager.DEFAULT_TEXTURE)
+                    .serialize(Identifier.CODEC.fieldOf("dice_skin")).sync(Identifier.STREAM_CODEC).copyOnDeath().build());
 
 }
