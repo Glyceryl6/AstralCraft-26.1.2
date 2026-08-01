@@ -10,7 +10,8 @@ public record CardBackDefinition(Identifier id, String nameKey, Identifier textu
     }
 
     public static CardBackDefinition builtinDefault() {
-        Identifier texture = AstralCraft.prefix("textures/gui/cards/card_back.png");
+        Identifier texture = AstralCraft.prefix("textures/gui/cards/back/card_back_0.jpg");
         return new CardBackDefinition(texture, "card_back.astral_craft.default", texture, true);
     }
+
 }

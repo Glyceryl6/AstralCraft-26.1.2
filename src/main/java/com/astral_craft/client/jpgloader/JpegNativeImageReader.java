@@ -12,11 +12,10 @@ import java.nio.IntBuffer;
 public class JpegNativeImageReader {
 
     private static final long MAX_PIXELS = 8192L * 8192L;
+    private static final byte[] PNG_SIGNATURE = new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
 
     public static NativeImage readJpeg(byte[] bytes) throws IOException {
-        if (!looksLikeJpeg(bytes)) {
-            throw new IOException("The supplied bytes do not look like a JPEG file.");
-        }
+        if (!looksLikeJpeg(bytes)) throw new IOException("The supplied bytes do not look like a JPEG file.");
 
         ByteBuffer encoded = MemoryUtil.memAlloc(bytes.length);
         try {
@@ -36,11 +35,7 @@ public class JpegNativeImageReader {
 
                 encoded.rewind();
                 ByteBuffer decoded = STBImage.stbi_load_from_memory(encoded, width, height, channels, 4);
-                if (decoded == null) {
-                    throw new IOException("Failed to decode JPEG: " + STBImage.stbi_failure_reason());
-                }
-
-                // useStb=true lets NativeImage.close() free this pointer through stb_image_free.
+                if (decoded == null) throw new IOException("Failed to decode JPEG: " + STBImage.stbi_failure_reason());
                 return new NativeImage(NativeImage.Format.RGBA, width.get(0), height.get(0), true, MemoryUtil.memAddress(decoded));
             }
         } finally {
@@ -48,12 +43,23 @@ public class JpegNativeImageReader {
         }
     }
 
-    private static boolean looksLikeJpeg(byte[] bytes) {
-        return bytes.length >= 4
+    public static boolean looksLikeJpeg(byte[] bytes) {
+        return bytes != null && bytes.length >= 3
                 && (bytes[0] & 0xFF) == 0xFF
                 && (bytes[1] & 0xFF) == 0xD8
-                && (bytes[bytes.length - 2] & 0xFF) == 0xFF
-                && (bytes[bytes.length - 1] & 0xFF) == 0xD9;
+                && (bytes[2] & 0xFF) == 0xFF;
+    }
+
+    public static boolean looksLikePng(byte[] bytes) {
+        if (bytes == null || bytes.length < PNG_SIGNATURE.length) return false;
+        for (int index = 0; index < PNG_SIGNATURE.length; index++) {
+            if (bytes[index] != PNG_SIGNATURE[index]) return false;
+        }
+        return true;
+    }
+
+    public static boolean looksLikeSupportedTexture(byte[] bytes) {
+        return looksLikePng(bytes) || looksLikeJpeg(bytes);
     }
 
 }

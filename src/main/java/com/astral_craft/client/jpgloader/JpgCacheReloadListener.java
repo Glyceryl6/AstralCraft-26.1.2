@@ -1,5 +1,7 @@
 package com.astral_craft.client.jpgloader;
 
+import com.astral_craft.client.gui.cardback.CardBackResourceCache;
+
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -20,6 +22,7 @@ public class JpgCacheReloadListener extends SimplePreparableReloadListener<Void>
     @Override
     protected void apply(Void object, ResourceManager resourceManager, ProfilerFiller profiler) {
         ScopedJpgTextureCache.clear();
+        CardBackResourceCache.clear();
     }
 
 }
