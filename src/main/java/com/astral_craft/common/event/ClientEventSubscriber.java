@@ -4,7 +4,6 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.*;
 import com.astral_craft.client.gui.board.*;
 import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
-import com.astral_craft.client.gui.components.AstralConfirmationScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
 import com.astral_craft.client.gui.phrase.QuickPhraseSidebar;
@@ -25,7 +24,7 @@ import com.astral_craft.client.render.projectile.FirecrackersRenderer;
 import com.astral_craft.client.render.projectile.SlingshotProjectileRenderer;
 import com.astral_craft.client.render.projectile.SnowballAttackProjectileRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
-import com.astral_craft.common.network.c2s.BoardDismantleConfirmPayload;
+import com.astral_craft.common.items.BoardDismantlerItem;
 import com.astral_craft.common.network.c2s.RequestCardBackSelectionPayload;
 import com.astral_craft.common.network.c2s.RequestCharacterSettingsPayload;
 import com.astral_craft.common.network.c2s.RequestCharacterSkillPayload;
@@ -37,7 +36,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Avatar;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
@@ -47,11 +45,8 @@ import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
 import org.jspecify.annotations.NullMarked;
-
-import java.util.List;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
 public class ClientEventSubscriber {
@@ -142,11 +137,11 @@ public class ClientEventSubscriber {
             try (Gizmos.TemporaryCollection ignored = minecraft.levelRenderer.collectPerFrameGizmos()) {
                 BoardRouteWorldRenderer.submit();
                 BoardTemplatePreviewRenderer.submit();
+                CustomPaintingPreviewRenderer.submit();
             }
         }
+
         BoardProtectionWorldRenderer.submit(event);
-        BoardCharacterMarkerRenderer.submit(event);
-        CustomPaintingPreviewRenderer.submit(event);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -199,7 +194,7 @@ public class ClientEventSubscriber {
         event.register(BoardAnnouncementPayload.TYPE, BoardAnnouncementOverlay::show);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
         event.register(OpenBoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmScreen::open);
-        event.register(OpenBoardDismantleConfirmPayload.TYPE, ClientEventSubscriber::openBoardDismantleConfirmation);
+        event.register(OpenBoardDismantleConfirmPayload.TYPE, BoardDismantlerItem::openBoardDismantleConfirmation);
         event.register(OpenBoardTurnPayload.TYPE, BoardTurnScreen::open);
         event.register(OpenBoardDiscardPayload.TYPE, BoardDiscardScreen::open);
         event.register(OpenBoardEncounterPayload.TYPE, BoardEncounterScreen::open);
@@ -233,20 +228,6 @@ public class ClientEventSubscriber {
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
         event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);
         event.register(OpenCustomPaintingConfigPayload.TYPE, CustomPaintingConfigScreen::open);
-    }
-
-    private static void openBoardDismantleConfirmation(OpenBoardDismantleConfirmPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new AstralConfirmationScreen(
-                Component.translatable("gui.astral_craft.board_dismantle.confirm.title"),
-                List.of(Component.translatable("gui.astral_craft.board_dismantle.confirm.warning"),
-                        Component.translatable("gui.astral_craft.board_dismantle.confirm.details", payload.panelCount())),
-                Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_all"),
-                Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_data_only"),
-                Component.translatable("gui.astral_craft.confirm.cancel"),
-                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
-                        BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS)),
-                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
-                        BoardDismantleConfirmPayload.Action.REMOVE_DATA_ONLY)))));
     }
 
     @SubscribeEvent

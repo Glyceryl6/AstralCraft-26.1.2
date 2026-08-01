@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 
@@ -12,6 +13,7 @@ import java.util.*;
  * The visual entities for these records are deliberately disposable and are rebuilt by
  * {@link BoardWorldObjectService} when they are missing.
  */
+@SuppressWarnings("unused")
 public class BoardMechanicsState {
 
     private static final Codec<UUID> UUID_CODEC = Codec.STRING.xmap(UUID::fromString, UUID::toString);
@@ -112,7 +114,7 @@ public class BoardMechanicsState {
         return this.traps.stream().filter(trap -> trap.nodeId().equals(nodeId)).toList();
     }
 
-    public BoardTrap addTrap(BoardTrapType type, UUID ownerSlotId, String nodeId) {
+    public void addTrap(BoardTrapType type, UUID ownerSlotId, String nodeId) {
         if (type.barricade()) {
             this.traps.removeIf(trap -> trap.nodeId().equals(nodeId) && trap.type().barricade());
         } else if (type.singlePerNode()) {
@@ -121,7 +123,6 @@ public class BoardMechanicsState {
 
         BoardTrap trap = new BoardTrap(UUID.randomUUID(), type, ownerSlotId, nodeId);
         this.traps.add(trap);
-        return trap;
     }
 
     public void removeTrap(UUID trapId) {
@@ -173,6 +174,10 @@ public class BoardMechanicsState {
                 .filter(entry -> entry.getValue().contains(number)).map(Map.Entry::getKey).toList();
     }
 
+    public void clearLotteryNumbers() {
+        this.lotteryNumbers.clear();
+    }
+
     public int lotteryJackpot() {
         return Math.max(10, this.lotteryJackpot);
     }
@@ -199,14 +204,13 @@ public class BoardMechanicsState {
         else this.timedEvents.put(eventId, turns);
     }
 
-    public int tickTimedEvent(Identifier eventId) {
+    public void tickTimedEvent(Identifier eventId) {
         int remaining = this.timedEventTurns(eventId);
         if (remaining <= 1) {
             this.timedEvents.remove(eventId);
-            return 0;
+            return;
         }
         this.timedEvents.put(eventId, remaining - 1);
-        return remaining - 1;
     }
 
     public Optional<UUID> timeBombSlot() {
@@ -292,7 +296,7 @@ public class BoardMechanicsState {
         }
 
         @Override
-        public String getSerializedName() {
+        public @NonNull String getSerializedName() {
             return this.serializedName;
         }
 
@@ -368,7 +372,6 @@ public class BoardMechanicsState {
             characterStartNodes = List.copyOf(characterStartNodes);
             traps = List.copyOf(traps);
             droppedCoins = Map.copyOf(droppedCoins);
-            timeBombSlot = timeBombSlot == null ? Optional.empty() : timeBombSlot;
             soulLinks = List.copyOf(soulLinks);
             Map<String, List<Integer>> copied = new LinkedHashMap<>();
             lotteryNumbers.forEach((slotId, numbers) -> copied.put(slotId, List.copyOf(numbers)));

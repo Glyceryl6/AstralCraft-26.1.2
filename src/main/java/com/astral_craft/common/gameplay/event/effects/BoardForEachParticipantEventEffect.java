@@ -54,7 +54,7 @@ public record BoardForEachParticipantEventEffect(Selection selection, List<Astra
                     : Math.max(0, this.completionDelayTicks);
             tasks.addLast(BoardEventTask.action(() -> {
                 BoardParticipant current = context.session().participant(participant.slotUuid()).orElse(null);
-                if (current == null) return;
+                if (current == null || this.selection == Selection.ACTIVE && current.knockedDown()) return;
                 var eventContext = context.astralContext(current);
                 for (AstralEventEffect effect : this.effects) if (effect != null) effect.apply(eventContext);
             }, wait));
@@ -64,6 +64,7 @@ public record BoardForEachParticipantEventEffect(Selection selection, List<Astra
     private List<BoardParticipant> select(BoardEventContext context) {
         List<BoardParticipant> participants = new ArrayList<>(context.session().participants());
         if (participants.isEmpty() || this.selection == Selection.ALL) return participants;
+        if (this.selection == Selection.ACTIVE) return participants.stream().filter(participant -> !participant.knockedDown()).toList();
         Comparator<BoardParticipant> comparator = Comparator.comparingInt(value -> value.stats().starCoins());
         int target = (this.selection == Selection.RICHEST
                 ? participants.stream().max(comparator) : participants.stream().min(comparator))
@@ -75,7 +76,7 @@ public record BoardForEachParticipantEventEffect(Selection selection, List<Astra
     }
 
     public enum Selection implements StringRepresentable {
-        ALL("all"), RICHEST("richest"), POOREST("poorest");
+        ALL("all"), ACTIVE("active"), RICHEST("richest"), POOREST("poorest");
 
         public static final Codec<Selection> CODEC = StringRepresentable.fromEnum(Selection::values);
         private final String serializedName;
@@ -88,5 +89,7 @@ public record BoardForEachParticipantEventEffect(Selection selection, List<Astra
         public String getSerializedName() {
             return this.serializedName;
         }
+
     }
+
 }

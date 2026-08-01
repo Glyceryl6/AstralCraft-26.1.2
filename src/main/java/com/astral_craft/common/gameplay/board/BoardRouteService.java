@@ -1,13 +1,14 @@
 package com.astral_craft.common.gameplay.board;
 
-import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.items.cards.HandcardRedirection;
 import com.astral_craft.common.network.s2c.BoardRouteStatePayload;
+import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -56,12 +57,37 @@ public class BoardRouteService {
         if (current == null) return Direction.NORTH;
         if (participant.hasPreviousNode()) {
             BlockPos previous = session.positions().get(participant.previousNodeKey());
-            if (previous != null && !previous.equals(current)) return BoardEntityService.directionBetween(previous, current);
+            if (previous != null && !previous.equals(current)) {
+                return BoardEntityService.directionBetween(previous, current);
+            }
         }
 
-        return preferredNeighbor(session, participant.currentNodeKey(), session.travelDirection())
-                .map(session.positions()::get).filter(Objects::nonNull)
+        return preferredNeighbor(session, participant.currentNodeKey(), session.travelDirection()).map(session.positions()::get)
                 .map(target -> BoardEntityService.directionBetween(current, target)).orElse(Direction.NORTH);
+    }
+
+    public static Direction facingDirection(BoardSession session, BoardParticipant participant) {
+        BlockPos current = session.positions().get(participant.currentNodeKey());
+        if (current == null) return Direction.NORTH;
+        List<String> choices = nextChoices(session, participant);
+        if (choices.size() == 1) {
+            BlockPos target = session.positions().get(choices.getFirst());
+            if (target != null) return BoardEntityService.directionBetween(current, target);
+        }
+        if (choices.size() > 1) return directionTowardBoardCenter(session, current);
+        return travelDirection(session, participant);
+    }
+
+    private static Direction directionTowardBoardCenter(BoardSession session, BlockPos current) {
+        double centerX = session.positions().values().stream().mapToDouble(BlockPos::getX).average().orElse(current.getX());
+        double centerZ = session.positions().values().stream().mapToDouble(BlockPos::getZ).average().orElse(current.getZ());
+        int dx = Double.compare(centerX, current.getX());
+        int dz = Double.compare(centerZ, current.getZ());
+        if (Math.abs(centerX - current.getX()) >= Math.abs(centerZ - current.getZ()) && dx != 0) {
+            return dx > 0 ? Direction.EAST : Direction.WEST;
+        }
+        if (dz != 0) return dz > 0 ? Direction.SOUTH : Direction.NORTH;
+        return Direction.NORTH;
     }
 
     public static String previousNodeForTravelDirection(BoardSession session, String destinationNodeId, Direction travelDirection) {
@@ -115,8 +141,7 @@ public class BoardRouteService {
         LinkedHashSet<String> result = new LinkedHashSet<>();
         BoardNode node = session.nodes().get(nodeId);
         if (node != null) result.addAll(node.next());
-        session.nodes().values().stream()
-                .filter(candidate -> candidate.next().contains(nodeId))
+        session.nodes().values().stream().filter(candidate -> candidate.next().contains(nodeId))
                 .map(BoardNode::id).forEach(result::add);
         return List.copyOf(result);
     }
@@ -162,7 +187,7 @@ public class BoardRouteService {
         if (participant == null) return;
         List<List<String>> paths = possiblePaths(session, participant.currentNodeKey(), participant.previousNodeKey(),
                 movement.remainingSteps(), HandcardRedirection.hasFreeDirection(participant));
-        List<List<String>> highlightedPaths = startOpportunityPaths(session, participant, paths);
+        List<List<String>> highlightedPaths = stopOpportunityPaths(session, participant, paths);
         broadcastState(session, true, routePositions(session, paths), routePositions(session, highlightedPaths),
                 nodePositions(session, movement.branchChoices()));
     }
@@ -183,10 +208,8 @@ public class BoardRouteService {
         Identifier skinId = participant == null ? Identifier.withDefaultNamespace("default") : participant.skinId();
         BlockPos center = session.protectedArea().center();
         for (ServerPlayer player : level.players()) {
-            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D)
-                    > 160.0D * 160.0D) continue;
-            List<List<BlockPos>> personalHighlights = participant != null && participant.controlledBy(player.getUUID())
-                    ? highlightedRoutes : List.of();
+            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) > 160.0D * 160.0D) continue;
+            List<List<BlockPos>> personalHighlights = participant != null && participant.controlledBy(player.getUUID()) ? highlightedRoutes : List.of();
             PacketDistributor.sendToPlayer(player, new BoardRouteStatePayload(session.id(), routes,
                     personalHighlights, branches, decisionTicks, decisionDurationTicks, characterId, skinId, active));
         }
@@ -194,20 +217,20 @@ public class BoardRouteService {
 
     private static List<List<String>> possiblePaths(BoardSession session, String start, String previous, int steps, boolean freeDirection) {
         List<List<String>> result = new ArrayList<>();
-        collectPaths(session, start, previous, steps, freeDirection,
-                new ArrayList<>(List.of(start)), result);
+        collectPaths(session, start, previous, steps, freeDirection, new ArrayList<>(List.of(start)), result);
         return result;
     }
 
-    private static List<List<String>> startOpportunityPaths(BoardSession session, BoardParticipant participant, List<List<String>> paths) {
-        int starCost = StartPlatform.nextStarCost(participant.stats().stars());
-        if (participant.stats().stars() < 3 && (starCost <= 0 || participant.stats().starCoins() < starCost)) return List.of();
-        Set<String> startNodes = Set.copyOf(session.startNodes());
-        return paths.stream().filter(path -> {
-            if (path.size() < 2) return false;
-            if (startNodes.contains(path.getLast())) return true;
-            return path.subList(1, path.size()).stream().anyMatch(nodeId -> session.canStopAtStart(participant, nodeId));
-        }).toList();
+    private static List<List<String>> stopOpportunityPaths(BoardSession session, BoardParticipant participant, List<List<String>> paths) {
+        return paths.stream().filter(path -> path.size() >= 2 && path.subList(1, path.size()).stream()
+                .anyMatch(nodeId -> canOfferStop(session, participant, nodeId))).toList();
+    }
+
+    private static boolean canOfferStop(BoardSession session, BoardParticipant participant, String nodeId) {
+        BoardNode node = session.nodes().get(nodeId);
+        if (node == null || StartPlatform.nextStarCost(participant.stats().stars()) > 0) return false;
+        if (!(BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof StartPlatform platform)) return false;
+        return !platform.characterStart() || session.canStopAtStart(participant, nodeId);
     }
 
     private static void collectPaths(BoardSession session, String current, String previous, int remaining,
