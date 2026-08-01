@@ -14,7 +14,6 @@
     }
   ],
   "id": "astral_craft:philanthropy",
-  "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.philanthropy.name",
   "texture": "astral_craft:textures/gui/cards/event/philanthropy.jpg",
   "triggers": false

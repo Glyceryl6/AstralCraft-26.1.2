@@ -38,6 +38,7 @@ public class AstralEventEffectTypes {
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<GainSelectedCharacterFriendshipEventEffect>> GAIN_SELECTED_CHARACTER_FRIENDSHIP = register("gain_selected_character_friendship", GainSelectedCharacterFriendshipEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardForEachParticipantEventEffect>> BOARD_FOR_EACH_PARTICIPANT = register("board_for_each_participant", BoardForEachParticipantEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardCoinEventEffect>> BOARD_COINS = register("board_coins", BoardCoinEventEffect.CODEC);
+//    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardDamageEventEffect>> BOARD_DAMAGE = register("board_damage", BoardDamageEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardMoveDiceEventEffect>> BOARD_MOVE_DICE = register("board_move_dice", BoardMoveDiceEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardStatusEventEffect>> BOARD_STATUS = register("board_status", BoardStatusEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardRoundStatusEventEffect>> BOARD_ROUND_STATUS = register("board_round_status", BoardRoundStatusEventEffect.CODEC);

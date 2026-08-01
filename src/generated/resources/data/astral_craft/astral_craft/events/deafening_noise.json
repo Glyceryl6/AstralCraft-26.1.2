@@ -13,7 +13,6 @@
     }
   ],
   "id": "astral_craft:deafening_noise",
-  "kind": "astral_craft:bad",
   "name_key": "event.astral_craft.deafening_noise.name",
   "texture": "astral_craft:textures/gui/cards/event/deafening_noise.jpg",
   "triggers": false

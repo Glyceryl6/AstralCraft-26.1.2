@@ -1,16 +1,12 @@
 package com.astral_craft.common.gameplay.event;
 
-import com.astral_craft.common.gameplay.event.type.AstralEventIdentifiers;
-import com.astral_craft.common.gameplay.event.type.AstralEventKinds;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.resources.Identifier;
 
 public record AstralActiveEventInstance(
         String eventId,
         String nameKey,
         String descriptionKey,
-        Identifier kind,
         int ticksLeft,
         int totalTicks,
         int intervalLeft,
@@ -20,7 +16,6 @@ public record AstralActiveEventInstance(
             Codec.STRING.fieldOf("event_id").forGetter(AstralActiveEventInstance::eventId),
             Codec.STRING.optionalFieldOf("name_key", "").forGetter(AstralActiveEventInstance::nameKey),
             Codec.STRING.optionalFieldOf("description_key", "").forGetter(AstralActiveEventInstance::descriptionKey),
-            AstralEventIdentifiers.CODEC.optionalFieldOf("kind", AstralEventKinds.NEUTRAL).forGetter(AstralActiveEventInstance::kind),
             Codec.INT.optionalFieldOf("ticks_left", 0).forGetter(AstralActiveEventInstance::ticksLeft),
             Codec.INT.optionalFieldOf("total_ticks", 0).forGetter(AstralActiveEventInstance::totalTicks),
             Codec.INT.optionalFieldOf("interval_left", 20).forGetter(AstralActiveEventInstance::intervalLeft),
@@ -31,7 +26,6 @@ public record AstralActiveEventInstance(
         return new AstralActiveEventInstance(definition.id().toString(),
                 definition.nameKey(),
                 definition.descriptionKey(),
-                definition.kind(),
                 definition.safeDurationTicks(),
                 definition.safeDurationTicks(),
                 definition.safeIntervalTicks(),
@@ -39,12 +33,12 @@ public record AstralActiveEventInstance(
     }
 
     public AstralActiveEventInstance tick() {
-        return new AstralActiveEventInstance(this.eventId, this.nameKey, this.descriptionKey, this.kind,
+        return new AstralActiveEventInstance(this.eventId, this.nameKey, this.descriptionKey,
                 Math.max(0, this.ticksLeft - 1), this.totalTicks, Math.max(0, this.intervalLeft - 1), this.intervalTicks);
     }
 
     public AstralActiveEventInstance resetInterval() {
-        return new AstralActiveEventInstance(this.eventId, this.nameKey, this.descriptionKey, this.kind,
+        return new AstralActiveEventInstance(this.eventId, this.nameKey, this.descriptionKey,
                 this.ticksLeft, this.totalTicks, Math.max(1, this.intervalTicks), this.intervalTicks);
     }
 

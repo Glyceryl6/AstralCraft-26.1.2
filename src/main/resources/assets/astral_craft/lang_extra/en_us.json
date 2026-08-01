@@ -506,6 +506,7 @@
   "gui.astral_craft.board.gamble.result_even": "Rolled %s — Even",
   "gui.astral_craft.board.gamble.result_odd": "Rolled %s — Odd",
   "gui.astral_craft.board.gamble.reward": "Prize Pool: %s Star Coins",
+  "gui.astral_craft.board.gamble.rolling": "Rolling the die...",
   "gui.astral_craft.board.gamble.thinking": "Choosing...",
   "gui.astral_craft.board.gamble.title": "Odd or Even",
   "gui.astral_craft.board.gamble.waiting": "Waiting for the other players...",

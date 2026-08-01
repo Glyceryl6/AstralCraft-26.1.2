@@ -31,7 +31,6 @@ public class AstralEventManager extends SimpleJsonResourceReloadListener<AstralE
             loaded.put(id, new AstralEventDefinition(id,
                     AstralEventLocalizationKeys.name(id),
                     AstralEventLocalizationKeys.description(id),
-                    definition.kind(),
                     definition.texture(),
                     definition.triggers(),
                     definition.conditions(),

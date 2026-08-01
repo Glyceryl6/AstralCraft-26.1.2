@@ -724,6 +724,7 @@
   "gui.astral_craft.board.gamble.result_even": "骰出%s点：偶数",
   "gui.astral_craft.board.gamble.result_odd": "骰出%s点：奇数",
   "gui.astral_craft.board.gamble.reward": "总奖励：%s枚星币",
+  "gui.astral_craft.board.gamble.rolling": "骰子正在滚动…",
   "gui.astral_craft.board.gamble.thinking": "选择中……",
   "gui.astral_craft.board.gamble.title": "猜猜乐",
   "gui.astral_craft.board.gamble.waiting": "等待其他角色选择……",

@@ -332,8 +332,10 @@ public record AstralPlayerStats(
     }
 
     public AstralPlayerStats beginTurn() {
-        AstralPlayerStats next = this;
-        for (BoardBuffInstance original : new ArrayList<>(this.buffs.values())) {
+        Map<Identifier, BoardBuffInstance> activated = new HashMap<>();
+        this.buffs.forEach((id, instance) -> activated.put(id, instance.activate()));
+        AstralPlayerStats next = this.withBuffs(activated);
+        for (BoardBuffInstance original : new ArrayList<>(next.buffs.values())) {
             BoardBuffInstance current = next.buffInstance(original.id());
             if (current != null) next = current.buff().onTurnStart(next, current);
         }

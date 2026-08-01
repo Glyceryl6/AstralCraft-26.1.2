@@ -7,7 +7,6 @@
     }
   ],
   "id": "astral_craft:lottery",
-  "kind": "astral_craft:good",
   "name_key": "event.astral_craft.lottery.name",
   "texture": "astral_craft:textures/gui/cards/event/lottery.jpg",
   "triggers": false

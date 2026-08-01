@@ -8,11 +8,11 @@
         {
           "type": "astral_craft:heal"
         }
-      ]
+      ],
+      "selection": "active"
     }
   ],
   "id": "astral_craft:my_goddess",
-  "kind": "astral_craft:good",
   "name_key": "event.astral_craft.my_goddess.name",
   "texture": "astral_craft:textures/gui/cards/event/my_goddess.jpg",
   "triggers": false

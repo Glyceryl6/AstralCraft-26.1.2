@@ -11,22 +11,25 @@
       ]
     },
     {
-      "type": "astral_craft:board_activate_round_event",
-      "turns": 3
-    }
-  ],
-  "id": "astral_craft:food_safety",
-  "interval_effects": [
-    {
       "type": "astral_craft:board_for_each_participant",
       "effects": [
         {
-          "type": "astral_craft:damage"
+          "type": "astral_craft:board_status",
+          "buff": {
+            "buff": "astral_craft:turn_start_damage",
+            "display_name": {
+              "translate": "board_buff.astral_craft.food_safety"
+            },
+            "duration": 3,
+            "fresh": true,
+            "icon": "astral_craft:textures/gui/board_buff/food_safety.png",
+            "id": "astral_craft:food_safety"
+          }
         }
       ]
     }
   ],
-  "kind": "astral_craft:bad",
+  "id": "astral_craft:food_safety",
   "name_key": "event.astral_craft.food_safety.name",
   "texture": "astral_craft:textures/gui/cards/event/food_safety.jpg",
   "triggers": false

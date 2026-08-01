@@ -2,7 +2,6 @@ package com.astral_craft.common.gameplay.event;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.event.type.AstralEventIdentifiers;
-import com.astral_craft.common.gameplay.event.type.AstralEventKinds;
 import com.astral_craft.common.gameplay.event.type.AstralEventLocalizationKeys;
 import com.astral_craft.common.gameplay.event.type.AstralEventTimings;
 import com.mojang.serialization.Codec;
@@ -17,7 +16,6 @@ public record AstralEventDefinition(
         Identifier id,
         String nameKey,
         String descriptionKey,
-        Identifier kind,
         Identifier texture,
         boolean triggers,
         List<AstralEventTriggerCondition> conditions,
@@ -40,7 +38,6 @@ public record AstralEventDefinition(
             Identifier.CODEC.optionalFieldOf("id", AstralCraft.prefix("unknown_event")).forGetter(AstralEventIdentity::id),
             Codec.STRING.optionalFieldOf("name_key", "").forGetter(AstralEventIdentity::nameKey),
             Codec.STRING.optionalFieldOf("description_key", "").forGetter(AstralEventIdentity::descriptionKey),
-            AstralEventIdentifiers.CODEC.optionalFieldOf("kind", AstralEventKinds.NEUTRAL).forGetter(AstralEventIdentity::kind),
             Identifier.CODEC.optionalFieldOf("texture", AstralCraft.prefix("textures/gui/cards/event.png")).forGetter(AstralEventIdentity::texture)
     ).apply(instance, AstralEventIdentity::new));
 
@@ -80,7 +77,6 @@ public record AstralEventDefinition(
                 id,
                 nameKey,
                 descriptionKey,
-                identity.kind(),
                 identity.texture(),
                 trigger.triggers(),
                 trigger.conditions(),
@@ -101,7 +97,7 @@ public record AstralEventDefinition(
     }
 
     private AstralEventIdentity identity() {
-        return new AstralEventIdentity(this.id, this.nameKey, this.descriptionKey, this.kind, this.texture);
+        return new AstralEventIdentity(this.id, this.nameKey, this.descriptionKey, this.texture);
     }
 
     private AstralEventTriggerPart triggerPart() {
@@ -141,14 +137,6 @@ public record AstralEventDefinition(
         return true;
     }
 
-    public boolean good() {
-        return AstralEventKinds.good(this.kind);
-    }
-
-    public boolean bad() {
-        return AstralEventKinds.bad(this.kind);
-    }
-
     public boolean durationBased() {
         return AstralEventTimings.duration(this.timing) || this.durationTicks > 0;
     }
@@ -165,7 +153,7 @@ public record AstralEventDefinition(
         return this.intervalEffects.isEmpty() ? this.effects : this.intervalEffects;
     }
 
-    private record AstralEventIdentity(Identifier id, String nameKey, String descriptionKey, Identifier kind, Identifier texture) {}
+    private record AstralEventIdentity(Identifier id, String nameKey, String descriptionKey, Identifier texture) {}
 
     private record AstralEventTriggerPart(
             boolean triggers,
