@@ -886,14 +886,7 @@ public class BoardSessionManager {
                 && (session.actionDeadlineTick() <= 0L || AstralServerTickClock.now(level) <= session.actionDeadlineTick());
     }
 
-    public static void beginAutomaticMoveAgain(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        if (level == null || session == null || participant == null || participant.knockedDown()) return;
-        BoardSession.MovementState movement = session.movement();
-        if (movement == null || !movement.slotId().equals(participant.slotUuid()) || movement.remainingSteps() > 0) return;
-        beginMoveRoll(level, session, participant, null);
-    }
-
-    private static void beginMoveRoll(ServerLevel level, BoardSession session, BoardParticipant participant, @Nullable ServerPlayer controller) {
+    public static void beginMoveRoll(ServerLevel level, BoardSession session, BoardParticipant participant, @Nullable ServerPlayer controller) {
         AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
         if (entity == null) {
             finishTurn(level, session);
@@ -918,14 +911,13 @@ public class BoardSessionManager {
         }
 
         int fixed = participant.stats().nextMoveFixed();
-        int diceCount = fixed > 0 ? 1
-                : Math.clamp(1 + participant.stats().moveDiceBonus(), 1, 8);
+        int diceCount = fixed > 0 ? 1 : Math.clamp(1 + participant.stats().moveDiceBonus(), 1, 8);
         int total = 0;
         for (int index = 0; index < diceCount; index++) {
             total += fixed > 0 ? fixed : level.getRandom().nextInt(10) + 1;
         }
-        total = Math.max(0, total + participant.stats().speed());
 
+        total = Math.max(0, total + participant.stats().speed());
         AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
                 entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
         dice.setBoardSessionId(session.id());
@@ -1561,7 +1553,7 @@ public class BoardSessionManager {
                 session.nextArrivalOrder());
         updateParticipant(level, session, relocated);
         AstralCharacterEntity entity = BoardEntityService.entity(level, relocated);
-        if (entity != null) entity.setBoardDirection(travelDirection);
+        if (entity != null) entity.setBoardDirection(BoardRouteService.facingDirection(session, relocated));
         BoardEntityService.arrangeNode(level, session, oldNodeId);
         BoardEntityService.arrangeNode(level, session, destinationNodeId);
     }
@@ -1693,6 +1685,10 @@ public class BoardSessionManager {
                 && (previous == null || previous.knockedDownTurns() <= 0);
         int coinDelta = previous == null ? 0 : participant.stats().starCoins() - previous.stats().starCoins();
         session.putParticipant(participant);
+        if (newlyKnockedDown && session.mechanics().timeBombSlot().filter(participant.slotUuid()::equals).isPresent()) {
+            session.mechanics().setTimeBombSlot(Optional.empty());
+            PENDING_TIME_BOMB_ROLLS.remove(session.id());
+        }
         BoardEntityService.syncState(level, participant);
         AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
         if (damaged) {

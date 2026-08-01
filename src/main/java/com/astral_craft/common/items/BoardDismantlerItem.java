@@ -1,11 +1,13 @@
 package com.astral_craft.common.items;
 
+import com.astral_craft.client.gui.components.AstralConfirmationScreen;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.network.c2s.BoardDismantleConfirmPayload;
 import com.astral_craft.common.network.s2c.OpenBoardDismantleConfirmPayload;
 import com.astral_craft.common.registry.AstralItems;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -14,7 +16,10 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Blocks;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -40,6 +45,7 @@ public class BoardDismantlerItem extends Item {
             PacketDistributor.sendToPlayer(player, new OpenBoardDismantleConfirmPayload(session.id(), session.positions().size()));
             return InteractionResult.SUCCESS;
         }
+
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());
         BoardSessionManager.resetForLobby(level, session);
         session.setProtectionEnabled(false);
@@ -52,7 +58,7 @@ public class BoardDismantlerItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
-    public static void confirmDelete(ServerPlayer player, UUID boardId, BoardDismantleConfirmPayload.Action action) {
+    public static void confirmDelete(ServerPlayer player, UUID boardId, BoardDismantleConfirmPayload.@Nullable Action action) {
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (session == null || action == null || !holdsDismantler(player)) return;
         BlockPos center = session.protectedArea().center();
@@ -63,7 +69,9 @@ public class BoardDismantlerItem extends Item {
         session.setProtectionEnabled(false);
         if (action == BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS) {
             for (BlockPos pos : session.positions().values()) {
-                if (level.getBlockState(pos).getBlock() instanceof BasePlatform) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                if (level.getBlockState(pos).getBlock() instanceof BasePlatform) {
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                }
             }
         }
 
@@ -75,6 +83,20 @@ public class BoardDismantlerItem extends Item {
                 ? "message.astral_craft.board.deleted_with_panels"
                 : "message.astral_craft.board.deleted_data_only";
         player.sendSystemMessage(Component.translatable(messageKey).withStyle(ChatFormatting.YELLOW), true);
+    }
+
+    public static void openBoardDismantleConfirmation(OpenBoardDismantleConfirmPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new AstralConfirmationScreen(
+                Component.translatable("gui.astral_craft.board_dismantle.confirm.title"),
+                List.of(Component.translatable("gui.astral_craft.board_dismantle.confirm.warning"),
+                        Component.translatable("gui.astral_craft.board_dismantle.confirm.details", payload.panelCount())),
+                Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_all"),
+                Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_data_only"),
+                Component.translatable("gui.astral_craft.confirm.cancel"),
+                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
+                        BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS)),
+                () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
+                        BoardDismantleConfirmPayload.Action.REMOVE_DATA_ONLY)))));
     }
 
     private static boolean holdsDismantler(ServerPlayer player) {
