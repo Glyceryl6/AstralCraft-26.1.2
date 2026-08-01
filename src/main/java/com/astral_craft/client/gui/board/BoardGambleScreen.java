@@ -26,8 +26,6 @@ public class BoardGambleScreen extends Screen {
     private boolean localCanChoose;
     private int dieResult;
     private int totalReward;
-    private int timeoutTicks;
-    private int timeoutDurationTicks;
     private boolean submitted;
 
     public BoardGambleScreen(OpenBoardGamblePayload payload) {
@@ -67,20 +65,12 @@ public class BoardGambleScreen extends Screen {
         this.localCanChoose = payload.localCanChoose();
         this.dieResult = payload.dieResult();
         this.totalReward = payload.totalReward();
-        this.timeoutTicks = payload.timeoutTicks();
-        this.timeoutDurationTicks = payload.timeoutDurationTicks();
         if (this.localCanChoose) this.submitted = false;
     }
 
     @Override
     public boolean isPauseScreen() {
         return false;
-    }
-
-    @Override
-    public void tick() {
-        super.tick();
-        if (this.timeoutTicks > 0) this.timeoutTicks--;
     }
 
     @Override
@@ -114,15 +104,15 @@ public class BoardGambleScreen extends Screen {
                 graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.gamble.waiting"),
                         this.width / 2, layout.buttonY() + 9, 0xFFBFC2D0);
             }
+        } else if (this.phase == OpenBoardGamblePayload.Phase.ROLLING) {
+            graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.gamble.rolling"),
+                    this.width / 2, layout.buttonY() + 12, 0xFFBFC2D0);
         } else {
-            int shown = this.phase == OpenBoardGamblePayload.Phase.RESULT ? this.dieResult : this.animatedDie();
-            this.renderDie(graphics, this.width / 2, layout.buttonY() + 18, shown);
-            if (this.phase == OpenBoardGamblePayload.Phase.RESULT) {
-                graphics.centeredText(this.font, Component.translatable(shown % 2 == 0
-                                ? "gui.astral_craft.board.gamble.result_even"
-                                : "gui.astral_craft.board.gamble.result_odd", shown),
-                        this.width / 2, layout.buttonY() + 45, 0xFFFFD76A);
-            }
+            int shown = Math.clamp(this.dieResult, 1, 6);
+            graphics.centeredText(this.font, Component.translatable(shown % 2 == 0
+                            ? "gui.astral_craft.board.gamble.result_even"
+                            : "gui.astral_craft.board.gamble.result_odd", shown),
+                    this.width / 2, layout.buttonY() + 18, 0xFFFFD76A);
         }
     }
 
@@ -169,22 +159,6 @@ public class BoardGambleScreen extends Screen {
         }
 
         graphics.centeredText(this.font, status, layout.x() + layout.width() / 2, layout.y() + 69, color);
-    }
-
-    private void renderDie(GuiGraphicsExtractor graphics, int centerX, int centerY, int value) {
-        int size = 44;
-        int x = centerX - size / 2;
-        int y = centerY - size / 2;
-        graphics.fill(x, y, x + size, y + size, 0xFFF3F3F3);
-        graphics.fill(x + 3, y + 3, x + size - 3, y + size - 3, 0xFFE2E5EC);
-        graphics.centeredText(this.font, Component.literal(Integer.toString(Math.clamp(value, 1, 6))),
-                centerX, centerY - 4, 0xFF20222C);
-    }
-
-    private int animatedDie() {
-        int elapsed = Math.max(0, this.timeoutDurationTicks - this.timeoutTicks);
-        if (this.timeoutTicks <= 6) return Math.max(1, this.dieResult);
-        return elapsed / 3 % 6 + 1;
     }
 
     private void choose(boolean odd) {

@@ -8,6 +8,9 @@ import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardSpectatorService;
 import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
+import com.astral_craft.common.gameplay.board.BoardEntityService;
+import com.astral_craft.common.gameplay.dice.AstralDiceRollService;
+import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.network.s2c.CloseBoardGamblePayload;
 import com.astral_craft.common.network.s2c.OpenBoardGamblePayload;
 import net.minecraft.ChatFormatting;
@@ -17,14 +20,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class GamblePlatform extends BasePlatform {
 
@@ -138,6 +134,16 @@ public class GamblePlatform extends BasePlatform {
 
     private void startRoll(ServerLevel level, BoardSession session, GambleState state) {
         int dieResult = level.getRandom().nextInt(6) + 1;
+        session.currentParticipant().map(participant -> BoardEntityService.entity(level, participant)).ifPresent(entity -> {
+            AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
+                    entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
+            dice.setBoardSessionId(session.id());
+            dice.startRoll(1, 6, AstralDiceRollService.DEFAULT_ROLL_TICKS,
+                    AstralDiceRollService.DEFAULT_SPIN_SPEED, dieResult, dieResult,
+                    0, true, 0.0F, 0.0F);
+            level.addFreshEntity(dice);
+        });
+
         GambleState rolling = state.withPhase(OpenBoardGamblePayload.Phase.ROLLING,
                 dieResult, AstralServerTickClock.now(level) + ROLL_TICKS, ROLL_TICKS);
         this.games.put(session.id(), rolling);

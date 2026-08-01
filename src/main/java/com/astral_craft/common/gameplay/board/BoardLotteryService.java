@@ -66,6 +66,7 @@ public class BoardLotteryService {
             }
         } else {
             for (UUID slotId : winnerSlots) BoardWorldObjectService.awardCoins(level, session, slotId, awardEach);
+            session.mechanics().clearLotteryNumbers();
             session.mechanics().resetLotteryJackpot();
             for (ServerPlayer player : BoardSessionManager.humanPlayers(level, session)) {
                 player.sendSystemMessage(Component.translatable("message.astral_craft.board.lottery.winner",

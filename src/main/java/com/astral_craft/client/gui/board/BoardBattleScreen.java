@@ -319,7 +319,7 @@ public class BoardBattleScreen extends Screen {
         float attackerOffsetX = Mth.lerp(victory, approachOffset, 0.0F);
         float attackerOffsetY = -(float) Math.sin(Math.PI * victoryProgress) * 8.0F;
         BoardScreenEntityRenderer.render(graphics, attacker, renderLeft, renderTop, renderRight,
-                renderBottom, -225.0F, 1.0F,
+                renderBottom, 225.0F, 1.0F,
                 attackerOffsetX, attackerOffsetY, 0.0F);
     }
 
@@ -466,10 +466,7 @@ public class BoardBattleScreen extends Screen {
     }
 
     private int diceTextColor(boolean attack, boolean rolling) {
-        int die = attack ? this.view.attackerDie() : this.view.defenderDie();
-        int age = this.maximumDiceEffectAge(attack);
-        if (!rolling && die == 6 && age >= 0 && age <= 12 && Math.floorMod(age, 4) < 2) return 0xFFFFFFFF;
-        return 0xFF080808;
+        return this.maximumRollFlashesWhite(attack, rolling) ? 0xFFFFFFFF : 0xFF080808;
     }
 
     private int maximumDiceEffectAge(boolean attack) {
@@ -484,10 +481,13 @@ public class BoardBattleScreen extends Screen {
     }
 
     private int animatedValueColor(boolean attack) {
-        int die = attack ? this.view.attackerDie() : this.view.defenderDie();
+        return this.maximumRollFlashesWhite(attack, false) ? 0xFFFFFFFF : 0xFF080808;
+    }
+
+    private boolean maximumRollFlashesWhite(boolean attack, boolean rolling) {
+        if (rolling || (attack ? this.view.attackerDie() : this.view.defenderDie()) != 6) return false;
         int age = this.maximumDiceEffectAge(attack);
-        if (die == 6 && age >= 0 && age <= 12 && Math.floorMod(age, 4) < 2) return 0xFFFFFFFF;
-        return 0xFF080808;
+        return age >= 0 && age <= 12 && Math.floorMod(age, 4) < 2;
     }
 
     private int animatedValue(boolean attack) {
