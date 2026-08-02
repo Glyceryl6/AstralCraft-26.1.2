@@ -21,10 +21,11 @@ import net.minecraft.util.LightCoordsUtil;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/** 3D dice renderer using a 4x3 six-face unfolded texture. */
+/** 3D dice renderer using a 4x3 appearance texture with the current 1-10 result drawn separately. */
 public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralDiceRenderState> {
 
     public static final float HALF_SIZE = 0.35F;
+    public static final String ITEM_FACE_TEXT = "10";
     private static final float TEXT_OFFSET = HALF_SIZE + 0.011F;
     private final Font font;
     private final Map<AstralDiceEntity, Double> animationStartTicks = new WeakHashMap<>();
@@ -63,15 +64,16 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         applyDiceTransform(state, poseStack);
         collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(state.texture)),
                 (pose, consumer) -> renderCube(pose, consumer, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY));
-        this.submitFaceTexts(state, poseStack, collector);
+        submitFaceTexts(this.font, state.text, poseStack, collector);
         poseStack.popPose();
         super.submit(state, poseStack, collector, cameraState);
     }
 
-    public static void renderItemCube(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture,
-                                      int lightCoords, int overlayCoords) {
+    public static void renderItem(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture, String text,
+                                  Font font, int lightCoords, int overlayCoords) {
         collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(texture)),
                 (pose, consumer) -> renderCube(pose, consumer, lightCoords, overlayCoords));
+        submitFaceTexts(font, text, poseStack, collector);
     }
 
     private static void applyDiceTransform(AstralDiceRenderState state, PoseStack poseStack) {
@@ -113,27 +115,28 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
                 .setOverlay(overlayCoords).setLight(lightCoords).setNormal(pose, normalX, normalY, normalZ);
     }
 
-    private void submitFaceTexts(AstralDiceRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
-        submitFaceText(state.text, poseStack, collector, 0.0F, 0.0F, TEXT_OFFSET, 0.0F, 0.0F, 0.0F);
-        submitFaceText(state.text, poseStack, collector, 0.0F, 0.0F, -TEXT_OFFSET, 0.0F, 180.0F, 0.0F);
-        submitFaceText(state.text, poseStack, collector, TEXT_OFFSET, 0.0F, 0.0F, 0.0F, 90.0F, 0.0F);
-        submitFaceText(state.text, poseStack, collector, -TEXT_OFFSET, 0.0F, 0.0F, 0.0F, -90.0F, 0.0F);
-        submitFaceText(state.text, poseStack, collector, 0.0F, TEXT_OFFSET, 0.0F, -90.0F, 0.0F, 0.0F);
-        submitFaceText(state.text, poseStack, collector, 0.0F, -TEXT_OFFSET, 0.0F, 90.0F, 0.0F, 0.0F);
+    private static void submitFaceTexts(Font font, String text, PoseStack poseStack, SubmitNodeCollector collector) {
+        submitFaceText(font, text, poseStack, collector, 0.0F, 0.0F, TEXT_OFFSET, 0.0F, 0.0F, 0.0F);
+        submitFaceText(font, text, poseStack, collector, 0.0F, 0.0F, -TEXT_OFFSET, 0.0F, 180.0F, 0.0F);
+        submitFaceText(font, text, poseStack, collector, TEXT_OFFSET, 0.0F, 0.0F, 0.0F, 90.0F, 0.0F);
+        submitFaceText(font, text, poseStack, collector, -TEXT_OFFSET, 0.0F, 0.0F, 0.0F, -90.0F, 0.0F);
+        submitFaceText(font, text, poseStack, collector, 0.0F, TEXT_OFFSET, 0.0F, -90.0F, 0.0F, 0.0F);
+        submitFaceText(font, text, poseStack, collector, 0.0F, -TEXT_OFFSET, 0.0F, 90.0F, 0.0F, 0.0F);
     }
 
-    private void submitFaceText(String text, PoseStack poseStack, SubmitNodeCollector collector,
-                                float x, float y, float z, float xRot, float yRot, float zRot) {
+    private static void submitFaceText(Font font, String text, PoseStack poseStack, SubmitNodeCollector collector,
+                                       float x, float y, float z, float xRot, float yRot, float zRot) {
         FormattedCharSequence sequence = Component.literal(text).getVisualOrderText();
-        float width = this.font.width(sequence);
+        float width = font.width(sequence);
+        float scale = text.length() > 1 ? 0.072F : 0.09F;
         poseStack.pushPose();
         poseStack.translate(x, y, z);
         poseStack.mulPose(Axis.XP.rotationDegrees(xRot));
         poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
         poseStack.mulPose(Axis.ZP.rotationDegrees(zRot));
-        poseStack.scale(0.09F, -0.09F, 0.09F);
+        poseStack.scale(scale, -scale, scale);
         collector.submitText(poseStack, -width / 2.0F, -4.5F, sequence, false, Font.DisplayMode.NORMAL,
-                LightCoordsUtil.FULL_BRIGHT, 0xFF111111, 0x00000000, 0);
+                LightCoordsUtil.FULL_BRIGHT, 0xFF171221, 0x00000000, 0);
         poseStack.popPose();
     }
 

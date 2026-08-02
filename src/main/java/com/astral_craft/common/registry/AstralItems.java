@@ -5,7 +5,6 @@ import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.components.CombatBonusDefinition;
 import com.astral_craft.common.gameplay.handcard.CardTargetTypes;
-import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.items.*;
 import com.astral_craft.common.items.cards.*;
 import com.astral_craft.common.items.cards.battle.*;
@@ -54,8 +53,7 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> PLATFORM_TELEPORT_POINT = ITEMS.registerSimpleBlockItem(AstralBlocks.PLATFORM_TELEPORT_POINT);
 
     // Utility
-    public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new,
-            () -> new Item.Properties().component(AstralDataComponents.DICE_TEXTURE, DiceSkinPreferenceManager.DEFAULT_TEXTURE));
+    public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_SCANNER = register("board_scanner", BoardScannerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_SPECTATOR = register("board_spectator", BoardSpectatorItem::new, Item.Properties::new);
