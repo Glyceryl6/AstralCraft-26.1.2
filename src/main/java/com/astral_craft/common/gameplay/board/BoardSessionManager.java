@@ -424,7 +424,7 @@ public class BoardSessionManager {
         Item item = BuiltInRegistries.ITEM.getValue(participant.hand().get(index));
         ItemStack stack = new ItemStack(item);
         BoardParticipant updated = participant.recordManualDecision().removeCard(index).useCardPlay();
-        updated = ChipSelectionService.afterEffectCardPlayed(updated);
+        updated = ChipSelectionService.afterEffectCardPlayed(player.level(), updated);
         updateParticipant(player.level(), session, updated);
         CharacterManager.INSTANCE.character(updated.characterId()).onBoardEffectCardUsed(player.level(), session, updated, stack);
     }
@@ -777,7 +777,7 @@ public class BoardSessionManager {
                     : BoardParticipant.nodeIdentifier(previousNode);
             BoardParticipant initialized = new BoardParticipant(participant.slotId(), participant.controllerId(),
                     participant.bot(), participant.characterId(), participant.skinId(),
-                    BoardParticipant.nodeIdentifier(startNode), previousNodeId, Optional.empty(),
+                    BoardParticipant.nodeIdentifier(startNode), previousNodeId, null,
                     stats, hand, Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
             session.putParticipant(initialized);
             session.setHomeNode(initialized.slotUuid(), startNode);
@@ -809,7 +809,7 @@ public class BoardSessionManager {
         if (current == null) return;
         boolean wasKnockedDown = current.knockedDown();
         boolean hospitalized = current.hasRoundStatusEffect(HospitalPlatform.HOSPITALIZED_STATUS);
-        BoardParticipant prepared = ChipSelectionService.beforeTurnStart(current);
+        BoardParticipant prepared = ChipSelectionService.beforeTurnStart(level, current);
         int turnStartHealing = prepared.stats().turnStartHealing();
         int turnStartDamage = prepared.stats().turnStartDamage();
         BoardParticipant next = prepared.beginTurn();
@@ -974,13 +974,13 @@ public class BoardSessionManager {
         }
 
         if (participant == null) {
-            session.mechanics().setTimeBombSlot(Optional.empty());
+            session.mechanics().setTimeBombSlot(null);
             markChanged(level);
             return false;
         }
 
         if (pending.result() == 1) {
-            session.mechanics().setTimeBombSlot(Optional.empty());
+            session.mechanics().setTimeBombSlot(null);
             AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
             if (entity != null) {
                 BoardWorldObjectService.playExplosion(level, entity.getX(), entity.getY() + 0.8D, entity.getZ());
@@ -992,7 +992,7 @@ public class BoardSessionManager {
         }
 
         Optional<UUID> nextBombSlot = nextTimeBombSlot(session, participant.slotUuid());
-        session.mechanics().setTimeBombSlot(nextBombSlot.isPresent() ? nextBombSlot : Optional.of(participant.slotUuid()));
+        session.mechanics().setTimeBombSlot(nextBombSlot.orElse(participant.slotUuid()));
         markChanged(level);
         BoardParticipant refreshed = session.participant(participant.slotUuid()).orElse(participant);
         if (refreshed.knockedDown()) {
@@ -1027,7 +1027,7 @@ public class BoardSessionManager {
     public static boolean giveTimeBombToNext(ServerLevel level, BoardSession session, UUID sourceSlotId) {
         Optional<UUID> next = nextTimeBombSlot(session, sourceSlotId);
         if (next.isEmpty()) return false;
-        session.mechanics().setTimeBombSlot(next);
+        session.mechanics().setTimeBombSlot(next.orElse(null));
         markChanged(level);
         return true;
     }
@@ -1164,7 +1164,7 @@ public class BoardSessionManager {
             if (definition.needsTarget() && targetSlotIds.isEmpty()) continue;
             BoardParticipant current = session.participant(participant.slotUuid()).orElse(participant);
             BoardParticipant used = current.removeCard(handIndex).useCardPlay();
-            used = ChipSelectionService.afterEffectCardPlayed(used);
+            used = ChipSelectionService.afterEffectCardPlayed(level, used);
             updateParticipant(level, session, used);
             CharacterManager.INSTANCE.character(used.characterId()).onBoardEffectCardUsed(level, session, used, stack);
             long executeTick = AstralServerTickClock.now(level) + CardUseService.CARD_REVEAL_DURATION_TICKS + 2L;
@@ -1603,9 +1603,9 @@ public class BoardSessionManager {
         while (session.participantCount() < REQUIRED_PLAYERS && index < shuffled.size()) {
             CharacterDefinition definition = shuffled.get(index++);
             String skinId = definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
-            BoardParticipant bot = new BoardParticipant(UUID.randomUUID(), Optional.empty(), true,
+            BoardParticipant bot = new BoardParticipant(UUID.randomUUID(), null, true,
                     definition.id(), BoardParticipant.skinIdentifier(definition.id(), skinId),
-                    BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID, Optional.empty(),
+                    BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID, null,
                     AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
             session.putParticipant(bot);
         }
@@ -1696,7 +1696,7 @@ public class BoardSessionManager {
         int coinDelta = previous == null ? 0 : participant.stats().starCoins() - previous.stats().starCoins();
         session.putParticipant(participant);
         if (newlyKnockedDown && session.mechanics().timeBombSlot().filter(participant.slotUuid()::equals).isPresent()) {
-            session.mechanics().setTimeBombSlot(Optional.empty());
+            session.mechanics().setTimeBombSlot(null);
             PENDING_TIME_BOMB_ROLLS.remove(session.id());
         }
         BoardEntityService.syncState(level, participant);

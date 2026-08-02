@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.character.skill.*;
+import com.astral_craft.common.gameplay.chip.ChipPool;
 import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.resources.Identifier;
@@ -30,6 +31,10 @@ public class AstralCharacter {
     public AstralCharacter(Properties properties, CharacterProgressionDefinition progression) {
         this.properties = properties.copy();
         this.progression = progression == null ? CharacterProgressionDefinition.of(1000) : progression.copy();
+    }
+
+    public int chipWeight(ChipPool pool) {
+        return this.properties.chipWeights.weight(pool);
     }
 
     public CharacterDefinition definition(Identifier id) {
@@ -128,6 +133,7 @@ public class AstralCharacter {
         protected final List<CharacterProfileSection> profileSections = new ArrayList<>();
         protected final List<IntrinsicBuff> intrinsicBuffs = new ArrayList<>();
         protected Identifier fallbackAnimation = DEFAULT_CUTIN_ANIMATION;
+        protected ChipPool.Weights chipWeights = ChipPool.Weights.DEFAULT;
 
         public Properties model(Identifier value) {
             this.modelKey = value;
@@ -205,6 +211,11 @@ public class AstralCharacter {
             return this;
         }
 
+        public Properties chipWeights(int support, int sustain, int attack, int cards) {
+            this.chipWeights = new ChipPool.Weights(support, sustain, attack, cards);
+            return this;
+        }
+
         protected Properties copy() {
             Properties result = new Properties();
             result.modelKey = this.modelKey;
@@ -220,6 +231,7 @@ public class AstralCharacter {
             result.profileSections.addAll(this.profileSections);
             result.intrinsicBuffs.addAll(this.intrinsicBuffs);
             result.fallbackAnimation = this.fallbackAnimation;
+            result.chipWeights = this.chipWeights;
             return result;
         }
     }

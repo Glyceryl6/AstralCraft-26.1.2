@@ -130,7 +130,7 @@ public class RelicPlatform extends BasePlatform {
             return;
         }
         List<ChipDefinition> choices = ChipSelectionService.rollBoardChoices(player.level().getRandom(), participant,
-                this.normalDifficulty(), Optional.empty());
+                this.normalDifficulty(), null);
         if (choices.isEmpty()) {
             this.sendShop(player, participant, state, 2);
             return;
@@ -161,7 +161,7 @@ public class RelicPlatform extends BasePlatform {
         int price = participant.chipProgress().shopPrice();
         if (participant.stats().starCoins() < price) return;
         List<ChipDefinition> choices = ChipSelectionService.rollBoardChoices(level.getRandom(), participant,
-                this.normalDifficulty(), Optional.empty());
+                this.normalDifficulty(), null);
         if (choices.isEmpty()) return;
         List<Identifier> offers = choices.stream().map(ChipDefinition::registryId).toList();
         Identifier choice = offers.get(level.getRandom().nextInt(offers.size()));

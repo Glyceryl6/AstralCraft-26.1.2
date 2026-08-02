@@ -223,7 +223,7 @@ public class StartPlatform extends BasePlatform {
 
     private boolean beginChipSelection(ServerLevel level, BoardSession session, BoardParticipant participant) {
         List<ChipDefinition> choices = ChipSelectionService.rollBoardChoices(level.getRandom(), participant,
-                true, Optional.empty());
+                true, null);
         if (choices.isEmpty()) return false;
         List<Identifier> offers = choices.stream().map(ChipDefinition::registryId).toList();
         if (BoardSessionManager.isAutomated(level, participant)) {
@@ -294,5 +294,4 @@ public class StartPlatform extends BasePlatform {
     }
 
     private record BenefitResult(BoardParticipant participant, boolean leveled) {}
-
 }
