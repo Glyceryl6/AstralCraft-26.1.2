@@ -3,7 +3,7 @@ package com.astral_craft.common.event;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.*;
 import com.astral_craft.client.gui.board.*;
-import com.astral_craft.client.gui.cardback.CardBackSelectionScreen;
+import com.astral_craft.client.gui.appearance.AppearanceSelectionScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
 import com.astral_craft.client.gui.phrase.QuickPhraseSidebar;
@@ -232,7 +232,7 @@ public class ClientEventSubscriber {
         event.register(OpenBoardRelicShopPayload.TYPE, BoardRelicShopScreen::open);
         event.register(OpenBoardPanelSelectionPayload.TYPE, BoardPanelSelectionScreen::open);
         event.register(BoardRouteStatePayload.TYPE, BoardRouteWorldRenderer::accept);
-        event.register(OpenCardBackSelectionPayload.TYPE, CardBackSelectionScreen::open);
+        event.register(OpenCardBackSelectionPayload.TYPE, AppearanceSelectionScreen::open);
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
         event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);
         event.register(OpenCustomPaintingConfigPayload.TYPE, CustomPaintingConfigScreen::open);
