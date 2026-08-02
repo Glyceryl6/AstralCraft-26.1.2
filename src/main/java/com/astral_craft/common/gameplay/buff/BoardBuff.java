@@ -68,9 +68,9 @@ public class BoardBuff {
         int duration = this.mergeDuration(current, incoming);
         boolean fresh = level > intrinsicLevels && (current.fresh() || incoming.fresh());
         return new BoardBuffInstance(incoming.id(), this, duration, level - 1, intrinsicLevels, fresh,
-                incoming.value(), incoming.customName().isPresent() ? incoming.customName() : current.customName(),
-                incoming.customIcon().isPresent() ? incoming.customIcon() : current.customIcon(),
-                incoming.customColor().isPresent() ? incoming.customColor() : current.customColor(),
+                incoming.value(), incoming.customName() != null ? incoming.customName() : current.customName(),
+                incoming.customIcon() != null ? incoming.customIcon() : current.customIcon(),
+                incoming.customColor() != null ? incoming.customColor() : current.customColor(),
                 current.consumeAfterIncomingDamage() || incoming.consumeAfterIncomingDamage(),
                 current.consumeAfterMoveRoll() || incoming.consumeAfterMoveRoll());
     }

@@ -16,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -102,7 +103,7 @@ public class BoardPanelSelectionScreen extends Screen {
         if (this.submitted || event.button() != 0) return super.mouseClicked(event, doubleClick);
         Layout layout = this.layout();
         if (inside(event.x(), event.y(), layout.cancelX(), layout.cancelY(), layout.cancelWidth(), 28)) {
-            this.submit(Optional.empty());
+            this.submit(null);
             return true;
         }
 
@@ -111,7 +112,7 @@ public class BoardPanelSelectionScreen extends Screen {
             if (!node.valid()) continue;
             Point point = transform.point(node);
             if (inside(event.x(), event.y(), point.x() - 8, point.y() - 8, 16, 16)) {
-                this.submit(Optional.of(node.nodeId()));
+                this.submit(node.nodeId());
                 return true;
             }
         }
@@ -121,11 +122,11 @@ public class BoardPanelSelectionScreen extends Screen {
 
     @Override
     public void onClose() {
-        if (!this.submitted) this.submit(Optional.empty());
+        if (!this.submitted) this.submit(null);
         super.onClose();
     }
 
-    private void submit(Optional<Identifier> nodeId) {
+    private void submit(@Nullable Identifier nodeId) {
         if (this.submitted) return;
         this.submitted = true;
         ClientPacketDistributor.sendToServer(new BoardPanelSelectionPayload(this.boardId,

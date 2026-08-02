@@ -14,25 +14,27 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.Item;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public record BoardHandEventEffect(Action action, Optional<Holder<Item>> item, int count) implements AstralEventEffect {
+public record BoardHandEventEffect(Action action, @Nullable Holder<Item> item, int count) implements AstralEventEffect {
 
     public static final MapCodec<BoardHandEventEffect> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Action.CODEC.fieldOf("action").forGetter(BoardHandEventEffect::action),
-            Item.CODEC.optionalFieldOf("item").forGetter(BoardHandEventEffect::item),
+            Item.CODEC.optionalFieldOf("item")
+                    .forGetter(effect -> Optional.ofNullable(effect.item)),
             Codec.INT.optionalFieldOf("count", 1).forGetter(BoardHandEventEffect::count)
-    ).apply(instance, BoardHandEventEffect::new));
+    ).apply(instance, (action, item, count) -> new BoardHandEventEffect(action, item.orElse(null), count)));
 
     public BoardHandEventEffect(Action action, int count) {
-        this(action, Optional.empty(), count);
+        this(action, null, count);
     }
 
     public BoardHandEventEffect(Holder<Item> item, int count) {
-        this(Action.GIVE_FIXED, Optional.of(item), count);
+        this(Action.GIVE_FIXED, item, count);
     }
 
     @Override
@@ -65,9 +67,12 @@ public record BoardHandEventEffect(Action action, Optional<Holder<Item>> item, i
                     }
                 }
 
-                case GIVE_FIXED -> this.item.map(Holder::value).map(BuiltInRegistries.ITEM::getKey).ifPresent(cardId -> {
-                    for (int index = 0; index < safeCount; index++) hand.add(cardId);
-                });
+                case GIVE_FIXED -> {
+                    if (this.item != null) {
+                        Identifier cardId = BuiltInRegistries.ITEM.getKey(this.item.value());
+                        for (int index = 0; index < safeCount; index++) hand.add(cardId);
+                    }
+                }
             }
 
             BoardSessionManager.updateParticipant(target.level(), target.session(), participant.withHand(hand));

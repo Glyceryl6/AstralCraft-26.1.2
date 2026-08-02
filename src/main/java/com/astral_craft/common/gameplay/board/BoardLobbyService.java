@@ -219,9 +219,9 @@ public class BoardLobbyService {
     }
 
     private static BoardParticipant createParticipant(BoardSession session, ServerPlayer player, Identifier characterId, Identifier skinId) {
-        return new BoardParticipant(UUID.randomUUID(), Optional.of(player.getUUID()), false,
+        return new BoardParticipant(UUID.randomUUID(), player.getUUID(), false,
                 characterId, skinId, BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID,
-                Optional.empty(), AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7,
+                null, AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7,
                 session.nextArrivalOrder());
     }
 

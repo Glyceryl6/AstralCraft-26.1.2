@@ -15,14 +15,14 @@ import java.util.*;
 /** Persisted participant data with typed resource and UUID identifiers. */
 public record BoardParticipant(
         UUID slotId,
-        Optional<UUID> controllerId,
+        @Nullable UUID controllerId,
         boolean bot,
         boolean disconnectedHuman,
         Identifier characterId,
         Identifier skinId,
         Identifier currentNodeId,
         Identifier previousNodeId,
-        Optional<UUID> entityId,
+        @Nullable UUID entityId,
         AstralPlayerStats stats,
         List<Identifier> hand,
         Map<Identifier, Integer> roundStatusEffects,
@@ -38,10 +38,9 @@ public record BoardParticipant(
     private static final Codec<Map<Identifier, Integer>> ROUND_STATUS_EFFECTS_CODEC =
             Codec.unboundedMap(Identifier.CODEC, Codec.INT);
     private static final Codec<UUID> UUID_CODEC = Codec.STRING.xmap(BoardParticipant::parseUuid, UUID::toString);
-    private static final Codec<Optional<UUID>> OPTIONAL_UUID_CODEC = Codec.STRING.xmap(
-            BoardParticipant::parseOptionalUuid, value -> value.map(UUID::toString).orElse(""));
     private static final Codec<Identifier> LEGACY_IDENTIFIER_CODEC = Codec.STRING.xmap(
-            BoardParticipant::parseIdentifier, Identifier::toString);
+            BoardParticipant::parseIdentifier,
+            Identifier::toString);
     private static final MapCodec<ControlFlags> CONTROL_FLAGS_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.BOOL.optionalFieldOf("bot", false).forGetter(ControlFlags::bot),
             Codec.BOOL.optionalFieldOf("disconnected_human", false).forGetter(ControlFlags::disconnectedHuman),
@@ -51,7 +50,8 @@ public record BoardParticipant(
 
     public static final Codec<BoardParticipant> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             UUID_CODEC.fieldOf("slot_id").forGetter(BoardParticipant::slotId),
-            OPTIONAL_UUID_CODEC.optionalFieldOf("controller_id", Optional.empty()).forGetter(BoardParticipant::controllerId),
+            Codec.STRING.optionalFieldOf("controller_id", "")
+                    .forGetter(participant -> uuidString(participant.controllerId)),
             CONTROL_FLAGS_CODEC.forGetter(participant -> new ControlFlags(
                     participant.bot(), participant.disconnectedHuman(), participant.decisionTimeoutStrikes(), participant.chipProgress())),
             Identifier.CODEC.fieldOf("character_id").forGetter(BoardParticipant::characterId),
@@ -61,7 +61,8 @@ public record BoardParticipant(
                     .forGetter(BoardParticipant::currentNodeId),
             LEGACY_IDENTIFIER_CODEC.optionalFieldOf("previous_node", EMPTY_NODE_ID)
                     .forGetter(BoardParticipant::previousNodeId),
-            OPTIONAL_UUID_CODEC.optionalFieldOf("entity_id", Optional.empty()).forGetter(BoardParticipant::entityId),
+            Codec.STRING.optionalFieldOf("entity_id", "")
+                    .forGetter(participant -> uuidString(participant.entityId)),
             AstralPlayerStats.CODEC.optionalFieldOf("stats", AstralPlayerStats.DEFAULT).forGetter(BoardParticipant::stats),
             Identifier.CODEC.listOf().optionalFieldOf("hand", List.of()).forGetter(BoardParticipant::hand),
             ROUND_STATUS_EFFECTS_CODEC.optionalFieldOf("round_status_effects", Map.of())
@@ -74,9 +75,9 @@ public record BoardParticipant(
     ).apply(instance, BoardParticipant::fromCodecParts));
 
     public BoardParticipant(
-            UUID slotId, Optional<UUID> controllerId, boolean bot,
+            UUID slotId, @Nullable UUID controllerId, boolean bot,
             Identifier characterId, Identifier skinId, Identifier currentNodeId, Identifier previousNodeId,
-            Optional<UUID> entityId, AstralPlayerStats stats, List<Identifier> hand,
+            @Nullable UUID entityId, AstralPlayerStats stats, List<Identifier> hand,
             Map<Identifier, Integer> roundStatusEffects, int skillCooldownTurns, int knockedDownTurns,
             int cardPlaysUsed, int maxHandSize, int arrivalOrder) {
         this(slotId, controllerId, bot, false, characterId, skinId, currentNodeId, previousNodeId, entityId,
@@ -85,9 +86,9 @@ public record BoardParticipant(
     }
 
     public BoardParticipant(
-            UUID slotId, Optional<UUID> controllerId, boolean bot, boolean disconnectedHuman,
+            UUID slotId, @Nullable UUID controllerId, boolean bot, boolean disconnectedHuman,
             Identifier characterId, Identifier skinId, Identifier currentNodeId, Identifier previousNodeId,
-            Optional<UUID> entityId, AstralPlayerStats stats, List<Identifier> hand,
+            @Nullable UUID entityId, AstralPlayerStats stats, List<Identifier> hand,
             Map<Identifier, Integer> roundStatusEffects, int skillCooldownTurns, int knockedDownTurns,
             int cardPlaysUsed, int maxHandSize, int arrivalOrder) {
         this(slotId, controllerId, bot, disconnectedHuman, characterId, skinId, currentNodeId, previousNodeId,
@@ -118,11 +119,11 @@ public record BoardParticipant(
     }
 
     public Optional<UUID> controllerUuid() {
-        return this.controllerId;
+        return Optional.ofNullable(this.controllerId);
     }
 
     public Optional<UUID> entityUuid() {
-        return this.entityId;
+        return Optional.ofNullable(this.entityId);
     }
 
     public String skinName() {
@@ -142,7 +143,7 @@ public record BoardParticipant(
     }
 
     public boolean controlledBy(UUID playerId) {
-        return this.controllerId.filter(playerId::equals).isPresent();
+        return playerId != null && playerId.equals(this.controllerId);
     }
 
     public BoardParticipant withNode(String previousNodeId, String currentNodeId, int arrivalOrder) {
@@ -157,7 +158,7 @@ public record BoardParticipant(
 
     public BoardParticipant withEntity(@Nullable UUID entityUuid) {
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.disconnectedHuman, this.characterId, this.skinId,
-                this.currentNodeId, this.previousNodeId, Optional.ofNullable(entityUuid), this.stats, this.hand,
+                this.currentNodeId, this.previousNodeId, entityUuid, this.stats, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
     }
@@ -249,7 +250,7 @@ public record BoardParticipant(
     }
 
     public BoardParticipant asBot() {
-        return new BoardParticipant(this.slotId, Optional.empty(), true, true, this.characterId, this.skinId,
+        return new BoardParticipant(this.slotId, null, true, true, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
@@ -366,29 +367,32 @@ public record BoardParticipant(
                 return UUID.fromString(raw);
             } catch (IllegalArgumentException ignored) {}
         }
-
         String fallback = raw == null ? "" : raw;
         return UUID.nameUUIDFromBytes(("astral_craft:board_participant:" + fallback)
                 .getBytes(StandardCharsets.UTF_8));
     }
 
-    private static Optional<UUID> parseOptionalUuid(String raw) {
-        if (raw == null || raw.isBlank()) return Optional.empty();
+    private static @Nullable UUID parseNullableUuid(String raw) {
+        if (raw == null || raw.isBlank()) return null;
         try {
-            return Optional.of(UUID.fromString(raw));
+            return UUID.fromString(raw);
         } catch (IllegalArgumentException exception) {
-            return Optional.empty();
+            return null;
         }
     }
 
+    private static String uuidString(@Nullable UUID value) {
+        return value == null ? "" : value.toString();
+    }
+
     private static BoardParticipant fromCodecParts(
-            UUID slotId, Optional<UUID> controllerId, ControlFlags controlFlags,
+            UUID slotId, String controllerId, ControlFlags controlFlags,
             Identifier characterId, Identifier skinId, Identifier currentNodeId, Identifier previousNodeId,
-            Optional<UUID> entityId, AstralPlayerStats stats, List<Identifier> hand,
+            String entityId, AstralPlayerStats stats, List<Identifier> hand,
             Map<Identifier, Integer> roundStatusEffects, int skillCooldownTurns, int knockedDownTurns,
             int cardPlaysUsed, int maxHandSize, int arrivalOrder) {
-        return new BoardParticipant(slotId, controllerId, controlFlags.bot(), controlFlags.disconnectedHuman(),
-                characterId, skinId, currentNodeId, previousNodeId, entityId, stats, hand,
+        return new BoardParticipant(slotId, parseNullableUuid(controllerId), controlFlags.bot(), controlFlags.disconnectedHuman(),
+                characterId, skinId, currentNodeId, previousNodeId, parseNullableUuid(entityId), stats, hand,
                 roundStatusEffects, skillCooldownTurns, knockedDownTurns, cardPlaysUsed,
                 maxHandSize, arrivalOrder, controlFlags.decisionTimeoutStrikes(), controlFlags.chipProgress());
     }
@@ -425,13 +429,11 @@ public record BoardParticipant(
             return new ChipProgress(this.owned, offers, this.keywordIds, this.shopPurchases, this.effectCardsPlayed);
         }
 
-        public ChipProgress acquire(Identifier chipId, Optional<Identifier> keywordId) {
+        public ChipProgress acquire(Identifier chipId, @Nullable Identifier keywordId) {
             List<Identifier> nextOwned = new ArrayList<>(this.owned);
             if (chipId != null && !nextOwned.contains(chipId)) nextOwned.add(chipId);
             List<Identifier> nextKeywords = new ArrayList<>(this.keywordIds);
-            keywordId.ifPresent(id -> {
-                if (!nextKeywords.contains(id) && nextKeywords.size() < 2) nextKeywords.add(id);
-            });
+            if (keywordId != null && !nextKeywords.contains(keywordId) && nextKeywords.size() < 2) nextKeywords.add(keywordId);
             return new ChipProgress(nextOwned, this.previousOffers, nextKeywords, this.shopPurchases, this.effectCardsPlayed);
         }
 

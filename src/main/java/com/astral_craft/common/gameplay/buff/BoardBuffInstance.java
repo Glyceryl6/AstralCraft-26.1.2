@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -17,9 +18,9 @@ public record BoardBuffInstance(
         int intrinsicLevels,
         boolean fresh,
         int value,
-        Optional<Component> customName,
-        Optional<Identifier> customIcon,
-        Optional<Integer> customColor,
+        @Nullable Component customName,
+        @Nullable Identifier customIcon,
+        @Nullable Integer customColor,
         boolean consumeAfterIncomingDamage,
         boolean consumeAfterMoveRoll) {
 
@@ -32,15 +33,19 @@ public record BoardBuffInstance(
             Codec.INT.optionalFieldOf("intrinsic_levels", 0).forGetter(BoardBuffInstance::intrinsicLevels),
             Codec.BOOL.optionalFieldOf("fresh", false).forGetter(BoardBuffInstance::fresh),
             Codec.INT.optionalFieldOf("value", 1).forGetter(BoardBuffInstance::value),
-            ComponentSerialization.CODEC.optionalFieldOf("display_name").forGetter(BoardBuffInstance::customName),
-            Identifier.CODEC.optionalFieldOf("icon").forGetter(BoardBuffInstance::customIcon),
-            Codec.INT.optionalFieldOf("color").forGetter(BoardBuffInstance::customColor),
+            ComponentSerialization.CODEC.optionalFieldOf("display_name").forGetter(buffInstance -> Optional.ofNullable(buffInstance.customName)),
+            Identifier.CODEC.optionalFieldOf("icon").forGetter(buffInstance -> Optional.ofNullable(buffInstance.customIcon)),
+            Codec.INT.optionalFieldOf("color").forGetter(buffInstance -> Optional.ofNullable(buffInstance.customColor)),
             Codec.BOOL.optionalFieldOf("consume_after_incoming_damage", false).forGetter(BoardBuffInstance::consumeAfterIncomingDamage),
             Codec.BOOL.optionalFieldOf("consume_after_move_roll", false).forGetter(BoardBuffInstance::consumeAfterMoveRoll)
-    ).apply(instance, BoardBuffInstance::new));
+    ).apply(instance, (id, buff, duration, amplifier, intrinsicLevels, fresh, value, customName,
+                       customIcon, customColor, consumeAfterIncomingDamage, consumeAfterMoveRoll) ->
+            new BoardBuffInstance(id, buff, duration, amplifier, intrinsicLevels, fresh, value,
+                    customName.orElse(null), customIcon.orElse(null), customColor.orElse(null),
+                    consumeAfterIncomingDamage, consumeAfterMoveRoll)));
 
     public BoardBuffInstance(Identifier id, BoardBuff buff) {
-        this(id, buff, 1, 0, 0, true, 1, Optional.empty(), Optional.empty(), Optional.empty(), false, false);
+        this(id, buff, 1, 0, 0, true, 1, null, null, null, false, false);
     }
 
     public BoardBuffInstance {
@@ -74,15 +79,15 @@ public record BoardBuffInstance(
     }
 
     public Component displayName() {
-        return this.customName.orElseGet(this.buff::displayName);
+        return this.customName == null ? this.buff.displayName() : this.customName;
     }
 
     public Identifier icon() {
-        return this.customIcon.orElseGet(this.buff::icon);
+        return this.customIcon == null ? this.buff.icon() : this.customIcon;
     }
 
     public Optional<Integer> color() {
-        return this.customColor;
+        return Optional.ofNullable(this.customColor);
     }
 
     public BoardBuffInstance activate() {
@@ -111,7 +116,7 @@ public record BoardBuffInstance(
 
     public BoardBuffInstance withPresentation(Component name, Identifier icon) {
         return new BoardBuffInstance(this.id, this.buff, this.duration, this.amplifier, this.intrinsicLevels, this.fresh,
-                this.value, Optional.ofNullable(name), Optional.ofNullable(icon), this.customColor,
+                this.value, name, icon, this.customColor,
                 this.consumeAfterIncomingDamage, this.consumeAfterMoveRoll);
     }
 
@@ -139,7 +144,7 @@ public record BoardBuffInstance(
 
     public BoardBuffInstance withColor(int color) {
         return new BoardBuffInstance(this.id, this.buff, this.duration, this.amplifier, this.intrinsicLevels, this.fresh,
-                this.value, this.customName, this.customIcon, Optional.of(color), this.consumeAfterIncomingDamage,
+                this.value, this.customName, this.customIcon, color, this.consumeAfterIncomingDamage,
                 this.consumeAfterMoveRoll);
     }
 
@@ -186,8 +191,8 @@ public record BoardBuffInstance(
 
         public BoardBuffInstance build() {
             return new BoardBuffInstance(this.id, this.buff, this.duration, this.amplifier, this.intrinsicLevels,
-                    this.fresh, this.value, Optional.ofNullable(this.customName), Optional.ofNullable(this.customIcon),
-                    Optional.ofNullable(this.customColor), this.consumeAfterIncomingDamage, this.consumeAfterMoveRoll);
+                    this.fresh, this.value, this.customName, this.customIcon, this.customColor,
+                    this.consumeAfterIncomingDamage, this.consumeAfterMoveRoll);
         }
     }
 }

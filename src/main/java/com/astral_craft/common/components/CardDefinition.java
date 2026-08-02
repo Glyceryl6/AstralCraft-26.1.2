@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Optional;
 
 public record CardDefinition(
-        Optional<Identifier> largeFrontTextureOverride,
-        Optional<Identifier> largeBackTextureOverride,
+        @Nullable Identifier largeFrontTextureOverride,
+        @Nullable Identifier largeBackTextureOverride,
         CardType type,
         List<Class<? extends LivingEntity>> targetTypes,
         int range,
@@ -39,8 +39,10 @@ public record CardDefinition(
     }
 
     public static final Codec<CardDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Identifier.CODEC.optionalFieldOf("large_front_texture").forGetter(CardDefinition::largeFrontTextureOverride),
-            Identifier.CODEC.optionalFieldOf("large_back_texture").forGetter(CardDefinition::largeBackTextureOverride),
+            Identifier.CODEC.optionalFieldOf("large_front_texture")
+                    .forGetter(definition -> Optional.ofNullable(definition.largeFrontTextureOverride)),
+            Identifier.CODEC.optionalFieldOf("large_back_texture")
+                    .forGetter(definition -> Optional.ofNullable(definition.largeBackTextureOverride)),
             CardType.CODEC.fieldOf("type").forGetter(CardDefinition::type),
             CardTargetTypes.CODEC.optionalFieldOf("target_types").forGetter(definition -> Optional.of(definition.targetTypes())),
             CardTargetTypes.LEGACY_CODEC.optionalFieldOf("target_mode").forGetter(_ -> Optional.empty()),
@@ -51,7 +53,7 @@ public record CardDefinition(
             CardUseRestriction.CODEC.optionalFieldOf("restrictions", CardUseRestriction.NONE).forGetter(CardDefinition::restrictions)
     ).apply(instance, (largeFrontTextureOverride, largeBackTextureOverride, type, targetTypes, legacyTargetTypes,
                        range, minTargets, maxTargets, combatCost, restrictions) -> new CardDefinition(
-            largeFrontTextureOverride, largeBackTextureOverride, type,
+            largeFrontTextureOverride.orElse(null), largeBackTextureOverride.orElse(null), type,
             targetTypes.orElseGet(() -> legacyTargetTypes.orElse(CardTargetTypes.NONE)),
             range, minTargets, maxTargets, combatCost, restrictions)));
 
@@ -76,12 +78,12 @@ public record CardDefinition(
 
     public Identifier largeFrontTexture(ItemStack stack) {
         Identifier itemId = this.itemId(stack);
-        return this.largeFrontTextureOverride.orElseGet(() -> Identifier.fromNamespaceAndPath(
-                itemId.getNamespace(), "textures/gui/cards/front/" + itemId.getPath() + ".jpg"));
+        return this.largeFrontTextureOverride != null ? this.largeFrontTextureOverride : Identifier.fromNamespaceAndPath(
+                itemId.getNamespace(), "textures/gui/cards/front/" + itemId.getPath() + ".jpg");
     }
 
     public Identifier largeBackTexture() {
-        return this.largeBackTextureOverride.orElseGet(CardDefinition::defaultBackTexture);
+        return this.largeBackTextureOverride == null ? defaultBackTexture() : this.largeBackTextureOverride;
     }
 
     public boolean needsTarget() {
@@ -118,12 +120,12 @@ public record CardDefinition(
     }
 
     public CardDefinition withFrontTexture(@Nullable Identifier texture) {
-        return new CardDefinition(Optional.ofNullable(texture), this.largeBackTextureOverride, this.type,
+        return new CardDefinition(texture, this.largeBackTextureOverride, this.type,
                 this.targetTypes, this.range, this.minTargets, this.maxTargets, this.combatCost, this.restrictions);
     }
 
     public CardDefinition withBackTexture(@Nullable Identifier texture) {
-        return new CardDefinition(this.largeFrontTextureOverride, Optional.ofNullable(texture), this.type,
+        return new CardDefinition(this.largeFrontTextureOverride, texture, this.type,
                 this.targetTypes, this.range, this.minTargets, this.maxTargets, this.combatCost, this.restrictions);
     }
 
@@ -165,7 +167,7 @@ public record CardDefinition(
     }
 
     public static CardDefinition create(CardType type, List<Class<? extends LivingEntity>> targetTypes, int range, int minTargets, int maxTargets) {
-        return new CardDefinition(Optional.empty(), Optional.empty(), type, targetTypes, range, minTargets, maxTargets, 0, CardUseRestriction.NONE);
+        return new CardDefinition(null, null, type, targetTypes, range, minTargets, maxTargets, 0, CardUseRestriction.NONE);
     }
 
     public static CardDefinition fallback() {

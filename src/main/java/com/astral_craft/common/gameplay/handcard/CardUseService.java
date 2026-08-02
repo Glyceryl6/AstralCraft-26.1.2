@@ -348,7 +348,7 @@ public class CardUseService {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         sendEntityRevealAround(owner, definition.itemId(stack).toString(), revealStack(stack), cardType.getSerializedName(),
                 revealTitle(stack, definition), revealBody(owner, stack, definition), definition.largeFrontTexture(stack),
-                definition.largeBackTextureOverride().orElseGet(() -> CardBackPreferenceManager.selectedTexture(owner)),
+                definition.largeBackTextureOverride() == null ? CardBackPreferenceManager.selectedTexture(owner) : definition.largeBackTextureOverride(),
                 animation, durationTicks);
     }
 
@@ -393,7 +393,7 @@ public class CardUseService {
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
                 definition.largeFrontTexture(stack),
-                definition.largeBackTextureOverride().orElseGet(() -> CardBackPreferenceManager.selectedTexture(owner)),
+                definition.largeBackTextureOverride() == null ? CardBackPreferenceManager.selectedTexture(owner) : definition.largeBackTextureOverride(),
                 animation, durationTicks, sourceEntityId, targetEntityIds, revealId);
     }
 

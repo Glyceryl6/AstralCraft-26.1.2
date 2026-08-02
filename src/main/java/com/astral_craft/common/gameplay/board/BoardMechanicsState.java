@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -13,7 +14,6 @@ import java.util.*;
  * The visual entities for these records are deliberately disposable and are rebuilt by
  * {@link BoardWorldObjectService} when they are missing.
  */
-@SuppressWarnings("unused")
 public class BoardMechanicsState {
 
     private static final Codec<UUID> UUID_CODEC = Codec.STRING.xmap(UUID::fromString, UUID::toString);
@@ -23,7 +23,7 @@ public class BoardMechanicsState {
     private final List<BoardSoulLink> soulLinks = new ArrayList<>();
     private final Map<UUID, LinkedHashSet<Integer>> lotteryNumbers = new LinkedHashMap<>();
     private final Map<Identifier, Integer> timedEvents = new LinkedHashMap<>();
-    private Optional<UUID> timeBombSlot;
+    private @Nullable UUID timeBombSlot;
     private int lotteryJackpot;
 
     private BoardMechanicsState(Snapshot snapshot) {
@@ -214,10 +214,10 @@ public class BoardMechanicsState {
     }
 
     public Optional<UUID> timeBombSlot() {
-        return this.timeBombSlot;
+        return Optional.ofNullable(this.timeBombSlot);
     }
 
-    public void setTimeBombSlot(Optional<UUID> slotId) {
+    public void setTimeBombSlot(@Nullable UUID slotId) {
         this.timeBombSlot = slotId;
     }
 
@@ -263,7 +263,7 @@ public class BoardMechanicsState {
     public void clearRuntimeGameState() {
         this.traps.clear();
         this.droppedCoins.clear();
-        this.timeBombSlot = Optional.empty();
+        this.timeBombSlot = null;
         this.soulLinks.clear();
         this.lotteryNumbers.clear();
         this.timedEvents.clear();
@@ -347,11 +347,24 @@ public class BoardMechanicsState {
         }
     }
 
+    private static @Nullable UUID parseNullableUuid(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private static String uuidString(@Nullable UUID value) {
+        return value == null ? "" : value.toString();
+    }
+
     public record Snapshot(List<String> characterStartNodes, List<BoardTrap> traps,
-                           Map<String, Integer> droppedCoins, Optional<UUID> timeBombSlot,
+                           Map<String, Integer> droppedCoins, @Nullable UUID timeBombSlot,
                            List<BoardSoulLink> soulLinks, Map<String, List<Integer>> lotteryNumbers,
                            int lotteryJackpot, Map<Identifier, Integer> timedEvents) {
-        public static final Snapshot EMPTY = new Snapshot(List.of(), List.of(), Map.of(), Optional.empty(),
+        public static final Snapshot EMPTY = new Snapshot(List.of(), List.of(), Map.of(), null,
                 List.of(), Map.of(), 10, Map.of());
         public static final Codec<Snapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.listOf().optionalFieldOf("character_start_nodes", List.of())
@@ -359,14 +372,18 @@ public class BoardMechanicsState {
                 BoardTrap.CODEC.listOf().optionalFieldOf("traps", List.of()).forGetter(Snapshot::traps),
                 Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("dropped_coins", Map.of())
                         .forGetter(Snapshot::droppedCoins),
-                UUID_CODEC.optionalFieldOf("time_bomb_slot").forGetter(Snapshot::timeBombSlot),
+                Codec.STRING.optionalFieldOf("time_bomb_slot", "")
+                        .forGetter(snapshot -> uuidString(snapshot.timeBombSlot)),
                 BoardSoulLink.CODEC.listOf().optionalFieldOf("soul_links", List.of()).forGetter(Snapshot::soulLinks),
                 Codec.unboundedMap(Codec.STRING, Codec.INT.listOf()).optionalFieldOf("lottery_numbers", Map.of())
                         .forGetter(Snapshot::lotteryNumbers),
                 Codec.INT.optionalFieldOf("lottery_jackpot", 10).forGetter(Snapshot::lotteryJackpot),
                 Codec.unboundedMap(Identifier.CODEC, Codec.INT)
                         .optionalFieldOf("timed_events", Map.of()).forGetter(Snapshot::timedEvents)
-        ).apply(instance, Snapshot::new));
+        ).apply(instance, (characterStartNodes, traps, droppedCoins, timeBombSlot, soulLinks,
+                           lotteryNumbers, lotteryJackpot, timedEvents) -> new Snapshot(
+                characterStartNodes, traps, droppedCoins, parseNullableUuid(timeBombSlot), soulLinks,
+                lotteryNumbers, lotteryJackpot, timedEvents)));
 
         public Snapshot {
             characterStartNodes = List.copyOf(characterStartNodes);

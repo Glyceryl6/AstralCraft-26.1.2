@@ -52,12 +52,12 @@ public class BoardPanelSelectionService {
         BoardSession session = BoardSessionManager.session(player.level(), pending.boardId()).orElse(null);
         BoardParticipant source = session == null ? null : session.participantByController(player.getUUID()).orElse(null);
         if (session == null || source == null) return;
-        if (payload.nodeId().isEmpty()) {
+        if (payload.nodeId() == null) {
             reopenTurnScreen(player, source);
             return;
         }
 
-        String nodeId = payload.nodeId().get().toString();
+        String nodeId = payload.nodeId().toString();
         if (!validNodes(session, source, pending.range()).contains(nodeId)) return;
         int cardIndex = CardUseService.boardCardIndex(pending.handIndex());
         ItemStack current = BoardSessionManager.boardCardStack(player, cardIndex);
