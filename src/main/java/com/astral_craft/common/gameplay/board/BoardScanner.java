@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.board;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.BoardNode;
+import com.astral_craft.common.tags.AstralBlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -75,6 +76,11 @@ public class BoardScanner {
             maxZ = Math.max(maxZ, pos.getZ());
         }
 
+        boolean hasPvpPanel = visited.stream().anyMatch(pos -> level.getBlockState(pos).is(AstralBlockTags.PVP_BOARD_PANELS));
+        boolean hasPvePanel = visited.stream().anyMatch(pos -> level.getBlockState(pos).is(AstralBlockTags.PVE_BOARD_PANELS));
+        if (hasPvpPanel && hasPvePanel) errors.add("mixed_board_modes");
+        BoardMode mode = hasPvpPanel ? BoardMode.PVP : hasPvePanel ? BoardMode.PVE : BoardMode.UNDECIDED;
+
         List<BlockPos> allStartPositions = visited.stream()
                 .filter(pos -> level.getBlockState(pos).getBlock() instanceof BasePlatform platform
                         && platform.characterStart()).toList();
@@ -99,7 +105,7 @@ public class BoardScanner {
         BoardArea area = visited.isEmpty()
                 ? new BoardArea(origin, origin)
                 : new BoardArea(new BlockPos(minX, boardY - 3, minZ), new BlockPos(maxX, boardY + 8, maxZ));
-        return new ScannedBoard(nodes, positions, area, starts, List.copyOf(errors));
+        return new ScannedBoard(nodes, positions, area, starts, mode, List.copyOf(errors));
     }
 
     private static Set<BlockPos> existingBoardPanels(ServerLevel level) {
@@ -121,7 +127,7 @@ public class BoardScanner {
     }
 
     private static ScannedBoard empty(BlockPos origin, List<String> errors) {
-        return new ScannedBoard(Map.of(), Map.of(), new BoardArea(origin, origin), List.of(), List.copyOf(errors));
+        return new ScannedBoard(Map.of(), Map.of(), new BoardArea(origin, origin), List.of(), BoardMode.UNDECIDED, List.copyOf(errors));
     }
 
     private static boolean hasSolidTwoByTwo(Set<BlockPos> panels) {

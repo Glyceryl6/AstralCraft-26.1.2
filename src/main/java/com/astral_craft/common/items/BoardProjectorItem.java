@@ -5,6 +5,7 @@ import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.network.c2s.BoardProjectorConfirmPayload;
 import com.astral_craft.common.network.s2c.OpenBoardProjectorConfirmPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
+import com.astral_craft.common.tags.AstralBlockTags;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,6 +22,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -56,8 +58,14 @@ public class BoardProjectorItem extends Item {
             return InteractionResult.FAIL;
         }
 
+        BoardMode mode = templateMode(template);
+        if (mode == null) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.scan_error.mixed_board_modes")
+                    .withStyle(ChatFormatting.RED), true);
+            return InteractionResult.FAIL;
+        }
         PacketDistributor.sendToPlayer(player, new OpenBoardProjectorConfirmPayload(context.getClickedPos(), facing,
-                context.getHand() == InteractionHand.OFF_HAND, template.width(), template.depth(), template.panelCount()));
+                context.getHand() == InteractionHand.OFF_HAND, template.width(), template.depth(), template.panelCount(), mode));
         return InteractionResult.SUCCESS;
     }
 
@@ -123,7 +131,15 @@ public class BoardProjectorItem extends Item {
         }
 
         BoardSavedData data = BoardSavedData.get(level);
-        BoardSession session = new BoardSession(UUID.randomUUID(), level.dimension(), scanned);
+        if (payload.mode() == null || !payload.mode().decided()
+                || scanned.mode().decided() && scanned.mode() != payload.mode()) {
+            previous.forEach((pos, state) -> level.setBlock(pos, state, 3));
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.mode_changed")
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
+
+        BoardSession session = new BoardSession(UUID.randomUUID(), level.dimension(), scanned.withMode(payload.mode()));
         data.put(session);
         BoardProtectionService.refreshProtectedAreas(level, data);
         BoardSessionManager.syncBoardSnapshot(level, session);
@@ -131,6 +147,13 @@ public class BoardProjectorItem extends Item {
         player.sendSystemMessage(Component.translatable("message.astral_craft.board_projector.created",
                 scanned.nodes().size(), scanned.area().width(), scanned.area().depth())
                 .withStyle(ChatFormatting.GREEN), false);
+    }
+
+    private static @Nullable BoardMode templateMode(BoardTemplateData template) {
+        boolean pvp = template.blocks().stream().anyMatch(block -> block.state().is(AstralBlockTags.PVP_BOARD_PANELS));
+        boolean pve = template.blocks().stream().anyMatch(block -> block.state().is(AstralBlockTags.PVE_BOARD_PANELS));
+        if (pvp && pve) return null;
+        return pvp ? BoardMode.PVP : pve ? BoardMode.PVE : BoardMode.UNDECIDED;
     }
 
     private static boolean canPlace(ServerLevel level, BlockPos groundPos, Direction facing, BoardTemplateData template) {
