@@ -49,7 +49,7 @@ public class AppearanceSelectionScreen extends Screen {
     private final AstralDiceEntity previewDice;
     private Identifier selectedCardBack;
     private Identifier selectedDiceSkin;
-    private ConfigurationTab activeTab = ConfigurationTab.CARD_BACK;
+    private AppearanceTab activeTab = AppearanceTab.CARD_BACK;
     private List<NamespaceSection> sections;
     private float scrollY;
     private boolean draggingScrollbar;
@@ -68,7 +68,7 @@ public class AppearanceSelectionScreen extends Screen {
             this.previewDice = null;
         } else {
             this.previewDice = new AstralDiceEntity(minecraft.level, 0.0D, 0.0D, 0.0D);
-            this.previewDice.startRoll(1, 10, 24, 34.0F, 10, 10, 0, true, 0.0F, 0.0F);
+            this.previewDice.startRoll(1, 10, 1, 1.0F, 10, 10, 0, true, 0.0F, 0.0F);
         }
     }
 
@@ -124,7 +124,7 @@ public class AppearanceSelectionScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
-        ConfigurationTab clickedTab = this.tabAt(event.x(), event.y());
+        AppearanceTab clickedTab = this.tabAt(event.x(), event.y());
         if (clickedTab != null) {
             this.selectTab(clickedTab);
             return true;
@@ -144,7 +144,7 @@ public class AppearanceSelectionScreen extends Screen {
 
         CardBackDefinition clicked = this.entryAt(event.x(), event.y());
         if (clicked != null) {
-            if (this.activeTab == ConfigurationTab.CARD_BACK) this.selectedCardBack = clicked.id();
+            if (this.activeTab == AppearanceTab.CARD_BACK) this.selectedCardBack = clicked.id();
             else this.selectedDiceSkin = clicked.id();
             return true;
         }
@@ -226,7 +226,7 @@ public class AppearanceSelectionScreen extends Screen {
     private void renderTabs(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int x = this.panelX() + 16;
         int y = this.panelY() + 34;
-        for (ConfigurationTab tab : ConfigurationTab.values()) {
+        for (AppearanceTab tab : AppearanceTab.values()) {
             boolean hovered = inside(mouseX, mouseY, x, y, TAB_W, TAB_H);
             boolean selected = tab == this.activeTab;
             AstralFancyButton.renderButton(graphics, this.font, Component.translatable(tab.translationKey),
@@ -251,7 +251,7 @@ public class AppearanceSelectionScreen extends Screen {
                 boolean chosen = definition.id().equals(this.activeSelection());
                 graphics.fill(entryX - 3, entryY - 3, entryX + CARD_W + 3, entryY + CARD_H + CARD_LABEL_H + 3,
                         chosen ? 0xAAFFF0A0 : hovered ? 0x665C5C72 : 0x44202028);
-                if (this.activeTab == ConfigurationTab.CARD_BACK) {
+                if (this.activeTab == AppearanceTab.CARD_BACK) {
                     graphics.blit(RenderPipelines.GUI_TEXTURED, ScopedJpgTextureCache.resolve(definition.texture()), entryX, entryY,
                             0.0F, 0.0F, CARD_W, CARD_H, 256, 360, 256, 360, 0xFFFFFFFF);
                 } else {
@@ -274,18 +274,18 @@ public class AppearanceSelectionScreen extends Screen {
                 yaw, 1.12F, 0.0F, 0.0F, 0.0F);
     }
 
-    private void selectTab(ConfigurationTab tab) {
+    private void selectTab(AppearanceTab tab) {
         if (tab == this.activeTab) return;
         this.activeTab = tab;
-        this.sections = groupByNamespace(tab == ConfigurationTab.CARD_BACK ? this.cardBackDefinitions : this.diceDefinitions);
+        this.sections = groupByNamespace(tab == AppearanceTab.CARD_BACK ? this.cardBackDefinitions : this.diceDefinitions);
         this.scrollY = 0.0F;
         this.draggingScrollbar = false;
     }
 
-    private ConfigurationTab tabAt(double mouseX, double mouseY) {
+    private AppearanceTab tabAt(double mouseX, double mouseY) {
         int x = this.panelX() + 16;
         int y = this.panelY() + 34;
-        for (ConfigurationTab tab : ConfigurationTab.values()) {
+        for (AppearanceTab tab : AppearanceTab.values()) {
             if (inside(mouseX, mouseY, x, y, TAB_W, TAB_H)) return tab;
             x += TAB_W + 8;
         }
@@ -321,7 +321,7 @@ public class AppearanceSelectionScreen extends Screen {
     }
 
     private Identifier activeSelection() {
-        return this.activeTab == ConfigurationTab.CARD_BACK ? this.selectedCardBack : this.selectedDiceSkin;
+        return this.activeTab == AppearanceTab.CARD_BACK ? this.selectedCardBack : this.selectedDiceSkin;
     }
 
     private Component displayName(CardBackDefinition definition) {
@@ -349,9 +349,9 @@ public class AppearanceSelectionScreen extends Screen {
         int columns = this.columns(listW);
         int contentHeight = 0;
         for (NamespaceSection section : this.sections) {
-            contentHeight += HEADER_H + this.rows(section.definitions().size(), columns) * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
+            contentHeight += HEADER_H + this.rows(section.definitions().size(), columns)
+                    * (CARD_H + CARD_LABEL_H + CARD_GAP) + 8;
         }
-
         return Math.max(0, contentHeight - (this.panelHeight() - LIST_TOP - LIST_BOTTOM));
     }
 
@@ -409,14 +409,13 @@ public class AppearanceSelectionScreen extends Screen {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 
-    private enum ConfigurationTab {
-
+    private enum AppearanceTab {
         CARD_BACK("gui.astral_craft.appearance_selection.tab.card_back"),
         DICE("gui.astral_craft.appearance_selection.tab.dice");
 
         private final String translationKey;
 
-        ConfigurationTab(String translationKey) {
+        AppearanceTab(String translationKey) {
             this.translationKey = translationKey;
         }
 

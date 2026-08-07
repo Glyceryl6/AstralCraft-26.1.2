@@ -50,8 +50,7 @@ public record BoardParticipant(
 
     public static final Codec<BoardParticipant> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             UUID_CODEC.fieldOf("slot_id").forGetter(BoardParticipant::slotId),
-            Codec.STRING.optionalFieldOf("controller_id", "")
-                    .forGetter(participant -> uuidString(participant.controllerId)),
+            Codec.STRING.optionalFieldOf("controller_id", "").forGetter(participant -> uuidString(participant.controllerId)),
             CONTROL_FLAGS_CODEC.forGetter(participant -> new ControlFlags(
                     participant.bot(), participant.disconnectedHuman(), participant.decisionTimeoutStrikes(), participant.chipProgress())),
             Identifier.CODEC.fieldOf("character_id").forGetter(BoardParticipant::characterId),
@@ -61,8 +60,7 @@ public record BoardParticipant(
                     .forGetter(BoardParticipant::currentNodeId),
             LEGACY_IDENTIFIER_CODEC.optionalFieldOf("previous_node", EMPTY_NODE_ID)
                     .forGetter(BoardParticipant::previousNodeId),
-            Codec.STRING.optionalFieldOf("entity_id", "")
-                    .forGetter(participant -> uuidString(participant.entityId)),
+            Codec.STRING.optionalFieldOf("entity_id", "").forGetter(participant -> uuidString(participant.entityId)),
             AstralPlayerStats.CODEC.optionalFieldOf("stats", AstralPlayerStats.DEFAULT).forGetter(BoardParticipant::stats),
             Identifier.CODEC.listOf().optionalFieldOf("hand", List.of()).forGetter(BoardParticipant::hand),
             ROUND_STATUS_EFFECTS_CODEC.optionalFieldOf("round_status_effects", Map.of())
@@ -433,7 +431,9 @@ public record BoardParticipant(
             List<Identifier> nextOwned = new ArrayList<>(this.owned);
             if (chipId != null && !nextOwned.contains(chipId)) nextOwned.add(chipId);
             List<Identifier> nextKeywords = new ArrayList<>(this.keywordIds);
-            if (keywordId != null && !nextKeywords.contains(keywordId) && nextKeywords.size() < 2) nextKeywords.add(keywordId);
+            if (keywordId != null && !nextKeywords.contains(keywordId) && nextKeywords.size() < 2) {
+                nextKeywords.add(keywordId);
+            }
             return new ChipProgress(nextOwned, this.previousOffers, nextKeywords, this.shopPurchases, this.effectCardsPlayed);
         }
 

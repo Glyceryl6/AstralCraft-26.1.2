@@ -1,0 +1,13 @@
+{
+  "description_key": "fortune.astral_craft.typhoon.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_hand",
+      "action": "discard_random",
+      "count": 3
+    }
+  ],
+  "id": "astral_craft:typhoon",
+  "name_key": "fortune.astral_craft.typhoon.name",
+  "texture": "astral_craft:textures/gui/cards/fortune/typhoon.png"
+}

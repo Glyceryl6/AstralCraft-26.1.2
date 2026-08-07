@@ -1,0 +1,12 @@
+{
+  "description_key": "fortune.astral_craft.shop_guest.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_hand",
+      "action": "give_random"
+    }
+  ],
+  "id": "astral_craft:shop_guest",
+  "name_key": "fortune.astral_craft.shop_guest.name",
+  "texture": "astral_craft:textures/gui/cards/fortune/shop_guest.png"
+}

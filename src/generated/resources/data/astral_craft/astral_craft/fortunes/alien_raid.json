@@ -1,0 +1,12 @@
+{
+  "description_key": "fortune.astral_craft.alien_raid.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_scale_coins",
+      "multiplier": 0.5
+    }
+  ],
+  "id": "astral_craft:alien_raid",
+  "name_key": "fortune.astral_craft.alien_raid.name",
+  "texture": "astral_craft:textures/gui/cards/fortune/alien_raid.png"
+}

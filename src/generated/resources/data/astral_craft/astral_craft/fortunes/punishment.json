@@ -1,0 +1,12 @@
+{
+  "description_key": "fortune.astral_craft.punishment.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_hand",
+      "action": "discard_random"
+    }
+  ],
+  "id": "astral_craft:punishment",
+  "name_key": "fortune.astral_craft.punishment.name",
+  "texture": "astral_craft:textures/gui/cards/fortune/punishment.png"
+}

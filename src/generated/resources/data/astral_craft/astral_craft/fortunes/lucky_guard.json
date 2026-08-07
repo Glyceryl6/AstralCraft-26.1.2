@@ -1,0 +1,23 @@
+{
+  "description_key": "fortune.astral_craft.lucky_guard.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_status",
+      "buff": {
+        "buff": "astral_craft:incoming_damage",
+        "consume_after_incoming_damage": true,
+        "display_name": {
+          "translate": "board_buff.astral_craft.fortune/lucky_guard"
+        },
+        "duration": -1,
+        "fresh": true,
+        "icon": "astral_craft:textures/gui/board_buff/fortune/lucky_guard.png",
+        "id": "astral_craft:fortune/lucky_guard/incoming_damage",
+        "value": -2
+      }
+    }
+  ],
+  "id": "astral_craft:lucky_guard",
+  "name_key": "fortune.astral_craft.lucky_guard.name",
+  "texture": "astral_craft:textures/gui/cards/fortune/lucky_guard.png"
+}

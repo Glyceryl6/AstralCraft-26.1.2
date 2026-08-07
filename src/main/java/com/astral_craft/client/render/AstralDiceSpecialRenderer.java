@@ -16,29 +16,25 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.function.Consumer;
 
-/** Item renderer that resolves the synchronized owner skin, or the local viewer skin for prototype stacks. */
+/** Item renderer that keeps an opaque white cube below the player's synchronized dice skin. */
 public class AstralDiceSpecialRenderer implements SpecialModelRenderer<AstralDiceSpecialRenderer.RenderData> {
 
     @Override
     public @Nullable RenderData extractArgument(ItemStack stack) {
         Identifier texture = stack.get(AstralDataComponents.DICE_TEXTURE);
-        if (texture == null) {
-            Player player = Minecraft.getInstance().player;
-            texture = player == null ? DiceSkinPreferenceManager.DEFAULT_TEXTURE
-                    : DiceSkinPreferenceManager.selectedTexture(player);
-        }
-        return new RenderData(texture, AstralDiceRenderer.ITEM_FACE_TEXT);
+        Player player = Minecraft.getInstance().player;
+        if (texture == null && player != null) texture = DiceSkinPreferenceManager.selectedTexture(player);
+        return new RenderData(texture == null ? DiceSkinPreferenceManager.DEFAULT_TEXTURE : texture, "10");
     }
 
     @Override
     public void submit(@Nullable RenderData data, PoseStack poseStack, SubmitNodeCollector collector,
                        int lightCoords, int overlayCoords, boolean hasFoil, int outlineColor) {
-        RenderData resolved = data == null
-                ? new RenderData(DiceSkinPreferenceManager.DEFAULT_TEXTURE, AstralDiceRenderer.ITEM_FACE_TEXT) : data;
+        RenderData resolved = data == null ? new RenderData(DiceSkinPreferenceManager.DEFAULT_TEXTURE, "10") : data;
         poseStack.pushPose();
         poseStack.translate(0.5F, 0.5F, 0.5F);
-        AstralDiceRenderer.renderItem(poseStack, collector, resolved.texture(), resolved.text(),
-                Minecraft.getInstance().font, lightCoords, overlayCoords);
+        AstralDiceRenderer.renderItem(poseStack, collector, Minecraft.getInstance().font,
+                resolved.texture(), resolved.text(), lightCoords, overlayCoords);
         poseStack.popPose();
     }
 

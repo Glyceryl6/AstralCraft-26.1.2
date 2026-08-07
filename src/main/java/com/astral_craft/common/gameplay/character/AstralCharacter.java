@@ -33,10 +33,6 @@ public class AstralCharacter {
         this.progression = progression == null ? CharacterProgressionDefinition.of(1000) : progression.copy();
     }
 
-    public int chipWeight(ChipPool pool) {
-        return this.properties.chipWeights.weight(pool);
-    }
-
     public CharacterDefinition definition(Identifier id) {
         String prefix = "character." + id.getNamespace() + "." + id.getPath();
         List<CharacterSkillView> skills = new ArrayList<>();
@@ -64,6 +60,14 @@ public class AstralCharacter {
 
     public BoardSkillDefinition boardSkill() {
         return this.properties.boardSkill;
+    }
+
+    public ChipPool.Weights chipWeights() {
+        return this.properties.chipWeights;
+    }
+
+    public int chipWeight(ChipPool pool) {
+        return this.properties.chipWeights.weight(pool);
     }
 
     public AstralPlayerStats initializeBoardStats(AstralPlayerStats stats) {
@@ -129,11 +133,11 @@ public class AstralCharacter {
         protected CharacterStatsDefinition baseStats = CharacterStatsDefinition.defaultStats();
         protected ActiveCharacterSkillDefinition activeSkill = ActiveCharacterSkillDefinition.cooldown(3);
         protected BoardSkillDefinition boardSkill = BoardSkillDefinition.cooldown(3);
+        protected ChipPool.Weights chipWeights = ChipPool.Weights.DEFAULT;
         protected final List<PassiveCharacterSkillDefinition> passiveSkills = new ArrayList<>(List.of(PassiveCharacterSkillDefinition.of("passive")));
         protected final List<CharacterProfileSection> profileSections = new ArrayList<>();
         protected final List<IntrinsicBuff> intrinsicBuffs = new ArrayList<>();
         protected Identifier fallbackAnimation = DEFAULT_CUTIN_ANIMATION;
-        protected ChipPool.Weights chipWeights = ChipPool.Weights.DEFAULT;
 
         public Properties model(Identifier value) {
             this.modelKey = value;
@@ -187,6 +191,11 @@ public class AstralCharacter {
             return this;
         }
 
+        public Properties chipWeights(int support, int sustain, int attack, int cards) {
+            this.chipWeights = new ChipPool.Weights(support, sustain, attack, cards);
+            return this;
+        }
+
         public Properties passiveSkill(PassiveCharacterSkillDefinition value) {
             if (value != null) {
                 if (this.passiveSkills.size() == 1 && "passive".equals(this.passiveSkills.getFirst().id()))
@@ -211,11 +220,6 @@ public class AstralCharacter {
             return this;
         }
 
-        public Properties chipWeights(int support, int sustain, int attack, int cards) {
-            this.chipWeights = new ChipPool.Weights(support, sustain, attack, cards);
-            return this;
-        }
-
         protected Properties copy() {
             Properties result = new Properties();
             result.modelKey = this.modelKey;
@@ -226,12 +230,12 @@ public class AstralCharacter {
             result.baseStats = this.baseStats;
             result.activeSkill = this.activeSkill;
             result.boardSkill = this.boardSkill;
+            result.chipWeights = this.chipWeights;
             result.passiveSkills.clear();
             result.passiveSkills.addAll(this.passiveSkills);
             result.profileSections.addAll(this.profileSections);
             result.intrinsicBuffs.addAll(this.intrinsicBuffs);
             result.fallbackAnimation = this.fallbackAnimation;
-            result.chipWeights = this.chipWeights;
             return result;
         }
     }

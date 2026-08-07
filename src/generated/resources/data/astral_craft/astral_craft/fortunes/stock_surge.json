@@ -1,0 +1,12 @@
+{
+  "description_key": "fortune.astral_craft.stock_surge.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_scale_coins",
+      "multiplier": 2.0
+    }
+  ],
+  "id": "astral_craft:stock_surge",
+  "name_key": "fortune.astral_craft.stock_surge.name",
+  "texture": "astral_craft:textures/gui/cards/fortune/stock_surge.png"
+}

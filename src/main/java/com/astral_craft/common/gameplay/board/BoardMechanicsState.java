@@ -347,19 +347,6 @@ public class BoardMechanicsState {
         }
     }
 
-    private static @Nullable UUID parseNullableUuid(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
-    }
-
-    private static String uuidString(@Nullable UUID value) {
-        return value == null ? "" : value.toString();
-    }
-
     public record Snapshot(List<String> characterStartNodes, List<BoardTrap> traps,
                            Map<String, Integer> droppedCoins, @Nullable UUID timeBombSlot,
                            List<BoardSoulLink> soulLinks, Map<String, List<Integer>> lotteryNumbers,
@@ -372,18 +359,16 @@ public class BoardMechanicsState {
                 BoardTrap.CODEC.listOf().optionalFieldOf("traps", List.of()).forGetter(Snapshot::traps),
                 Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("dropped_coins", Map.of())
                         .forGetter(Snapshot::droppedCoins),
-                Codec.STRING.optionalFieldOf("time_bomb_slot", "")
-                        .forGetter(snapshot -> uuidString(snapshot.timeBombSlot)),
+                UUID_CODEC.optionalFieldOf("time_bomb_slot").forGetter(snapshot -> Optional.ofNullable(snapshot.timeBombSlot())),
                 BoardSoulLink.CODEC.listOf().optionalFieldOf("soul_links", List.of()).forGetter(Snapshot::soulLinks),
                 Codec.unboundedMap(Codec.STRING, Codec.INT.listOf()).optionalFieldOf("lottery_numbers", Map.of())
                         .forGetter(Snapshot::lotteryNumbers),
                 Codec.INT.optionalFieldOf("lottery_jackpot", 10).forGetter(Snapshot::lotteryJackpot),
                 Codec.unboundedMap(Identifier.CODEC, Codec.INT)
                         .optionalFieldOf("timed_events", Map.of()).forGetter(Snapshot::timedEvents)
-        ).apply(instance, (characterStartNodes, traps, droppedCoins, timeBombSlot, soulLinks,
-                           lotteryNumbers, lotteryJackpot, timedEvents) -> new Snapshot(
-                characterStartNodes, traps, droppedCoins, parseNullableUuid(timeBombSlot), soulLinks,
-                lotteryNumbers, lotteryJackpot, timedEvents)));
+        ).apply(instance, (characterStartNodes, traps, droppedCoins, timeBombSlot, soulLinks, lotteryNumbers,
+                           lotteryJackpot, timedEvents) -> new Snapshot(characterStartNodes, traps, droppedCoins,
+                timeBombSlot.orElse(null), soulLinks, lotteryNumbers, lotteryJackpot, timedEvents)));
 
         public Snapshot {
             characterStartNodes = List.copyOf(characterStartNodes);
