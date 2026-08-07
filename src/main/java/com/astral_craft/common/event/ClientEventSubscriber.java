@@ -199,6 +199,9 @@ public class ClientEventSubscriber {
         event.register(BoardAnnouncementPayload.TYPE, BoardAnnouncementOverlay::show);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
         event.register(OpenBoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmScreen::open);
+        event.register(OpenBoardModeSelectionPayload.TYPE, BoardModeSelectionScreen::open);
+        event.register(OpenBoardDivinationPayload.TYPE, BoardDivinationScreen::open);
+        event.register(ResolveBoardDivinationPayload.TYPE, BoardDivinationScreen::resolve);
         event.register(OpenBoardDismantleConfirmPayload.TYPE, BoardDismantlerItem::openBoardDismantleConfirmation);
         event.register(OpenBoardTurnPayload.TYPE, BoardTurnScreen::open);
         event.register(OpenBoardDiscardPayload.TYPE, BoardDiscardScreen::open);
@@ -211,6 +214,7 @@ public class ClientEventSubscriber {
             BoardLotteryDrawScreen.closePresentation(payload.boardId());
             BoardHospitalScreen.closePresentation(payload.boardId());
             BoardRelicShopScreen.closePresentation(payload.boardId());
+            BoardDivinationScreen.closePresentation(payload.boardId());
             ChipSelectionScreen.closePresentation(payload.boardId());
             TargetSelectionScreen.closePresentation(payload.boardId());
             BoardLotteryNumberScreen.closePresentation(payload.boardId());

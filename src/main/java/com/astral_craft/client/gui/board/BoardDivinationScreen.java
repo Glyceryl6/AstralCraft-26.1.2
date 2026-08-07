@@ -1,0 +1,196 @@
+package com.astral_craft.client.gui.board;
+
+import com.astral_craft.AstralCraft;
+import com.astral_craft.client.gui.HandCardRenderHelper;
+import com.astral_craft.common.gameplay.fortune.DivinationTarget;
+import com.astral_craft.common.network.c2s.BoardDivinationChoicePayload;
+import com.astral_craft.common.network.s2c.OpenBoardDivinationPayload;
+import com.astral_craft.common.network.s2c.ResolveBoardDivinationPayload;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jspecify.annotations.NonNull;
+
+import java.util.List;
+import java.util.UUID;
+
+public class BoardDivinationScreen extends Screen {
+
+    private static final Identifier FRONT_FRAME = AstralCraft.prefix("textures/item/template_handcard_event.png");
+    private static final int CARD_WIDTH = 104;
+    private static final int CARD_HEIGHT = 150;
+    private final UUID boardId;
+    private final List<OpenBoardDivinationPayload.Option> options;
+    private final boolean selectable;
+    private int timeoutTicks;
+    private final int timeoutDurationTicks;
+    private int selectedIndex = -1;
+    private DivinationTarget target;
+    private int revealTicks;
+    private boolean submitted;
+
+    public BoardDivinationScreen(OpenBoardDivinationPayload payload) {
+        super(Component.translatable("gui.astral_craft.board.divination.title"));
+        this.boardId = payload.boardId();
+        this.options = List.copyOf(payload.options());
+        this.selectable = payload.selectable();
+        this.timeoutTicks = payload.timeoutTicks();
+        this.timeoutDurationTicks = payload.timeoutDurationTicks();
+    }
+
+    public static void open(OpenBoardDivinationPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> Minecraft.getInstance().setScreen(new BoardDivinationScreen(payload)));
+    }
+
+    public static void resolve(ResolveBoardDivinationPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (Minecraft.getInstance().screen instanceof BoardDivinationScreen screen
+                    && screen.boardId.equals(payload.boardId())) {
+                screen.selectedIndex = Math.clamp(payload.selectedIndex(), 0, screen.options.size() - 1);
+                screen.target = payload.target();
+                screen.revealTicks = 0;
+                screen.submitted = true;
+            }
+        });
+    }
+
+    public static void closePresentation(UUID boardId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof BoardDivinationScreen screen && screen.boardId.equals(boardId)) {
+            minecraft.setScreen(null);
+        }
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (this.selectedIndex >= 0) {
+            this.revealTicks++;
+        } else if (this.timeoutTicks > 0) {
+            this.timeoutTicks--;
+        }
+    }
+
+    @Override
+    public void extractBackground(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {}
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        graphics.fill(0, 0, this.width, this.height, 0xB8100B1C);
+        graphics.centeredText(this.font, this.title, this.width / 2, Math.max(12, this.height / 2 - 116), 0xFFFFFFFF);
+        int gap = 40;
+        int total = CARD_WIDTH * 2 + gap;
+        int firstX = (this.width - total) / 2;
+        int y = (this.height - CARD_HEIGHT) / 2 - 4;
+        for (int index = 0; index < this.options.size(); index++) {
+            int x = firstX + index * (CARD_WIDTH + gap);
+            float alpha = this.selectedIndex >= 0 && index != this.selectedIndex
+                    ? 1.0F - Mth.clamp(this.revealTicks / 18.0F, 0.0F, 1.0F) : 1.0F;
+            boolean hovered = this.selectedIndex < 0 && this.selectable
+                    && inside(mouseX, mouseY, x, y, CARD_WIDTH, CARD_HEIGHT);
+            if (index == this.selectedIndex) {
+                this.renderFlippingCard(graphics, this.options.get(index), x, y, alpha);
+            } else {
+                this.renderFront(graphics, this.options.get(index), x, y, alpha, hovered);
+            }
+        }
+
+        if (this.selectedIndex < 0) {
+            Component instruction = Component.translatable(this.selectable
+                    ? "gui.astral_craft.board.divination.choose" : "gui.astral_craft.board.divination.wait");
+            graphics.centeredText(this.font, instruction, this.width / 2, y + CARD_HEIGHT + 18, 0xFFD7E4FF);
+            int barWidth = Math.min(260, this.width - 40);
+            int barX = (this.width - barWidth) / 2;
+            int barY = y + CARD_HEIGHT + 36;
+            float progress = Mth.clamp((float) this.timeoutTicks / Math.max(1, this.timeoutDurationTicks), 0.0F, 1.0F);
+            graphics.fill(barX, barY, barX + barWidth, barY + 5, 0xAA11131D);
+            graphics.fill(barX, barY, barX + Math.round(barWidth * progress), barY + 5, 0xFFE06BC2);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (!this.selectable || this.submitted || event.button() != 0) return super.mouseClicked(event, doubleClick);
+        int gap = 40;
+        int firstX = (this.width - (CARD_WIDTH * 2 + gap)) / 2;
+        int y = (this.height - CARD_HEIGHT) / 2 - 4;
+        for (int index = 0; index < this.options.size(); index++) {
+            int x = firstX + index * (CARD_WIDTH + gap);
+            if (!inside(event.x(), event.y(), x, y, CARD_WIDTH, CARD_HEIGHT)) continue;
+            this.submitted = true;
+            ClientPacketDistributor.sendToServer(new BoardDivinationChoicePayload(this.boardId, index));
+            return true;
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    private void renderFlippingCard(GuiGraphicsExtractor graphics, OpenBoardDivinationPayload.Option option,
+                                    int x, int y, float alpha) {
+        float progress = Mth.clamp(this.revealTicks / 22.0F, 0.0F, 1.0F);
+        float widthScale = Math.abs(Mth.cos(progress * Mth.PI));
+        int centerX = x + CARD_WIDTH / 2;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, 0.0F);
+        graphics.pose().scale(Math.max(0.02F, widthScale), 1.0F);
+        graphics.pose().translate(-centerX, 0.0F);
+        if (progress < 0.5F) {
+            this.renderFront(graphics, option, x, y, alpha, false);
+        } else {
+            this.renderBack(graphics, x, y, alpha);
+        }
+        graphics.pose().popMatrix();
+    }
+
+    private void renderFront(GuiGraphicsExtractor graphics, OpenBoardDivinationPayload.Option option,
+                             int x, int y, float alpha, boolean hovered) {
+        int argb = alphaColor(alpha);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, FRONT_FRAME, x, y, 0.0F, 0.0F,
+                CARD_WIDTH, CARD_HEIGHT, 256, 360, 256, 360, argb);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, option.texture(), x + 13, y + 16, 0.0F, 0.0F,
+                CARD_WIDTH - 26, CARD_WIDTH - 26, 256, 256, 256, 256, argb);
+        Component title = HandCardRenderHelper.ellipsize(this.font, Component.translatable(option.nameKey()), CARD_WIDTH - 14);
+        graphics.text(this.font, title, x + CARD_WIDTH / 2 - this.font.width(title) / 2,
+                y + CARD_HEIGHT - 28, withAlpha(0xFFFFFF, alpha), true);
+        if (hovered) graphics.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0x28FFFFFF);
+    }
+
+    private void renderBack(GuiGraphicsExtractor graphics, int x, int y, float alpha) {
+        Identifier texture = this.target == null
+                ? AstralCraft.prefix("textures/gui/cards/divination/unknown.png") : this.target.texture();
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F,
+                CARD_WIDTH, CARD_HEIGHT, 256, 360, 256, 360, alphaColor(alpha));
+        if (this.target == null) return;
+        Component targetText = Component.translatable(this.target.translationKey());
+        List<net.minecraft.util.FormattedCharSequence> lines = this.font.split(targetText, CARD_WIDTH - 18);
+        int textY = y + CARD_HEIGHT - 42 - Math.max(0, lines.size() - 1) * 5;
+        for (net.minecraft.util.FormattedCharSequence line : lines) {
+            graphics.text(this.font, line, x + CARD_WIDTH / 2 - this.font.width(line) / 2,
+                    textY, withAlpha(0xFFFFFF, alpha), true);
+            textY += 10;
+        }
+    }
+
+    private static int alphaColor(float alpha) {
+        return (Math.clamp(Math.round(alpha * 255.0F), 0, 255) << 24) | 0xFFFFFF;
+    }
+
+    private static int withAlpha(int rgb, float alpha) {
+        return (Math.clamp(Math.round(alpha * 255.0F), 0, 255) << 24) | rgb;
+    }
+
+    private static boolean inside(double mouseX, double mouseY, int x, int y, int width, int height) {
+        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+    }
+}
