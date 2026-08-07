@@ -290,20 +290,19 @@ public class BoardBattleService {
 
         List<Integer> attackerCards = validatedOrEmpty(attacker, state.attackerCards(), CardType.ATTACK);
         List<Integer> defenderCards = validatedOrEmpty(defender, state.defenderCards(), CardType.DEFENSE);
-        List<ItemStack> attackerCardStacks = combatStacks(attacker, attackerCards, CardType.ATTACK);
-        List<ItemStack> defenderCardStacks = combatStacks(defender, defenderCards, CardType.DEFENSE);
         CardRange attackRange = cardRange(attacker, attackerCards, CardType.ATTACK);
         CardRange defenseRange = cardRange(defender, defenderCards, CardType.DEFENSE);
         int attackBase = Math.max(0, attacker.stats().attack());
         int defenseBase = Math.max(0, defender.stats().defense());
         int attackerDie = Mth.nextInt(level.getRandom(), 1, 6);
-        int attackBonus = randomCardBonus(level, attacker, attackerCards, CardType.ATTACK);
+        List<PlayedCard> attackerPlayedCards = rollCards(level, attacker, attackerCards, CardType.ATTACK);
+        int attackBonus = attackerPlayedCards.stream().mapToInt(PlayedCard::bonus).sum();
         boolean powerfulAttack = containsCard(attacker, attackerCards, HandcardPowerfulAttack.class);
         int attackTotal = scaleAttackTotal(attackBase + attackerDie + attackBonus, powerfulAttack);
-        BattleRoll roll = new BattleRoll(attackerCards, defenderCards, attackerCardStacks, defenderCardStacks,
-                attackBase, defenseBase, attackRange.minimum(), attackRange.maximum(), defenseRange.minimum(), defenseRange.maximum(),
-                attackerDie, 0, attackBonus, 0, attackTotal, 0,
-                0, false, false, powerfulAttack);
+        BattleRoll roll = new BattleRoll(attackerCards, defenderCards, attackerPlayedCards, List.of(),
+                attackBase, defenseBase, attackRange.minimum(), attackRange.maximum(),
+                defenseRange.minimum(), defenseRange.maximum(), attackerDie, 0, attackBonus, 0,
+                attackTotal, 0, 0, false, false, powerfulAttack);
         BattleState rolling = state.withRoll(BattlePhase.ATTACKER_ROLL,
                 AstralServerTickClock.now(level) + ATTACKER_ROLL_TICKS, ATTACKER_ROLL_TICKS, roll);
         ACTIVE.put(session.id(), rolling);
@@ -336,7 +335,8 @@ public class BoardBattleService {
         }
 
         int defenderDie = Mth.nextInt(level.getRandom(), 1, 6);
-        int defenseBonus = randomCardBonus(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
+        List<PlayedCard> defenderPlayedCards = rollCards(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
+        int defenseBonus = defenderPlayedCards.stream().mapToInt(PlayedCard::bonus).sum();
         int attackTotal = preliminary.attackTotal();
         boolean evading = state.defenseMode() == DefenseMode.EVADE;
         int defenseTotal = evading ? defenderDie : preliminary.defenseBase() + defenderDie + defenseBonus;
@@ -347,10 +347,9 @@ public class BoardBattleService {
         defender = session.participant(defender.slotUuid()).orElse(defender);
         int remainingHealth = Math.max(0, defender.stats().health() - damage);
         BattleRoll roll = new BattleRoll(preliminary.attackerCards(), preliminary.defenderCards(),
-                preliminary.attackerCardStacks(), preliminary.defenderCardStacks(),
-                preliminary.attackBase(), preliminary.defenseBase(),
-                preliminary.attackCardMinimum(), preliminary.attackCardMaximum(),
-                preliminary.defenseCardMinimum(), preliminary.defenseCardMaximum(),
+                preliminary.attackerPlayedCards(), defenderPlayedCards,
+                preliminary.attackBase(), preliminary.defenseBase(), preliminary.attackCardMinimum(),
+                preliminary.attackCardMaximum(), preliminary.defenseCardMinimum(), preliminary.defenseCardMaximum(),
                 preliminary.attackerDie(), defenderDie, preliminary.attackBonus(), defenseBonus,
                 attackTotal, defenseTotal, damage, evaded, remainingHealth == 0, preliminary.powerfulAttack());
         BattleState rolling = state.withRoll(BattlePhase.DEFENDER_ROLL,
@@ -428,13 +427,15 @@ public class BoardBattleService {
         return new CardRange(minimum, maximum);
     }
 
-    private static int randomCardBonus(ServerLevel level, BoardParticipant participant, List<Integer> indexes, CardType expected) {
-        int result = 0;
+    private static List<PlayedCard> rollCards(ServerLevel level, BoardParticipant participant,
+                                              List<Integer> indexes, CardType expected) {
+        List<PlayedCard> result = new ArrayList<>();
         for (int index : validatedOrEmpty(participant, indexes, expected)) {
             CombatBonusDefinition bonus = combatBonus(participant, index, expected);
-            if (bonus != null) result += bonus.random(level.getRandom());
+            ItemStack stack = combatStack(participant, index, expected);
+            if (bonus != null && stack != null) result.add(new PlayedCard(stack.copyWithCount(1), bonus.random(level.getRandom())));
         }
-        return result;
+        return List.copyOf(result);
     }
 
     private static boolean containsCard(BoardParticipant participant, List<Integer> indexes, Class<? extends Item> itemType) {
@@ -557,17 +558,18 @@ public class BoardBattleService {
                     || role == BattleRole.DEFENDER ? defender : attacker;
             PacketDistributor.sendToPlayer(viewer, new OpenBoardBattlePayload(session.id(),
                     attackerEntity, defenderEntity, BoardSessionManager.displayName(level, attacker),
-                    BoardSessionManager.displayName(level, defender), cards, playedCards(state), role,
+                    BoardSessionManager.displayName(level, defender), cards, role,
                     new BoardDecisionProgress(remaining, durationTicks,
                             progressParticipant.characterId(), progressParticipant.skinId()),
-                    MAXIMUM_PVP_COST, battleView(state, attacker, defender)));
+                    MAXIMUM_PVP_COST, playedCardViews(state.roll(), true),
+                    playedCardViews(state.roll(), false), battleView(state, attacker, defender)));
         }
     }
 
-    private static PlayedCardsView playedCards(BattleState state) {
-        BattleRoll roll = state.roll();
-        return roll == null ? PlayedCardsView.EMPTY
-                : new PlayedCardsView(roll.attackerCardStacks(), roll.defenderCardStacks());
+    private static List<PlayedCardView> playedCardViews(BattleRoll roll, boolean attacker) {
+        if (roll == null) return List.of();
+        List<PlayedCard> cards = attacker ? roll.attackerPlayedCards() : roll.defenderPlayedCards();
+        return cards.stream().map(card -> new PlayedCardView(card.stack(), card.bonus())).toList();
     }
 
     private static BattleView battleView(BattleState state, BoardParticipant attacker, BoardParticipant defender) {
@@ -596,15 +598,6 @@ public class BoardBattleService {
                 !attacker.stats().hasBuff(HandcardAllOrNothing.BUFF_ID), state.attackerReady(), state.defenderReady(), state.defenseMode());
     }
 
-    private static List<ItemStack> combatStacks(BoardParticipant participant, List<Integer> indexes, CardType expected) {
-        List<ItemStack> result = new ArrayList<>();
-        for (int index : indexes) {
-            ItemStack stack = combatStack(participant, index, expected);
-            if (stack != null) result.add(stack.copy());
-        }
-        return List.copyOf(result);
-    }
-
     private static List<CombatCardView> combatCards(BoardParticipant participant, CardType expected) {
         List<CombatCardView> result = new ArrayList<>();
         for (int index = 0; index < participant.hand().size(); index++) {
@@ -622,10 +615,15 @@ public class BoardBattleService {
 
     private record CardRange(int minimum, int maximum) {}
 
+    private record PlayedCard(ItemStack stack, int bonus) {
+        private PlayedCard {
+            stack = stack.copy();
+        }
+    }
+
     private record BattleRoll(List<Integer> attackerCards, List<Integer> defenderCards,
-                              List<ItemStack> attackerCardStacks, List<ItemStack> defenderCardStacks,
-                              int attackBase, int defenseBase,
-                              int attackCardMinimum, int attackCardMaximum,
+                              List<PlayedCard> attackerPlayedCards, List<PlayedCard> defenderPlayedCards,
+                              int attackBase, int defenseBase, int attackCardMinimum, int attackCardMaximum,
                               int defenseCardMinimum, int defenseCardMaximum,
                               int attackerDie, int defenderDie, int attackBonus, int defenseBonus,
                               int attackTotal, int defenseTotal, int damage,
@@ -633,12 +631,8 @@ public class BoardBattleService {
         private BattleRoll {
             attackerCards = List.copyOf(attackerCards);
             defenderCards = List.copyOf(defenderCards);
-            attackerCardStacks = copyStacks(attackerCardStacks);
-            defenderCardStacks = copyStacks(defenderCardStacks);
-        }
-
-        private static List<ItemStack> copyStacks(List<ItemStack> stacks) {
-            return stacks == null ? List.of() : stacks.stream().map(ItemStack::copy).toList();
+            attackerPlayedCards = List.copyOf(attackerPlayedCards);
+            defenderPlayedCards = List.copyOf(defenderPlayedCards);
         }
     }
 

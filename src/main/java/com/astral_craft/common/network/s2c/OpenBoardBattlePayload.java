@@ -19,31 +19,27 @@ import java.util.function.IntFunction;
 public record OpenBoardBattlePayload(
         UUID boardId, int attackerEntityId, int defenderEntityId,
         String attackerName, String defenderName, List<CombatCardView> cards,
-        PlayedCardsView playedCards, BattleRole role, BoardDecisionProgress decision,
-        int maximumCost, BattleView view)
+        BattleRole role, BoardDecisionProgress decision,
+        int maximumCost, List<PlayedCardView> attackerPlayedCards,
+        List<PlayedCardView> defenderPlayedCards, BattleView view)
         implements CustomPacketPayload {
 
     private static final int MAXIMUM_COMBAT_CARDS = 7;
 
     public static final Type<OpenBoardBattlePayload> TYPE = new Type<>(AstralCraft.prefix("open_board_battle"));
-    private static final StreamCodec<RegistryFriendlyByteBuf, List<CombatCardView>> COMBAT_CARDS_STREAM_CODEC =
-            CombatCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS));
-    public static final StreamCodec<RegistryFriendlyByteBuf, OpenBoardBattlePayload> STREAM_CODEC =
-            StreamCodec.ofMember(OpenBoardBattlePayload::encode, OpenBoardBattlePayload::new);
-
-    public OpenBoardBattlePayload {
-        cards = List.copyOf(cards);
-        playedCards = playedCards == null ? PlayedCardsView.EMPTY : playedCards;
-        maximumCost = Math.max(0, maximumCost);
-    }
+    public static final StreamCodec<RegistryFriendlyByteBuf, OpenBoardBattlePayload> STREAM_CODEC = StreamCodec.ofMember(
+            OpenBoardBattlePayload::encode, OpenBoardBattlePayload::new);
 
     private OpenBoardBattlePayload(RegistryFriendlyByteBuf buffer) {
         this(BoardNetworkCodecs.UUID_STREAM_CODEC.decode(buffer),
                 ByteBufCodecs.VAR_INT.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer),
                 ByteBufCodecs.STRING_UTF8.decode(buffer), ByteBufCodecs.STRING_UTF8.decode(buffer),
-                COMBAT_CARDS_STREAM_CODEC.decode(buffer), PlayedCardsView.STREAM_CODEC.decode(buffer),
+                CombatCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).decode(buffer),
                 BattleRole.STREAM_CODEC.decode(buffer), BoardDecisionProgress.STREAM_CODEC.decode(buffer),
-                ByteBufCodecs.VAR_INT.decode(buffer), BattleView.STREAM_CODEC.decode(buffer));
+                ByteBufCodecs.VAR_INT.decode(buffer),
+                PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).decode(buffer),
+                PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).decode(buffer),
+                BattleView.STREAM_CODEC.decode(buffer));
     }
 
     private void encode(RegistryFriendlyByteBuf buffer) {
@@ -52,12 +48,20 @@ public record OpenBoardBattlePayload(
         ByteBufCodecs.VAR_INT.encode(buffer, this.defenderEntityId);
         ByteBufCodecs.STRING_UTF8.encode(buffer, this.attackerName);
         ByteBufCodecs.STRING_UTF8.encode(buffer, this.defenderName);
-        COMBAT_CARDS_STREAM_CODEC.encode(buffer, this.cards);
-        PlayedCardsView.STREAM_CODEC.encode(buffer, this.playedCards);
+        CombatCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).encode(buffer, this.cards);
         BattleRole.STREAM_CODEC.encode(buffer, this.role);
         BoardDecisionProgress.STREAM_CODEC.encode(buffer, this.decision);
         ByteBufCodecs.VAR_INT.encode(buffer, this.maximumCost);
+        PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).encode(buffer, this.attackerPlayedCards);
+        PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).encode(buffer, this.defenderPlayedCards);
         BattleView.STREAM_CODEC.encode(buffer, this.view);
+    }
+
+    public OpenBoardBattlePayload {
+        cards = List.copyOf(cards);
+        attackerPlayedCards = List.copyOf(attackerPlayedCards);
+        defenderPlayedCards = List.copyOf(defenderPlayedCards);
+        maximumCost = Math.max(0, maximumCost);
     }
 
     public int decisionTicks() {
@@ -79,24 +83,6 @@ public record OpenBoardBattlePayload(
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
-    }
-
-    public record PlayedCardsView(List<ItemStack> attacker, List<ItemStack> defender) {
-        public static final PlayedCardsView EMPTY = new PlayedCardsView(List.of(), List.of());
-        public static final StreamCodec<RegistryFriendlyByteBuf, PlayedCardsView> STREAM_CODEC = StreamCodec.composite(
-                ItemStack.OPTIONAL_STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)), PlayedCardsView::attacker,
-                ItemStack.OPTIONAL_STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)), PlayedCardsView::defender,
-                PlayedCardsView::new);
-
-        public PlayedCardsView {
-            attacker = copyStacks(attacker);
-            defender = copyStacks(defender);
-        }
-
-        private static List<ItemStack> copyStacks(List<ItemStack> stacks) {
-            if (stacks == null || stacks.isEmpty()) return List.of();
-            return stacks.stream().filter(stack -> stack != null && !stack.isEmpty()).map(ItemStack::copy).toList();
-        }
     }
 
     public enum BattleRole {
@@ -145,6 +131,17 @@ public record OpenBoardBattlePayload(
             cost = Math.max(0, cost);
             minimumBonus = Math.max(0, minimumBonus);
             maximumBonus = Math.max(minimumBonus, maximumBonus);
+        }
+    }
+
+    public record PlayedCardView(ItemStack stack, int bonus) {
+        public static final StreamCodec<RegistryFriendlyByteBuf, PlayedCardView> STREAM_CODEC = StreamCodec.composite(
+                ItemStack.OPTIONAL_STREAM_CODEC, PlayedCardView::stack,
+                ByteBufCodecs.VAR_INT, PlayedCardView::bonus,
+                PlayedCardView::new);
+
+        public PlayedCardView {
+            stack = stack.copy();
         }
     }
 

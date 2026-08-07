@@ -12,6 +12,7 @@ import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
 import com.astral_craft.common.gameplay.board.BoardEventService;
+import com.astral_craft.common.gameplay.board.BoardFortuneService;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
@@ -22,6 +23,7 @@ import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.items.BoardDismantlerItem;
 import com.astral_craft.common.items.BoardProjectorItem;
+import com.astral_craft.common.items.BoardScannerItem;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import net.minecraft.network.chat.Component;
@@ -163,6 +165,22 @@ public class AstralServerPayloadHandlers {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
                 BoardProjectorItem.confirmPlacement(player, payload);
+            }
+        });
+    }
+
+    public static void handleBoardModeSelection(BoardModeSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardScannerItem.chooseMode(player, payload.origin(), payload.mode());
+            }
+        });
+    }
+
+    public static void handleBoardDivinationChoice(BoardDivinationChoicePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardFortuneService.choose(player, payload.boardId(), payload.selectedIndex());
             }
         });
     }

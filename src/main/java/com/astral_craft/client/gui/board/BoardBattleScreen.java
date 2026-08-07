@@ -12,7 +12,7 @@ import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.BattleRole;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.BattleView;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.CombatCardView;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.DefenseMode;
-import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.PlayedCardsView;
+import com.astral_craft.common.network.s2c.OpenBoardBattlePayload.PlayedCardView;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -44,13 +44,10 @@ public class BoardBattleScreen extends Screen {
     private static final int DEFENSE_ACCENT = 0xFF3F9DCE;
     private static final int NUMBER_BOX_SIZE = 32;
     private static final int NUMBER_BOX_BORDER = 2;
-    private static final int DICE_FLASH_END_TICK = 16;
-    private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 10;
-    private static final int DICE_RESULT_STAGE_TICK = DEFENSE_CHOICE_ANNOUNCE_TICKS + DICE_FLASH_END_TICK;
-    private static final int FINAL_VALUE_STAGE_TICK = DICE_RESULT_STAGE_TICK + 4;
+    private static final int DICE_FLASH_END_TICK = 12;
+    private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 4;
+    private static final int FINAL_VALUE_STAGE_TICK = 22;
     private static final int EVADE_FAILURE_STAGE_TICK = FINAL_VALUE_STAGE_TICK;
-    private static final float PLAYED_CARD_SCALE = 0.42F;
-    private static final int PLAYED_CARD_STEP = 48;
     private static final int KNOCKOUT_FLIGHT_START_TICK = 1;
     private static final int KNOCKOUT_FLIGHT_TICKS = 12;
     private static final int KNOCKOUT_EXPLOSION_TICK = 13;
@@ -67,8 +64,8 @@ public class BoardBattleScreen extends Screen {
     private final String defenderName;
     private final BattleRole role;
     private final List<CombatCard> cards;
-    private List<ItemStack> attackerPlayedCards = List.of();
-    private List<ItemStack> defenderPlayedCards = List.of();
+    private List<PlayedCardView> attackerPlayedCards = List.of();
+    private List<PlayedCardView> defenderPlayedCards = List.of();
     private final Set<Integer> selectedIndexes = new LinkedHashSet<>();
     private int draggingIndex = -1;
     private float cardScroll;
@@ -147,9 +144,10 @@ public class BoardBattleScreen extends Screen {
         this.characterId = payload.characterId();
         this.skinId = payload.skinId();
         this.maximumCost = Math.max(0, payload.maximumCost());
-        PlayedCardsView playedCards = payload.playedCards();
-        this.attackerPlayedCards = copyStacks(playedCards.attacker());
-        this.defenderPlayedCards = copyStacks(playedCards.defender());
+        this.attackerPlayedCards = payload.attackerPlayedCards().stream()
+                .map(card -> new PlayedCardView(card.stack(), card.bonus())).toList();
+        this.defenderPlayedCards = payload.defenderPlayedCards().stream()
+                .map(card -> new PlayedCardView(card.stack(), card.bonus())).toList();
     }
 
     @Override
@@ -216,7 +214,7 @@ public class BoardBattleScreen extends Screen {
                 layout.x() + layout.width() * 3 / 4 + 10,
                 layout.modelBottom() - 11, this.defenderHealthFlashTicks);
         this.renderBattleNumbers(graphics, layout);
-        if (this.showFinalBreakdown()) this.renderFinalBreakdown(graphics, layout);
+        this.renderFinalBreakdown(graphics, layout);
         this.renderDamagePopup(graphics, layout);
         this.renderVanillaCriticalParticles(graphics, layout);
         this.renderVanillaExplosion(graphics, layout);
@@ -348,7 +346,7 @@ public class BoardBattleScreen extends Screen {
                     ? 1 + Math.floorMod(this.phaseAgeTicks * 5 + 1, 6) : this.view.attackerDie();
             boolean rolling = this.phaseAgeTicks < DICE_FLASH_END_TICK;
             this.renderDiceValue(graphics, value, attackX, numberY, true,
-                    rolling ? 1.0F : this.rollResultScale(true), this.diceTextColor(true, rolling));
+                    rolling ? 1.0F : this.settledDiceScale(true), this.diceTextColor(true, rolling));
             return;
         }
 
@@ -379,45 +377,6 @@ public class BoardBattleScreen extends Screen {
         return this.view.result() || this.view.defenderRolling() && this.defenderRollAge() >= DICE_FLASH_END_TICK;
     }
 
-    private boolean showFinalBreakdown() {
-        return this.view.result() || this.view.defenderRolling() && this.phaseAgeTicks >= FINAL_VALUE_STAGE_TICK;
-    }
-
-    private void renderFinalBreakdown(GuiGraphicsExtractor graphics, Layout layout) {
-        this.renderFinalBreakdown(graphics, layout, true, this.attackerPlayedCards);
-        this.renderFinalBreakdown(graphics, layout, false, this.defenderPlayedCards);
-    }
-
-    private void renderFinalBreakdown(GuiGraphicsExtractor graphics, Layout layout, boolean attack, List<ItemStack> stacks) {
-        int centerX = attack ? layout.x() + layout.width() / 4 : layout.x() + layout.width() * 3 / 4;
-        int cardY = layout.cardY() + 24;
-        int baseValue = attack ? this.view.attackBase() : this.view.defenseBase();
-        Component panel = Component.translatable(attack ? "gui.astral_craft.board.attack" : "gui.astral_craft.board.defense")
-                .append(Component.literal(" " + baseValue));
-        graphics.centeredText(this.font, panel, centerX, cardY - 24, attack ? ATTACK_ACCENT : DEFENSE_ACCENT);
-        if (stacks.isEmpty()) return;
-
-        int bonus = attack ? Math.max(0, this.view.attackTotal() - this.view.attackBase() - this.view.attackerDie())
-                : this.view.defenseMode() == DefenseMode.EVADE ? 0
-                : Math.max(0, this.view.defenseTotal() - this.view.defenseBase() - this.view.defenderDie());
-        graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.battle_card_bonus", bonus),
-                centerX, cardY - 12, 0xFFFFD36B);
-        int unscaledWidth = CARD_W + Math.max(0, stacks.size() - 1) * PLAYED_CARD_STEP;
-        float renderedWidth = unscaledWidth * PLAYED_CARD_SCALE;
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(centerX - renderedWidth / 2.0F, cardY);
-        graphics.pose().scale(PLAYED_CARD_SCALE, PLAYED_CARD_SCALE);
-        for (int index = 0; index < stacks.size(); index++) {
-            ItemStack stack = stacks.get(index);
-            CardDefinition definition = cardDefinition(stack);
-            if (definition == null) continue;
-            HandCardRenderHelper.renderFramedCard(graphics, this.font, definition.type(),
-                    definition.largeFrontTexture(stack), definition.displayName(stack), index * PLAYED_CARD_STEP, 0,
-                    -1000, -1000, false);
-        }
-        graphics.pose().popMatrix();
-    }
-
     private void renderReadyState(GuiGraphicsExtractor graphics, Layout layout, boolean attacker) {
         boolean ready = attacker ? this.view.attackerReady() : this.view.defenderReady();
         String name = attacker ? this.attackerName : this.defenderName;
@@ -435,9 +394,16 @@ public class BoardBattleScreen extends Screen {
     private float numberScale(boolean attack) {
         float base = 2.85F;
         if (!this.view.defenderRolling()) return base;
-        int finalDistance = Math.abs(this.phaseAgeTicks - FINAL_VALUE_STAGE_TICK);
-        int dieDistance = attack ? Integer.MAX_VALUE : Math.abs(this.phaseAgeTicks - DICE_RESULT_STAGE_TICK);
-        int pulseDistance = Math.min(finalDistance, dieDistance);
+        int age = this.phaseAgeTicks;
+        int pulseDistance = Integer.MAX_VALUE;
+        if (this.view.defenseMode() == DefenseMode.EVADE) {
+            if (!this.view.evaded() && this.defenderRollAge() >= DICE_FLASH_END_TICK) {
+                pulseDistance = Math.abs(age - EVADE_FAILURE_STAGE_TICK);
+            }
+        } else if (this.defenderRollAge() >= DICE_FLASH_END_TICK) {
+            pulseDistance = Math.abs(age - FINAL_VALUE_STAGE_TICK);
+        }
+
         float stagePulse = pulseDistance > 4 ? 0.0F : 1.0F - Mth.clamp(pulseDistance / 4.0F, 0.0F, 1.0F);
         float sixPulse = this.settledDiceScale(attack) - 1.0F;
         return base + stagePulse * 0.85F + sixPulse * base;
@@ -499,12 +465,6 @@ public class BoardBattleScreen extends Screen {
         return 1.0F + (float) Math.sin(age / 12.0F * Math.PI) * 0.22F;
     }
 
-    private float rollResultScale(boolean attack) {
-        int age = Math.max(0, this.maximumDiceEffectAge(attack));
-        float pulse = age > 6 ? 0.0F : 1.0F - age / 6.0F;
-        return this.settledDiceScale(attack) + pulse * 0.28F;
-    }
-
     private int diceTextColor(boolean attack, boolean rolling) {
         return this.maximumRollFlashesWhite(attack, rolling) ? 0xFFFFFFFF : 0xFF080808;
     }
@@ -515,8 +475,8 @@ public class BoardBattleScreen extends Screen {
     }
 
     private boolean shouldRenderAnimatedValue(boolean attack) {
-        if (this.view.result()) return true;
-        if (!this.view.defenderRolling()) return false;
+        if (this.view.result() || !this.view.defenderRolling()) return false;
+        if (this.phaseAgeTicks > FINAL_VALUE_STAGE_TICK + 8) return false;
         return attack || this.phaseAgeTicks >= DEFENSE_CHOICE_ANNOUNCE_TICKS;
     }
 
@@ -568,6 +528,61 @@ public class BoardBattleScreen extends Screen {
 
     private static float smootherStep(float value) {
         return value * value * value * (value * (value * 6.0F - 15.0F) + 10.0F);
+    }
+
+    private void renderFinalBreakdown(GuiGraphicsExtractor graphics, Layout layout) {
+        if (!this.showFinalBreakdown()) return;
+        int attackCenter = layout.x() + layout.width() / 4;
+        int defenseCenter = layout.x() + layout.width() * 3 / 4;
+        int cardsY = layout.modelBottom() - 86;
+        this.renderPanelValue(graphics, attackCenter, cardsY - 17, true, this.view.attackBase());
+        this.renderPanelValue(graphics, defenseCenter, cardsY - 17, false, this.view.defenseBase());
+        this.renderPlayedCards(graphics, this.attackerPlayedCards, attackCenter, cardsY, true);
+        this.renderPlayedCards(graphics, this.defenderPlayedCards, defenseCenter, cardsY, false);
+    }
+
+    private boolean showFinalBreakdown() {
+        return this.view.result() || this.view.defenderRolling() && this.phaseAgeTicks >= FINAL_VALUE_STAGE_TICK;
+    }
+
+    private void renderPanelValue(GuiGraphicsExtractor graphics, int centerX, int y, boolean attack, int value) {
+        Component label = Component.translatable(attack ? "gui.astral_craft.board.attack" : "gui.astral_craft.board.defense")
+                .copy().append(Component.literal(": " + value));
+        int width = this.font.width(label) + 10;
+        graphics.fill(centerX - width / 2, y - 2, centerX + width / 2, y + 11, 0xC9000000);
+        graphics.text(this.font, label, centerX - this.font.width(label) / 2, y,
+                attack ? 0xFFFF7C85 : 0xFF75DEFF, true);
+    }
+
+    private void renderPlayedCards(GuiGraphicsExtractor graphics, List<PlayedCardView> cards,
+                                   int centerX, int y, boolean attack) {
+        if (cards.isEmpty()) return;
+        float scale = 0.62F;
+        int cardWidth = Math.round(CARD_W * scale);
+        int step = Math.max(18, Math.round(cardWidth * 0.58F));
+        int totalWidth = cardWidth + step * (cards.size() - 1);
+        int startX = centerX - totalWidth / 2;
+        for (int index = 0; index < cards.size(); index++) {
+            PlayedCardView card = cards.get(index);
+            CardDefinition definition = card.stack().get(AstralDataComponents.CARD_DEFINITION);
+            if (definition == null && card.stack().getItem() instanceof BaseHandCard handCard) {
+                definition = handCard.definition(card.stack());
+            }
+            if (definition == null) continue;
+            int x = startX + index * step;
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(x, y);
+            graphics.pose().scale(scale, scale);
+            HandCardRenderHelper.renderFramedCard(graphics, this.font, definition.type(),
+                    definition.largeFrontTexture(card.stack()), definition.displayName(card.stack()),
+                    0, 0, -1000, -1000, false);
+            graphics.pose().popMatrix();
+            Component bonus = Component.literal((card.bonus() >= 0 ? "+" : "") + card.bonus())
+                    .withStyle(ChatFormatting.BOLD);
+            int bonusX = x + cardWidth / 2 - this.font.width(bonus) / 2;
+            graphics.fill(bonusX - 3, y - 12, bonusX + this.font.width(bonus) + 3, y - 1, 0xD9000000);
+            graphics.text(this.font, bonus, bonusX, y - 11, attack ? 0xFFFF8C95 : 0xFF80E4FF, true);
+        }
     }
 
     private void renderDamagePopup(GuiGraphicsExtractor graphics, Layout layout) {
@@ -931,17 +946,6 @@ public class BoardBattleScreen extends Screen {
         }
 
         return indexes;
-    }
-
-    private static List<ItemStack> copyStacks(List<ItemStack> stacks) {
-        if (stacks == null || stacks.isEmpty()) return List.of();
-        return stacks.stream().filter(stack -> stack != null && !stack.isEmpty()).map(ItemStack::copy).toList();
-    }
-
-    private static CardDefinition cardDefinition(ItemStack stack) {
-        CardDefinition definition = stack.get(AstralDataComponents.CARD_DEFINITION);
-        if (definition == null && stack.getItem() instanceof BaseHandCard card) definition = card.definition(stack);
-        return definition;
     }
 
     private LivingEntity entity(int id) {
