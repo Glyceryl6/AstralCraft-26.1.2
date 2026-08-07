@@ -1,6 +1,7 @@
 package com.astral_craft.common.data;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.data.provider.AstralBlockTagsProvider;
 import com.astral_craft.common.data.provider.AstralDatapackBuiltinEntriesProvider;
 import com.astral_craft.common.data.provider.AstralLanguageProvider;
 import com.astral_craft.common.data.provider.AstralModelProvider;
@@ -15,6 +16,7 @@ public class AstralDataGenerator {
     @SubscribeEvent
     public static void onGatherClientData(GatherDataEvent.Client event) {
         event.createProvider(AstralModelProvider::new);
+        event.createProvider(AstralBlockTagsProvider::new);
         event.createProvider(AstralDatapackBuiltinEntriesProvider::new);
         event.createProvider(AstralRecipeProvider.Runner::new);
         event.createProvider((output, _) -> new AstralLanguageProvider(output, "en_us"));

@@ -1,0 +1,18 @@
+{
+  "values": [
+    "astral_craft:platform_card",
+    "astral_craft:platform_damage",
+    "astral_craft:platform_destiny",
+    "astral_craft:platform_divine",
+    "astral_craft:platform_event",
+    "astral_craft:platform_fire",
+    "astral_craft:platform_gamble",
+    "astral_craft:platform_gimmick",
+    "astral_craft:platform_gold",
+    "astral_craft:platform_hospital",
+    "astral_craft:platform_jump",
+    "astral_craft:platform_lottery",
+    "astral_craft:platform_move_again",
+    "astral_craft:platform_teleport_point"
+  ]
+}
