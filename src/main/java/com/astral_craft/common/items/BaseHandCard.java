@@ -58,6 +58,11 @@ public class BaseHandCard extends Item {
         return false;
     }
 
+    /** Keep the board action UI suspended while this card waits for a follow-up selection screen. */
+    public boolean keepBoardUiOpenAfterReveal() {
+        return false;
+    }
+
     public boolean allowsSelfTarget() {
         return false;
     }

@@ -1,5 +1,6 @@
 package com.astral_craft.client.render;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.entity.AstralDiceEntity;
@@ -21,12 +22,13 @@ import net.minecraft.util.LightCoordsUtil;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/** 3D dice renderer using a 4x3 appearance texture with the current 1-10 result drawn separately. */
+/** 3D dice renderer using a 4x3 six-face unfolded texture. */
 public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralDiceRenderState> {
 
     public static final float HALF_SIZE = 0.35F;
-    public static final String ITEM_FACE_TEXT = "10";
-    private static final float TEXT_OFFSET = HALF_SIZE + 0.011F;
+    private static final float OVERLAY_HALF_SIZE = HALF_SIZE + 0.0015F;
+    private static final float TEXT_OFFSET = OVERLAY_HALF_SIZE + 0.011F;
+    private static final Identifier WHITE_TEXTURE = AstralCraft.prefix("textures/entity/dice/white.png");
     private final Font font;
     private final Map<AstralDiceEntity, Double> animationStartTicks = new WeakHashMap<>();
 
@@ -56,24 +58,35 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         state.mergeOffsetZ = entity.mergeOffsetZ() * mergeProgress;
         state.scale = entity.renderScale(ageTicks);
         state.texture = entity.texture();
+        state.flatNumber = entity.flatNumber();
     }
 
     @Override
     public void submit(AstralDiceRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState cameraState) {
+        if (state.flatNumber) {
+            super.submit(state, poseStack, collector, cameraState);
+            return;
+        }
         poseStack.pushPose();
         applyDiceTransform(state, poseStack);
-        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(state.texture)),
-                (pose, consumer) -> renderCube(pose, consumer, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY));
+        submitLayeredCube(poseStack, collector, state.texture, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
         submitFaceTexts(this.font, state.text, poseStack, collector);
         poseStack.popPose();
         super.submit(state, poseStack, collector, cameraState);
     }
 
-    public static void renderItem(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture, String text,
-                                  Font font, int lightCoords, int overlayCoords) {
-        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(texture)),
-                (pose, consumer) -> renderCube(pose, consumer, lightCoords, overlayCoords));
+    public static void renderItem(PoseStack poseStack, SubmitNodeCollector collector, Font font, Identifier texture,
+                                  String text, int lightCoords, int overlayCoords) {
+        submitLayeredCube(poseStack, collector, texture, lightCoords, overlayCoords);
         submitFaceTexts(font, text, poseStack, collector);
+    }
+
+    private static void submitLayeredCube(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture,
+                                          int lightCoords, int overlayCoords) {
+        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(WHITE_TEXTURE),
+                (pose, consumer) -> renderCube(pose, consumer, lightCoords, overlayCoords, HALF_SIZE));
+        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(ScopedJpgTextureCache.resolve(texture)),
+                (pose, consumer) -> renderCube(pose, consumer, lightCoords, overlayCoords, OVERLAY_HALF_SIZE));
     }
 
     private static void applyDiceTransform(AstralDiceRenderState state, PoseStack poseStack) {
@@ -84,8 +97,9 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         poseStack.mulPose(Axis.ZP.rotationDegrees(state.zSpin));
     }
 
-    public static void renderCube(PoseStack.Pose pose, VertexConsumer consumer, int lightCoords, int overlayCoords) {
-        float h = HALF_SIZE;
+    public static void renderCube(PoseStack.Pose pose, VertexConsumer consumer, int lightCoords, int overlayCoords,
+                                  float halfSize) {
+        float h = halfSize;
         quad(consumer, pose, -h, -h, h, h, -h, h, h, h, h, -h, h, h, 0.0F, 0.0F, 1.0F, 1, 1, lightCoords, overlayCoords);      // front
         quad(consumer, pose, h, -h, -h, -h, -h, -h, -h, h, -h, h, h, -h, 0.0F, 0.0F, -1.0F, 3, 1, lightCoords, overlayCoords); // back
         quad(consumer, pose, h, -h, h, h, -h, -h, h, h, -h, h, h, h, 1.0F, 0.0F, 0.0F, 2, 1, lightCoords, overlayCoords);      // right
@@ -128,7 +142,7 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
                                        float x, float y, float z, float xRot, float yRot, float zRot) {
         FormattedCharSequence sequence = Component.literal(text).getVisualOrderText();
         float width = font.width(sequence);
-        float scale = text.length() > 1 ? 0.072F : 0.09F;
+        float scale = text.length() > 1 ? 0.068F : 0.09F;
         poseStack.pushPose();
         poseStack.translate(x, y, z);
         poseStack.mulPose(Axis.XP.rotationDegrees(xRot));
@@ -136,7 +150,7 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         poseStack.mulPose(Axis.ZP.rotationDegrees(zRot));
         poseStack.scale(scale, -scale, scale);
         collector.submitText(poseStack, -width / 2.0F, -4.5F, sequence, false, Font.DisplayMode.NORMAL,
-                LightCoordsUtil.FULL_BRIGHT, 0xFF171221, 0x00000000, 0);
+                LightCoordsUtil.FULL_BRIGHT, 0xFF111111, 0x00000000, 0);
         poseStack.popPose();
     }
 

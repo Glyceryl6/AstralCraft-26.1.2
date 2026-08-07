@@ -7,17 +7,16 @@ import com.astral_craft.common.components.CardUseRestriction;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.board.*;
-import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
 import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.items.BaseHandCard;
+import com.astral_craft.common.network.CardTargetCandidate;
+import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
 import com.astral_craft.common.network.s2c.CardRevealControlPayload;
 import com.astral_craft.common.network.s2c.CardRevealEntityPayload;
 import com.astral_craft.common.network.s2c.CardRevealPayload;
-import com.astral_craft.common.network.CardTargetCandidate;
-import com.astral_craft.common.network.c2s.CardTargetSelectionPayload;
 import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
 import com.astral_craft.common.registry.AstralDataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -85,8 +84,8 @@ public class CardUseService {
             player.sendSystemMessage(Component.translatable("message.astral_craft.card.combat_only"), true);
             return false;
         }
-        return tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack,
-                CardUseContext.board(cardIndex)).accept();
+
+        return tryUseStack(card, player.level(), player, InteractionHand.MAIN_HAND, stack, CardUseContext.board(cardIndex)).accept();
     }
 
     public static boolean canPreviewBoardCard(ServerPlayer player, ItemStack stack) {
@@ -188,7 +187,8 @@ public class CardUseService {
             int delay = revealLockTicks(CARD_REVEAL_DURATION_TICKS) + CARD_EFFECT_POST_REVEAL_DELAY_TICKS;
             if (!PendingCardActionManager.scheduleExclusive(serverPlayer, delay, () -> {
                 boolean applied = card.onRevealFinished(serverPlayer, hand, source, definition);
-                if (useContext.boardCard() && (!applied || !card.waitForBoardDamageBeforeReopen())) {
+                if (useContext.boardCard() && (!applied || !card.waitForBoardDamageBeforeReopen()
+                        && !card.keepBoardUiOpenAfterReveal())) {
                     PendingCardActionManager.completeBoardCardUi(serverPlayer);
                 }
             })) {
@@ -318,14 +318,14 @@ public class CardUseService {
             for (ServerPlayer viewer : revealViewers) {
                 PacketDistributor.sendToPlayer(viewer, revealPayload);
                 if (holdInitialReveal) {
-                    PacketDistributor.sendToPlayer(viewer, new CardRevealControlPayload(revealId,
-                            CardRevealControlPayload.Action.HOLD));
+                    PacketDistributor.sendToPlayer(viewer, new CardRevealControlPayload(revealId, CardRevealControlPayload.Action.HOLD));
                 }
             }
+
             if (!boardCard) {
-                sendEntityRevealAround(player, sourceStack, definition,
-                        CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
+                sendEntityRevealAround(player, sourceStack, definition, CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             }
+
             consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
         } else if (card.applyFromSelection(player, hand, targets)) {
             consumeAfterAcceptedUse(player, stack, !deckCard && !boardCard, payload.handIndex());
@@ -348,8 +348,7 @@ public class CardUseService {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         sendEntityRevealAround(owner, definition.itemId(stack).toString(), revealStack(stack), cardType.getSerializedName(),
                 revealTitle(stack, definition), revealBody(owner, stack, definition), definition.largeFrontTexture(stack),
-                definition.largeBackTextureOverride() == null ? CardBackPreferenceManager.selectedTexture(owner) : definition.largeBackTextureOverride(),
-                animation, durationTicks);
+                definition.largeBackTextureOverride(), animation, durationTicks);
     }
 
     public static void sendEntityRevealAround(
@@ -392,8 +391,7 @@ public class CardUseService {
                 ? List.of() : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
-                definition.largeFrontTexture(stack),
-                definition.largeBackTextureOverride() == null ? CardBackPreferenceManager.selectedTexture(owner) : definition.largeBackTextureOverride(),
+                definition.largeFrontTexture(stack), definition.largeBackTexture(),
                 animation, durationTicks, sourceEntityId, targetEntityIds, revealId);
     }
 

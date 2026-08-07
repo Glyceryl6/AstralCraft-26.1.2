@@ -147,7 +147,12 @@ public class PendingCardActionManager {
         TARGET_SELECTIONS.replaceAll((_, selection) -> selection.tick());
         TARGET_SELECTIONS.entrySet().removeIf(entry -> entry.getValue().expired());
         NUMBER_SELECTIONS.replaceAll((_, selection) -> selection.tick());
-        NUMBER_SELECTIONS.entrySet().removeIf(entry -> entry.getValue().expired());
+        for (Map.Entry<UUID, PendingNumberSelection> entry : Set.copyOf(NUMBER_SELECTIONS.entrySet())) {
+            if (!entry.getValue().expired() || !NUMBER_SELECTIONS.remove(entry.getKey(), entry.getValue())) continue;
+            ServerPlayer player = ServerLifecycleHooks.getCurrentServer() == null ? null
+                    : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(entry.getKey());
+            if (player != null) completeBoardCardUi(player);
+        }
         BOARD_UI.replaceAll((_, pending) -> pending.tick());
         for (Map.Entry<UUID, PendingBoardUi> entry : Set.copyOf(BOARD_UI.entrySet())) {
             if (!entry.getValue().expired()) continue;

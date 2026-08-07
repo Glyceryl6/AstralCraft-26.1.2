@@ -28,6 +28,11 @@ public class HandcardSmartDice extends BaseHandCard implements BoardBotEffect, C
     }
 
     @Override
+    public boolean keepBoardUiOpenAfterReveal() {
+        return true;
+    }
+
+    @Override
     public boolean onRevealFinished(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition) {
         PendingCardActionManager.beginNumberSelection(user, itemStack, MIN_DICE_VALUE, MAX_DICE_VALUE);
         PacketDistributor.sendToPlayer(user, new OpenCardNumberSelectionPayload(
@@ -41,6 +46,7 @@ public class HandcardSmartDice extends BaseHandCard implements BoardBotEffect, C
                 user, payload.cardStack(), payload.value());
         if (selection == null || selection.cardStack().getItem() != this) return;
         AstralCardEffects.update(user, AstralStats.get(user).setNextMoveFixed(payload.value()));
+        PendingCardActionManager.completeBoardCardUi(user);
     }
 
     @Override

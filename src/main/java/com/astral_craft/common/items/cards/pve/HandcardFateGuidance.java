@@ -34,6 +34,11 @@ public class HandcardFateGuidance extends BaseHandCard implements BoardBotEffect
     }
 
     @Override
+    public boolean keepBoardUiOpenAfterReveal() {
+        return true;
+    }
+
+    @Override
     public boolean onRevealFinished(ServerPlayer user, InteractionHand hand, ItemStack itemStack, CardDefinition definition) {
         PendingCardActionManager.beginNumberSelection(user, itemStack, MIN_DICE_VALUE, MAX_DICE_VALUE);
         PacketDistributor.sendToPlayer(user, new OpenCardNumberSelectionPayload(
@@ -47,6 +52,7 @@ public class HandcardFateGuidance extends BaseHandCard implements BoardBotEffect
                 user, payload.cardStack(), payload.value());
         if (selection == null || selection.cardStack().getItem() != this) return;
         applyEffects(user, payload.value());
+        PendingCardActionManager.completeBoardCardUi(user);
     }
 
     private static void applyEffects(ServerPlayer user, int value) {

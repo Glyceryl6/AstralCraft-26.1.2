@@ -2,6 +2,8 @@ package com.astral_craft.common.entity;
 
 import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.registry.AstralEntities;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -35,6 +37,7 @@ public class AstralDiceEntity extends Entity {
     private static final EntityDataAccessor<Float> DATA_MERGE_OFFSET_X = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_MERGE_OFFSET_Z = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> DATA_PRIMARY = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_FLAT_NUMBER = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> DATA_TEXTURE = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.STRING);
 
     public AstralDiceEntity(EntityType<? extends AstralDiceEntity> type, Level level) {
@@ -59,6 +62,7 @@ public class AstralDiceEntity extends Entity {
         builder.define(DATA_MERGE_OFFSET_X, 0.0F);
         builder.define(DATA_MERGE_OFFSET_Z, 0.0F);
         builder.define(DATA_PRIMARY, true);
+        builder.define(DATA_FLAT_NUMBER, false);
         builder.define(DATA_TEXTURE, DiceSkinPreferenceManager.DEFAULT_TEXTURE.toString());
     }
 
@@ -84,7 +88,16 @@ public class AstralDiceEntity extends Entity {
         this.entityData.set(DATA_MERGE_OFFSET_X, mergeOffsetX);
         this.entityData.set(DATA_MERGE_OFFSET_Z, mergeOffsetZ);
         this.entityData.set(DATA_PRIMARY, primary);
+        this.entityData.set(DATA_FLAT_NUMBER, false);
+        this.setCustomNameVisible(false);
         this.tickCount = 0;
+    }
+
+    public void startFlatRoll(int min, int max, int rollTicks, int result) {
+        this.startRoll(min, max, rollTicks, 1.0F, result, result, 0, true, 0.0F, 0.0F);
+        this.entityData.set(DATA_FLAT_NUMBER, true);
+        this.setCustomName(Component.literal("?").withStyle(ChatFormatting.BOLD));
+        this.setCustomNameVisible(true);
     }
 
     @Override
@@ -93,6 +106,9 @@ public class AstralDiceEntity extends Entity {
         this.setDeltaMovement(0.0D, 0.0D, 0.0D);
         if (this.level().isClientSide()) return;
         int mergeEnd = this.rollTicks() + this.mergeTicks();
+        if (this.flatNumber() && this.tickCount >= this.rollTicks()) {
+            this.setCustomName(Component.literal(Integer.toString(this.result())).withStyle(ChatFormatting.BOLD));
+        }
         if (this.mergeTicks() > 0 && this.tickCount == mergeEnd) {
             if (this.isPrimary()) {
                 this.setPos(this.getX() + this.mergeOffsetX(), this.getY(), this.getZ() + this.mergeOffsetZ());
@@ -106,7 +122,6 @@ public class AstralDiceEntity extends Entity {
 
         if (this.tickCount > mergeEnd + RESULT_HOLD_TICKS) this.discard();
     }
-
 
     public void setTexture(Identifier texture) {
         if (texture != null) this.entityData.set(DATA_TEXTURE, texture.toString());
@@ -150,6 +165,10 @@ public class AstralDiceEntity extends Entity {
 
     public boolean isPrimary() {
         return this.entityData.get(DATA_PRIMARY);
+    }
+
+    public boolean flatNumber() {
+        return this.entityData.get(DATA_FLAT_NUMBER);
     }
 
     public float mergeOffsetX() {
@@ -218,6 +237,8 @@ public class AstralDiceEntity extends Entity {
         this.entityData.set(DATA_MERGE_OFFSET_X, input.getFloatOr("merge_offset_x", 0.0F));
         this.entityData.set(DATA_MERGE_OFFSET_Z, input.getFloatOr("merge_offset_z", 0.0F));
         this.entityData.set(DATA_PRIMARY, input.getBooleanOr("primary", true));
+        this.entityData.set(DATA_FLAT_NUMBER, input.getBooleanOr("flat_number", false));
+        this.setCustomNameVisible(this.flatNumber());
         this.entityData.set(DATA_TEXTURE, input.getStringOr("texture", DiceSkinPreferenceManager.DEFAULT_TEXTURE.toString()));
         String boardId = input.getStringOr("board_session_id", "");
         try {
@@ -240,6 +261,7 @@ public class AstralDiceEntity extends Entity {
         output.putFloat("merge_offset_x", this.mergeOffsetX());
         output.putFloat("merge_offset_z", this.mergeOffsetZ());
         output.putBoolean("primary", this.isPrimary());
+        output.putBoolean("flat_number", this.flatNumber());
         output.putString("texture", this.texture().toString());
         output.putString("board_session_id", this.boardSessionId == null ? "" : this.boardSessionId.toString());
         output.putInt("age", this.tickCount);
