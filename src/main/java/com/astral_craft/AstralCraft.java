@@ -13,8 +13,8 @@ public class AstralCraft {
     public static final String MOD_ID = "astral_craft";
 
     public AstralCraft(IEventBus modEventBus) {
-        AstralChips.CHIPS.register(modEventBus);
         AstralBoardBuffs.BUFFS.register(modEventBus);
+        AstralChips.CHIPS.register(modEventBus);
         AstralCharacters.CHARACTERS.register(modEventBus);
         AstralStatusEffects.MOB_EFFECTS.register(modEventBus);
         AstralAttributes.ATTRIBUTES.register(modEventBus);

@@ -31,7 +31,7 @@ import java.util.Optional;
 public class AstralCardEffects {
 
     public static void applyChip(Player player, ChipDefinition chip) {
-        AstralStats.set(player, AstralStats.get(player).applyChip(chip.stats()));
+        if (chip != null) chip.applyToPlayer(player);
     }
 
     public static Optional<LivingEntity> target(List<LivingEntity> targets) {

@@ -1,7 +1,5 @@
 package com.astral_craft.common.stats;
 
-import com.astral_craft.AstralCraft;
-import com.astral_craft.common.gameplay.StatBundle;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.character.CharacterStatsDefinition;
@@ -223,6 +221,26 @@ public record AstralPlayerStats(
                 this.nextMoveFixed, this.buffs, this.modifiers);
     }
 
+    public AstralPlayerStats addBaseDefense(int amount) {
+        return this.copy(this.baseAttack, this.baseDefense + amount, this.maxHealth, this.health,
+                this.starCoins, this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining,
+                this.nextMoveFixed, this.buffs, this.modifiers);
+    }
+
+    public AstralPlayerStats addMaxHealth(int amount) {
+        int added = Math.max(0, amount);
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth + added, this.health + added,
+                this.starCoins, this.stars, this.cardPlaysPerTurn, this.cardPlaysRemaining,
+                this.nextMoveFixed, this.buffs, this.modifiers);
+    }
+
+    public AstralPlayerStats addCardPlaysPerTurn(int amount) {
+        int added = Math.max(0, amount);
+        return this.copy(this.baseAttack, this.baseDefense, this.maxHealth, this.health,
+                this.starCoins, this.stars, this.cardPlaysPerTurn + added, this.cardPlaysRemaining + added,
+                this.nextMoveFixed, this.buffs, this.modifiers);
+    }
+
     public AstralPlayerStats addTemporary(String stat, int amount, int turns) {
         List<TimedStatModifier> next = new ArrayList<>(this.modifiers);
         next.add(new TimedStatModifier(stat, amount, turns));
@@ -293,19 +311,6 @@ public record AstralPlayerStats(
             changed = true;
         }
         return changed ? this.withBuffs(next) : this;
-    }
-
-    public AstralPlayerStats applyChip(StatBundle stats) {
-        if (stats == null) return this;
-        AstralPlayerStats next = this.copy(this.baseAttack + stats.attack(), this.baseDefense + stats.defense(),
-                this.maxHealth + stats.maxHealth(), this.health + stats.health(), this.starCoins + stats.starCoins(),
-                this.stars, this.cardPlaysPerTurn + stats.cardPlays(),
-                this.cardPlaysRemaining + stats.cardPlays(), this.nextMoveFixed, this.buffs, this.modifiers);
-        if (stats.healStacks() > 0) next = next.addPermanentBuff(AstralBoardBuffs.HEAL.get(), stats.healStacks());
-        if (stats.starlightStacks() > 0) next = next.addPermanentBuff(AstralBoardBuffs.STARLIGHT.get(), stats.starlightStacks());
-        if (stats.markStacks() > 0) next = next.addPermanentBuff(AstralBoardBuffs.MARK.get(), stats.markStacks());
-        if (stats.speed() != 0) next = next.addBuff(AstralBoardBuffs.speed(AstralCraft.prefix("chip_speed"), stats.speed()).permanent().build());
-        return next;
     }
 
     public AstralPlayerStats useCardPlay() {

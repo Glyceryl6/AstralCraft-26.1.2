@@ -17,7 +17,15 @@ import net.minecraft.util.RandomSource;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 /** Generates and resolves the three-option chip selection used by standalone rewards and board PVE. */
 public class ChipSelectionService {
@@ -56,7 +64,8 @@ public class ChipSelectionService {
             AstralCardEffects.applyChip(player, chip);
             state.owned.add(chipId);
             chip.keywordId().ifPresent(state.keywordIds::add);
-            player.sendSystemMessage(Component.translatable("message.astral_craft.chip.selected", chip.displayName()).withStyle(ChatFormatting.GOLD), true);
+            player.sendSystemMessage(Component.translatable("message.astral_craft.chip.selected", chip.displayName())
+                    .withStyle(ChatFormatting.GOLD), true);
         });
         PENDING.remove(player.getUUID());
     }
@@ -67,7 +76,8 @@ public class ChipSelectionService {
                 participant.stats().stars(), mapId);
     }
 
-    public static BoardParticipant applyBoardChoice(BoardParticipant participant, List<Identifier> offered, Identifier chipId, boolean shopPurchase) {
+    public static BoardParticipant applyBoardChoice(BoardParticipant participant, List<Identifier> offered,
+                                                     Identifier chipId, boolean shopPurchase) {
         if (participant == null || chipId == null || offered == null || !offered.contains(chipId)
                 || participant.chipProgress().owns(chipId)) return participant;
         ChipDefinition chip = AstralChips.get(chipId).orElse(null);
@@ -75,25 +85,25 @@ public class ChipSelectionService {
         BoardParticipant.ChipProgress progress = participant.chipProgress().withPreviousOffers(offered)
                 .acquire(chipId, chip.keywordId().orElse(null));
         if (shopPurchase) progress = progress.completeShopPurchase();
-        return participant.withStats(participant.stats().applyChip(chip.stats())).withChipProgress(progress);
+        return chip.applyToBoard(participant).withChipProgress(progress);
     }
 
     public static List<OpenChipSelectionPayload.Choice> toViews(List<ChipDefinition> choices) {
         return choices.stream().map(chip -> new OpenChipSelectionPayload.Choice(
                 chip.registryId(), chip.nameKey(), chip.effectKey(),
-                AstralCraft.prefix("textures/gui/chips/" + chip.id() + ".png"))).toList();
+                AstralCraft.prefix("textures/gui/chips/" + chip.id().getPath() + ".png"))).toList();
     }
 
     public static BoardParticipant beforeTurnStart(ServerLevel level, BoardParticipant participant) {
-        return applyOwnedEffects(level, participant, ChipDefinition::beforeTurnStart);
+        return applyOwned(level, participant, LifecyclePhase.BEFORE_TURN_START);
     }
 
     public static BoardParticipant afterEffectCardPlayed(ServerLevel level, BoardParticipant participant) {
-        return applyOwnedEffects(level, participant, ChipDefinition::afterEffectCardPlayed);
+        return applyOwned(level, participant, LifecyclePhase.AFTER_EFFECT_CARD_PLAYED);
     }
 
     public static BoardParticipant afterTurnEnd(ServerLevel level, BoardParticipant participant) {
-        return applyOwnedEffects(level, participant, ChipDefinition::afterTurnEnd);
+        return applyOwned(level, participant, LifecyclePhase.AFTER_TURN_END);
     }
 
     public static int skillCooldownReduction(BoardParticipant participant) {
@@ -101,19 +111,24 @@ public class ChipSelectionService {
         int reduction = 0;
         for (Identifier chipId : participant.chipProgress().owned()) {
             ChipDefinition chip = AstralChips.get(chipId).orElse(null);
-            if (chip != null) reduction += Math.max(0, chip.stats().skillCooldownReduction());
+            if (chip != null) reduction += chip.skillCooldownReduction();
         }
         return reduction;
     }
 
-    private static BoardParticipant applyOwnedEffects(ServerLevel level, BoardParticipant participant, ChipEffect effect) {
+    private static BoardParticipant applyOwned(ServerLevel level, BoardParticipant participant, LifecyclePhase phase) {
         if (level == null || participant == null) return participant;
-        BoardParticipant result = participant;
+        BoardParticipant updated = participant;
         for (Identifier chipId : participant.chipProgress().owned()) {
             ChipDefinition chip = AstralChips.get(chipId).orElse(null);
-            if (chip != null) result = Objects.requireNonNullElse(effect.apply(chip, level, result), result);
+            if (chip == null) continue;
+            updated = switch (phase) {
+                case BEFORE_TURN_START -> chip.beforeTurnStart(level, updated);
+                case AFTER_EFFECT_CARD_PLAYED -> chip.afterEffectCardPlayed(level, updated);
+                case AFTER_TURN_END -> chip.afterTurnEnd(level, updated);
+            };
         }
-        return result;
+        return updated;
     }
 
     private static List<ChipDefinition> rollChoices(RandomSource random, Identifier characterId,
@@ -121,7 +136,9 @@ public class ChipSelectionService {
                                                     int level, @Nullable Identifier mapId) {
         List<ChipDefinition> pool = new ArrayList<>();
         for (ChipDefinition chip : AstralChips.values()) {
-            if (!progress.owns(chip.registryId()) && chip.availableOn(mapId) && keywordAllowed(progress, chip)) pool.add(chip);
+            if (!progress.owns(chip.registryId()) && chip.availableOn(mapId) && keywordAllowed(progress, chip)) {
+                pool.add(chip);
+            }
         }
         if (pool.isEmpty()) return List.of();
 
@@ -144,21 +161,17 @@ public class ChipSelectionService {
         return List.copyOf(choices);
     }
 
-    private static ChipDefinition weightedPick(RandomSource random, List<ChipDefinition> pool,
-                                                BoardParticipant.ChipProgress progress, Identifier characterId,
-                                                @Nullable ChipRarity rarity, List<ChipDefinition> chosen,
-                                                boolean classWeighted, boolean excludePrevious) {
-        Set<Identifier> chosenIds = new HashSet<>();
-        for (ChipDefinition chip : chosen) chosenIds.add(chip.registryId());
-        List<ChipDefinition> candidates = new ArrayList<>();
-        for (ChipDefinition chip : pool) {
-            if ((rarity == null || chip.rarity() == rarity) && !chosenIds.contains(chip.registryId())
-                    && (!excludePrevious || !progress.previousOffers().contains(chip.registryId()))) candidates.add(chip);
-        }
+    private static @Nullable ChipDefinition weightedPick(RandomSource random, List<ChipDefinition> pool,
+                                                          BoardParticipant.ChipProgress progress, Identifier characterId,
+                                                          @Nullable ChipRarity rarity, List<ChipDefinition> chosen,
+                                                          boolean classWeighted, boolean excludePrevious) {
+        Set<Identifier> chosenIds = chosen.stream().map(ChipDefinition::registryId).collect(Collectors.toSet());
+        List<ChipDefinition> candidates = pool.stream()
+                .filter(chip -> rarity == null || chip.rarity() == rarity)
+                .filter(chip -> !chosenIds.contains(chip.registryId()))
+                .filter(chip -> !excludePrevious || !progress.previousOffers().contains(chip.registryId())).toList();
         if (candidates.isEmpty()) return null;
-
-        int total = 0;
-        for (ChipDefinition chip : candidates) total += weight(progress, characterId, chip, classWeighted);
+        int total = candidates.stream().mapToInt(chip -> weight(progress, characterId, chip, classWeighted)).sum();
         int roll = random.nextInt(Math.max(1, total));
         for (ChipDefinition chip : candidates) {
             roll -= weight(progress, characterId, chip, classWeighted);
@@ -177,15 +190,15 @@ public class ChipSelectionService {
 
     private static int weight(BoardParticipant.ChipProgress progress, Identifier characterId,
                               ChipDefinition chip, boolean classWeighted) {
-        int weight = classWeighted ? CharacterManager.INSTANCE.character(characterId).chipWeight(chip.pool())
-                : ChipPool.Weights.DEFAULT_WEIGHT;
-        if (chip.keywordId().filter(progress.keywordIds()::contains).isPresent()) weight += KEYWORD_WEIGHT_BONUS;
-        return Math.max(1, weight);
+        ChipPool.Weights weights = CharacterManager.INSTANCE.character(characterId).chipWeights();
+        int value = classWeighted ? weights.weight(chip.pool()) : ChipPool.Weights.BASE_WEIGHT;
+        if (chip.keywordId().filter(progress.keywordIds()::contains).isPresent()) value += KEYWORD_WEIGHT_BONUS;
+        return Math.max(1, value);
     }
 
     private static boolean keywordAllowed(BoardParticipant.ChipProgress progress, ChipDefinition chip) {
-        Identifier keywordId = chip.keywordId().orElse(null);
-        return keywordId == null || progress.keywordIds().size() < 2 || progress.keywordIds().contains(keywordId);
+        Optional<Identifier> keyword = chip.keywordId();
+        return keyword.isEmpty() || progress.keywordIds().size() < 2 || progress.keywordIds().contains(keyword.get());
     }
 
     private static class PlayerChipState {
@@ -199,9 +212,9 @@ public class ChipSelectionService {
         }
     }
 
-    @FunctionalInterface
-    private interface ChipEffect {
-        BoardParticipant apply(ChipDefinition chip, ServerLevel level, BoardParticipant participant);
+    private enum LifecyclePhase {
+        BEFORE_TURN_START,
+        AFTER_EFFECT_CARD_PLAYED,
+        AFTER_TURN_END
     }
-
 }
