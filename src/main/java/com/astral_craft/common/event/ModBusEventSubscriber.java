@@ -5,6 +5,7 @@ import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinAddition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinRarityDefinition;
 import com.astral_craft.common.gameplay.event.AstralEventDefinition;
+import com.astral_craft.common.gameplay.fortune.BoardFortuneDefinition;
 import com.astral_craft.common.network.AstralServerPayloadHandlers;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.network.s2c.*;
@@ -38,11 +39,12 @@ public class ModBusEventSubscriber {
         event.dataPackRegistry(AstralCharacterSkinBootstrap.CHARACTER_SKINS, CharacterSkinAddition.CODEC, CharacterSkinAddition.CODEC);
         event.dataPackRegistry(AstralSkinRarityBootstrap.SKIN_RARITIES, CharacterSkinRarityDefinition.CODEC, CharacterSkinRarityDefinition.CODEC);
         event.dataPackRegistry(AstralEventBootstrap.EVENTS, AstralEventDefinition.CODEC, AstralEventDefinition.CODEC);
+        event.dataPackRegistry(AstralFortuneBootstrap.FORTUNES, BoardFortuneDefinition.CODEC, BoardFortuneDefinition.CODEC);
     }
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("29");
+        PayloadRegistrar registrar = event.registrar("31");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -53,6 +55,9 @@ public class ModBusEventSubscriber {
         registrar.playToClient(BoardAnnouncementPayload.TYPE, BoardAnnouncementPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardCharacterSelectionPayload.TYPE, OpenBoardCharacterSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardProjectorConfirmPayload.TYPE, OpenBoardProjectorConfirmPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardModeSelectionPayload.TYPE, OpenBoardModeSelectionPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardDivinationPayload.TYPE, OpenBoardDivinationPayload.STREAM_CODEC);
+        registrar.playToClient(ResolveBoardDivinationPayload.TYPE, ResolveBoardDivinationPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardDismantleConfirmPayload.TYPE, OpenBoardDismantleConfirmPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardTurnPayload.TYPE, OpenBoardTurnPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardDiscardPayload.TYPE, OpenBoardDiscardPayload.STREAM_CODEC);
@@ -95,6 +100,8 @@ public class ModBusEventSubscriber {
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
         registrar.playToServer(BoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCharacterSelection);
         registrar.playToServer(BoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardProjectorConfirm);
+        registrar.playToServer(BoardModeSelectionPayload.TYPE, BoardModeSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardModeSelection);
+        registrar.playToServer(BoardDivinationChoicePayload.TYPE, BoardDivinationChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardDivinationChoice);
         registrar.playToServer(BoardDismantleConfirmPayload.TYPE, BoardDismantleConfirmPayload.STREAM_CODEC,
                 AstralServerPayloadHandlers::handleBoardDismantleConfirm);
         registrar.playToServer(UseBoardCardPayload.TYPE, UseBoardCardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseBoardCard);

@@ -10,6 +10,7 @@ import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.character.skill.AstralCharacterSkillService;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinManager;
 import com.astral_craft.common.gameplay.event.*;
+import com.astral_craft.common.gameplay.fortune.BoardFortuneManager;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.registry.AstralDataComponents;
@@ -67,6 +68,7 @@ public class CommonEventSubscriber {
     public static void onAddServerReloadListeners(AddServerReloadListenersEvent event) {
         event.addListener(AstralCraft.prefix("character_skins"), CharacterSkinManager.INSTANCE);
         event.addListener(AstralCraft.prefix("astral_events"), AstralEventManager.INSTANCE);
+        event.addListener(AstralCraft.prefix("board_fortunes"), BoardFortuneManager.INSTANCE);
     }
 
     @SubscribeEvent

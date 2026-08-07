@@ -15,7 +15,8 @@ public class AstralDatapackBuiltinEntriesProvider extends DatapackBuiltinEntries
     public static final RegistrySetBuilder BUILDER = new RegistrySetBuilder()
             .add(AstralCharacterSkinBootstrap.CHARACTER_SKINS, AstralCharacterSkinBootstrap::bootstrap)
             .add(AstralSkinRarityBootstrap.SKIN_RARITIES, AstralSkinRarityBootstrap::bootstrap)
-            .add(AstralEventBootstrap.EVENTS, AstralEventBootstrap::bootstrap);
+            .add(AstralEventBootstrap.EVENTS, AstralEventBootstrap::bootstrap)
+            .add(AstralFortuneBootstrap.FORTUNES, AstralFortuneBootstrap::bootstrap);
 
     public AstralDatapackBuiltinEntriesProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
         super(output, registries, BUILDER, Set.of(AstralCraft.MOD_ID));
