@@ -45,19 +45,33 @@ public class BoardDivinationScreen extends Screen {
         this.timeoutDurationTicks = payload.timeoutDurationTicks();
     }
 
+    private BoardDivinationScreen(ResolveBoardDivinationPayload payload) {
+        super(Component.translatable("gui.astral_craft.board.divination.title"));
+        this.boardId = payload.boardId();
+        this.options = List.of(payload.selectedOption());
+        this.selectable = false;
+        this.timeoutTicks = 0;
+        this.timeoutDurationTicks = 1;
+        this.selectedIndex = 0;
+        this.target = payload.target();
+        this.submitted = true;
+    }
+
     public static void open(OpenBoardDivinationPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> Minecraft.getInstance().setScreen(new BoardDivinationScreen(payload)));
     }
 
     public static void resolve(ResolveBoardDivinationPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (Minecraft.getInstance().screen instanceof BoardDivinationScreen screen
-                    && screen.boardId.equals(payload.boardId())) {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.screen instanceof BoardDivinationScreen screen && screen.boardId.equals(payload.boardId())) {
                 screen.selectedIndex = Math.clamp(payload.selectedIndex(), 0, screen.options.size() - 1);
                 screen.target = payload.target();
                 screen.revealTicks = 0;
                 screen.submitted = true;
+                return;
             }
+            minecraft.setScreen(new BoardDivinationScreen(payload));
         });
     }
 
@@ -91,7 +105,7 @@ public class BoardDivinationScreen extends Screen {
         graphics.fill(0, 0, this.width, this.height, 0xB8100B1C);
         graphics.centeredText(this.font, this.title, this.width / 2, Math.max(12, this.height / 2 - 116), 0xFFFFFFFF);
         int gap = 40;
-        int total = CARD_WIDTH * 2 + gap;
+        int total = CARD_WIDTH * this.options.size() + gap * Math.max(0, this.options.size() - 1);
         int firstX = (this.width - total) / 2;
         int y = (this.height - CARD_HEIGHT) / 2 - 4;
         for (int index = 0; index < this.options.size(); index++) {
@@ -106,7 +120,6 @@ public class BoardDivinationScreen extends Screen {
                 this.renderFront(graphics, this.options.get(index), x, y, alpha, hovered);
             }
         }
-
         if (this.selectedIndex < 0) {
             Component instruction = Component.translatable(this.selectable
                     ? "gui.astral_craft.board.divination.choose" : "gui.astral_craft.board.divination.wait");
@@ -124,7 +137,8 @@ public class BoardDivinationScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (!this.selectable || this.submitted || event.button() != 0) return super.mouseClicked(event, doubleClick);
         int gap = 40;
-        int firstX = (this.width - (CARD_WIDTH * 2 + gap)) / 2;
+        int total = CARD_WIDTH * this.options.size() + gap * Math.max(0, this.options.size() - 1);
+        int firstX = (this.width - total) / 2;
         int y = (this.height - CARD_HEIGHT) / 2 - 4;
         for (int index = 0; index < this.options.size(); index++) {
             int x = firstX + index * (CARD_WIDTH + gap);

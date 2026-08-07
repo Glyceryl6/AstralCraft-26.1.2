@@ -12,7 +12,7 @@ import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
 import com.astral_craft.common.gameplay.board.BoardEventService;
-import com.astral_craft.common.gameplay.board.BoardFortuneService;
+import com.astral_craft.common.blocks.platform.DivinePlatform;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
@@ -180,7 +180,7 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardDivinationChoice(BoardDivinationChoicePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                BoardFortuneService.choose(player, payload.boardId(), payload.selectedIndex());
+                DivinePlatform.choose(player, payload.boardId(), payload.selectedIndex());
             }
         });
     }

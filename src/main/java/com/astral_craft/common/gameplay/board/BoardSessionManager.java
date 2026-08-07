@@ -585,7 +585,7 @@ public class BoardSessionManager {
         PENDING_BOT_COUNTERS.remove(session.id());
         PENDING_TIME_BOMB_ROLLS.remove(session.id());
         NO_HUMAN_SINCE_TICKS.remove(session.id());
-        BoardFortuneService.clear(level, session);
+        BoardFortuneService.closePresentation(level, session);
         BasePlatform.clearActiveBoardEffect(session.id());
         BoardEventService.clear(session.id());
         BoardLotteryService.clear(level, session);
@@ -1666,7 +1666,7 @@ public class BoardSessionManager {
         PENDING_BOT_COUNTERS.remove(session.id());
         PENDING_TIME_BOMB_ROLLS.remove(session.id());
         NO_HUMAN_SINCE_TICKS.remove(session.id());
-        BoardFortuneService.clear(level, session);
+        BoardFortuneService.closePresentation(level, session);
         BasePlatform.clearActiveBoardEffect(session.id());
         BoardEventService.clear(session.id());
         BoardRouteService.broadcastState(session, false, List.of(), List.of(), List.of());

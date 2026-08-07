@@ -10,7 +10,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.UUID;
 
-public record ResolveBoardDivinationPayload(UUID boardId, int selectedIndex, DivinationTarget target) implements CustomPacketPayload {
+public record ResolveBoardDivinationPayload(UUID boardId, int selectedIndex,
+                                             OpenBoardDivinationPayload.Option selectedOption,
+                                             DivinationTarget target) implements CustomPacketPayload {
 
     public static final Type<ResolveBoardDivinationPayload> TYPE = new Type<>(AstralCraft.prefix("resolve_board_divination"));
     private static final StreamCodec<ByteBuf, DivinationTarget> TARGET_CODEC = ByteBufCodecs.idMapper(
@@ -19,8 +21,8 @@ public record ResolveBoardDivinationPayload(UUID boardId, int selectedIndex, Div
     public static final StreamCodec<ByteBuf, ResolveBoardDivinationPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, ResolveBoardDivinationPayload::boardId,
             ByteBufCodecs.VAR_INT, ResolveBoardDivinationPayload::selectedIndex,
-            TARGET_CODEC, ResolveBoardDivinationPayload::target,
-            ResolveBoardDivinationPayload::new);
+            OpenBoardDivinationPayload.Option.STREAM_CODEC, ResolveBoardDivinationPayload::selectedOption,
+            TARGET_CODEC, ResolveBoardDivinationPayload::target, ResolveBoardDivinationPayload::new);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
