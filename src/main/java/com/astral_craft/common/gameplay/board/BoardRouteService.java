@@ -221,16 +221,22 @@ public class BoardRouteService {
         return result;
     }
 
-    private static List<List<String>> stopOpportunityPaths(BoardSession session, BoardParticipant participant, List<List<String>> paths) {
-        return paths.stream().filter(path -> path.size() >= 2 && path.subList(1, path.size()).stream()
-                .anyMatch(nodeId -> canOfferStop(session, participant, nodeId))).toList();
+    private static List<List<String>> stopOpportunityPaths(BoardSession session, BoardParticipant participant,
+                                                           List<List<String>> paths) {
+        int cost = StartPlatform.nextStarCost(participant.stats().stars());
+        if (cost <= 0 || participant.stats().starCoins() < cost) return List.of();
+        return paths.stream().filter(path -> hasLevelUpOpportunity(session, participant, path)).toList();
     }
 
-    private static boolean canOfferStop(BoardSession session, BoardParticipant participant, String nodeId) {
-        BoardNode node = session.nodes().get(nodeId);
-        if (node == null || StartPlatform.nextStarCost(participant.stats().stars()) > 0) return false;
-        if (!(BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof StartPlatform platform)) return false;
-        return !platform.characterStart() || session.canStopAtStart(participant, nodeId);
+    private static boolean hasLevelUpOpportunity(BoardSession session, BoardParticipant participant, List<String> path) {
+        for (int index = 1; index < path.size(); index++) {
+            String nodeId = path.get(index);
+            BoardNode node = session.nodes().get(nodeId);
+            if (node == null || !(BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof StartPlatform platform)) continue;
+            boolean landing = index == path.size() - 1;
+            if (landing || !platform.characterStart() || session.canStopAtStart(participant, nodeId)) return true;
+        }
+        return false;
     }
 
     private static void collectPaths(BoardSession session, String current, String previous, int remaining,

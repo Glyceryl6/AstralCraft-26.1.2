@@ -1,6 +1,7 @@
 package com.astral_craft.common.blocks.platform;
 
 import com.astral_craft.common.blocks.BasePlatform;
+import com.astral_craft.common.gameplay.board.BoardMode;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -96,6 +97,10 @@ public class RelicPlatform extends BasePlatform {
     }
 
     private void open(BoardPanelContext context) {
+        if (context.session().mode() != BoardMode.PVE) {
+            BoardSessionManager.resumeMovementAfterPanel(context.level(), context.session());
+            return;
+        }
         ServerLevel level = context.level();
         BoardSession session = context.session();
         BoardParticipant participant = context.participant();

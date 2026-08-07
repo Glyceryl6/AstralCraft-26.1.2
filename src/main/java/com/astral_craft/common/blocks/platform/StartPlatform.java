@@ -3,6 +3,7 @@ package com.astral_craft.common.blocks.platform;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
+import com.astral_craft.common.gameplay.board.BoardMode;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -194,7 +195,8 @@ public class StartPlatform extends BasePlatform {
             if (!participant.knockedDown()) {
                 BenefitResult result = this.applyBenefits(level, session, participant);
                 if (this.checkVictory(level, session, result.participant())) return;
-                if (result.leveled() && this.beginChipSelection(level, session, result.participant())) return;
+                if (result.leveled() && session.mode() == BoardMode.PVE
+                        && this.beginChipSelection(level, session, result.participant())) return;
             }
         }
         this.finish(level, session);
