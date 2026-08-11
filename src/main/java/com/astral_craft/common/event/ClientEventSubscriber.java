@@ -4,6 +4,7 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.*;
 import com.astral_craft.client.gui.board.*;
 import com.astral_craft.client.gui.appearance.AppearanceSelectionScreen;
+import com.astral_craft.client.gui.components.AstralConfirmationScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
 import com.astral_craft.client.gui.phrase.QuickPhraseSidebar;
@@ -24,18 +25,19 @@ import com.astral_craft.client.render.projectile.FirecrackersRenderer;
 import com.astral_craft.client.render.projectile.SlingshotProjectileRenderer;
 import com.astral_craft.client.render.projectile.SnowballAttackProjectileRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
-import com.astral_craft.common.items.BoardDismantlerItem;
+import com.astral_craft.common.network.c2s.BoardDismantleConfirmPayload;
 import com.astral_craft.common.network.c2s.RequestCardBackSelectionPayload;
 import com.astral_craft.common.network.c2s.RequestCharacterSettingsPayload;
 import com.astral_craft.common.network.c2s.RequestCharacterSkillPayload;
 import com.astral_craft.common.network.c2s.RequestHandCardDeckPayload;
 import com.astral_craft.common.network.s2c.*;
 import com.astral_craft.common.registry.AstralEntities;
-import net.minecraft.gizmos.Gizmos;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Avatar;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
@@ -47,6 +49,8 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
 import org.jspecify.annotations.NullMarked;
+
+import java.util.List;
 
 @EventBusSubscriber(modid = AstralCraft.MOD_ID, value = Dist.CLIENT)
 public class ClientEventSubscriber {
@@ -202,7 +206,18 @@ public class ClientEventSubscriber {
         event.register(OpenBoardModeSelectionPayload.TYPE, BoardModeSelectionScreen::open);
         event.register(OpenBoardDivinationPayload.TYPE, BoardDivinationScreen::open);
         event.register(ResolveBoardDivinationPayload.TYPE, BoardDivinationScreen::resolve);
-        event.register(OpenBoardDismantleConfirmPayload.TYPE, BoardDismantlerItem::openBoardDismantleConfirmation);
+        event.register(OpenBoardDismantleConfirmPayload.TYPE, (payload, context) -> context.enqueueWork(() ->
+                Minecraft.getInstance().setScreen(new AstralConfirmationScreen(
+                        Component.translatable("gui.astral_craft.board_dismantle.confirm.title"),
+                        List.of(Component.translatable("gui.astral_craft.board_dismantle.confirm.warning"),
+                                Component.translatable("gui.astral_craft.board_dismantle.confirm.details", payload.panelCount())),
+                        Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_all"),
+                        Component.translatable("gui.astral_craft.board_dismantle.confirm.remove_data_only"),
+                        Component.translatable("gui.astral_craft.confirm.cancel"),
+                        () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
+                                BoardDismantleConfirmPayload.Action.REMOVE_DATA_AND_PANELS)),
+                        () -> ClientPacketDistributor.sendToServer(new BoardDismantleConfirmPayload(payload.boardId(),
+                                BoardDismantleConfirmPayload.Action.REMOVE_DATA_ONLY))))));
         event.register(OpenBoardTurnPayload.TYPE, BoardTurnScreen::open);
         event.register(OpenBoardDiscardPayload.TYPE, BoardDiscardScreen::open);
         event.register(OpenBoardEncounterPayload.TYPE, BoardEncounterScreen::open);
