@@ -40,23 +40,17 @@ public class AstralFortuneBootstrap {
     public static void bootstrap(BootstrapContext<BoardFortuneDefinition> context) {
         context.register(SLEEP_IN, fortune("sleep_in", new HealEventEffect(2.0F)));
         context.register(LUCKY_GUARD, fortune("lucky_guard", new BoardStatusEventEffect(
-                AstralBoardBuffs.incomingDamage(LUCKY_GUARD_BUFF, -2).permanent()
-                        .consumeAfterIncomingDamage().build())));
-        context.register(SHOP_GUEST, fortune("shop_guest",
-                new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 1)));
+                AstralBoardBuffs.incomingDamage(LUCKY_GUARD_BUFF, -2).permanent().consumeAfterIncomingDamage().build())));
+        context.register(SHOP_GUEST, fortune("shop_guest", new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 1)));
         context.register(WALLET_FOUND, fortune("wallet_found", new BoardCoinEventEffect(5)));
         context.register(ANKLE_INJURY, fortune("ankle_injury", new DamageEventEffect(2.0F)));
         context.register(WEAK_RESISTANCE, fortune("weak_resistance", new BoardStatusEventEffect(
-                AstralBoardBuffs.incomingDamage(WEAK_RESISTANCE_BUFF, 2).permanent()
-                        .consumeAfterIncomingDamage().build())));
-        context.register(PUNISHMENT, fortune("punishment",
-                new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 1)));
+                AstralBoardBuffs.incomingDamage(WEAK_RESISTANCE_BUFF, 2).permanent().consumeAfterIncomingDamage().build())));
+        context.register(PUNISHMENT, fortune("punishment", new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 1)));
         context.register(WALLET_LOST, fortune("wallet_lost", new BoardDropCoinsEventEffect(5)));
         context.register(STOCK_SURGE, fortune("stock_surge", new BoardScaleCoinsEventEffect(2.0F)));
-        context.register(JACKPOT, fortune("jackpot",
-                new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 3)));
-        context.register(TYPHOON, fortune("typhoon",
-                new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 3)));
+        context.register(JACKPOT, fortune("jackpot", new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 3)));
+        context.register(TYPHOON, fortune("typhoon", new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 3)));
         context.register(ALIEN_RAID, fortune("alien_raid", new BoardScaleCoinsEventEffect(0.5F)));
     }
 

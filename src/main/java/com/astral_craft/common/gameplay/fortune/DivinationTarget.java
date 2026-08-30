@@ -9,10 +9,10 @@ import java.util.function.ToIntFunction;
 
 public enum DivinationTarget {
 
-    HIGHEST_STARS("highest_stars", true, participant -> participant.stats().stars()),
-    LOWEST_STARS("lowest_stars", false, participant -> participant.stats().stars()),
-    HIGHEST_HEALTH("highest_health", true, participant -> participant.stats().health()),
-    LOWEST_HEALTH("lowest_health", false, participant -> participant.stats().health()),
+    MOST_STAR("most_star", true, participant -> participant.stats().stars()),
+    LEAST_STAR("least_star", false, participant -> participant.stats().stars()),
+    HIGHEST_HP("highest_hp", true, participant -> participant.stats().health()),
+    LOWEST_HP("lowest_hp", false, participant -> participant.stats().health()),
     MOST_COINS("most_coins", true, participant -> participant.stats().starCoins()),
     LEAST_COINS("least_coins", false, participant -> participant.stats().starCoins()),
     MOST_CARDS("most_cards", true, participant -> participant.hand().size()),
