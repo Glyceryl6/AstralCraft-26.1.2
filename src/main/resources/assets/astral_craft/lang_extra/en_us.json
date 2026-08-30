@@ -1026,10 +1026,10 @@
   "gui.astral_craft.board.divination.title": "Divination",
   "gui.astral_craft.board.divination.choose": "Choose one of the two fate effects",
   "gui.astral_craft.board.divination.wait": "Waiting for the current player to choose…",
-  "gui.astral_craft.board.divination.target.highest_stars": "Character with the most stars",
-  "gui.astral_craft.board.divination.target.lowest_stars": "Character with the fewest stars",
-  "gui.astral_craft.board.divination.target.highest_health": "Character with the highest HP",
-  "gui.astral_craft.board.divination.target.lowest_health": "Character with the lowest HP",
+  "gui.astral_craft.board.divination.target.most_star": "Character with the most stars",
+  "gui.astral_craft.board.divination.target.least_star": "Character with the fewest stars",
+  "gui.astral_craft.board.divination.target.highest_hp": "Character with the highest HP",
+  "gui.astral_craft.board.divination.target.lowest_hp": "Character with the lowest HP",
   "gui.astral_craft.board.divination.target.most_coins": "Character with the most Star Coins",
   "gui.astral_craft.board.divination.target.least_coins": "Character with the fewest Star Coins",
   "gui.astral_craft.board.divination.target.most_cards": "Character with the most cards",
@@ -1059,5 +1059,9 @@
   "fortune.astral_craft.typhoon.name": "Typhoon",
   "fortune.astral_craft.typhoon.description": "Randomly discard 3 cards.",
   "fortune.astral_craft.alien_raid.name": "Alien Raid",
-  "fortune.astral_craft.alien_raid.description": "Lose half coins."
+  "fortune.astral_craft.alien_raid.description": "Lose half coins.",
+  "fortune.astral_craft.good_luck.name": "Good Luck",
+  "fortune.astral_craft.bad_luck.name": "Bad Luck",
+  "fortune.astral_craft.fortune.name": "Fortune",
+  "fortune.astral_craft.misfortune.name": "Misfortune"
 }

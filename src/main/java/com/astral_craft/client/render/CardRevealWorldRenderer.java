@@ -71,7 +71,8 @@ public class CardRevealWorldRenderer {
                         HALF_THICKNESS + FRONT_ART_Z_OFFSET, 0.0F, 0.0F, 1.0F, 1.0F);
             } catch (IOException _) {}
         } else {
-            submitCardBody(collector, poseStack, reveal.backTexture(), reveal.backTexture(), color, -HALF_W, HALF_H, HALF_W, -HALF_H, HALF_THICKNESS);
+            Identifier backTexture = ScopedJpgTextureCache.resolve(reveal.backTexture());
+            submitCardBody(collector, poseStack, backTexture, backTexture, color, -HALF_W, HALF_H, HALF_W, -HALF_H, HALF_THICKNESS);
         }
 
         poseStack.popPose();

@@ -7,6 +7,7 @@ import com.astral_craft.common.components.CardUseRestriction;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.board.*;
+import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.CharacterProgress;
@@ -348,7 +349,7 @@ public class CardUseService {
         CardType cardType = stack.getOrDefault(AstralDataComponents.CARD_TYPE, definition.type());
         sendEntityRevealAround(owner, definition.itemId(stack).toString(), revealStack(stack), cardType.getSerializedName(),
                 revealTitle(stack, definition), revealBody(owner, stack, definition), definition.largeFrontTexture(stack),
-                definition.largeBackTextureOverride(), animation, durationTicks);
+                revealBackTexture(owner, definition), animation, durationTicks);
     }
 
     public static void sendEntityRevealAround(
@@ -391,8 +392,13 @@ public class CardUseService {
                 ? List.of() : targets.stream().map(LivingEntity::getId).distinct().limit(8).toList();
         return new CardRevealPayload(definition.itemId(stack).toString(), revealStack(stack),
                 cardType.getSerializedName(), revealTitle(stack, definition), revealBody(owner, stack, definition),
-                definition.largeFrontTexture(stack), definition.largeBackTexture(),
+                definition.largeFrontTexture(stack), revealBackTexture(owner, definition),
                 animation, durationTicks, sourceEntityId, targetEntityIds, revealId);
+    }
+
+    protected static Identifier revealBackTexture(ServerPlayer owner, CardDefinition definition) {
+        Identifier override = definition.largeBackTextureOverride();
+        return override != null ? override : CardBackPreferenceManager.selectedTexture(owner);
     }
 
     protected static ItemStack revealStack(ItemStack stack) {

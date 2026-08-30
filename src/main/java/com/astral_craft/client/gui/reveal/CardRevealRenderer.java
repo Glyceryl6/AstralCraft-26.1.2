@@ -135,7 +135,8 @@ public class CardRevealRenderer {
         int left = centerX - width / 2;
         int top = centerY - height / 2;
         int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, left, top, 0.0F, 0.0F, width, height, textureWidth, textureHeight, textureWidth, textureHeight, argb);
+        Identifier resolvedTexture = ScopedJpgTextureCache.resolve(texture);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, resolvedTexture, left, top, 0.0F, 0.0F, width, height, textureWidth, textureHeight, textureWidth, textureHeight, argb);
     }
 
     public void renderSideEdge(GuiGraphicsExtractor graphics, CardRevealSettings settings, int centerX, int centerY, int modelSize, float alpha, float widthScale) {
