@@ -15,7 +15,7 @@ public class CardBackPreferenceManager {
 
     public static Identifier selectedId(ServerPlayer player) {
         Identifier selected = player.getData(AstralAttachments.CARD_BACK);
-        if (selected.equals(AstralCraft.prefix("default"))) return DEFAULT_TEXTURE;
+        if (isLegacyDefault(selected)) return DEFAULT_TEXTURE;
         return isSelectable(selected) ? selected : DEFAULT_TEXTURE;
     }
 
@@ -31,6 +31,16 @@ public class CardBackPreferenceManager {
     public static void openSelection(ServerPlayer player) {
         PacketDistributor.sendToPlayer(player, new OpenCardBackSelectionPayload(
                 selectedId(player), DiceSkinPreferenceManager.selectedTexture(player)));
+    }
+
+    private static boolean isLegacyDefault(Identifier id) {
+        if (id == null) return true;
+        if (id.equals(AstralCraft.prefix("default"))) return true;
+        if (!AstralCraft.MOD_ID.equals(id.getNamespace())) return false;
+        String path = id.getPath();
+        int dot = path.lastIndexOf('.');
+        String stem = dot >= 0 ? path.substring(0, dot) : path;
+        return stem.equals(RESOURCE_PREFIX + "card_back_0");
     }
 
     private static boolean isSelectable(Identifier id) {

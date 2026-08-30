@@ -5,6 +5,7 @@ import com.astral_craft.client.gui.reveal.CardRevealFrame;
 import com.astral_craft.client.jpgloader.LoadedJpgTexture;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.client.render.CardRevealEntityOverlay.EntityCardReveal;
+import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -71,7 +72,7 @@ public class CardRevealWorldRenderer {
                         HALF_THICKNESS + FRONT_ART_Z_OFFSET, 0.0F, 0.0F, 1.0F, 1.0F);
             } catch (IOException _) {}
         } else {
-            Identifier backTexture = ScopedJpgTextureCache.resolve(reveal.backTexture());
+            Identifier backTexture = ScopedJpgTextureCache.resolveOrFallback(reveal.backTexture(), CardBackPreferenceManager.DEFAULT_TEXTURE);
             submitCardBody(collector, poseStack, backTexture, backTexture, color, -HALF_W, HALF_H, HALF_W, -HALF_H, HALF_THICKNESS);
         }
 

@@ -18,7 +18,8 @@ import java.util.Set;
 public class ScopedJpgTextureCache {
 
     private static final Map<Identifier, LoadedJpgTexture> CACHE = new HashMap<>();
-    private static final Set<Identifier> CHECKED_NON_JPEG = new HashSet<>();
+    private static final Set<Identifier> CHECKED_STATIC_TEXTURES = new HashSet<>();
+    private static final Set<Identifier> UNAVAILABLE_TEXTURES = new HashSet<>();
 
     public static LoadedJpgTexture getOrLoad(Identifier jpgResource) throws IOException {
         LoadedJpgTexture cached = CACHE.get(jpgResource);
@@ -29,25 +30,24 @@ public class ScopedJpgTextureCache {
 
     /** Resolves a resource-backed PNG/JPEG texture. JPEGs are registered dynamically under the original id. */
     public static Identifier resolve(Identifier resourceId) {
-        if (resourceId == null || CACHE.containsKey(resourceId) || CHECKED_NON_JPEG.contains(resourceId)) return resourceId;
-        try {
-            byte[] bytes = readResource(resourceId);
-            if (JpegNativeImageReader.looksLikeJpeg(bytes)) load(resourceId, bytes);
-            else CHECKED_NON_JPEG.add(resourceId);
-        } catch (IOException ignored) {
-            CHECKED_NON_JPEG.add(resourceId);
-        }
+        if (resourceId == null) return null;
+        ensureAvailable(resourceId);
         return resourceId;
     }
 
+    /**
+     * Resolves a client-side appearance texture and falls back when the selected resource is unavailable.
+     * This is important for persisted selections from removed resource packs and for other players whose
+     * custom card-back resource does not exist on the local client.
+     */
+    public static Identifier resolveOrFallback(Identifier resourceId, Identifier fallbackId) {
+        if (ensureAvailable(resourceId)) return resourceId;
+        if (ensureAvailable(fallbackId)) return fallbackId;
+        return fallbackId != null ? fallbackId : resourceId;
+    }
+
     public static boolean isSupportedTexture(Identifier resourceId) {
-        try {
-            byte[] bytes = readResource(resourceId);
-            if (JpegNativeImageReader.looksLikeJpeg(bytes)) load(resourceId, bytes);
-            return JpegNativeImageReader.looksLikeSupportedTexture(bytes);
-        } catch (IOException ignored) {
-            return false;
-        }
+        return ensureAvailable(resourceId);
     }
 
     public static void clear() {
@@ -55,7 +55,27 @@ public class ScopedJpgTextureCache {
         TextureManager textureManager = minecraft.getTextureManager();
         for (LoadedJpgTexture loaded : CACHE.values()) textureManager.release(loaded.textureId());
         CACHE.clear();
-        CHECKED_NON_JPEG.clear();
+        CHECKED_STATIC_TEXTURES.clear();
+        UNAVAILABLE_TEXTURES.clear();
+    }
+
+    private static boolean ensureAvailable(Identifier resourceId) {
+        if (resourceId == null) return false;
+        if (CACHE.containsKey(resourceId) || CHECKED_STATIC_TEXTURES.contains(resourceId)) return true;
+        if (UNAVAILABLE_TEXTURES.contains(resourceId)) return false;
+        try {
+            byte[] bytes = readResource(resourceId);
+            if (!JpegNativeImageReader.looksLikeSupportedTexture(bytes)) {
+                UNAVAILABLE_TEXTURES.add(resourceId);
+                return false;
+            }
+            if (JpegNativeImageReader.looksLikeJpeg(bytes)) load(resourceId, bytes);
+            else CHECKED_STATIC_TEXTURES.add(resourceId);
+            return true;
+        } catch (IOException ignored) {
+            UNAVAILABLE_TEXTURES.add(resourceId);
+            return false;
+        }
     }
 
     private static LoadedJpgTexture load(Identifier resourceId, byte[] bytes) throws IOException {
@@ -68,6 +88,7 @@ public class ScopedJpgTextureCache {
         Minecraft.getInstance().getTextureManager().register(resourceId, texture);
         LoadedJpgTexture loaded = new LoadedJpgTexture(resourceId, width, height);
         CACHE.put(resourceId, loaded);
+        UNAVAILABLE_TEXTURES.remove(resourceId);
         return loaded;
     }
 

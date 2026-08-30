@@ -6,6 +6,7 @@ import com.astral_craft.client.gui.board.BoardScreenEntityRenderer;
 import com.astral_craft.client.jpgloader.LoadedJpgTexture;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.text.AstralTextFormatter;
@@ -57,7 +58,8 @@ public class CardRevealRenderer {
             this.renderCardTexture(graphics, this.frameTextureFor(reveal.cardType()), centerX, frameCenterY, frameW, frameH, alpha, 44, 64);
             this.renderFrontInsetArt(graphics, reveal.frontTexture(), settings, centerX, frameCenterY, modelSize, alpha, widthScale);
         } else {
-            this.renderCardTexture(graphics, reveal.backTexture(), centerX, frameCenterY, frameW, frameH, alpha, 256, 360);
+            Identifier backTexture = ScopedJpgTextureCache.resolveOrFallback(reveal.backTexture(), CardBackPreferenceManager.DEFAULT_TEXTURE);
+            this.renderCardTexture(graphics, backTexture, centerX, frameCenterY, frameW, frameH, alpha, 256, 360);
         }
 
         this.renderSideEdge(graphics, settings, centerX, frameCenterY, modelSize, alpha, widthScale);
