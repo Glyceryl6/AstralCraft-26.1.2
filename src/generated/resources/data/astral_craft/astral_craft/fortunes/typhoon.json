@@ -1,4 +1,5 @@
 {
+  "category": "misfortune",
   "description_key": "fortune.astral_craft.typhoon.description",
   "effects": [
     {
@@ -8,6 +9,6 @@
     }
   ],
   "id": "astral_craft:typhoon",
-  "name_key": "fortune.astral_craft.typhoon.name",
+  "name_key": "fortune.astral_craft.misfortune.name",
   "texture": "astral_craft:textures/gui/cards/fortune/typhoon.png"
 }

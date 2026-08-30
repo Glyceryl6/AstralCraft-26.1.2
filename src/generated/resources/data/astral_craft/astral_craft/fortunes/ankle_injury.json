@@ -1,4 +1,5 @@
 {
+  "category": "bad_luck",
   "description_key": "fortune.astral_craft.ankle_injury.description",
   "effects": [
     {
@@ -7,6 +8,6 @@
     }
   ],
   "id": "astral_craft:ankle_injury",
-  "name_key": "fortune.astral_craft.ankle_injury.name",
+  "name_key": "fortune.astral_craft.bad_luck.name",
   "texture": "astral_craft:textures/gui/cards/fortune/ankle_injury.png"
 }

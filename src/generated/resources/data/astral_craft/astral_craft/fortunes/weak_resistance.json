@@ -1,4 +1,5 @@
 {
+  "category": "bad_luck",
   "description_key": "fortune.astral_craft.weak_resistance.description",
   "effects": [
     {
@@ -18,6 +19,6 @@
     }
   ],
   "id": "astral_craft:weak_resistance",
-  "name_key": "fortune.astral_craft.weak_resistance.name",
+  "name_key": "fortune.astral_craft.bad_luck.name",
   "texture": "astral_craft:textures/gui/cards/fortune/weak_resistance.png"
 }

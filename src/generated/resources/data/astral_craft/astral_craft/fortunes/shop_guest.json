@@ -1,4 +1,5 @@
 {
+  "category": "good_luck",
   "description_key": "fortune.astral_craft.shop_guest.description",
   "effects": [
     {
@@ -7,6 +8,6 @@
     }
   ],
   "id": "astral_craft:shop_guest",
-  "name_key": "fortune.astral_craft.shop_guest.name",
+  "name_key": "fortune.astral_craft.good_luck.name",
   "texture": "astral_craft:textures/gui/cards/fortune/shop_guest.png"
 }

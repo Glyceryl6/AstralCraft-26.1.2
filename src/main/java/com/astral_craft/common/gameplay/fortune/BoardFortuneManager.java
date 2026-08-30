@@ -36,7 +36,7 @@ public class BoardFortuneManager extends SimpleJsonResourceReloadListener<BoardF
                     this.definitions.put(id, new BoardFortuneDefinition(id,
                             "fortune." + id.getNamespace() + "." + id.getPath() + ".name",
                             "fortune." + id.getNamespace() + "." + id.getPath() + ".description",
-                            value.texture(), value.weight(), value.effects()));
+                            value.texture(), value.category(), value.weight(), value.effects()));
                 });
     }
 

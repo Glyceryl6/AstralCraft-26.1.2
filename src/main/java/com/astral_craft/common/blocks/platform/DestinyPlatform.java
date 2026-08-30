@@ -1,7 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
 import com.astral_craft.common.gameplay.board.BoardFortuneService;
@@ -54,14 +53,14 @@ public class DestinyPlatform extends BasePlatform {
         PendingDestiny pending = PENDING.get(session.id());
         if (pending != null && AstralServerTickClock.now(level) < pending.applyTick()) return;
         if (pending != null) {
-            BoardParticipant source = session.participant(pending.sourceSlot()).orElse(null);
-            if (source != null) {
-                BoardFortuneService.apply(level, session, source, pending.definition(), List.of(source.slotUuid()));
-            }
+            session.participant(pending.sourceSlot()).ifPresent(source ->
+                    BoardFortuneService.apply(level, session, source,
+                            pending.definition(), List.of(source.slotUuid())));
             PENDING.remove(session.id());
             BoardFortuneService.closePresentation(level, session);
             BoardSessionManager.markChanged(level);
         }
+
         this.deactivateBoardEffect(session.id());
         BoardSessionManager.resumeMovementAfterPanel(level, session);
     }
@@ -71,13 +70,12 @@ public class DestinyPlatform extends BasePlatform {
         PENDING.remove(boardId);
     }
 
-    private void broadcastReveal(ServerLevel level, BoardSession session, BoardParticipant source,
-                                 BoardFortuneDefinition definition) {
+    private void broadcastReveal(ServerLevel level, BoardSession session, BoardParticipant source, BoardFortuneDefinition definition) {
         AstralCharacterEntity pawn = BoardEntityService.entity(level, source);
         int sourceEntityId = pawn == null ? -1 : pawn.getId();
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id().toString(), ItemStack.EMPTY,
-                    CardType.EVENT.getSerializedName(), Component.translatable(definition.nameKey()),
+                    definition.category().cardFrameType(), Component.translatable(definition.nameKey()),
                     Component.translatable(definition.descriptionKey()), definition.texture(),
                     CardBackPreferenceManager.selectedTexture(viewer), CardRevealPayload.ANIMATION_APPROACH,
                     REVEAL_TICKS, sourceEntityId, List.of(sourceEntityId), false));
@@ -85,4 +83,5 @@ public class DestinyPlatform extends BasePlatform {
     }
 
     private record PendingDestiny(UUID sourceSlot, BoardFortuneDefinition definition, long applyTick) {}
+
 }

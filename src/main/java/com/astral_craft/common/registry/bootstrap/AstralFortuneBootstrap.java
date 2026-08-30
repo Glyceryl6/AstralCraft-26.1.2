@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.event.effects.BoardScaleCoinsEventEffect
 import com.astral_craft.common.gameplay.event.effects.BoardStatusEventEffect;
 import com.astral_craft.common.gameplay.event.effects.DamageEventEffect;
 import com.astral_craft.common.gameplay.event.effects.HealEventEffect;
+import com.astral_craft.common.gameplay.fortune.BoardFortuneCategory;
 import com.astral_craft.common.gameplay.fortune.BoardFortuneDefinition;
 import com.astral_craft.common.registry.AstralBoardBuffs;
 import net.minecraft.core.Registry;
@@ -38,27 +39,31 @@ public class AstralFortuneBootstrap {
     private static final Identifier WEAK_RESISTANCE_BUFF = AstralCraft.prefix("fortune/weak_resistance");
 
     public static void bootstrap(BootstrapContext<BoardFortuneDefinition> context) {
-        context.register(SLEEP_IN, fortune("sleep_in", new HealEventEffect(2.0F)));
-        context.register(LUCKY_GUARD, fortune("lucky_guard", new BoardStatusEventEffect(
+        context.register(SLEEP_IN, fortune("sleep_in", BoardFortuneCategory.GOOD_LUCK, new HealEventEffect(2.0F)));
+        context.register(LUCKY_GUARD, fortune("lucky_guard", BoardFortuneCategory.GOOD_LUCK, new BoardStatusEventEffect(
                 AstralBoardBuffs.incomingDamage(LUCKY_GUARD_BUFF, -2).permanent().consumeAfterIncomingDamage().build())));
-        context.register(SHOP_GUEST, fortune("shop_guest", new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 1)));
-        context.register(WALLET_FOUND, fortune("wallet_found", new BoardCoinEventEffect(5)));
-        context.register(ANKLE_INJURY, fortune("ankle_injury", new DamageEventEffect(2.0F)));
-        context.register(WEAK_RESISTANCE, fortune("weak_resistance", new BoardStatusEventEffect(
+        context.register(SHOP_GUEST, fortune("shop_guest", BoardFortuneCategory.GOOD_LUCK,
+                new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 1)));
+        context.register(WALLET_FOUND, fortune("wallet_found", BoardFortuneCategory.GOOD_LUCK, new BoardCoinEventEffect(5)));
+        context.register(ANKLE_INJURY, fortune("ankle_injury", BoardFortuneCategory.BAD_LUCK, new DamageEventEffect(2.0F)));
+        context.register(WEAK_RESISTANCE, fortune("weak_resistance", BoardFortuneCategory.BAD_LUCK, new BoardStatusEventEffect(
                 AstralBoardBuffs.incomingDamage(WEAK_RESISTANCE_BUFF, 2).permanent().consumeAfterIncomingDamage().build())));
-        context.register(PUNISHMENT, fortune("punishment", new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 1)));
-        context.register(WALLET_LOST, fortune("wallet_lost", new BoardDropCoinsEventEffect(5)));
-        context.register(STOCK_SURGE, fortune("stock_surge", new BoardScaleCoinsEventEffect(2.0F)));
-        context.register(JACKPOT, fortune("jackpot", new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 3)));
-        context.register(TYPHOON, fortune("typhoon", new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 3)));
-        context.register(ALIEN_RAID, fortune("alien_raid", new BoardScaleCoinsEventEffect(0.5F)));
+        context.register(PUNISHMENT, fortune("punishment", BoardFortuneCategory.BAD_LUCK,
+                new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 1)));
+        context.register(WALLET_LOST, fortune("wallet_lost", BoardFortuneCategory.BAD_LUCK, new BoardDropCoinsEventEffect(5)));
+        context.register(STOCK_SURGE, fortune("stock_surge", BoardFortuneCategory.GOOD_LUCK, new BoardScaleCoinsEventEffect(2.0F)));
+        context.register(JACKPOT, fortune("jackpot", BoardFortuneCategory.FORTUNE,
+                new BoardHandEventEffect(BoardHandEventEffect.Action.GIVE_RANDOM, 3)));
+        context.register(TYPHOON, fortune("typhoon", BoardFortuneCategory.MISFORTUNE,
+                new BoardHandEventEffect(BoardHandEventEffect.Action.DISCARD_RANDOM, 3)));
+        context.register(ALIEN_RAID, fortune("alien_raid", BoardFortuneCategory.MISFORTUNE,
+                new BoardScaleCoinsEventEffect(0.5F)));
     }
 
-    private static BoardFortuneDefinition fortune(String path, AstralEventEffect... effects) {
-        Identifier id = AstralCraft.prefix(path);
-        return new BoardFortuneDefinition(id, "fortune.astral_craft." + path + ".name",
+    private static BoardFortuneDefinition fortune(String path, BoardFortuneCategory category, AstralEventEffect... effects) {
+        return new BoardFortuneDefinition(AstralCraft.prefix(path), "fortune.astral_craft." + category.getSerializedName() + ".name",
                 "fortune.astral_craft." + path + ".description",
-                AstralCraft.prefix("textures/gui/cards/fortune/" + path + ".png"), 1, List.of(effects));
+                AstralCraft.prefix("textures/gui/cards/fortune/" + path + ".png"), category, 1, List.of(effects));
     }
 
     private static ResourceKey<BoardFortuneDefinition> key(String path) {
