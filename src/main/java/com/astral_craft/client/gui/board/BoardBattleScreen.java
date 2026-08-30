@@ -534,11 +534,13 @@ public class BoardBattleScreen extends Screen {
         if (!this.showFinalBreakdown()) return;
         int attackCenter = layout.x() + layout.width() / 4;
         int defenseCenter = layout.x() + layout.width() * 3 / 4;
-        int cardsY = layout.modelBottom() - 86;
+        float scale = 0.62F;
+        int cardHeight = Math.round(CARD_H * scale);
+        int cardsY = Math.min(layout.cardY() + 8, layout.y() + layout.height() - cardHeight - 8);
         this.renderPanelValue(graphics, attackCenter, cardsY - 17, true, this.view.attackBase());
         this.renderPanelValue(graphics, defenseCenter, cardsY - 17, false, this.view.defenseBase());
-        this.renderPlayedCards(graphics, this.attackerPlayedCards, attackCenter, cardsY, true);
-        this.renderPlayedCards(graphics, this.defenderPlayedCards, defenseCenter, cardsY, false);
+        this.renderPlayedCards(graphics, this.attackerPlayedCards, attackCenter, cardsY, true, scale);
+        this.renderPlayedCards(graphics, this.defenderPlayedCards, defenseCenter, cardsY, false, scale);
     }
 
     private boolean showFinalBreakdown() {
@@ -555,9 +557,8 @@ public class BoardBattleScreen extends Screen {
     }
 
     private void renderPlayedCards(GuiGraphicsExtractor graphics, List<PlayedCardView> cards,
-                                   int centerX, int y, boolean attack) {
+                                   int centerX, int y, boolean attack, float scale) {
         if (cards.isEmpty()) return;
-        float scale = 0.62F;
         int cardWidth = Math.round(CARD_W * scale);
         int step = Math.max(18, Math.round(cardWidth * 0.58F));
         int totalWidth = cardWidth + step * (cards.size() - 1);
