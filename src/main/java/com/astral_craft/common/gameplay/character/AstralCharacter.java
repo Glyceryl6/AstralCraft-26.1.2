@@ -70,6 +70,10 @@ public class AstralCharacter {
         return this.properties.chipWeights.weight(pool);
     }
 
+    public boolean botSelectable() {
+        return this.properties.botSelectable;
+    }
+
     public AstralPlayerStats initializeBoardStats(AstralPlayerStats stats) {
         AstralPlayerStats result = stats;
         for (IntrinsicBuff value : this.properties.intrinsicBuffs) {
@@ -134,6 +138,7 @@ public class AstralCharacter {
         protected ActiveCharacterSkillDefinition activeSkill = ActiveCharacterSkillDefinition.cooldown(3);
         protected BoardSkillDefinition boardSkill = BoardSkillDefinition.cooldown(3);
         protected ChipPool.Weights chipWeights = ChipPool.Weights.DEFAULT;
+        protected boolean botSelectable = true;
         protected final List<PassiveCharacterSkillDefinition> passiveSkills = new ArrayList<>(List.of(PassiveCharacterSkillDefinition.of("passive")));
         protected final List<CharacterProfileSection> profileSections = new ArrayList<>();
         protected final List<IntrinsicBuff> intrinsicBuffs = new ArrayList<>();
@@ -196,6 +201,11 @@ public class AstralCharacter {
             return this;
         }
 
+        public Properties botSelectable(boolean value) {
+            this.botSelectable = value;
+            return this;
+        }
+
         public Properties passiveSkill(PassiveCharacterSkillDefinition value) {
             if (value != null) {
                 if (this.passiveSkills.size() == 1 && "passive".equals(this.passiveSkills.getFirst().id()))
@@ -231,6 +241,7 @@ public class AstralCharacter {
             result.activeSkill = this.activeSkill;
             result.boardSkill = this.boardSkill;
             result.chipWeights = this.chipWeights;
+            result.botSelectable = this.botSelectable;
             result.passiveSkills.clear();
             result.passiveSkills.addAll(this.passiveSkills);
             result.profileSections.addAll(this.profileSections);
