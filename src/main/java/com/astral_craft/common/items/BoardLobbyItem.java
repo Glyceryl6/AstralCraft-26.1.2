@@ -28,10 +28,6 @@ public class BoardLobbyItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
             return InteractionResult.FAIL;
         }
-        if (BoardDeveloperService.active(session.id()) && !BoardDeveloperService.ownedBy(session.id(), player.getUUID())) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.other_players"), true);
-            return InteractionResult.FAIL;
-        }
         ServerLevel level = player.level();
         if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(level, session);
         if (session.phase() == BoardPhase.READY) {

@@ -54,6 +54,10 @@ public class BoardDeveloperItem extends Item {
         }
 
         if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(level, session);
+        if (session.phase() == BoardPhase.CHARACTER_SELECTION && !BoardDeveloperService.active(session.id())) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.busy"), true);
+            return InteractionResult.FAIL;
+        }
         if (session.phase() == BoardPhase.READY) {
             session.setProtectionEnabled(true);
             session.setPhase(BoardPhase.CHARACTER_SELECTION);

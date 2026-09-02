@@ -72,9 +72,6 @@ public class BoardLobbyService {
         BoardSessionManager.markChanged(player.level());
         player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_confirmed",
                 Component.translatable(definition.getDescriptionId())).withStyle(ChatFormatting.GREEN), true);
-        if (BoardDeveloperService.openConfiguration(player, session)) {
-            return;
-        }
         if (readyToStartImmediately(player, session)) {
             BoardSessionManager.startGame(player.level(), session);
         } else {
