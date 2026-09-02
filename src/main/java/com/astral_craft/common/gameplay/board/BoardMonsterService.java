@@ -1,7 +1,6 @@
 package com.astral_craft.common.gameplay.board;
 
 import com.astral_craft.AstralCraft;
-import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
@@ -13,7 +12,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /** Runtime movement for board monsters. Monsters are persisted as participants but never enter the player turn order. */
 public class BoardMonsterService {
@@ -36,7 +39,7 @@ public class BoardMonsterService {
                 BoardParticipant.skinIdentifier(definition.id(), skinName), BoardParticipant.nodeIdentifier(nodeId),
                 AstralPlayerStats.DEFAULT, List.of(), session.nextArrivalOrder());
         session.putParticipant(monster);
-        BoardEntityService.spawnCharacter(level, session, monster);
+        BoardMonsterEntityService.spawn(level, session, monster);
         BoardSessionManager.markChanged(level);
         return session.participant(monster.slotUuid()).orElse(monster);
     }
@@ -88,10 +91,10 @@ public class BoardMonsterService {
             phase.nextMonster();
             return true;
         }
-        AstralCharacterEntity entity = BoardEntityService.entity(level, monster);
+        var entity = BoardMonsterEntityService.entity(level, monster);
         if (entity == null) {
-            BoardEntityService.spawnCharacter(level, session, monster);
-            entity = BoardEntityService.entity(level, session.participant(slotId).orElse(monster));
+            BoardMonsterEntityService.spawn(level, session, monster);
+            entity = BoardMonsterEntityService.entity(level, session.participant(slotId).orElse(monster));
             if (entity == null) {
                 phase.nextMonster();
                 return true;
@@ -100,15 +103,20 @@ public class BoardMonsterService {
 
         if (phase.remainingSteps < 0) {
             phase.remainingSteps = Mth.nextInt(level.getRandom(), 1, 10);
-            BoardParticipant target = encounterTarget(session, monster);
+            phase.checkEncounter = true;
+            phase.attackedSlots.clear();
+        }
+        if (phase.checkEncounter) {
+            BoardParticipant target = encounterTarget(session, monster, phase.attackedSlots);
             if (target != null) {
+                phase.attackedSlots.add(target.slotUuid());
                 phase.waitingBattle = true;
                 BoardBattleService.start(level, session, monster, target);
                 return true;
             }
+            phase.checkEncounter = false;
         }
         if (phase.remainingSteps <= 0) {
-            entity.setAnimationAction("idle");
             phase.nextMonster();
             return true;
         }
@@ -120,7 +128,7 @@ public class BoardMonsterService {
             }
             phase.targetNodeId = choices.get(level.getRandom().nextInt(choices.size()));
             phase.stepStartedTick = AstralServerTickClock.now(level);
-            entity.setAnimationAction("walk");
+
         }
 
         BlockPos from = session.positions().get(monster.currentNodeKey());
@@ -130,7 +138,6 @@ public class BoardMonsterService {
             phase.targetNodeId = null;
             return true;
         }
-        entity.setBoardDirection(BoardEntityService.directionBetween(from, to));
         long elapsed = Math.max(0L, AstralServerTickClock.now(level) - phase.stepStartedTick);
         double progress = Math.min(1.0D, elapsed / (double) BoardSessionManager.MOVEMENT_STEP_TICKS);
         entity.setPos(Mth.lerp(progress, from.getX() + 0.5D, to.getX() + 0.5D),
@@ -149,11 +156,7 @@ public class BoardMonsterService {
         BoardEntityService.syncState(level, arrived);
         BoardSessionManager.markChanged(level);
 
-        BoardParticipant target = encounterTarget(session, arrived);
-        if (target != null) {
-            phase.waitingBattle = true;
-            BoardBattleService.start(level, session, arrived, target);
-        }
+        phase.checkEncounter = true;
         return true;
     }
 
@@ -162,6 +165,7 @@ public class BoardMonsterService {
         MonsterPhase phase = PHASES.get(session.id());
         if (phase == null || !phase.waitingBattle) return false;
         phase.waitingBattle = false;
+        phase.checkEncounter = true;
         if (phase.monsterIndex < phase.monsterSlots.size()) {
             UUID current = phase.monsterSlots.get(phase.monsterIndex);
             if (session.participant(current).isEmpty()) phase.nextMonster();
@@ -173,21 +177,21 @@ public class BoardMonsterService {
         if (boardId != null) PHASES.remove(boardId);
     }
 
-    private static @Nullable BoardParticipant encounterTarget(BoardSession session, BoardParticipant monster) {
-        return session.participants().stream()
-                .filter(participant -> !participant.monster())
+    private static @Nullable BoardParticipant encounterTarget(BoardSession session, BoardParticipant monster,
+                                                               java.util.Set<UUID> attackedSlots) {
+        return session.partyParticipants().stream()
                 .filter(participant -> !participant.knockedDown())
                 .filter(participant -> participant.currentNodeId().equals(monster.currentNodeId()))
+                .filter(participant -> !attackedSlots.contains(participant.slotUuid()))
                 .filter(participant -> !BoardSessionManager.isHospitalProtected(session, participant))
-                .min(Comparator.comparingInt(BoardParticipant::arrivalOrder)).orElse(null);
+                .min(java.util.Comparator.comparingInt(BoardParticipant::arrivalOrder)).orElse(null);
     }
 
     private static void cleanupKnockedDown(ServerLevel level, BoardSession session) {
         List<BoardParticipant> defeated = session.participants().stream()
                 .filter(BoardParticipant::monster).filter(BoardParticipant::knockedDown).toList();
         for (BoardParticipant monster : defeated) {
-            AstralCharacterEntity entity = BoardEntityService.entity(level, monster);
-            if (entity != null) entity.discard();
+            BoardMonsterEntityService.discard(level, monster);
             String nodeId = monster.currentNodeKey();
             session.removeParticipant(monster.slotUuid());
             BoardEntityService.arrangeNode(level, session, nodeId);
@@ -196,13 +200,14 @@ public class BoardMonsterService {
     }
 
     private static class MonsterPhase {
-
         private final List<UUID> monsterSlots;
         private int monsterIndex;
         private int remainingSteps = -1;
         private @Nullable String targetNodeId;
         private long stepStartedTick;
         private boolean waitingBattle;
+        private boolean checkEncounter;
+        private final java.util.Set<UUID> attackedSlots = new java.util.HashSet<>();
 
         private MonsterPhase(List<UUID> monsterSlots) {
             this.monsterSlots = List.copyOf(monsterSlots);
@@ -214,7 +219,8 @@ public class BoardMonsterService {
             this.targetNodeId = null;
             this.stepStartedTick = 0L;
             this.waitingBattle = false;
+            this.checkEncounter = false;
+            this.attackedSlots.clear();
         }
     }
-
 }

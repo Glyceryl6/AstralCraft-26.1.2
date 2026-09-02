@@ -359,6 +359,7 @@ public class BoardSessionManager {
         BoardSession session = session(player.level(), boardId).orElse(null);
         if (session == null || session.encounter() == null) return;
         BoardSession.EncounterState encounter = session.encounter();
+        if (encounter == null) return;
         BoardParticipant mover = session.participant(encounter.moverSlotId()).orElse(null);
         BoardParticipant target = session.participant(encounter.targetSlotId()).orElse(null);
         if (mover == null || target == null || !mover.controlledBy(player.getUUID())) return;
@@ -382,6 +383,7 @@ public class BoardSessionManager {
         BoardSession session = session(player.level(), boardId).orElse(null);
         if (session == null || session.discard() == null) return;
         BoardSession.DiscardState discard = session.discard();
+        if (discard == null) return;
         BoardParticipant participant = session.participant(discard.slotId()).orElse(null);
         if (participant == null || !participant.controlledBy(player.getUUID())) return;
         Set<Integer> unique = new LinkedHashSet<>(indexes);
@@ -715,7 +717,7 @@ public class BoardSessionManager {
                     updateParticipant(level, session, mover);
                 }
 
-                if (mover != null && target != null && isAutomated(level, mover) && !isHospitalProtected(session, target)) {
+                if (target != null && isAutomated(level, mover) && !isHospitalProtected(session, target)) {
                     BoardBattleService.start(level, session, mover, target);
                 } else {
                     resumeAfterEncounter(level, session);
@@ -810,7 +812,7 @@ public class BoardSessionManager {
         }
 
         session.setTurnOrder(order);
-        BoardDeveloperService.clear(session.id());
+        BoardDeveloperService.finishSetup(session.id());
         BoardLobbyService.closeScreens(level, session.id());
         session.setPhase(BoardPhase.PLAYING);
         session.setLobbyDeadlineTick(0L);
@@ -1539,12 +1541,12 @@ public class BoardSessionManager {
         int durationTicks = automated ? 20 : mover.decisionDurationTicks(ENCOUNTER_TIMEOUT_TICKS);
         session.setEncounter(new BoardSession.EncounterState(mover.slotUuid(), target.slotUuid(),
                 AstralServerTickClock.now(level) + durationTicks, durationTicks));
-        AstralCharacterEntity targetEntity = BoardEntityService.entity(level, target);
+        int targetEntityId = BoardEntityService.entityId(level, target);
         String name = displayName(level, target);
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             boolean interactive = !automated && mover.controlledBy(viewer.getUUID());
             PacketDistributor.sendToPlayer(viewer, new OpenBoardEncounterPayload(session.id(),
-                    targetEntity == null ? -1 : targetEntity.getId(), name, durationTicks,
+                    targetEntityId, name, durationTicks,
                     durationTicks, interactive, mover.characterId(), mover.skinId()));
         }
     }

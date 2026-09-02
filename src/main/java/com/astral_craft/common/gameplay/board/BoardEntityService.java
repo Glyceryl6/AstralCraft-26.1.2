@@ -31,13 +31,18 @@ public class BoardEntityService {
         for (BoardParticipant participant : session.participants()) {
             BlockPos pos = session.positions().get(participant.currentNodeKey());
             if (pos == null || !level.hasChunkAt(pos)) continue;
-            if (entity(level, participant) == null) spawnCharacter(level, session, participant);
+            if (participant.monster()) BoardMonsterEntityService.ensureEntity(level, session, participant);
+            else if (entity(level, participant) == null) spawnCharacter(level, session, participant);
             occupiedNodes.add(participant.currentNodeKey());
         }
         if (session.movement() == null) occupiedNodes.forEach(nodeId -> arrangeNode(level, session, nodeId));
     }
 
     public static void spawnCharacter(ServerLevel level, BoardSession session, BoardParticipant participant) {
+        if (participant.monster()) {
+            BoardMonsterEntityService.spawn(level, session, participant);
+            return;
+        }
         BlockPos pos = session.positions().get(participant.currentNodeKey());
         if (pos == null || !level.hasChunkAt(pos) || entity(level, participant) != null) return;
         AstralCharacterEntity entity = AstralEntities.ASTRAL_CHARACTER.get().create(level, EntitySpawnReason.TRIGGERED);
@@ -53,9 +58,7 @@ public class BoardEntityService {
         entity.setStarCoins(participant.stats().starCoins());
         entity.setBoardSessionId(session.id());
         entity.setBoardParticipantId(participant.slotUuid());
-        entity.setCustomName(participant.monster()
-                ? Component.translatable("gui.astral_craft.board.monster")
-                : Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
+        entity.setCustomName(Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
         entity.setCustomNameVisible(false);
         AttributeInstance instance = entity.getAttribute(Attributes.MAX_HEALTH);
         if (instance != null) instance.setBaseValue(participant.stats().maxHealth());
@@ -72,13 +75,12 @@ public class BoardEntityService {
     }
 
     public static void syncState(ServerLevel level, BoardParticipant participant) {
+        if (participant.monster()) {
+            BoardMonsterEntityService.sync(level, participant);
+            return;
+        }
         AstralCharacterEntity entity = entity(level, participant);
         if (entity == null) return;
-        entity.setCharacterId(participant.characterId());
-        entity.setSkinId(participant.skinName());
-        entity.setCustomName(participant.monster()
-                ? Component.translatable("gui.astral_craft.board.monster")
-                : Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
         entity.setStarCoins(participant.stats().starCoins());
         AttributeInstance instance = entity.getAttribute(Attributes.MAX_HEALTH);
         if (instance != null) instance.setBaseValue(participant.stats().maxHealth());
@@ -105,13 +107,18 @@ public class BoardEntityService {
         BoardSession.MovementState movement = session.movement();
         for (int index = 0; index < occupants.size(); index++) {
             BoardParticipant participant = occupants.get(index);
-            AstralCharacterEntity entity = entity(level, participant);
-            if (entity == null || movement != null && movement.slotId().equals(participant.slotUuid())
-                    && movement.stepping()) continue;
+            if (movement != null && movement.slotId().equals(participant.slotUuid()) && movement.stepping()) continue;
             double angle = occupants.size() == 1 ? 0.0D : Math.PI * 2.0D * index / occupants.size();
             double radius = occupants.size() == 1 ? 0.0D : Math.min(0.34D, 0.12D + occupants.size() * 0.035D);
-            entity.setPos(pos.getX() + 0.5D + Math.cos(angle) * radius, pos.getY() + 0.12D,
-                    pos.getZ() + 0.5D + Math.sin(angle) * radius);
+            double x = pos.getX() + 0.5D + Math.cos(angle) * radius;
+            double y = pos.getY() + 0.12D;
+            double z = pos.getZ() + 0.5D + Math.sin(angle) * radius;
+            if (participant.monster()) {
+                BoardMonsterEntityService.setPosition(level, participant, x, y, z);
+            } else {
+                AstralCharacterEntity entity = entity(level, participant);
+                if (entity != null) entity.setPos(x, y, z);
+            }
         }
     }
 
@@ -127,12 +134,17 @@ public class BoardEntityService {
 
     public static void clearRuntimeEntities(ServerLevel level, BoardSession session) {
         for (BoardParticipant participant : session.participants()) {
-            AstralCharacterEntity entity = entity(level, participant);
-            if (entity != null) entity.discard();
+            if (participant.monster()) {
+                BoardMonsterEntityService.discard(level, participant);
+            } else {
+                AstralCharacterEntity entity = entity(level, participant);
+                if (entity != null) entity.discard();
+            }
         }
     }
 
     public static int entityId(ServerLevel level, BoardParticipant participant) {
+        if (participant.monster()) return BoardMonsterEntityService.entityId(level, participant);
         AstralCharacterEntity entity = entity(level, participant);
         return entity == null ? -1 : entity.getId();
     }
