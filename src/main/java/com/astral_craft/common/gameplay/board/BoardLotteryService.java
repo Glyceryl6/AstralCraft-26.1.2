@@ -19,6 +19,22 @@ public class BoardLotteryService {
 
     public static boolean begin(ServerLevel level, BoardSession session, int roundNumber) {
         if (roundNumber <= 0 || roundNumber % 5 != 0 || ACTIVE_DRAWS.containsKey(session.id())) return false;
+        if (!session.mechanics().hasLotteryEntries()) {
+            session.mechanics().increaseLotteryJackpot();
+            BoardSessionManager.markChanged(level);
+            for (ServerPlayer player : BoardSessionManager.humanPlayers(level, session)) {
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.lottery.no_winner",
+                        session.mechanics().lotteryJackpot()).withStyle(ChatFormatting.GRAY), false);
+            }
+
+            DrawState state = new DrawState(OpenBoardLotteryDrawPayload.Phase.RESULT, 0,
+                    session.mechanics().lotteryJackpot(), List.of(), 0,
+                    AstralServerTickClock.now(level) + RESULT_TICKS, RESULT_TICKS);
+            ACTIVE_DRAWS.put(session.id(), state);
+            broadcast(level, session, state);
+            return true;
+        }
+
         int result = level.getRandom().nextInt(12) + 1;
         DrawState state = new DrawState(OpenBoardLotteryDrawPayload.Phase.ROLLING, result,
                 session.mechanics().lotteryJackpot(), List.of(), 0,

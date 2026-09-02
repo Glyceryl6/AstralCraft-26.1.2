@@ -126,17 +126,20 @@ public class BoardLotteryDrawScreen extends Screen {
             this.renderEntry(graphics, layout, index, this.entries.get(index));
         }
 
-        int active = this.phase == OpenBoardLotteryDrawPayload.Phase.RESULT ? this.finalNumber : this.animatedNumber();
-        for (int number = 1; number <= 12; number++) {
-            Cell cell = layout.cell(number);
-            boolean highlighted = number == active;
-            graphics.fill(cell.x(), cell.y(), cell.x() + cell.size(), cell.y() + cell.size(),
-                    highlighted ? 0xFFDB9D35 : 0xFF303442);
-            graphics.fill(cell.x() + 2, cell.y() + 2, cell.x() + cell.size() - 2, cell.y() + cell.size() - 2,
-                    highlighted ? 0xFFFFC85B : 0xFF4A5064);
-            graphics.centeredText(this.font, Component.literal(Integer.toString(number)),
-                    cell.x() + cell.size() / 2, cell.y() + (cell.size() - 8) / 2,
-                    highlighted ? 0xFF1C1D24 : 0xFFFFFFFF);
+        boolean noEntriesResult = this.phase == OpenBoardLotteryDrawPayload.Phase.RESULT && this.finalNumber == 0;
+        if (!noEntriesResult) {
+            int active = this.phase == OpenBoardLotteryDrawPayload.Phase.RESULT ? this.finalNumber : this.animatedNumber();
+            for (int number = 1; number <= 12; number++) {
+                Cell cell = layout.cell(number);
+                boolean highlighted = number == active;
+                graphics.fill(cell.x(), cell.y(), cell.x() + cell.size(), cell.y() + cell.size(),
+                        highlighted ? 0xFFDB9D35 : 0xFF303442);
+                graphics.fill(cell.x() + 2, cell.y() + 2, cell.x() + cell.size() - 2, cell.y() + cell.size() - 2,
+                        highlighted ? 0xFFFFC85B : 0xFF4A5064);
+                graphics.centeredText(this.font, Component.literal(Integer.toString(number)),
+                        cell.x() + cell.size() / 2, cell.y() + (cell.size() - 8) / 2,
+                        highlighted ? 0xFF1C1D24 : 0xFFFFFFFF);
+            }
         }
 
         int centerX = layout.boardCenterX();

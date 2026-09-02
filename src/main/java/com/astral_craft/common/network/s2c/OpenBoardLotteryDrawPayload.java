@@ -31,7 +31,7 @@ public record OpenBoardLotteryDrawPayload(UUID boardId, Phase phase, int finalNu
             OpenBoardLotteryDrawPayload::new);
 
     public OpenBoardLotteryDrawPayload {
-        finalNumber = Math.clamp(finalNumber, 1, 12);
+        finalNumber = Math.clamp(finalNumber, 0, 12);
         jackpot = Math.max(10, jackpot);
         entries = List.copyOf(entries);
         winnerNames = List.copyOf(winnerNames);

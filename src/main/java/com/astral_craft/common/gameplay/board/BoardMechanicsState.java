@@ -174,6 +174,10 @@ public class BoardMechanicsState {
                 .filter(entry -> entry.getValue().contains(number)).map(Map.Entry::getKey).toList();
     }
 
+    public boolean hasLotteryEntries() {
+        return this.lotteryNumbers.values().stream().anyMatch(numbers -> !numbers.isEmpty());
+    }
+
     public void clearLotteryNumbers() {
         this.lotteryNumbers.clear();
     }
