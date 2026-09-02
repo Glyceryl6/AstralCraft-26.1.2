@@ -1063,5 +1063,19 @@
   "fortune.astral_craft.good_luck.name": "Good Luck",
   "fortune.astral_craft.bad_luck.name": "Bad Luck",
   "fortune.astral_craft.fortune.name": "Fortune",
-  "fortune.astral_craft.misfortune.name": "Misfortune"
+  "fortune.astral_craft.misfortune.name": "Misfortune",
+  "gui.astral_craft.board.lottery.event_title": "Lottery",
+  "gui.astral_craft.board.lottery.waiting": "Waiting for other player choosing...",
+  "gui.astral_craft.board.lottery.selection_status": "Selection Status",
+  "gui.astral_craft.board.lottery.chosen": "Chosen",
+  "gui.astral_craft.board.lottery.choosing": "Choosing...",
+  "key.astral_craft.hand_card_deck": "Open Handcard Deck",
+  "message.astral_craft.character_settings.potential_missing": "The character missing the potential.",
+  "message.astral_craft.character_settings.potential_locked": "The character is not unlocked.",
+  "message.astral_craft.character_settings.potential_already_active": "Potential of this character is already active.",
+  "tooltips.astral_craft.platform_check_point": "Heal 2 HP when staying on Check Point.\nGain 1 star with enough coins.",
+  "tooltips.astral_craft.handcard.card_type.event": "Event Card",
+  "event.astral_craft.it_is_war.name": "It's War",
+  "event.astral_craft.it_is_war.description": "Each player gets 1 ATK UP (G)",
+  "message.astral_craft.board.mode_suffix.undecided": "(Mode Undecided)"
 }

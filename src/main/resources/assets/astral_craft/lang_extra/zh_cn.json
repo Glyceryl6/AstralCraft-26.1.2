@@ -1063,5 +1063,19 @@
   "fortune.astral_craft.good_luck.name": "好运",
   "fortune.astral_craft.bad_luck.name": "霉运",
   "fortune.astral_craft.fortune.name": "鸿运当头",
-  "fortune.astral_craft.misfortune.name": "大难临头"
+  "fortune.astral_craft.misfortune.name": "大难临头",
+  "gui.astral_craft.board.lottery.event_title": "全民刮彩",
+  "gui.astral_craft.board.lottery.waiting": "等待其他角色选择…",
+  "gui.astral_craft.board.lottery.selection_status": "选择状态",
+  "gui.astral_craft.board.lottery.chosen": "已选择",
+  "gui.astral_craft.board.lottery.choosing": "选择中…",
+  "key.astral_craft.hand_card_deck": "打开手牌栏",
+  "message.astral_craft.character_settings.potential_missing": "该角色没有可激发的潜能。",
+  "message.astral_craft.character_settings.potential_locked": "该角色尚未解锁，无法激发潜能。",
+  "message.astral_craft.character_settings.potential_already_active": "该角色的潜能已经激发。",
+  "tooltips.astral_craft.platform_check_point": "任意角色经过时可以选择停留，停留后恢复2点生命值。如果星币达标则获得一颗星星。",
+  "tooltips.astral_craft.handcard.card_type.event": "事件牌",
+  "event.astral_craft.it_is_war.name": "战斗，爽！",
+  "event.astral_craft.it_is_war.description": "所有角色获得1张牌：攻击（特大）。",
+  "message.astral_craft.board.mode_suffix.undecided": "（未选择模式）"
 }
