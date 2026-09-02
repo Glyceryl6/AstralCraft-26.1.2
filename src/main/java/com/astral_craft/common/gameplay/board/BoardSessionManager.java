@@ -8,6 +8,7 @@ import com.astral_craft.common.components.CombatBonusDefinition;
 import com.astral_craft.common.entity.AstralDiceEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.BoardNode;
+import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.buff.BoardBuff;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
@@ -816,10 +817,8 @@ public class BoardSessionManager {
         BoardParticipant next = prepared.beginTurn();
         updateParticipant(level, session, next);
         if (!wasKnockedDown && !next.knockedDown() && turnStartHealing > 0) {
-            int previousHealth = next.stats().health();
             next = next.withStats(next.stats().heal(turnStartHealing));
             updateParticipant(level, session, next);
-            if (next.stats().health() > previousHealth) AstralCardEffects.playHealingEffect(BoardEntityService.entity(level, next));
         }
         if (!wasKnockedDown && !next.knockedDown() && turnStartDamage > 0) {
             damageFromEffect(level, session, next.slotUuid(), turnStartDamage);
@@ -923,7 +922,6 @@ public class BoardSessionManager {
             AstralDiceRollService.DiceRollResult result = AstralDiceRollService.rollNextMove(controller,
                     entity.position().add(0.0D, entity.getBbHeight() + 0.85D, 0.0D), participant.stats(), session.id());
             int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS
-                    + (result.values().size() > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0)
                     + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
             BoardParticipant updated = participant.withStats(participant.stats().clearNextMoveDiceEffects().consumeMoveRollBuffs());
             updateParticipant(level, session, updated);
@@ -933,27 +931,31 @@ public class BoardSessionManager {
 
         int fixed = participant.stats().nextMoveFixed();
         int diceCount = fixed > 0 ? 1 : Math.clamp(1 + participant.stats().moveDiceBonus(), 1, 8);
-        int total = 0;
+        List<Integer> values = new ArrayList<>(diceCount);
         for (int index = 0; index < diceCount; index++) {
-            total += fixed > 0 ? fixed : level.getRandom().nextInt(10) + 1;
+            values.add(fixed > 0 ? fixed : level.getRandom().nextInt(10) + 1);
         }
 
-        total = Math.max(0, total + participant.stats().speed());
-        AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
-                entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
-        participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
-                .ifPresent(player -> dice.setTexture(DiceSkinPreferenceManager.selectedTexture(player)));
-        dice.setBoardSessionId(session.id());
-        dice.startRoll(1, fixed > 0 ? fixed : 10, AstralDiceRollService.DEFAULT_ROLL_TICKS,
-                AstralDiceRollService.DEFAULT_SPIN_SPEED, fixed > 0 ? fixed : Math.max(1, total / diceCount),
-                total, diceCount > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0,
-                true, 0.0F, 0.0F);
-        level.addFreshEntity(dice);
+        int total = Math.max(0, values.stream().mapToInt(Integer::intValue).sum() + participant.stats().speed());
+        Identifier texture = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
+                .map(DiceSkinPreferenceManager::selectedTexture).orElse(DiceSkinPreferenceManager.DEFAULT_TEXTURE);
+        float spacing = diceCount > 1 ? 0.72F : 0.0F;
+        double center = (diceCount - 1) * 0.5D;
+        for (int index = 0; index < values.size(); index++) {
+            double offset = (index - center) * spacing;
+            AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX() + offset,
+                    entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
+            dice.setTexture(texture);
+            dice.setBoardSessionId(session.id());
+            dice.startRoll(1, fixed > 0 ? fixed : 10, AstralDiceRollService.DEFAULT_ROLL_TICKS,
+                    AstralDiceRollService.DEFAULT_SPIN_SPEED, values.get(index), total, 0,
+                    index == 0, 0.0F, 0.0F);
+            level.addFreshEntity(dice);
+        }
+
         BoardParticipant updated = participant.withStats(participant.stats().clearNextMoveDiceEffects().consumeMoveRollBuffs());
         updateParticipant(level, session, updated);
-        int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS
-                + (diceCount > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0)
-                + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
+        int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
         beginMovement(level, session, updated, total, revealTicks);
     }
 
@@ -1704,6 +1706,8 @@ public class BoardSessionManager {
     private static void updateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant, boolean animateCoinChange) {
         BoardParticipant previous = session.participant(participant.slotUuid()).orElse(null);
         boolean damaged = previous != null && participant.stats().health() < previous.stats().health();
+        boolean healed = previous != null && participant.stats().health() > previous.stats().health();
+        boolean gainedStatus = previous != null && AstralCardEffects.gainedStatus(previous.stats(), participant.stats());
         boolean newlyKnockedDown = participant.knockedDownTurns() > 0
                 && (previous == null || previous.knockedDownTurns() <= 0);
         int coinDelta = previous == null ? 0 : participant.stats().starCoins() - previous.stats().starCoins();
@@ -1714,6 +1718,11 @@ public class BoardSessionManager {
         }
         BoardEntityService.syncState(level, participant);
         AstralCharacterEntity entity = BoardEntityService.entity(level, participant);
+        if (entity != null) {
+            if (damaged) DamagePresentation.playDamageImpact(level, entity);
+            else if (healed) AstralCardEffects.playHealingEffect(entity);
+            else if (gainedStatus) AstralCardEffects.playStatusEffect(entity);
+        }
         if (damaged) {
             int logicalDamage = Math.max(0, previous.stats().health() - participant.stats().health());
             HandcardSoulLink.mirrorBoardDamage(level, session, participant, logicalDamage);
