@@ -11,13 +11,20 @@ import net.minecraft.resources.Identifier;
 import java.util.List;
 import java.util.UUID;
 
-public record BoardDeveloperConfigPayload(UUID boardId, Identifier humanCharacterId, Identifier humanSkinId, List<BotSetup> bots) implements CustomPacketPayload {
+public record BoardDeveloperConfigPayload(UUID boardId, Identifier humanCharacterId, Identifier humanSkinId, BattleOverride humanBattle, List<BotSetup> bots) implements CustomPacketPayload {
 
     public static final Type<BoardDeveloperConfigPayload> TYPE = new Type<>(AstralCraft.prefix("board_developer_config"));
+    public static final BattleOverride DEFAULT_BATTLE = new BattleOverride(0, 0, -1, -1);
     private static final StreamCodec<ByteBuf, CardCount> CARD_COUNT_CODEC = StreamCodec.composite(
             Identifier.STREAM_CODEC, CardCount::cardId,
             ByteBufCodecs.VAR_INT, CardCount::count,
             CardCount::new);
+    private static final StreamCodec<ByteBuf, BattleOverride> BATTLE_OVERRIDE_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, BattleOverride::attackerDie,
+            ByteBufCodecs.VAR_INT, BattleOverride::defenderDie,
+            ByteBufCodecs.VAR_INT, BattleOverride::attackCardBonus,
+            ByteBufCodecs.VAR_INT, BattleOverride::defenseCardBonus,
+            BattleOverride::new);
     private static final StreamCodec<ByteBuf, BotStats> BOT_STATS_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, BotStats::baseAttack,
             ByteBufCodecs.VAR_INT, BotStats::baseDefense,
@@ -39,15 +46,18 @@ public record BoardDeveloperConfigPayload(UUID boardId, Identifier humanCharacte
             ByteBufCodecs.VAR_INT, BotSetup::cardPlaysUsed,
             ByteBufCodecs.VAR_INT, BotSetup::maxHandSize,
             CARD_COUNT_CODEC.apply(ByteBufCodecs.list(256)), BotSetup::cards,
+            BATTLE_OVERRIDE_CODEC, BotSetup::battle,
             BotSetup::new);
     public static final StreamCodec<ByteBuf, BoardDeveloperConfigPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, BoardDeveloperConfigPayload::boardId,
             Identifier.STREAM_CODEC, BoardDeveloperConfigPayload::humanCharacterId,
             Identifier.STREAM_CODEC, BoardDeveloperConfigPayload::humanSkinId,
+            BATTLE_OVERRIDE_CODEC, BoardDeveloperConfigPayload::humanBattle,
             BOT_SETUP_CODEC.apply(ByteBufCodecs.list(3)), BoardDeveloperConfigPayload::bots,
             BoardDeveloperConfigPayload::new);
 
     public BoardDeveloperConfigPayload {
+        humanBattle = humanBattle == null ? DEFAULT_BATTLE : humanBattle;
         bots = List.copyOf(bots);
     }
 
@@ -58,9 +68,10 @@ public record BoardDeveloperConfigPayload(UUID boardId, Identifier humanCharacte
 
     public record BotSetup(UUID slotId, Identifier characterId, Identifier skinId, BotStats stats,
                            int skillCooldownTurns, int knockedDownTurns, int cardPlaysUsed, int maxHandSize,
-                           List<CardCount> cards) {
+                           List<CardCount> cards, BattleOverride battle) {
         public BotSetup {
             cards = List.copyOf(cards);
+            battle = battle == null ? DEFAULT_BATTLE : battle;
         }
     }
 
@@ -69,4 +80,5 @@ public record BoardDeveloperConfigPayload(UUID boardId, Identifier humanCharacte
 
     public record CardCount(Identifier cardId, int count) {}
 
+    public record BattleOverride(int attackerDie, int defenderDie, int attackCardBonus, int defenseCardBonus) {}
 }

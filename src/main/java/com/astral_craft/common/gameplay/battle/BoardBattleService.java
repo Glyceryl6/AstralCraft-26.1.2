@@ -297,8 +297,9 @@ public class BoardBattleService {
         CardRange defenseRange = cardRange(defender, defenderCards, CardType.DEFENSE);
         int attackBase = Math.max(0, attacker.stats().attack());
         int defenseBase = Math.max(0, defender.stats().defense());
-        int attackerDie = Mth.nextInt(level.getRandom(), 1, 6);
-        List<PlayedCard> attackerPlayedCards = rollCards(level, attacker, attackerCards, CardType.ATTACK);
+        int attackerDie = BoardDeveloperBattleOverrideService.resolveDie(session.id(), attacker.slotUuid(), true,
+                Mth.nextInt(level.getRandom(), 1, 6));
+        List<PlayedCard> attackerPlayedCards = rollCards(level, session.id(), attacker, attackerCards, CardType.ATTACK);
         int attackBonus = attackerPlayedCards.stream().mapToInt(PlayedCard::bonus).sum();
         boolean powerfulAttack = containsCard(attacker, attackerCards, HandcardPowerfulAttack.class);
         int attackTotal = scaleAttackTotal(attackBase + attackerDie + attackBonus, powerfulAttack);
@@ -337,8 +338,9 @@ public class BoardBattleService {
             return;
         }
 
-        int defenderDie = Mth.nextInt(level.getRandom(), 1, 6);
-        List<PlayedCard> defenderPlayedCards = rollCards(level, defender, preliminary.defenderCards(), CardType.DEFENSE);
+        int defenderDie = BoardDeveloperBattleOverrideService.resolveDie(session.id(), defender.slotUuid(), false,
+                Mth.nextInt(level.getRandom(), 1, 6));
+        List<PlayedCard> defenderPlayedCards = rollCards(level, session.id(), defender, preliminary.defenderCards(), CardType.DEFENSE);
         int defenseBonus = defenderPlayedCards.stream().mapToInt(PlayedCard::bonus).sum();
         int attackTotal = preliminary.attackTotal();
         boolean evading = state.defenseMode() == DefenseMode.EVADE;
@@ -400,6 +402,10 @@ public class BoardBattleService {
     }
 
     private static void playAttackAnimation(ServerLevel level, BoardParticipant participant) {
+        if (participant.monster()) {
+            BoardMonsterEntityService.playAttack(level, participant);
+            return;
+        }
         Entity entity = participant.entityUuid().map(level::getEntity).orElse(null);
         if (entity instanceof AstralCharacterEntity character) character.playBoardAttackAnimation(16);
     }
@@ -430,7 +436,7 @@ public class BoardBattleService {
         return new CardRange(minimum, maximum);
     }
 
-    private static List<PlayedCard> rollCards(ServerLevel level, BoardParticipant participant,
+    private static List<PlayedCard> rollCards(ServerLevel level, UUID boardId, BoardParticipant participant,
                                               List<Integer> indexes, CardType expected) {
         List<PlayedCard> result = new ArrayList<>();
         for (int index : validatedOrEmpty(participant, indexes, expected)) {
@@ -438,7 +444,15 @@ public class BoardBattleService {
             ItemStack stack = combatStack(participant, index, expected);
             if (bonus != null && stack != null) result.add(new PlayedCard(stack.copyWithCount(1), bonus.random(level.getRandom())));
         }
-        return List.copyOf(result);
+        int forcedTotal = BoardDeveloperBattleOverrideService.cardBonus(boardId, participant.slotUuid(), expected);
+        if (forcedTotal < 0 || result.isEmpty()) return List.copyOf(result);
+        int base = forcedTotal / result.size();
+        int remainder = forcedTotal % result.size();
+        List<PlayedCard> forced = new ArrayList<>();
+        for (int index = 0; index < result.size(); index++) {
+            forced.add(new PlayedCard(result.get(index).stack(), base + (index < remainder ? 1 : 0)));
+        }
+        return List.copyOf(forced);
     }
 
     private static boolean containsCard(BoardParticipant participant, List<Integer> indexes, Class<? extends Item> itemType) {

@@ -87,6 +87,7 @@ public class BoardDeveloperService {
         BoardParticipant currentHuman = session.participantByController(player.getUUID()).orElse(null);
         if (live && currentHuman == null) return false;
         if (hasOtherHuman(session, player.getUUID())) return false;
+
         List<CharacterDefinition> characters = CharacterManager.INSTANCE.values();
         List<Identifier> botSelectable = characters.stream()
                 .filter(definition -> CharacterManager.INSTANCE.character(definition.id()).botSelectable())
@@ -99,8 +100,11 @@ public class BoardDeveloperService {
         if (bots.size() != BoardSessionManager.REQUIRED_PLAYERS - 1) return false;
         BoardCharacterSelectionEntry humanEntry = new BoardCharacterSelectionEntry(0, player.getScoreboardName(),
                 humanCharacterId, humanSkinId, true, true);
+        OpenBoardDeveloperPayload.BattleOverrideView humanBattle = battleView(
+                currentHuman == null ? BoardDeveloperBattleOverrideService.BattleOverride.DEFAULT
+                        : BoardDeveloperBattleOverrideService.get(session.id(), currentHuman.slotUuid()));
         PacketDistributor.sendToPlayer(player, new OpenBoardDeveloperPayload(session.id(), characters,
-                botSelectable, developerCardIds(), humanEntry, bots, live));
+                botSelectable, developerCardIds(), humanEntry, humanBattle, bots, live));
         return true;
     }
 
@@ -117,8 +121,8 @@ public class BoardDeveloperService {
             return;
         }
         boolean applied = session.phase() == BoardPhase.CHARACTER_SELECTION
-                ? applyInitial(player, session, payload.humanCharacterId(), payload.humanSkinId(), payload.bots())
-                : session.humanCount() == 1 && canEditLive(player, session) && applyLive(player, session, payload.bots());
+                ? applyInitial(player, session, payload.humanCharacterId(), payload.humanSkinId(), payload.humanBattle(), payload.bots())
+                : session.humanCount() == 1 && canEditLive(player, session) && applyLive(player, session, payload.humanBattle(), payload.bots());
         if (!applied) reject(player, session);
     }
 
@@ -127,11 +131,16 @@ public class BoardDeveloperService {
         return slots != null && slots.contains(slotId);
     }
 
-    public static void clear(UUID boardId) {
+    public static void finishSetup(UUID boardId) {
         if (boardId == null) return;
         OWNERS.remove(boardId);
         PAUSED_AT_TICKS.remove(boardId);
         CONFIGURED_SLOTS.remove(boardId);
+    }
+
+    public static void clear(UUID boardId) {
+        finishSetup(boardId);
+        BoardDeveloperBattleOverrideService.clear(boardId);
     }
 
     public static void resume(ServerLevel level, BoardSession session) {
@@ -155,23 +164,28 @@ public class BoardDeveloperService {
     }
 
     private static boolean applyInitial(ServerPlayer player, BoardSession session, Identifier humanCharacterId,
-                                        Identifier humanSkinId, List<BoardDeveloperConfigPayload.BotSetup> setups) {
+                                        Identifier humanSkinId, BoardDeveloperConfigPayload.BattleOverride humanBattle,
+                                        List<BoardDeveloperConfigPayload.BotSetup> setups) {
         if (!CharacterManager.INSTANCE.contains(humanCharacterId)) return false;
         CharacterDefinition humanDefinition = CharacterManager.INSTANCE.get(humanCharacterId);
         CharacterSkinDefinition humanSkin = humanDefinition.skinOrDefault(humanSkinId.getPath());
         Identifier safeHumanSkin = BoardParticipant.skinIdentifier(humanDefinition.id(), humanSkin.id());
         if (!safeHumanSkin.equals(humanSkinId)) return false;
+
         Set<Identifier> allowedCards = new HashSet<>(developerCardIds());
         Set<Identifier> usedCharacters = new LinkedHashSet<>();
         usedCharacters.add(humanDefinition.id());
         List<ConfiguredBot> configured = validateSetups(setups, usedCharacters, allowedCards, Map.of());
         if (configured == null) return false;
+
         session.clearParticipants();
         BoardLobbyService.clear(session.id());
         BoardParticipant human = new BoardParticipant(UUID.randomUUID(), player.getUUID(), false,
                 humanDefinition.id(), safeHumanSkin, BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID,
                 null, AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
         session.putParticipant(human);
+        BoardDeveloperBattleOverrideService.set(session.id(), human.slotUuid(), battleOverride(humanBattle));
+
         Set<UUID> slots = new LinkedHashSet<>();
         for (ConfiguredBot bot : configured) {
             UUID slotId = UUID.randomUUID();
@@ -180,6 +194,7 @@ public class BoardDeveloperService {
                     Map.of(), bot.skillCooldownTurns(), bot.knockedDownTurns(), bot.cardPlaysUsed(), bot.maxHandSize(),
                     session.nextArrivalOrder());
             session.putParticipant(participant);
+            BoardDeveloperBattleOverrideService.set(session.id(), slotId, bot.battle());
             slots.add(slotId);
         }
 
@@ -189,19 +204,24 @@ public class BoardDeveloperService {
         return true;
     }
 
-    private static boolean applyLive(ServerPlayer player, BoardSession session, List<BoardDeveloperConfigPayload.BotSetup> setups) {
+    private static boolean applyLive(ServerPlayer player, BoardSession session,
+                                     BoardDeveloperConfigPayload.BattleOverride humanBattle,
+                                     List<BoardDeveloperConfigPayload.BotSetup> setups) {
         Map<UUID, BoardParticipant> bots = new LinkedHashMap<>();
         for (BoardParticipant participant : orderedPartyParticipants(session)) {
             if (participant.bot() && !participant.monster()) bots.put(participant.slotUuid(), participant);
         }
         if (bots.size() != BoardSessionManager.REQUIRED_PLAYERS - 1) return false;
+
         BoardParticipant human = session.participantByController(player.getUUID()).orElse(null);
         if (human == null) return false;
         Set<Identifier> usedCharacters = new LinkedHashSet<>();
         usedCharacters.add(human.characterId());
         List<ConfiguredBot> configured = validateSetups(setups, usedCharacters, new HashSet<>(developerCardIds()), bots);
         if (configured == null || configured.size() != bots.size()) return false;
+
         ServerLevel level = player.level();
+        BoardDeveloperBattleOverrideService.set(session.id(), human.slotUuid(), battleOverride(humanBattle));
         for (ConfiguredBot bot : configured) {
             BoardParticipant current = bots.get(bot.slotId());
             if (current == null) return false;
@@ -211,10 +231,9 @@ public class BoardDeveloperService {
                     .withKnockedDownTurns(bot.knockedDownTurns()).withCardPlaysUsed(bot.cardPlaysUsed())
                     .withMaxHandSize(bot.maxHandSize());
             session.putParticipant(updated);
+            BoardDeveloperBattleOverrideService.set(session.id(), updated.slotUuid(), bot.battle());
+            if (identityChanged) BoardDeveloperEntityService.syncIdentity(level, updated);
             BoardEntityService.syncState(level, updated);
-            if (identityChanged && BoardEntityService.entity(level, updated) != null) {
-                BoardEntityService.entity(level, updated).setAnimationAction("idle");
-            }
         }
 
         BoardSessionManager.markChanged(level);
@@ -245,7 +264,8 @@ public class BoardDeveloperService {
             int knockedDownTurns = Math.clamp(setup.knockedDownTurns(), 0, MAX_KNOCKDOWN_TURNS);
             int cardPlaysUsed = Math.clamp(setup.cardPlaysUsed(), 0, MAX_CARD_PLAYS);
             result.add(new ConfiguredBot(existing == null ? setup.slotId() : existing.slotUuid(), definition.id(),
-                    skinId, stats, hand, cooldown, knockedDownTurns, cardPlaysUsed, maxHandSize));
+                    skinId, stats, hand, cooldown, knockedDownTurns, cardPlaysUsed, maxHandSize,
+                    battleOverride(setup.battle())));
         }
         return result;
     }
@@ -274,7 +294,7 @@ public class BoardDeveloperService {
             if (definition.id().equals(humanCharacterId) || !selectable.contains(definition.id())) continue;
             AstralPlayerStats stats = defaultStats(definition);
             result.add(new OpenBoardDeveloperPayload.BotView(UUID.randomUUID(), definition.id(), firstSkin(definition),
-                    stats, List.of(), 0, 0, 0, 7));
+                    stats, List.of(), 0, 0, 0, 7, OpenBoardDeveloperPayload.DEFAULT_BATTLE));
         }
         return List.copyOf(result);
     }
@@ -285,7 +305,8 @@ public class BoardDeveloperService {
             if (!participant.bot() || participant.monster()) continue;
             result.add(new OpenBoardDeveloperPayload.BotView(participant.slotUuid(), participant.characterId(),
                     participant.skinId(), participant.stats(), participant.hand(), participant.skillCooldownTurns(),
-                    participant.knockedDownTurns(), participant.cardPlaysUsed(), participant.maxHandSize()));
+                    participant.knockedDownTurns(), participant.cardPlaysUsed(), participant.maxHandSize(),
+                    battleView(BoardDeveloperBattleOverrideService.get(session.id(), participant.slotUuid()))));
         }
         return List.copyOf(result);
     }
@@ -345,6 +366,19 @@ public class BoardDeveloperService {
         return List.copyOf(candidates);
     }
 
+    private static BoardDeveloperBattleOverrideService.BattleOverride battleOverride(BoardDeveloperConfigPayload.BattleOverride value) {
+        if (value == null) return BoardDeveloperBattleOverrideService.BattleOverride.DEFAULT;
+        return new BoardDeveloperBattleOverrideService.BattleOverride(value.attackerDie(), value.defenderDie(),
+                value.attackCardBonus(), value.defenseCardBonus()).validated();
+    }
+
+    private static OpenBoardDeveloperPayload.BattleOverrideView battleView(BoardDeveloperBattleOverrideService.BattleOverride value) {
+        BoardDeveloperBattleOverrideService.BattleOverride safe = value == null
+                ? BoardDeveloperBattleOverrideService.BattleOverride.DEFAULT : value.validated();
+        return new OpenBoardDeveloperPayload.BattleOverrideView(safe.attackerDie(), safe.defenderDie(),
+                safe.attackCardBonus(), safe.defenseCardBonus());
+    }
+
     private static void reject(ServerPlayer player, BoardSession session) {
         if (session.phase() == BoardPhase.CHARACTER_SELECTION) BoardSessionManager.resetForLobby(player.level(), session);
         else resume(player.level(), session);
@@ -353,6 +387,7 @@ public class BoardDeveloperService {
 
     private record ConfiguredBot(UUID slotId, Identifier characterId, Identifier skinId, AstralPlayerStats stats,
                                  List<Identifier> hand, int skillCooldownTurns, int knockedDownTurns,
-                                 int cardPlaysUsed, int maxHandSize) {}
+                                 int cardPlaysUsed, int maxHandSize,
+                                 BoardDeveloperBattleOverrideService.BattleOverride battle) {}
 
 }

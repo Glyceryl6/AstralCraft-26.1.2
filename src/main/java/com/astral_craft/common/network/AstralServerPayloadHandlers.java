@@ -157,6 +157,10 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardCharacterSelection(BoardCharacterSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
+                if (BoardDeveloperService.active(payload.boardId())) {
+                    player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.busy"), true);
+                    return;
+                }
                 BoardLobbyService.updateSelection(player, payload.boardId(), payload.characterId(), payload.skinId(), payload.confirmed());
             }
         });
