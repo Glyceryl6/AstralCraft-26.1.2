@@ -652,6 +652,10 @@ public class BoardSessionManager {
         }
 
         if (session.phase() != BoardPhase.PLAYING) return;
+        if (BoardDeveloperService.active(session.id())) {
+            if (!BoardDeveloperService.ownerOnline(level, session.id())) BoardDeveloperService.resume(level, session);
+            return;
+        }
         if (!hasOnlineHumanParticipant(level, session)) {
             long since = NO_HUMAN_SINCE_TICKS.computeIfAbsent(session.id(), ignored -> AstralServerTickClock.now(level));
             if (AstralServerTickClock.now(level) - since >= 100L) {
@@ -782,21 +786,25 @@ public class BoardSessionManager {
         for (int index = 0; index < participants.size(); index++) {
             BoardParticipant participant = participants.get(index);
             String startNode = starts.get(index);
+            boolean developerConfigured = BoardDeveloperService.configured(session.id(), participant.slotUuid());
             CharacterDefinition definition = CharacterManager.INSTANCE.get(participant.characterId());
-            AstralPlayerStats stats = CharacterManager.INSTANCE.character(participant.characterId())
-                    .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
-            stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
-            List<Identifier> configuredHand = BoardDeveloperService.initialHand(session.id(), participant.slotUuid());
-            List<Identifier> hand = configuredHand == null
-                    ? randomInitialHand(level, 4 + level.getRandom().nextInt(2)) : configuredHand;
+            AstralPlayerStats stats = participant.stats();
+            if (!developerConfigured) {
+                stats = CharacterManager.INSTANCE.character(participant.characterId())
+                        .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
+                stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
+            }
+            List<Identifier> hand = developerConfigured ? participant.hand()
+                    : randomInitialHand(level, 4 + level.getRandom().nextInt(2));
             String previousNode = BoardRouteService.initialPreviousNode(session, startNode);
             Identifier previousNodeId = previousNode.isBlank() ? BoardParticipant.EMPTY_NODE_ID
                     : BoardParticipant.nodeIdentifier(previousNode);
             BoardParticipant initialized = new BoardParticipant(participant.slotId(), participant.controllerId(),
                     participant.bot(), participant.characterId(), participant.skinId(),
                     BoardParticipant.nodeIdentifier(startNode), previousNodeId, null,
-                    stats, hand, Map.of(), 0, 0, 0,
-                    configuredHand == null ? 7 : Math.max(7, configuredHand.size()), session.nextArrivalOrder());
+                    stats, hand, Map.of(), developerConfigured ? participant.skillCooldownTurns() : 0,
+                    developerConfigured ? participant.knockedDownTurns() : 0, developerConfigured ? participant.cardPlaysUsed() : 0,
+                    developerConfigured ? participant.maxHandSize() : 7, session.nextArrivalOrder());
             session.putParticipant(initialized);
             session.setHomeNode(initialized.slotUuid(), startNode);
             BoardEntityService.spawnCharacter(level, session, initialized);
@@ -1624,6 +1632,11 @@ public class BoardSessionManager {
     private static @Nullable BasePlatform platform(@Nullable BoardNode node) {
         if (node == null) return null;
         return BuiltInRegistries.BLOCK.getValue(node.platformId()) instanceof BasePlatform platform ? platform : null;
+    }
+
+    static boolean hasPendingDeveloperUnsafeAction(UUID boardId) {
+        return boardId != null && (PENDING_BOT_EFFECTS.containsKey(boardId) || PENDING_TIME_BOMB_ROLLS.containsKey(boardId)
+                || PENDING_BOT_MOVEMENT_TICKS.containsKey(boardId) || PENDING_BOT_COUNTERS.contains(boardId));
     }
 
     private static boolean isBoardActionBlocked(BoardSession session) {

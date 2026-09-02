@@ -164,11 +164,25 @@ public record BoardParticipant(
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
     }
 
+    public BoardParticipant withIdentity(Identifier characterId, Identifier skinId) {
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.monster, this.disconnectedHuman,
+                characterId, skinId, this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
+                this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
+                this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
+    }
+
     public BoardParticipant withStats(AstralPlayerStats stats) {
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.monster, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, stats, this.hand,
                 this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
+    }
+
+    public BoardParticipant withMaxHandSize(int maxHandSize) {
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.monster, this.disconnectedHuman,
+                this.characterId, this.skinId, this.currentNodeId, this.previousNodeId, this.entityId, this.stats,
+                this.hand, this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, this.cardPlaysUsed,
+                maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
     }
 
     public BoardParticipant withChipProgress(ChipProgress chipProgress) {
@@ -272,6 +286,13 @@ public record BoardParticipant(
         return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.monster, this.disconnectedHuman, this.characterId, this.skinId,
                 this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
                 this.roundStatusEffects, Math.max(0, turns), this.knockedDownTurns, this.cardPlaysUsed,
+                this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
+    }
+
+    public BoardParticipant withCardPlaysUsed(int cardPlaysUsed) {
+        return new BoardParticipant(this.slotId, this.controllerId, this.bot, this.monster, this.disconnectedHuman, this.characterId, this.skinId,
+                this.currentNodeId, this.previousNodeId, this.entityId, this.stats, this.hand,
+                this.roundStatusEffects, this.skillCooldownTurns, this.knockedDownTurns, Math.max(0, cardPlaysUsed),
                 this.maxHandSize, this.arrivalOrder, this.decisionTimeoutStrikes, this.chipProgress);
     }
 

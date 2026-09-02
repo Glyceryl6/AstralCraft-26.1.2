@@ -202,7 +202,7 @@ public class ClientEventSubscriber {
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
         event.register(BoardAnnouncementPayload.TYPE, BoardAnnouncementOverlay::show);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
-        event.register(OpenBoardDeveloperPayload.TYPE, BoardDeveloperScreen::open);
+        event.register(OpenBoardDeveloperPayload.TYPE, BoardCharacterSelectionScreen::openDeveloper);
         event.register(OpenBoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmScreen::open);
         event.register(OpenBoardModeSelectionPayload.TYPE, BoardModeSelectionScreen::open);
         event.register(OpenBoardDivinationPayload.TYPE, BoardDivinationScreen::open);

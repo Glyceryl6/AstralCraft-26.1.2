@@ -15,10 +15,31 @@ public record BoardDeveloperConfigPayload(UUID boardId, List<BotSetup> bots) imp
 
     public static final Type<BoardDeveloperConfigPayload> TYPE = new Type<>(AstralCraft.prefix("board_developer_config"));
     private static final StreamCodec<ByteBuf, CardCount> CARD_COUNT_CODEC = StreamCodec.composite(
-            Identifier.STREAM_CODEC, CardCount::cardId, ByteBufCodecs.VAR_INT, CardCount::count, CardCount::new);
+            Identifier.STREAM_CODEC, CardCount::cardId,
+            ByteBufCodecs.VAR_INT, CardCount::count,
+            CardCount::new);
+    private static final StreamCodec<ByteBuf, BotStats> BOT_STATS_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, BotStats::baseAttack,
+            ByteBufCodecs.VAR_INT, BotStats::baseDefense,
+            ByteBufCodecs.VAR_INT, BotStats::maxHealth,
+            ByteBufCodecs.VAR_INT, BotStats::health,
+            ByteBufCodecs.VAR_INT, BotStats::starCoins,
+            ByteBufCodecs.VAR_INT, BotStats::stars,
+            ByteBufCodecs.VAR_INT, BotStats::cardPlaysPerTurn,
+            ByteBufCodecs.VAR_INT, BotStats::cardPlaysRemaining,
+            ByteBufCodecs.VAR_INT, BotStats::nextMoveFixed,
+            BotStats::new);
     private static final StreamCodec<ByteBuf, BotSetup> BOT_SETUP_CODEC = StreamCodec.composite(
-            Identifier.STREAM_CODEC, BotSetup::characterId, Identifier.STREAM_CODEC, BotSetup::skinId,
-            CARD_COUNT_CODEC.apply(ByteBufCodecs.list(256)), BotSetup::cards, BotSetup::new);
+            BoardNetworkCodecs.UUID_STREAM_CODEC, BotSetup::slotId,
+            Identifier.STREAM_CODEC, BotSetup::characterId,
+            Identifier.STREAM_CODEC, BotSetup::skinId,
+            BOT_STATS_CODEC, BotSetup::stats,
+            ByteBufCodecs.VAR_INT, BotSetup::skillCooldownTurns,
+            ByteBufCodecs.VAR_INT, BotSetup::knockedDownTurns,
+            ByteBufCodecs.VAR_INT, BotSetup::cardPlaysUsed,
+            ByteBufCodecs.VAR_INT, BotSetup::maxHandSize,
+            CARD_COUNT_CODEC.apply(ByteBufCodecs.list(256)), BotSetup::cards,
+            BotSetup::new);
     public static final StreamCodec<ByteBuf, BoardDeveloperConfigPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, BoardDeveloperConfigPayload::boardId,
             BOT_SETUP_CODEC.apply(ByteBufCodecs.list(3)), BoardDeveloperConfigPayload::bots,
@@ -33,11 +54,16 @@ public record BoardDeveloperConfigPayload(UUID boardId, List<BotSetup> bots) imp
         return TYPE;
     }
 
-    public record BotSetup(Identifier characterId, Identifier skinId, List<CardCount> cards) {
+    public record BotSetup(UUID slotId, Identifier characterId, Identifier skinId, BotStats stats,
+                           int skillCooldownTurns, int knockedDownTurns, int cardPlaysUsed, int maxHandSize,
+                           List<CardCount> cards) {
         public BotSetup {
             cards = List.copyOf(cards);
         }
     }
+
+    public record BotStats(int baseAttack, int baseDefense, int maxHealth, int health, int starCoins, int stars,
+                           int cardPlaysPerTurn, int cardPlaysRemaining, int nextMoveFixed) {}
 
     public record CardCount(Identifier cardId, int count) {}
 

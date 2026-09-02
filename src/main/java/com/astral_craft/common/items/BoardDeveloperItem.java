@@ -30,20 +30,30 @@ public class BoardDeveloperItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_registered"), true);
             return InteractionResult.FAIL;
         }
-        if (session.phase() == BoardPhase.PLAYING) {
-            player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
-            return InteractionResult.FAIL;
-        }
         if (BoardDeveloperService.active(session.id()) && !BoardDeveloperService.ownedBy(session.id(), player.getUUID())) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.other_players"), true);
             return InteractionResult.FAIL;
         }
-        if (session.humanCount() > 0 && session.participantByController(player.getUUID()).isEmpty()) {
+        if (BoardDeveloperService.hasOtherHuman(session, player.getUUID())) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.other_players"), true);
             return InteractionResult.FAIL;
         }
 
         ServerLevel level = player.level();
+        if (session.phase() == BoardPhase.PLAYING) {
+            if (session.participantByController(player.getUUID()).isEmpty()) {
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.other_players"), true);
+                return InteractionResult.FAIL;
+            }
+            if (!BoardDeveloperService.canEditLive(player, session)) {
+                player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.busy"), true);
+                return InteractionResult.FAIL;
+            }
+            BoardDeveloperService.begin(player, session);
+            if (!BoardDeveloperService.openConfiguration(player, session)) BoardDeveloperService.resume(level, session);
+            return InteractionResult.SUCCESS;
+        }
+
         if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(level, session);
         if (session.phase() == BoardPhase.READY) {
             session.setProtectionEnabled(true);
@@ -52,9 +62,14 @@ public class BoardDeveloperItem extends Item {
             BoardSessionManager.markChanged(level);
             BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));
         }
+        if (session.phase() != BoardPhase.CHARACTER_SELECTION) return InteractionResult.FAIL;
 
         BoardDeveloperService.begin(player, session);
-        BoardLobbyService.registerViewer(player, session);
+        if (session.participantByController(player.getUUID()).isPresent()) {
+            if (!BoardDeveloperService.openConfiguration(player, session)) BoardDeveloperService.clear(session.id());
+        } else {
+            BoardLobbyService.registerViewer(player, session);
+        }
         return InteractionResult.SUCCESS;
     }
 }

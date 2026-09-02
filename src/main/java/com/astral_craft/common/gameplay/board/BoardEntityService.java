@@ -74,6 +74,11 @@ public class BoardEntityService {
     public static void syncState(ServerLevel level, BoardParticipant participant) {
         AstralCharacterEntity entity = entity(level, participant);
         if (entity == null) return;
+        entity.setCharacterId(participant.characterId());
+        entity.setSkinId(participant.skinName());
+        entity.setCustomName(participant.monster()
+                ? Component.translatable("gui.astral_craft.board.monster")
+                : Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
         entity.setStarCoins(participant.stats().starCoins());
         AttributeInstance instance = entity.getAttribute(Attributes.MAX_HEALTH);
         if (instance != null) instance.setBaseValue(participant.stats().maxHealth());
