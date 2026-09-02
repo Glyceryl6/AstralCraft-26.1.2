@@ -8,7 +8,6 @@ import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
 import com.astral_craft.common.entity.visual.LaserStrikeEntity;
 import com.astral_craft.common.gameplay.DamagePresentation;
-import com.astral_craft.common.gameplay.handcard.AstralCardEffects;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -71,9 +70,6 @@ public record BoardBotEffectContext(ServerLevel level, BoardSession session, UUI
         BoardParticipant participant = this.user();
         AstralPlayerStats healed = participant.stats().heal(amount);
         BoardSessionManager.updateParticipant(this.level, this.session, participant.withStats(healed));
-        if (healed.health() > participant.stats().health()) {
-            AstralCardEffects.playHealingEffect(BoardEntityService.entity(this.level, participant));
-        }
     }
 
     public void reduceUserSkillCooldown(int turns) {

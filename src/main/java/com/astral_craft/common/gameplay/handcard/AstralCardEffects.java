@@ -10,6 +10,7 @@ import com.astral_craft.common.entity.visual.LaserStrikeEntity;
 import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.KnockdownManager;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.gameplay.chip.ChipDefinition;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
@@ -49,18 +50,32 @@ public class AstralCardEffects {
     public static void update(Player player, AstralPlayerStats stats) {
         if (player == null || stats == null) return;
         AstralPlayerStats current = AstralStats.get(player);
+        boolean boardControlled = player instanceof ServerPlayer serverPlayer
+                && BoardSessionManager.findByController(serverPlayer).isPresent();
         AstralStats.set(player, stats);
+        if (boardControlled) return;
         if (stats.health() > current.health()) {
-            playHealingEffect(player instanceof ServerPlayer serverPlayer
-                    ? BoardEntityService.effectSourceEntity(serverPlayer) : player);
+            playHealingEffect(player);
+        } else if (stats.health() < current.health() && player.level() instanceof ServerLevel level) {
+            DamagePresentation.playDamageImpact(level, player);
+        } else if (gainedStatus(current, stats)) {
+            playStatusEffect(player);
         }
     }
 
     public static void update(LivingEntity entity, AstralPlayerStats stats) {
         if (entity == null || stats == null) return;
         AstralPlayerStats current = AstralStats.getOrDefault(entity);
+        boolean boardPawn = entity instanceof AstralCharacterEntity character && character.isBoardPawn();
         AstralStats.set(entity, stats);
-        if (stats.health() > current.health()) playHealingEffect(entity);
+        if (boardPawn) return;
+        if (stats.health() > current.health()) {
+            playHealingEffect(entity);
+        } else if (stats.health() < current.health() && entity.level() instanceof ServerLevel level) {
+            DamagePresentation.playDamageImpact(level, entity);
+        } else if (gainedStatus(current, stats)) {
+            playStatusEffect(entity);
+        }
     }
 
     public static void heal(ServerPlayer player, int amount) {
@@ -73,6 +88,22 @@ public class AstralCardEffects {
         level.sendParticles(ParticleTypes.HAPPY_VILLAGER, entity.getX(), entity.getY() + entity.getBbHeight() * 0.55D, entity.getZ(),
                 18, entity.getBbWidth() * 0.45D, entity.getBbHeight() * 0.35D, entity.getBbWidth() * 0.45D, 0.08D);
         level.playSound(null, entity.blockPosition(), SoundEvents.BONE_MEAL_USE, SoundSource.PLAYERS, 0.8F, 1.15F);
+    }
+
+    public static void playStatusEffect(LivingEntity entity) {
+        if (entity == null || !(entity.level() instanceof ServerLevel level)) return;
+        level.sendParticles(ParticleTypes.ENCHANT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.55D, entity.getZ(),
+                20, entity.getBbWidth() * 0.42D, entity.getBbHeight() * 0.34D, entity.getBbWidth() * 0.42D, 0.12D);
+    }
+
+    public static boolean gainedStatus(AstralPlayerStats previous, AstralPlayerStats current) {
+        if (previous == null || current == null) return false;
+        if (current.modifiers().size() > previous.modifiers().size()) return true;
+        for (var entry : current.buffs().entrySet()) {
+            var before = previous.buffs().get(entry.getKey());
+            if (before == null || entry.getValue().level() > before.level() || entry.getValue().value() != before.value()) return true;
+        }
+        return current.nextMoveFixed() > 0 && previous.nextMoveFixed() <= 0;
     }
 
     public static void damage(ServerPlayer user, List<LivingEntity> targets, int amount) {
@@ -104,6 +135,7 @@ public class AstralCardEffects {
         AstralPlayerStats targetStats = AstralStats.getOrDefault(target);
         int finalDamage = targetStats.resolveIncomingDamage(Math.max(0, amount + targetStats.incomingDamageBonus()));
         if (finalDamage == 0) return;
+        DamagePresentation.playDamageImpact(level, target);
         if (finalDamage >= DamagePresentation.CRITICAL_DAMAGE_THRESHOLD) {
             DamagePresentation.playCriticalImpact(level, target);
         }

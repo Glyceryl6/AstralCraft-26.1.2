@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.event.effects;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.event.AstralEventContext;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
@@ -36,7 +37,9 @@ public record DamageEventEffect(float amount) implements AstralEventEffect {
         }
 
         ServerLevel level = context.level();
-        target.hurtServer(level, target.damageSources().generic(), this.amount);
+        if (target.hurtServer(level, target.damageSources().generic(), this.amount)) {
+            DamagePresentation.playDamageImpact(level, target);
+        }
     }
 
 }
