@@ -1077,5 +1077,22 @@
   "tooltips.astral_craft.handcard.card_type.event": "事件牌",
   "event.astral_craft.it_is_war.name": "战斗，爽！",
   "event.astral_craft.it_is_war.description": "所有角色获得1张牌：攻击（特大）。",
-  "message.astral_craft.board.mode_suffix.undecided": "（未选择模式）"
+  "message.astral_craft.board.mode_suffix.undecided": "（未选择模式）",
+  "item.astral_craft.board_developer": "棋盘开发者工具",
+  "message.astral_craft.board.developer.other_players": "开发者配置仅可在棋盘中没有其他真人玩家时使用。",
+  "gui.astral_craft.board.developer.title": "棋盘开发配置",
+  "gui.astral_craft.board.developer.characters_hint": "请先为三个机器人选择角色与皮肤。",
+  "gui.astral_craft.board.developer.cards_hint": "配置开局手牌：左键增加，右键减少；此处不受正常手牌上限限制。",
+  "gui.astral_craft.board.developer.bot": "机器人 %s",
+  "gui.astral_craft.board.developer.characters": "角色",
+  "gui.astral_craft.board.developer.skins": "皮肤",
+  "gui.astral_craft.board.developer.character_used": "%s（已被选择）",
+  "gui.astral_craft.board.developer.card_total": "开局手牌：%s 张",
+  "gui.astral_craft.board.developer.card_entry": "%s × %s",
+  "gui.astral_craft.board.developer.back": "返回角色配置",
+  "gui.astral_craft.board.developer.configure_cards": "配置开局手牌",
+  "gui.astral_craft.board.developer.start": "确认并开始",
+  "gui.astral_craft.board.monster": "怪物",
+  "event.astral_craft.monster_invasion.name": "怪物来袭",
+  "event.astral_craft.monster_invasion.description": "随机在两个地块上生成怪物。"
 }

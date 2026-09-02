@@ -62,7 +62,7 @@ public record BoardForEachParticipantEventEffect(Selection selection, List<Astra
     }
 
     private List<BoardParticipant> select(BoardEventContext context) {
-        List<BoardParticipant> participants = new ArrayList<>(context.session().participants());
+        List<BoardParticipant> participants = new ArrayList<>(context.session().partyParticipants());
         if (participants.isEmpty() || this.selection == Selection.ALL) return participants;
         if (this.selection == Selection.ACTIVE) return participants.stream().filter(participant -> !participant.knockedDown()).toList();
         Comparator<BoardParticipant> comparator = Comparator.comparingInt(value -> value.stats().starCoins());

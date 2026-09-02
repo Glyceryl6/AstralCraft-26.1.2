@@ -52,6 +52,7 @@ public class AstralEventEffectTypes {
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardActivateRoundEventEffect>> BOARD_ACTIVATE_ROUND_EVENT = register("board_activate_round_event", BoardActivateRoundEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardTeleportParticipantsEventEffect>> BOARD_TELEPORT_PARTICIPANTS = register("board_teleport_participants", BoardTeleportParticipantsEventEffect.CODEC);
     public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardSharedLotteryEventEffect>> BOARD_SHARED_LOTTERY = register("board_shared_lottery", BoardSharedLotteryEventEffect.CODEC);
+    public static final DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<BoardSpawnMonstersEventEffect>> BOARD_SPAWN_MONSTERS = register("board_spawn_monsters", BoardSpawnMonstersEventEffect.CODEC);
 
     public static <T extends AstralEventEffect> DeferredHolder<MapCodec<? extends AstralEventEffect>, MapCodec<T>> register(String path, MapCodec<T> codec) {
         return EFFECT_TYPES.register(path, () -> codec);

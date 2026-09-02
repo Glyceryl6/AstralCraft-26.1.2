@@ -28,9 +28,9 @@ public record BoardBalanceCoinsEventEffect() implements BoardEventEffect {
     @Override
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
-            BoardParticipant highest = context.session().participants().stream()
+            BoardParticipant highest = context.session().partyParticipants().stream()
                     .max(Comparator.comparingInt(value -> value.stats().starCoins())).orElse(null);
-            BoardParticipant lowest = context.session().participants().stream()
+            BoardParticipant lowest = context.session().partyParticipants().stream()
                     .min(Comparator.comparingInt(value -> value.stats().starCoins())).orElse(null);
             if (highest == null || lowest == null || highest.slotUuid().equals(lowest.slotUuid())
                     || highest.stats().starCoins() == lowest.stats().starCoins()) return;

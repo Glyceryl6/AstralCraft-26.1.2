@@ -1077,5 +1077,22 @@
   "tooltips.astral_craft.handcard.card_type.event": "Event Card",
   "event.astral_craft.it_is_war.name": "It's War",
   "event.astral_craft.it_is_war.description": "Each player gets 1 ATK UP (G)",
-  "message.astral_craft.board.mode_suffix.undecided": "(Mode Undecided)"
+  "message.astral_craft.board.mode_suffix.undecided": "(Mode Undecided)",
+  "item.astral_craft.board_developer": "Board Developer Tool",
+  "message.astral_craft.board.developer.other_players": "Developer setup can only be used when no other human player is on this board.",
+  "gui.astral_craft.board.developer.title": "Board Developer Setup",
+  "gui.astral_craft.board.developer.characters_hint": "Choose characters and skins for the three bots first.",
+  "gui.astral_craft.board.developer.cards_hint": "Configure opening hands: left click to add, right click to remove; the normal hand limit does not apply here.",
+  "gui.astral_craft.board.developer.bot": "Bot %s",
+  "gui.astral_craft.board.developer.characters": "Characters",
+  "gui.astral_craft.board.developer.skins": "Skins",
+  "gui.astral_craft.board.developer.character_used": "%s (in use)",
+  "gui.astral_craft.board.developer.card_total": "Opening hand: %s cards",
+  "gui.astral_craft.board.developer.card_entry": "%s × %s",
+  "gui.astral_craft.board.developer.back": "Back to characters",
+  "gui.astral_craft.board.developer.configure_cards": "Configure opening hands",
+  "gui.astral_craft.board.developer.start": "Confirm and start",
+  "gui.astral_craft.board.monster": "Monster",
+  "event.astral_craft.monster_invasion.name": "Monster Invasion",
+  "event.astral_craft.monster_invasion.description": "Spawn monsters on two random board panels."
 }

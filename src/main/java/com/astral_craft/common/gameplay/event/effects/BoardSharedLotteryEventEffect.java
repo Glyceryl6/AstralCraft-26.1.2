@@ -65,7 +65,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
             this.durationTicks = durationTicks;
             this.deadlineTick = AstralServerTickClock.now(context.level()) + durationTicks;
             ACTIVE_BOARDS.add(context.session().id());
-            for (BoardParticipant participant : context.session().participants()) {
+            for (BoardParticipant participant : context.session().partyParticipants()) {
                 List<Integer> available = availableNumbers(context.session(), participant);
                 if (available.isEmpty()) continue;
                 if (BoardSessionManager.isAutomated(context.level(), participant)) {
@@ -160,7 +160,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
         }
 
         private void broadcast() {
-            List<OpenBoardLotteryNumberPayload.Entry> entries = this.context.session().participants().stream().map(participant ->
+            List<OpenBoardLotteryNumberPayload.Entry> entries = this.context.session().partyParticipants().stream().map(participant ->
                     new OpenBoardLotteryNumberPayload.Entry(BoardSessionManager.displayName(this.context.level(), participant),
                             participant.characterId(), participant.skinId(), !this.pendingSlots.contains(participant.slotUuid()))).toList();
             int remaining = (int) Math.max(1L, this.deadlineTick - AstralServerTickClock.now(this.context.level()));
@@ -169,7 +169,7 @@ public record BoardSharedLotteryEventEffect(int timeoutTicks) implements BoardEv
                 boolean canChoose = local != null && this.pendingSlots.contains(local.slotUuid());
                 List<Integer> selected = local == null ? List.of()
                         : this.context.session().mechanics().lotteryNumbers(local.slotUuid());
-                BoardParticipant fallback = this.context.session().participants().getFirst();
+                BoardParticipant fallback = this.context.session().partyParticipants().getFirst();
                 Identifier characterId = local == null ? fallback.characterId() : local.characterId();
                 Identifier skinId = local == null ? fallback.skinId() : local.skinId();
                 PacketDistributor.sendToPlayer(viewer, new OpenBoardLotteryNumberPayload(this.context.session().id(), selected,

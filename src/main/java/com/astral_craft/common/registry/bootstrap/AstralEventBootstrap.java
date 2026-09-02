@@ -39,12 +39,13 @@ public class AstralEventBootstrap {
     public static final ResourceKey<AstralEventDefinition> IT_IS_WAR = key("it_is_war");
     public static final ResourceKey<AstralEventDefinition> EQUALITY = key("equality");
     public static final ResourceKey<AstralEventDefinition> SWITCHEROO = key("switcheroo");
+    public static final ResourceKey<AstralEventDefinition> MONSTER_INVASION = key("monster_invasion");
     private static final Identifier EQUALITY_GUARD_BUFF = AstralCraft.prefix("equality_guard");
     private static final Identifier FOOD_SAFETY_BUFF = AstralCraft.prefix("food_safety");
     public static final List<ResourceKey<AstralEventDefinition>> BOARD_EVENTS = List.of(
             REDISTRIBUTION, HASTE, PHILANTHROPY, SERVER_BUG, FOOD_SAFETY, LOTTERY,
             MY_GODDESS, DEAFENING_NOISE, CARD_DESTRUCTION, BIG_SALES, CROWD,
-            FALLING_GIFTS, ISOLATION, OVERSPENDING, BROKEN_POCKET, IT_IS_WAR, EQUALITY, SWITCHEROO);
+            FALLING_GIFTS, ISOLATION, OVERSPENDING, BROKEN_POCKET, IT_IS_WAR, EQUALITY, SWITCHEROO, MONSTER_INVASION);
 
     public static void bootstrap(BootstrapContext<AstralEventDefinition> context) {
         context.register(REDISTRIBUTION, boardEvent("redistribution", List.of(new BoardBalanceCoinsEventEffect()), List.of()));
@@ -83,6 +84,7 @@ public class AstralEventBootstrap {
                         AstralBoardBuffs.incomingDamage(EQUALITY_GUARD_BUFF, -10)
                                 .permanent().consumeAfterIncomingDamage().build()))), List.of()));
         context.register(SWITCHEROO, boardEvent("switcheroo", List.of(new BoardTransferHandsEventEffect()), List.of()));
+        context.register(MONSTER_INVASION, boardEvent("monster_invasion", List.of(new BoardSpawnMonstersEventEffect(2)), List.of()));
     }
 
     public static ResourceKey<AstralEventDefinition> key(String path) {

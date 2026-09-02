@@ -38,7 +38,7 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
     @Override
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
-            List<BoardParticipant> participants = context.session().participants();
+            List<BoardParticipant> participants = context.session().partyParticipants();
             List<String> destinations = switch (this.mode) {
                 case ROTATE_CURRENT -> rotateCurrent(context, participants);
                 case CONNECTED_RANDOM -> connectedNodes(context);
@@ -76,7 +76,7 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
             queue.add(List.of(start));
             while (!queue.isEmpty()) {
                 List<String> path = queue.removeFirst();
-                if (path.size() >= context.session().participants().size()) return path;
+                if (path.size() >= context.session().partyParticipants().size()) return path;
                 for (String neighbor : neighbors(context.session(), path.getLast())) {
                     if (path.contains(neighbor)) continue;
                     List<String> next = new ArrayList<>(path);
