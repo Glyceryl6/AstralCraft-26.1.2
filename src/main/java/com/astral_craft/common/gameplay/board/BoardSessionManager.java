@@ -922,6 +922,7 @@ public class BoardSessionManager {
             AstralDiceRollService.DiceRollResult result = AstralDiceRollService.rollNextMove(controller,
                     entity.position().add(0.0D, entity.getBbHeight() + 0.85D, 0.0D), participant.stats(), session.id());
             int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS
+                    + (result.values().size() > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0)
                     + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
             BoardParticipant updated = participant.withStats(participant.stats().clearNextMoveDiceEffects().consumeMoveRollBuffs());
             updateParticipant(level, session, updated);
@@ -948,14 +949,17 @@ public class BoardSessionManager {
             dice.setTexture(texture);
             dice.setBoardSessionId(session.id());
             dice.startRoll(1, fixed > 0 ? fixed : 10, AstralDiceRollService.DEFAULT_ROLL_TICKS,
-                    AstralDiceRollService.DEFAULT_SPIN_SPEED, values.get(index), total, 0,
-                    index == 0, 0.0F, 0.0F);
+                    AstralDiceRollService.DEFAULT_SPIN_SPEED, values.get(index), total,
+                    diceCount > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0, index == 0,
+                    (float) -offset, 0.0F);
             level.addFreshEntity(dice);
         }
 
         BoardParticipant updated = participant.withStats(participant.stats().clearNextMoveDiceEffects().consumeMoveRollBuffs());
         updateParticipant(level, session, updated);
-        int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
+        int revealTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS
+                + (diceCount > 1 ? AstralDiceRollService.DEFAULT_MERGE_TICKS : 0)
+                + AstralDiceEntity.RESULT_HOLD_TICKS + 2;
         beginMovement(level, session, updated, total, revealTicks);
     }
 
@@ -1610,7 +1614,9 @@ public class BoardSessionManager {
 
     private static void fillBots(ServerLevel level, BoardSession session) {
         List<CharacterDefinition> available = CharacterManager.INSTANCE.values().stream()
-                .filter(definition -> !session.hasCharacter(definition.id())).toList();
+                .filter(definition -> !session.hasCharacter(definition.id()))
+                .filter(definition -> CharacterManager.INSTANCE.character(definition.id()).botSelectable())
+                .toList();
         List<CharacterDefinition> shuffled = new ArrayList<>(available);
         Collections.shuffle(shuffled, new Random(level.getRandom().nextLong()));
         int index = 0;

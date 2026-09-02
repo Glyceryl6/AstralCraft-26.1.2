@@ -17,6 +17,7 @@ public class AstralDiceRollService {
 
     public static final Identifier WORLD_ENTITY_PRESENTATION = AstralCraft.prefix("world_entity");
     public static final int DEFAULT_ROLL_TICKS = 60;
+    public static final int DEFAULT_MERGE_TICKS = 10;
     public static final float DEFAULT_SPIN_SPEED = 20.0F;
 
     private static final DicePresentation WORLD_ENTITY_PRESENTER = AstralDiceRollService::presentWorldEntities;
@@ -46,7 +47,7 @@ public class AstralDiceRollService {
         int fixed = safeStats.nextMoveFixed();
         int diceCount = fixed > 0 ? 1 : Math.clamp(1 + safeStats.moveDiceBonus(), 1, 8);
         DiceRollRequest request = new DiceRollRequest(fixed > 0 ? fixed : 1, fixed > 0 ? fixed : 10,
-                diceCount, DEFAULT_ROLL_TICKS, 0,
+                diceCount, DEFAULT_ROLL_TICKS, diceCount > 1 ? DEFAULT_MERGE_TICKS : 0,
                 DEFAULT_SPIN_SPEED, WORLD_ENTITY_PRESENTATION, boardId);
         return roll(player, origin, request, safeStats.speed());
     }
