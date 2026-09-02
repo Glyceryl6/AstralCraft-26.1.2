@@ -4,7 +4,10 @@ import com.astral_craft.AstralCraft;
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
+import com.astral_craft.common.gameplay.board.BoardPhase;
 import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardSpectatorService;
 import com.astral_craft.common.gameplay.character.*;
 import com.astral_craft.common.network.s2c.CharacterSkillCutinPayload;
 import com.astral_craft.common.registry.AstralAttachments;
@@ -153,6 +156,14 @@ public class AstralCharacterSkillService {
         if (animation == null) return;
         CharacterSkillCutinPayload payload = new CharacterSkillCutinPayload(definition.id(), state.skinId(),
                 "active", animation, duration);
+        BoardSession boardSession = BoardSessionManager.findByController(player)
+                .filter(session -> session.phase() == BoardPhase.PLAYING).orElse(null);
+        if (boardSession != null) {
+            for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(player.level(), boardSession)) {
+                PacketDistributor.sendToPlayer(viewer, payload);
+            }
+            return;
+        }
         CharacterSkillCutinAudience audience = AstralGameplayConfig.skillCutinAudience();
         if (audience == CharacterSkillCutinAudience.NONE) return;
         if (audience.sendsToNearbyPlayers()) {

@@ -234,6 +234,8 @@ public class ClientEventSubscriber {
             ChipSelectionScreen.closePresentation(payload.boardId());
             TargetSelectionScreen.closePresentation(payload.boardId());
             BoardLotteryNumberScreen.closePresentation(payload.boardId());
+            BoardHudOverlay.clear(payload.boardId());
+            BoardRouteWorldRenderer.clear(payload.boardId());
             CardRevealOverlay.clear();
         }));
         event.register(OpenBoardBattlePayload.TYPE, BoardBattleScreen::open);

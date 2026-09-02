@@ -38,6 +38,10 @@ public class BoardProtectionWorldRenderer {
         }
     }
 
+    public static void clear(UUID boardId) {
+        if (boardId != null) SNAPSHOTS.remove(boardId);
+    }
+
     public static boolean intersects(BoardArea area) {
         if (area == null) return false;
         return SNAPSHOTS.values().stream().anyMatch(snapshot -> new BoardArea(snapshot.min(), snapshot.max()).intersects(area));

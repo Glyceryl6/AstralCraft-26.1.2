@@ -346,7 +346,7 @@ public class BoardSessionManager {
         AstralCharacterEntity entity = BoardEntityService.entity(player.level(), participant);
         if (entity == null) return;
         int cooldown = AstralCharacterSkillService.useActiveSkillForBoard(player, entity, session, participant,
-                humanPlayers(player.level(), session));
+                BoardSpectatorService.presentationViewers(player.level(), session));
         if (cooldown < 0) return;
         BoardParticipant refreshed = session.participant(participant.slotUuid()).orElse(participant);
         int adjustedCooldown = Math.max(0, cooldown - ChipSelectionService.skillCooldownReduction(refreshed));
@@ -1695,12 +1695,8 @@ public class BoardSessionManager {
 
     public static void syncBoardSnapshot(ServerLevel level, BoardSession session) {
         BoardHudSnapshotPayload snapshot = BoardHudSyncManager.createSnapshot(level, session);
-        BlockPos center = session.protectedArea().center();
-        for (ServerPlayer player : level.players()) {
-            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D,
-                    center.getZ() + 0.5D) <= 128.0D * 128.0D) {
-                PacketDistributor.sendToPlayer(player, snapshot);
-            }
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
+            PacketDistributor.sendToPlayer(viewer, snapshot);
         }
     }
 

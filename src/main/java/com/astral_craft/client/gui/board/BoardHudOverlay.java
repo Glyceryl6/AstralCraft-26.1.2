@@ -43,6 +43,16 @@ public class BoardHudOverlay {
         });
     }
 
+    public static void clear(UUID boardId) {
+        if (boardId == null) return;
+        SNAPSHOTS.remove(boardId);
+        BoardProtectionWorldRenderer.clear(boardId);
+    }
+
+    public static boolean isTracking(UUID boardId) {
+        return boardId != null && SNAPSHOTS.containsKey(boardId);
+    }
+
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.options.hideGui || SNAPSHOTS.isEmpty()) return;

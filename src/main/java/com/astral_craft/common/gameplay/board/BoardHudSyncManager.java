@@ -26,7 +26,6 @@ public class BoardHudSyncManager {
     public static final Identifier ROUND_START_SOUND = Identifier.withDefaultNamespace("ui.toast.in");
     public static final Identifier VICTORY_SOUND = Identifier.withDefaultNamespace("ui.toast.challenge_complete");
     private static final int SYNC_INTERVAL_TICKS = 10;
-    private static final double HUD_RANGE_SQR = 512.0D * 512.0D;
     private static final UUID EMPTY_SLOT_ID = new UUID(0L, 0L);
     private static final ChatFormatting[] PLAYER_COLORS = {
             ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.YELLOW, ChatFormatting.LIGHT_PURPLE
@@ -42,12 +41,8 @@ public class BoardHudSyncManager {
 
     public static void send(ServerLevel level, BoardSession session) {
         BoardHudSnapshotPayload snapshot = createSnapshot(level, session);
-        BlockPos center = session.protectedArea().center();
-        for (ServerPlayer player : level.players()) {
-            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D,
-                    center.getZ() + 0.5D) <= HUD_RANGE_SQR) {
-                PacketDistributor.sendToPlayer(player, snapshot);
-            }
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
+            PacketDistributor.sendToPlayer(viewer, snapshot);
         }
 
         Component prompt = actionPrompt(level, session);

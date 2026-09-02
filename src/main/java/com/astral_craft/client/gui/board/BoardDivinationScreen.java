@@ -2,6 +2,7 @@ package com.astral_craft.client.gui.board;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.HandCardRenderHelper;
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.common.gameplay.fortune.DivinationTarget;
 import com.astral_craft.common.network.c2s.BoardDivinationChoicePayload;
 import com.astral_craft.common.network.s2c.OpenBoardDivinationPayload;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class BoardDivinationScreen extends Screen {
 
     private static final Identifier FRONT_FRAME = AstralCraft.prefix("textures/item/template_handcard_event.png");
+    private static final Identifier EVENT_FALLBACK_ART = AstralCraft.prefix("textures/block/platform_event.png");
     private static final int CARD_WIDTH = 104;
     private static final int CARD_HEIGHT = 150;
     private final UUID boardId;
@@ -171,9 +173,12 @@ public class BoardDivinationScreen extends Screen {
                              int x, int y, float alpha, boolean hovered) {
         int argb = alphaColor(alpha);
         graphics.blit(RenderPipelines.GUI_TEXTURED, FRONT_FRAME, x, y, 0.0F, 0.0F,
-                CARD_WIDTH, CARD_HEIGHT, 256, 360, 256, 360, argb);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, option.texture(), x + 13, y + 16, 0.0F, 0.0F,
-                CARD_WIDTH - 26, CARD_WIDTH - 26, 256, 256, 256, 256, argb);
+                CARD_WIDTH, CARD_HEIGHT, 44, 64, 44, 64, argb);
+        Identifier optionTexture = ScopedJpgTextureCache.isSupportedTexture(option.texture())
+                ? ScopedJpgTextureCache.resolve(option.texture()) : EVENT_FALLBACK_ART;
+        int optionTextureSize = optionTexture.equals(EVENT_FALLBACK_ART) ? 32 : 256;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, optionTexture, x + 13, y + 16, 0.0F, 0.0F,
+                CARD_WIDTH - 26, CARD_WIDTH - 26, optionTextureSize, optionTextureSize, optionTextureSize, optionTextureSize, argb);
         Component title = HandCardRenderHelper.ellipsize(this.font, Component.translatable(option.nameKey()), CARD_WIDTH - 14);
         graphics.text(this.font, title, x + CARD_WIDTH / 2 - this.font.width(title) / 2,
                 y + CARD_HEIGHT - 28, withAlpha(0xFFFFFF, alpha), true);
@@ -181,10 +186,14 @@ public class BoardDivinationScreen extends Screen {
     }
 
     private void renderBack(GuiGraphicsExtractor graphics, int x, int y, float alpha) {
-        Identifier texture = this.target == null
+        Identifier requestedTexture = this.target == null
                 ? AstralCraft.prefix("textures/gui/cards/divination/unknown.png") : this.target.texture();
+        Identifier texture = ScopedJpgTextureCache.isSupportedTexture(requestedTexture)
+                ? ScopedJpgTextureCache.resolve(requestedTexture) : FRONT_FRAME;
+        int textureWidth = texture.equals(FRONT_FRAME) ? 44 : 256;
+        int textureHeight = texture.equals(FRONT_FRAME) ? 64 : 360;
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F,
-                CARD_WIDTH, CARD_HEIGHT, 256, 360, 256, 360, alphaColor(alpha));
+                CARD_WIDTH, CARD_HEIGHT, textureWidth, textureHeight, textureWidth, textureHeight, alphaColor(alpha));
         if (this.target == null) return;
         Component targetText = Component.translatable(this.target.translationKey());
         List<net.minecraft.util.FormattedCharSequence> lines = this.font.split(targetText, CARD_WIDTH - 18);

@@ -206,11 +206,9 @@ public class BoardRouteService {
                 ? participant.decisionDurationTicks(BoardSessionManager.BRANCH_TIMEOUT_TICKS) : 1;
         Identifier characterId = participant == null ? AstralCraft.prefix("mimi") : participant.characterId();
         Identifier skinId = participant == null ? Identifier.withDefaultNamespace("default") : participant.skinId();
-        BlockPos center = session.protectedArea().center();
-        for (ServerPlayer player : level.players()) {
-            if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) > 160.0D * 160.0D) continue;
-            List<List<BlockPos>> personalHighlights = participant != null && participant.controlledBy(player.getUUID()) ? highlightedRoutes : List.of();
-            PacketDistributor.sendToPlayer(player, new BoardRouteStatePayload(session.id(), routes,
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
+            List<List<BlockPos>> personalHighlights = participant != null && participant.controlledBy(viewer.getUUID()) ? highlightedRoutes : List.of();
+            PacketDistributor.sendToPlayer(viewer, new BoardRouteStatePayload(session.id(), routes,
                     personalHighlights, branches, decisionTicks, decisionDurationTicks, characterId, skinId, active));
         }
     }

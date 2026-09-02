@@ -29,6 +29,9 @@ import java.util.Locale;
 
 public class CardRevealRenderer {
 
+    private static final Identifier DEFAULT_FRAME_TEXTURE = AstralCraft.prefix("textures/item/template_handcard_effect.png");
+    private static final Identifier EVENT_FALLBACK_ART = AstralCraft.prefix("textures/block/platform_event.png");
+
     private final Minecraft minecraft = Minecraft.getInstance();
     private final Font font = this.minecraft.font;
 
@@ -130,14 +133,15 @@ public class CardRevealRenderer {
 
     public Identifier frameTextureFor(String cardType) {
         String type = cardType == null || cardType.isBlank() ? "effect" : cardType.toLowerCase(Locale.ROOT);
-        return AstralCraft.prefix("textures/item/template_handcard_" + type + ".png");
+        Identifier texture = AstralCraft.prefix("textures/item/template_handcard_" + type + ".png");
+        return ScopedJpgTextureCache.resolveOrFallback(texture, DEFAULT_FRAME_TEXTURE);
     }
 
     public void renderCardTexture(GuiGraphicsExtractor graphics, Identifier texture, int centerX, int centerY, int width, int height, float alpha, int textureWidth, int textureHeight) {
         int left = centerX - width / 2;
         int top = centerY - height / 2;
         int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
-        Identifier resolvedTexture = ScopedJpgTextureCache.resolve(texture);
+        Identifier resolvedTexture = ScopedJpgTextureCache.resolveOrFallback(texture, DEFAULT_FRAME_TEXTURE);
         graphics.blit(RenderPipelines.GUI_TEXTURED, resolvedTexture, left, top, 0.0F, 0.0F, width, height, textureWidth, textureHeight, textureWidth, textureHeight, argb);
     }
 
@@ -170,7 +174,9 @@ public class CardRevealRenderer {
         try {
             LoadedJpgTexture loaded = ScopedJpgTextureCache.getOrLoad(texture);
             graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), left, top, 0.0F, 0.0F, artW, artSize, 256, 256, loaded.width(), loaded.height(), argb);
-        } catch (IOException _) {}
+        } catch (IOException _) {
+            graphics.blit(RenderPipelines.GUI_TEXTURED, EVENT_FALLBACK_ART, left, top, 0.0F, 0.0F, artW, artSize, 32, 32, 32, 32, argb);
+        }
     }
 
     public void renderCardText(GuiGraphicsExtractor graphics, CardReveal reveal, CardRevealSettings settings, int centerX, int centerY, int textSize, float alpha, float xScale, float yScale) {

@@ -49,6 +49,12 @@ public class BoardRouteWorldRenderer {
         });
     }
 
+    public static void clear(UUID boardId) {
+        if (boardId == null || !state.boardId().equals(boardId)) return;
+        state = RouteState.EMPTY;
+        BoardRouteDecisionOverlay.clear();
+    }
+
     public static void submit() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null) return;
@@ -88,7 +94,9 @@ public class BoardRouteWorldRenderer {
         AABB range = new AABB(playerPos, playerPos).inflate(128.0D);
         float cycle = ClientAnimationClock.phaseTicks(30) / 30.0F;
         for (AstralCharacterEntity entity : minecraft.level.getEntitiesOfClass(AstralCharacterEntity.class, range,
-                candidate -> candidate.isBoardPawn() && !"walk".equals(candidate.animationAction())
+                candidate -> candidate.isBoardPawn()
+                        && candidate.boardSessionUuid().map(BoardHudOverlay::isTracking).orElse(false)
+                        && !"walk".equals(candidate.animationAction())
                         && !"knockdown".equals(candidate.animationAction()))) {
             int mask = entity.boardDirectionMask();
             if (mask == 0) {

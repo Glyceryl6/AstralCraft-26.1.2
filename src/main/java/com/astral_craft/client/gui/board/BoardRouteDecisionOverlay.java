@@ -23,6 +23,10 @@ public class BoardRouteDecisionOverlay {
                 payload.characterId(), payload.skinId(), ClientAnimationClock.nowTicks(), true);
     }
 
+    public static void clear() {
+        state = DecisionState.EMPTY;
+    }
+
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft minecraft = Minecraft.getInstance();
         DecisionState current = state;

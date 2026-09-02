@@ -199,7 +199,7 @@ public class CardUseService {
 
             consumeAfterAcceptedUse(serverPlayer, stack, useContext.consumeStack(), useContext.targetSelectionHandIndex());
             sendReveal(serverPlayer, source, definition, revealViewers, List.of(),
-                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS, !useContext.boardCard());
+                    CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS, !boardPresentation(serverPlayer, useContext.boardCard()));
             return CardUseResult.accepted();
         }
 
@@ -323,7 +323,7 @@ public class CardUseService {
                 }
             }
 
-            if (!boardCard) {
+            if (!boardPresentation(player, boardCard)) {
                 sendEntityRevealAround(player, sourceStack, definition, CardRevealPayload.ANIMATION_FLIP, CARD_REVEAL_DURATION_TICKS);
             }
 
@@ -336,8 +336,16 @@ public class CardUseService {
     private static List<ServerPlayer> revealViewers(
             BaseHandCard card, ServerPlayer user, CardDefinition definition,
             List<LivingEntity> targets, CardUseContext context) {
-        if (context.boardCard()) return BoardSessionManager.humanViewers(user);
+        if (boardPresentation(user, context.boardCard())) return BoardSessionManager.humanViewers(user);
         return card.revealViewers(user, definition, targets);
+    }
+
+
+    private static boolean boardPresentation(ServerPlayer player, boolean boardCard) {
+        if (boardCard) return true;
+        return BoardSessionManager.findByController(player)
+                .map(session -> session.phase() == BoardPhase.PLAYING)
+                .orElse(false);
     }
 
     public static void sendReveal(ServerPlayer viewer, ItemStack stack, ServerPlayer owner,

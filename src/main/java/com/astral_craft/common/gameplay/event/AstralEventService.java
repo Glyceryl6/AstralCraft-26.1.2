@@ -2,6 +2,10 @@ package com.astral_craft.common.gameplay.event;
 
 import com.astral_craft.common.config.AstralGameplayConfig;
 import com.astral_craft.common.gameplay.board.BoardEventService;
+import com.astral_craft.common.gameplay.board.BoardPhase;
+import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardSpectatorService;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.handcard.CardUseService;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
@@ -74,14 +78,22 @@ public class AstralEventService {
         if (contexts.isEmpty()) return false;
         int revealDelay = revealDelay(player);
         if (revealDelay > 0 && !PendingCardActionManager.scheduleExclusive(player, revealDelay, () -> beginEvent(contexts))) return false;
-        sendRevealOrMessage(player, definition);
-        if (definition.broadcast()) {
-            contexts.stream().map(AstralEventContext::targetPlayer)
-                    .filter(target -> target != null && !target.getUUID().equals(player.getUUID()))
-                    .forEach(target -> sendRevealOrMessage(target, definition));
+        BoardSession boardSession = BoardSessionManager.findByController(player)
+                .filter(session -> session.phase() == BoardPhase.PLAYING).orElse(null);
+        if (boardSession != null) {
+            for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(player.level(), boardSession)) {
+                sendRevealOrMessage(viewer, definition);
+            }
+        } else {
+            sendRevealOrMessage(player, definition);
+            if (definition.broadcast()) {
+                contexts.stream().map(AstralEventContext::targetPlayer)
+                        .filter(target -> target != null && !target.getUUID().equals(player.getUUID()))
+                        .forEach(target -> sendRevealOrMessage(target, definition));
+            }
         }
 
-        if (revealDelay > 0) {
+        if (revealDelay > 0 && boardSession == null) {
             CardUseService.sendEntityRevealAround(
                     player, definition.id().toString(),
                     ItemStack.EMPTY, "event",
@@ -91,7 +103,7 @@ public class AstralEventService {
                     CardBackPreferenceManager.selectedTexture(player),
                     CardRevealPayload.ANIMATION_APPROACH,
                     Math.max(DEFAULT_EVENT_REVEAL_DURATION_TICKS, AstralGameplayConfig.eventRevealLockTicks()));
-        } else {
+        } else if (revealDelay <= 0) {
             beginEvent(contexts);
         }
 

@@ -80,7 +80,7 @@ public class BoardPanelSelectionService {
         if (pending.revealWhenPlaced() && pending.cardStack().getItem() instanceof BaseHandCard card) {
             PendingCardActionManager.beginBoardCardUi(player, pending.boardId(), false);
             var definition = card.definition(pending.cardStack());
-            for (ServerPlayer viewer : BoardSessionManager.humanPlayers(player.level(), session)) {
+            for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(player.level(), session)) {
                 CardUseService.sendReveal(viewer, pending.cardStack(), player, definition,
                         CardRevealPayload.ANIMATION_FLIP, CardUseService.CARD_REVEAL_DURATION_TICKS);
             }
