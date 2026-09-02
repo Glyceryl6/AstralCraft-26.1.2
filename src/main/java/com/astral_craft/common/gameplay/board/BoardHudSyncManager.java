@@ -75,6 +75,7 @@ public class BoardHudSyncManager {
         }
 
         session.participants().stream()
+                .filter(participant -> !participant.monster())
                 .filter(participant -> !includedSlots.contains(participant.slotUuid()))
                 .forEach(participant -> addParticipant(level, session, pawns, participant));
 

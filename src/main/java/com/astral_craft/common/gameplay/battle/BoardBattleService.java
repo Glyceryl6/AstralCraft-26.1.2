@@ -68,7 +68,8 @@ public class BoardBattleService {
                 defenderDeadlineTick, defenderDurationTicks, List.of(), List.of(), DefenseMode.DEFEND, false, false,
                 counterableChallenge, null);
         ACTIVE.put(session.id(), state);
-        CharacterManager.INSTANCE.character(attacker.characterId()).onBoardBattleStarted(level, session, attacker, defender);
+        if (!attacker.monster()) CharacterManager.INSTANCE.character(attacker.characterId())
+                .onBoardBattleStarted(level, session, attacker, defender);
         send(level, session, state);
     }
 
@@ -197,8 +198,10 @@ public class BoardBattleService {
         }
 
         if (attacker != null && defender != null) {
-            CharacterManager.INSTANCE.character(attacker.characterId()).onBoardBattleFinished(level, session, attacker, defender);
-            CharacterManager.INSTANCE.character(defender.characterId()).onBoardBattleFinished(level, session, attacker, defender);
+            if (!attacker.monster()) CharacterManager.INSTANCE.character(attacker.characterId())
+                    .onBoardBattleFinished(level, session, attacker, defender);
+            if (!defender.monster()) CharacterManager.INSTANCE.character(defender.characterId())
+                    .onBoardBattleFinished(level, session, attacker, defender);
         }
 
         if (attacker == null || defender == null || attacker.knockedDown() || defender.knockedDown()) {

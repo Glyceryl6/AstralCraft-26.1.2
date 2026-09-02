@@ -162,6 +162,10 @@ public class BoardSession {
         return List.copyOf(this.participants.values());
     }
 
+    public List<BoardParticipant> partyParticipants() {
+        return this.participants.values().stream().filter(participant -> !participant.monster()).toList();
+    }
+
     public Optional<BoardParticipant> participant(UUID slotId) {
         return Optional.ofNullable(this.participants.get(slotId));
     }
@@ -194,7 +198,9 @@ public class BoardSession {
     }
 
     public boolean hasCharacter(Identifier characterId) {
-        return this.participants.values().stream().anyMatch(participant -> participant.characterId().equals(characterId));
+        return this.participants.values().stream()
+                .filter(participant -> !participant.monster())
+                .anyMatch(participant -> participant.characterId().equals(characterId));
     }
 
     public int humanCount() {
@@ -202,7 +208,7 @@ public class BoardSession {
     }
 
     public int participantCount() {
-        return this.participants.size();
+        return this.partyParticipants().size();
     }
 
     public void setHomeNode(UUID slotId, String nodeId) {

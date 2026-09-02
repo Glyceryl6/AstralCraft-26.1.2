@@ -1,0 +1,13 @@
+{
+  "cooldown_ticks": 0,
+  "description_key": "event.astral_craft.monster_invasion.description",
+  "effects": [
+    {
+      "type": "astral_craft:board_spawn_monsters"
+    }
+  ],
+  "id": "astral_craft:monster_invasion",
+  "name_key": "event.astral_craft.monster_invasion.name",
+  "texture": "astral_craft:textures/gui/cards/event/monster_invasion.jpg",
+  "triggers": false
+}

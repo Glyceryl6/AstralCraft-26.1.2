@@ -53,7 +53,9 @@ public class BoardEntityService {
         entity.setStarCoins(participant.stats().starCoins());
         entity.setBoardSessionId(session.id());
         entity.setBoardParticipantId(participant.slotUuid());
-        entity.setCustomName(Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
+        entity.setCustomName(participant.monster()
+                ? Component.translatable("gui.astral_craft.board.monster")
+                : Component.translatable(CharacterManager.INSTANCE.get(participant.characterId()).getDescriptionId()));
         entity.setCustomNameVisible(false);
         AttributeInstance instance = entity.getAttribute(Attributes.MAX_HEALTH);
         if (instance != null) instance.setBaseValue(participant.stats().maxHealth());
