@@ -1,7 +1,13 @@
 package com.astral_craft.common.items;
 
+import com.astral_craft.common.gameplay.board.BoardDeveloperService;
+import com.astral_craft.common.gameplay.board.BoardLobbyService;
+import com.astral_craft.common.gameplay.board.BoardPhase;
+import com.astral_craft.common.gameplay.board.BoardProtectionService;
+import com.astral_craft.common.gameplay.board.BoardSavedData;
+import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import com.astral_craft.common.util.AstralServerTickClock;
-import com.astral_craft.common.gameplay.board.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -9,9 +15,9 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
 
-public class BoardLobbyItem extends Item {
+public class BoardDeveloperItem extends Item {
 
-    public BoardLobbyItem(Properties properties) {
+    public BoardDeveloperItem(Properties properties) {
         super(properties);
     }
 
@@ -32,6 +38,11 @@ public class BoardLobbyItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.other_players"), true);
             return InteractionResult.FAIL;
         }
+        if (session.humanCount() > 0 && session.participantByController(player.getUUID()).isEmpty()) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.other_players"), true);
+            return InteractionResult.FAIL;
+        }
+
         ServerLevel level = player.level();
         if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(level, session);
         if (session.phase() == BoardPhase.READY) {
@@ -40,12 +51,10 @@ public class BoardLobbyItem extends Item {
             session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
             BoardSessionManager.markChanged(level);
             BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));
-        } else if (session.lobbyDeadlineTick() <= 0L) {
-            session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
-            BoardSessionManager.markChanged(level);
         }
+
+        BoardDeveloperService.begin(player, session);
         BoardLobbyService.registerViewer(player, session);
         return InteractionResult.SUCCESS;
     }
-
 }

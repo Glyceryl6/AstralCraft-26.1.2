@@ -56,6 +56,7 @@ public class AstralItems {
     public static final DeferredHolder<Item, ? extends Item> ASTRAL_DICE = register("astral_dice", AstralDiceItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_SCANNER = register("board_scanner", BoardScannerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_LOBBY = register("board_lobby", BoardLobbyItem::new, Item.Properties::new);
+    public static final DeferredHolder<Item, ? extends Item> BOARD_DEVELOPER = register("board_developer", BoardDeveloperItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_SPECTATOR = register("board_spectator", BoardSpectatorItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_DISMANTLER = register("board_dismantler", BoardDismantlerItem::new, Item.Properties::new);
     public static final DeferredHolder<Item, ? extends Item> BOARD_PROJECTOR = register("board_projector", BoardProjectorItem::new, Item.Properties::new);

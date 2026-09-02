@@ -11,6 +11,7 @@ import com.astral_craft.common.entity.CustomPaintingEntity;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
+import com.astral_craft.common.gameplay.board.BoardDeveloperService;
 import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.blocks.platform.DivinePlatform;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
@@ -158,6 +159,12 @@ public class AstralServerPayloadHandlers {
             if (context.player() instanceof ServerPlayer player) {
                 BoardLobbyService.updateSelection(player, payload.boardId(), payload.characterId(), payload.skinId(), payload.confirmed());
             }
+        });
+    }
+
+    public static void handleBoardDeveloperConfig(BoardDeveloperConfigPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) BoardDeveloperService.apply(player, payload);
         });
     }
 
