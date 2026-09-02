@@ -2,8 +2,10 @@ package com.astral_craft.client.gui.board;
 
 import com.astral_craft.client.gameplay.character.ClientCharacterDefinitionCache;
 import com.astral_craft.client.gui.AstralStatusIconRenderer;
+import com.astral_craft.client.gui.HandCardRenderHelper;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
+import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.BoardDeveloperService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
@@ -18,10 +20,12 @@ import com.astral_craft.common.network.s2c.BoardCharacterAvailability;
 import com.astral_craft.common.network.s2c.BoardCharacterSelectionEntry;
 import com.astral_craft.common.network.s2c.OpenBoardCharacterSelectionPayload;
 import com.astral_craft.common.network.s2c.OpenBoardDeveloperPayload;
+import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -58,6 +62,11 @@ public class BoardCharacterSelectionScreen extends Screen {
     private static final int BOT_COUNT = 3;
     private static final int DEVELOPER_TAB_H = 20;
     private static final int DEVELOPER_ROW_H = 22;
+    private static final int DEVELOPER_CARD_TILE_W = 84;
+    private static final int DEVELOPER_CARD_CONTROL_H = 20;
+    private static final int DEVELOPER_CARD_TILE_H = HandCardRenderHelper.FRAMED_CARD_H + DEVELOPER_CARD_CONTROL_H + 4;
+    private static final int DEVELOPER_CARD_BUTTON_W = 20;
+    private static final int DEVELOPER_CARD_INPUT_W = 34;
     private final UUID boardId;
     private final List<CharacterDefinition> characters;
     private final Set<Identifier> occupied;
@@ -66,8 +75,13 @@ public class BoardCharacterSelectionScreen extends Screen {
     private final boolean developerMode;
     private final boolean developerLive;
     private final List<Identifier> developerCardIds;
-    private final BoardCharacterSelectionEntry developerHuman;
+    private final Set<Identifier> developerBotSelectable;
+    private final String developerHumanName;
     private final BotDraft[] developerBots = new BotDraft[BOT_COUNT];
+    private final Map<Identifier, EditBox> developerCardCountBoxes = new LinkedHashMap<>();
+    private final Map<Identifier, DeveloperCardView> developerCardViews = new LinkedHashMap<>();
+    private Identifier developerHumanCharacter;
+    private Identifier developerHumanSkin;
     private List<BoardCharacterSelectionEntry> lobbyEntries;
     private Identifier selectedCharacter;
     private String selectedSkin;
@@ -78,7 +92,8 @@ public class BoardCharacterSelectionScreen extends Screen {
     private float characterScroll;
     private float skinScroll;
     private float developerScroll;
-    private int selectedBot;
+    private int selectedDeveloperSlot;
+    private boolean syncingCardInputs;
     private DeveloperTab developerTab = DeveloperTab.CHARACTER;
 
     public BoardCharacterSelectionScreen(OpenBoardCharacterSelectionPayload payload) {
@@ -99,7 +114,10 @@ public class BoardCharacterSelectionScreen extends Screen {
         this.developerMode = false;
         this.developerLive = false;
         this.developerCardIds = List.of();
-        this.developerHuman = null;
+        this.developerBotSelectable = Set.of();
+        this.developerHumanName = "";
+        this.developerHumanCharacter = this.selectedCharacter;
+        this.developerHumanSkin = BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin);
         this.ensureAvailableSelection();
         this.ensureSkin();
     }
@@ -119,14 +137,16 @@ public class BoardCharacterSelectionScreen extends Screen {
         this.developerMode = true;
         this.developerLive = payload.live();
         this.developerCardIds = payload.cardIds();
-        this.developerHuman = payload.human();
+        this.developerBotSelectable = new HashSet<>(payload.botSelectableCharacterIds());
+        this.developerHumanName = payload.human().playerName();
+        this.developerHumanCharacter = payload.human().characterId();
+        this.developerHumanSkin = payload.human().skinId();
         for (int index = 0; index < Math.min(BOT_COUNT, payload.bots().size()); index++) {
             this.developerBots[index] = new BotDraft(payload.bots().get(index));
         }
-        BotDraft selected = this.selectedBotDraft();
-        this.selectedCharacter = selected == null ? this.characters.getFirst().id() : selected.characterId;
-        this.selectedSkin = selected == null ? this.firstSkin(this.characters.getFirst()) : selected.skinId.getPath();
-        this.ensureSkin();
+        this.selectedDeveloperSlot = this.developerLive ? 1 : 0;
+        this.syncSelectedDeveloperSlot();
+        this.prepareDeveloperCardViews();
     }
 
     public static void open(OpenBoardCharacterSelectionPayload payload, IPayloadContext context) {
@@ -169,10 +189,12 @@ public class BoardCharacterSelectionScreen extends Screen {
 
     @Override
     protected void init() {
+        super.init();
         Layout layout = this.layout();
         this.characterScroll = Mth.clamp(this.characterScroll, 0.0F, this.maximumCharacterScroll(layout));
         this.skinScroll = Mth.clamp(this.skinScroll, 0.0F, this.maximumSkinScroll(layout));
         this.developerScroll = Mth.clamp(this.developerScroll, 0.0F, this.maximumDeveloperScroll(layout));
+        if (this.developerMode) this.createDeveloperCardInputs();
     }
 
     @Override
@@ -195,12 +217,14 @@ public class BoardCharacterSelectionScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         Layout layout = this.layout();
+        if (this.developerMode) this.updateDeveloperCardInputs(layout);
         graphics.fill(0, 0, this.width, this.height, 0xE6090912);
         graphics.fill(layout.panelX(), layout.panelY(), layout.panelRight(), layout.panelBottom(), 0xCC11111C);
         graphics.text(this.font, this.title, layout.panelX() + 8, layout.panelY() + 6, 0xFFFFFFFF, false);
         this.renderLobbySlots(graphics, layout);
         if (this.developerMode) this.renderDeveloper(graphics, layout, mouseX, mouseY);
         else this.renderNormalSelection(graphics, layout, mouseX, mouseY);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     private void renderNormalSelection(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
@@ -243,11 +267,16 @@ public class BoardCharacterSelectionScreen extends Screen {
                 ? "gui.astral_craft.board.developer.live_hint" : "gui.astral_craft.board.developer.setup_hint");
         String shownHint = this.font.plainSubstrByWidth(hint.getString(), Math.max(20, layout.buttonX() - layout.gridX() - 8));
         graphics.text(this.font, shownHint, layout.gridX(), layout.buttonY() + 8, 0xFFAEB7DC, false);
-        if (this.developerTab != DeveloperTab.CHARACTER) {
+        if (this.developerTab == DeveloperTab.STATS) {
             Component adjustHint = Component.translatable("gui.astral_craft.board.developer.adjust_hint");
             String shownAdjustHint = this.font.plainSubstrByWidth(adjustHint.getString(),
                     Math.max(20, layout.gridRight() - layout.gridX()));
             graphics.text(this.font, shownAdjustHint, layout.gridX(), layout.buttonY() - 11, 0xFF8E96B7, false);
+        } else if (this.developerTab == DeveloperTab.CARDS) {
+            Component cardsHint = Component.translatable("gui.astral_craft.board.developer.cards_hint");
+            String shownCardsHint = this.font.plainSubstrByWidth(cardsHint.getString(),
+                    Math.max(20, layout.gridRight() - layout.gridX()));
+            graphics.text(this.font, shownCardsHint, layout.gridX(), layout.buttonY() - 11, 0xFF8E96B7, false);
         }
     }
 
@@ -256,9 +285,11 @@ public class BoardCharacterSelectionScreen extends Screen {
         for (int index = 0; index < DeveloperTab.values().length; index++) {
             DeveloperTab tab = DeveloperTab.values()[index];
             int x = layout.gridX() + index * (width + GAP);
-            boolean hovered = inside(mouseX, mouseY, x, layout.developerTabY(), width, DEVELOPER_TAB_H);
+            boolean enabled = this.selectedDeveloperSlot > 0 || tab == DeveloperTab.CHARACTER;
+            boolean hovered = enabled && inside(mouseX, mouseY, x, layout.developerTabY(), width, DEVELOPER_TAB_H);
             AstralFancyButton.renderTab(graphics, this.font, Component.translatable(tab.translationKey), x,
-                    layout.developerTabY(), width, DEVELOPER_TAB_H, this.developerTab == tab, hovered, 0xFFD64B91);
+                    layout.developerTabY(), width, DEVELOPER_TAB_H, this.developerTab == tab, hovered,
+                    enabled ? 0xFFD64B91 : 0xFF59596A);
         }
     }
 
@@ -267,7 +298,7 @@ public class BoardCharacterSelectionScreen extends Screen {
             int x = layout.slotX(slot);
             int y = layout.slotY();
             BoardCharacterSelectionEntry entry = this.developerMode ? this.developerEntry(slot) : this.entry(slot);
-            boolean selectedDeveloperSlot = this.developerMode && slot > 0 && slot - 1 == this.selectedBot;
+            boolean selectedDeveloperSlot = this.developerMode && slot == this.selectedDeveloperSlot;
             int border = selectedDeveloperSlot ? 0xFFD64B91
                     : entry != null && entry.confirmed() ? 0xFFFFD34E : 0xFF626273;
             graphics.fill(x, y, x + layout.slotW(), y + layout.slotH(), 0xD0080810);
@@ -314,9 +345,12 @@ public class BoardCharacterSelectionScreen extends Screen {
             if (position.y() + CHARACTER_H < layout.gridTop() || position.y() > layout.gridBottom()) continue;
             boolean selectedCard = definition.id().equals(this.selectedCharacter);
             boolean occupiedCard = this.developerMode
-                    ? this.characterUsedByOtherBot(definition.id()) : this.occupied.contains(definition.id());
+                    ? this.characterUsedByOtherSeat(definition.id()) : this.occupied.contains(definition.id());
             boolean unlocked = this.developerMode || this.characterUnlocked(definition.id());
-            boolean unavailable = this.developerMode ? occupiedCard : this.selectionLocked || this.submitted || occupiedCard || !unlocked;
+            boolean developerAllowed = !this.developerMode || this.selectedDeveloperSlot == 0
+                    || this.developerBotSelectable.contains(definition.id());
+            boolean unavailable = this.developerMode ? occupiedCard || !developerAllowed
+                    : this.selectionLocked || this.submitted || occupiedCard || !unlocked;
             boolean hovered = inside(mouseX, mouseY, position.x(), position.y(), CHARACTER_W, CHARACTER_H);
             AstralFancyButton.renderIconFrame(graphics, position.x(), position.y(), CHARACTER_W, CHARACTER_H,
                     selectedCard, hovered && !unavailable);
@@ -330,13 +364,13 @@ public class BoardCharacterSelectionScreen extends Screen {
             }
 
             String skinId = selectedCard ? this.selectedSkin : this.preferredSkin(definition.id());
-            int alpha = occupiedCard && !selectedCard ? 90 : 255;
+            int alpha = occupiedCard && !selectedCard || !developerAllowed ? 90 : 255;
             AstralStatusIconRenderer.renderCharacterSkinHead(graphics, definition.id(), skinId,
                     position.x() + 12, position.y() + 2, 24, alpha, !unlocked);
             if (!unlocked) graphics.fill(position.x(), position.y(), position.x() + CHARACTER_W,
                     position.y() + CHARACTER_H, 0x66101010);
             Component characterName = Component.translatable(definition.getDescriptionId());
-            int textColor = !unlocked || occupiedCard && !selectedCard ? 0xFF7C7478 : 0xFFFFFFFF;
+            int textColor = !unlocked || occupiedCard && !selectedCard || !developerAllowed ? 0xFF7C7478 : 0xFFFFFFFF;
             graphics.text(this.font, this.font.plainSubstrByWidth(characterName.getString(), CHARACTER_W - 4),
                     position.x() + 2, position.y() + 29, textColor, false);
         }
@@ -406,7 +440,12 @@ public class BoardCharacterSelectionScreen extends Screen {
 
     private void renderDeveloperCards(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
         BotDraft draft = this.selectedBotDraft();
-        if (draft == null) return;
+        if (draft == null) {
+            Component hint = Component.translatable("gui.astral_craft.board.developer.cards_bot_only");
+            graphics.centeredText(this.font, hint, (layout.gridX() + layout.gridRight()) / 2,
+                    layout.gridTitleY() + 34, 0xFFAEB7DC);
+            return;
+        }
         int top = layout.gridTitleY();
         int bottom = layout.buttonY() - 18;
         Component total = Component.translatable("gui.astral_craft.board.developer.card_total", draft.totalCards());
@@ -417,36 +456,42 @@ public class BoardCharacterSelectionScreen extends Screen {
         AstralFancyButton.renderButton(graphics, this.font,
                 Component.translatable("gui.astral_craft.board.developer.clear_cards"), clearX, top,
                 clearW, DEVELOPER_TAB_H, false, clearHover, ButtonStyle.button(0xFF646477));
-        int listTop = top + DEVELOPER_TAB_H + GAP;
+        int listTop = this.developerCardListTop(layout);
         graphics.enableScissor(layout.gridX(), listTop, layout.gridRight(), bottom);
         for (int index = 0; index < this.developerCardIds.size(); index++) {
             Identifier cardId = this.developerCardIds.get(index);
-            int y = listTop + index * (DEVELOPER_ROW_H + 2) - Math.round(this.developerScroll);
-            if (y + DEVELOPER_ROW_H < listTop || y > bottom) continue;
-            this.renderCardRow(graphics, layout, draft, cardId, y, mouseX, mouseY);
+            DeveloperCardPosition position = this.developerCardPosition(layout, index);
+            if (position.y() + DEVELOPER_CARD_TILE_H < listTop || position.y() > bottom) continue;
+            this.renderDeveloperCard(graphics, draft, cardId, position, mouseX, mouseY);
         }
         graphics.disableScissor();
     }
 
-    private void renderCardRow(GuiGraphicsExtractor graphics, Layout layout, BotDraft draft, Identifier cardId,
-                               int y, int mouseX, int mouseY) {
+    private void renderDeveloperCard(GuiGraphicsExtractor graphics, BotDraft draft, Identifier cardId,
+                                     DeveloperCardPosition position, int mouseX, int mouseY) {
+        DeveloperCardView view = this.developerCardViews.get(cardId);
+        if (view == null) return;
         int count = draft.cards.getOrDefault(cardId, 0);
-        int minusW = 24;
-        int plusW = 24;
-        int plusX = layout.gridRight() - plusW;
-        int minusX = plusX - GAP - minusW;
-        int countRight = minusX - 8;
-        graphics.fill(layout.gridX(), y, layout.gridRight(), y + DEVELOPER_ROW_H, count > 0 ? 0x664C3B68 : 0x66191928);
-        Component cardName = this.cardName(cardId);
-        String shown = this.font.plainSubstrByWidth(cardName.getString(), Math.max(20, countRight - layout.gridX() - 35));
-        graphics.text(this.font, shown, layout.gridX() + 5, y + 7, 0xFFFFFFFF, false);
-        String countText = "x" + count;
-        graphics.text(this.font, countText, countRight - this.font.width(countText), y + 7, 0xFFFFD1E8, false);
-        AstralFancyButton.renderButton(graphics, this.font, Component.literal("-"), minusX, y, minusW,
-                DEVELOPER_ROW_H, false, inside(mouseX, mouseY, minusX, y, minusW, DEVELOPER_ROW_H),
+        int cardX = position.x() + (DEVELOPER_CARD_TILE_W - HandCardRenderHelper.FRAMED_CARD_W) / 2;
+        boolean selected = count > 0;
+        if (selected) {
+            graphics.fill(position.x(), position.y(), position.x() + DEVELOPER_CARD_TILE_W,
+                    position.y() + DEVELOPER_CARD_TILE_H, 0x443D2E5A);
+        }
+        HandCardRenderHelper.renderFramedCard(graphics, this.font, view.definition().type(), view.texture(),
+                view.definition().displayName(view.stack()), cardX, position.y(), mouseX, mouseY, false);
+        if (count > 0) HandCardRenderHelper.renderCardCount(graphics, this.font, count, cardX, position.y());
+        int controlsY = position.controlsY();
+        AstralFancyButton.renderButton(graphics, this.font, Component.literal("-"), position.minusX(), controlsY,
+                DEVELOPER_CARD_BUTTON_W, DEVELOPER_CARD_CONTROL_H, count <= 0,
+                count > 0 && inside(mouseX, mouseY, position.minusX(), controlsY,
+                        DEVELOPER_CARD_BUTTON_W, DEVELOPER_CARD_CONTROL_H),
                 ButtonStyle.button(0xFF646477));
-        AstralFancyButton.renderButton(graphics, this.font, Component.literal("+"), plusX, y, plusW,
-                DEVELOPER_ROW_H, false, inside(mouseX, mouseY, plusX, y, plusW, DEVELOPER_ROW_H),
+        AstralFancyButton.renderButton(graphics, this.font, Component.literal("+"), position.plusX(), controlsY,
+                DEVELOPER_CARD_BUTTON_W, DEVELOPER_CARD_CONTROL_H,
+                draft.totalCards() >= BoardParticipant.MAX_SUPPORTED_HAND_SIZE,
+                inside(mouseX, mouseY, position.plusX(), controlsY,
+                        DEVELOPER_CARD_BUTTON_W, DEVELOPER_CARD_CONTROL_H),
                 ButtonStyle.button(0xFF4C8EC9));
     }
 
@@ -471,18 +516,23 @@ public class BoardCharacterSelectionScreen extends Screen {
     private boolean handleDeveloperClick(MouseButtonEvent event) {
         if (this.submitted) return true;
         Layout layout = this.layout();
-        for (int slot = 1; event.button() == 0 && slot < SLOT_COUNT; slot++) {
+        int firstSelectableSlot = this.developerLive ? 1 : 0;
+        for (int slot = firstSelectableSlot; event.button() == 0 && slot < SLOT_COUNT; slot++) {
             if (!inside(event.x(), event.y(), layout.slotX(slot), layout.slotY(), layout.slotW(), layout.slotH())) continue;
-            this.selectedBot = slot - 1;
-            this.syncSelectedBot();
+            this.selectedDeveloperSlot = slot;
+            if (slot == 0) this.developerTab = DeveloperTab.CHARACTER;
+            this.syncSelectedDeveloperSlot();
             return true;
         }
         int tabW = Math.max(1, (layout.gridRight() - layout.gridX() - GAP * 2) / DeveloperTab.values().length);
         for (int index = 0; event.button() == 0 && index < DeveloperTab.values().length; index++) {
             int x = layout.gridX() + index * (tabW + GAP);
             if (!inside(event.x(), event.y(), x, layout.developerTabY(), tabW, DEVELOPER_TAB_H)) continue;
-            this.developerTab = DeveloperTab.values()[index];
+            DeveloperTab next = DeveloperTab.values()[index];
+            if (this.selectedDeveloperSlot == 0 && next != DeveloperTab.CHARACTER) return true;
+            this.developerTab = next;
             this.developerScroll = 0.0F;
+            this.updateDeveloperCardInputs(layout);
             return true;
         }
         if (this.developerTab == DeveloperTab.CHARACTER && event.button() == 0) {
@@ -491,8 +541,8 @@ public class BoardCharacterSelectionScreen extends Screen {
         } else if (this.developerTab == DeveloperTab.STATS
                 && this.handleDeveloperStatClick(layout, event.x(), event.y(), developerStep(event.button()))) {
             return true;
-        } else if (this.developerTab == DeveloperTab.CARDS
-                && this.handleDeveloperCardClick(layout, event.x(), event.y(), developerStep(event.button()))) {
+        } else if (this.developerTab == DeveloperTab.CARDS && event.button() == 0
+                && this.handleDeveloperCardClick(layout, event.x(), event.y())) {
             return true;
         }
         if (event.button() == 0 && inside(event.x(), event.y(), layout.buttonX(), layout.buttonY(), layout.buttonW(), layout.buttonH())) {
@@ -508,7 +558,9 @@ public class BoardCharacterSelectionScreen extends Screen {
             if (!inside(mouseX, mouseY, position.x(), position.y(), CHARACTER_W, CHARACTER_H)
                     || mouseY < layout.gridTop() || mouseY > layout.gridBottom()) continue;
             CharacterDefinition definition = this.characters.get(index);
-            boolean allowed = this.developerMode ? !this.characterUsedByOtherBot(definition.id())
+            boolean allowed = this.developerMode
+                    ? !this.characterUsedByOtherSeat(definition.id())
+                    && (this.selectedDeveloperSlot == 0 || this.developerBotSelectable.contains(definition.id()))
                     : !this.occupied.contains(definition.id()) && this.characterUnlocked(definition.id());
             if (allowed) {
                 this.selectedCharacter = definition.id();
@@ -516,9 +568,14 @@ public class BoardCharacterSelectionScreen extends Screen {
                 this.ensureSkin();
                 this.skinScroll = 0.0F;
                 if (this.developerMode) {
-                    BotDraft draft = this.selectedBotDraft();
-                    if (draft != null) draft.setIdentity(this.selectedCharacter,
-                            BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin));
+                    Identifier skinId = BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin);
+                    if (this.selectedDeveloperSlot == 0) {
+                        this.developerHumanCharacter = this.selectedCharacter;
+                        this.developerHumanSkin = skinId;
+                    } else {
+                        BotDraft draft = this.selectedBotDraft();
+                        if (draft != null) draft.setIdentity(this.selectedCharacter, skinId);
+                    }
                 } else if (send) {
                     this.sendSelection(false);
                 }
@@ -539,8 +596,12 @@ public class BoardCharacterSelectionScreen extends Screen {
             if (this.developerMode || this.skinUnlocked(this.selectedCharacter, skin.id())) {
                 this.selectedSkin = skin.id();
                 if (this.developerMode) {
-                    BotDraft draft = this.selectedBotDraft();
-                    if (draft != null) draft.skinId = BoardParticipant.skinIdentifier(this.selectedCharacter, skin.id());
+                    Identifier skinId = BoardParticipant.skinIdentifier(this.selectedCharacter, skin.id());
+                    if (this.selectedDeveloperSlot == 0) this.developerHumanSkin = skinId;
+                    else {
+                        BotDraft draft = this.selectedBotDraft();
+                        if (draft != null) draft.skinId = skinId;
+                    }
                 } else if (send) {
                     this.sendSelection(false);
                 }
@@ -579,37 +640,33 @@ public class BoardCharacterSelectionScreen extends Screen {
         return false;
     }
 
-    private boolean handleDeveloperCardClick(Layout layout, double mouseX, double mouseY, int step) {
+    private boolean handleDeveloperCardClick(Layout layout, double mouseX, double mouseY) {
         BotDraft draft = this.selectedBotDraft();
         if (draft == null) return false;
         int top = layout.gridTitleY();
         int clearW = 92;
         int clearX = layout.gridRight() - clearW;
-        if (step == 1 && inside(mouseX, mouseY, clearX, top, clearW, DEVELOPER_TAB_H)) {
+        if (inside(mouseX, mouseY, clearX, top, clearW, DEVELOPER_TAB_H)) {
             draft.cards.clear();
+            this.syncDeveloperCardInputs();
             return true;
         }
-        int listTop = top + DEVELOPER_TAB_H + GAP;
+        int listTop = this.developerCardListTop(layout);
         int bottom = layout.buttonY() - 18;
-        int plusX = layout.gridRight() - 24;
-        int minusX = plusX - GAP - 24;
+        if (mouseY < listTop || mouseY > bottom) return false;
         for (int index = 0; index < this.developerCardIds.size(); index++) {
-            int y = listTop + index * (DEVELOPER_ROW_H + 2) - Math.round(this.developerScroll);
-            if (y + DEVELOPER_ROW_H < listTop || y > bottom) continue;
             Identifier cardId = this.developerCardIds.get(index);
+            DeveloperCardPosition position = this.developerCardPosition(layout, index);
+            if (position.y() + DEVELOPER_CARD_TILE_H < listTop || position.y() > bottom) continue;
             int count = draft.cards.getOrDefault(cardId, 0);
-            if (inside(mouseX, mouseY, minusX, y, 24, DEVELOPER_ROW_H)) {
-                int next = Math.max(0, count - step);
-                if (next == 0) draft.cards.remove(cardId);
-                else draft.cards.put(cardId, next);
+            if (inside(mouseX, mouseY, position.minusX(), position.controlsY(),
+                    DEVELOPER_CARD_BUTTON_W, DEVELOPER_CARD_CONTROL_H)) {
+                if (count > 0) this.setDeveloperCardCount(cardId, count - 1);
                 return true;
             }
-            if (inside(mouseX, mouseY, plusX, y, 24, DEVELOPER_ROW_H)) {
-                int available = BoardParticipant.MAX_SUPPORTED_HAND_SIZE - draft.totalCards();
-                if (available > 0) {
-                    draft.cards.put(cardId, count + Math.min(step, available));
-                    draft.maxHandSize = Math.max(draft.maxHandSize, draft.totalCards());
-                }
+            if (inside(mouseX, mouseY, position.plusX(), position.controlsY(),
+                    DEVELOPER_CARD_BUTTON_W, DEVELOPER_CARD_CONTROL_H)) {
+                if (draft.totalCards() < BoardParticipant.MAX_SUPPORTED_HAND_SIZE) this.setDeveloperCardCount(cardId, count + 1);
                 return true;
             }
         }
@@ -637,7 +694,8 @@ public class BoardCharacterSelectionScreen extends Screen {
     @Override
     public void onClose() {
         if (this.developerMode && !this.submitted) {
-            ClientPacketDistributor.sendToServer(new BoardDeveloperConfigPayload(this.boardId, List.of()));
+            ClientPacketDistributor.sendToServer(new BoardDeveloperConfigPayload(this.boardId,
+                    this.developerHumanCharacter, this.developerHumanSkin, List.of()));
         }
         super.onClose();
     }
@@ -663,7 +721,8 @@ public class BoardCharacterSelectionScreen extends Screen {
                     draft.skillCooldownTurns, draft.knockedDownTurns, draft.cardPlaysUsed, draft.maxHandSize, cards));
         }
         this.submitted = true;
-        ClientPacketDistributor.sendToServer(new BoardDeveloperConfigPayload(this.boardId, setups));
+        ClientPacketDistributor.sendToServer(new BoardDeveloperConfigPayload(this.boardId,
+                this.developerHumanCharacter, this.developerHumanSkin, setups));
         super.onClose();
     }
 
@@ -672,15 +731,21 @@ public class BoardCharacterSelectionScreen extends Screen {
                 BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin), confirmed));
     }
 
-    private void syncSelectedBot() {
-        BotDraft draft = this.selectedBotDraft();
-        if (draft == null) return;
-        this.selectedCharacter = draft.characterId;
-        this.selectedSkin = draft.skinId.getPath();
+    private void syncSelectedDeveloperSlot() {
+        if (this.selectedDeveloperSlot == 0) {
+            this.selectedCharacter = this.developerHumanCharacter;
+            this.selectedSkin = this.developerHumanSkin.getPath();
+        } else {
+            BotDraft draft = this.selectedBotDraft();
+            if (draft == null) return;
+            this.selectedCharacter = draft.characterId;
+            this.selectedSkin = draft.skinId.getPath();
+        }
         this.characterScroll = 0.0F;
         this.skinScroll = 0.0F;
         this.developerScroll = 0.0F;
         this.ensureSkin();
+        this.syncDeveloperCardInputs();
     }
 
     private void resetStats(BotDraft draft) {
@@ -718,7 +783,8 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private BoardCharacterSelectionEntry developerEntry(int slot) {
-        if (slot == 0) return this.developerHuman;
+        if (slot == 0) return new BoardCharacterSelectionEntry(0, this.developerHumanName,
+                this.developerHumanCharacter, this.developerHumanSkin, true, true);
         BotDraft draft = this.developerBots[slot - 1];
         if (draft == null) return null;
         return new BoardCharacterSelectionEntry(slot,
@@ -759,8 +825,12 @@ public class BoardCharacterSelectionScreen extends Screen {
         if (valid) return;
         if (this.developerMode) {
             this.selectedSkin = this.firstSkin(definition);
-            BotDraft draft = this.selectedBotDraft();
-            if (draft != null) draft.skinId = BoardParticipant.skinIdentifier(definition.id(), this.selectedSkin);
+            Identifier skinId = BoardParticipant.skinIdentifier(definition.id(), this.selectedSkin);
+            if (this.selectedDeveloperSlot == 0) this.developerHumanSkin = skinId;
+            else {
+                BotDraft draft = this.selectedBotDraft();
+                if (draft != null) draft.skinId = skinId;
+            }
             return;
         }
         String preferred = this.preferredSkin(definition.id());
@@ -800,21 +870,145 @@ public class BoardCharacterSelectionScreen extends Screen {
         return definition.skins().isEmpty() ? "default" : definition.skins().getFirst().id();
     }
 
-    private boolean characterUsedByOtherBot(Identifier characterId) {
+    private boolean characterUsedByOtherSeat(Identifier characterId) {
+        if (this.selectedDeveloperSlot != 0 && this.developerHumanCharacter.equals(characterId)) return true;
         for (int index = 0; index < this.developerBots.length; index++) {
-            if (index == this.selectedBot || this.developerBots[index] == null) continue;
+            if (index == this.selectedDeveloperSlot - 1 || this.developerBots[index] == null) continue;
             if (this.developerBots[index].characterId.equals(characterId)) return true;
         }
         return false;
     }
 
     private BotDraft selectedBotDraft() {
-        return this.selectedBot < 0 || this.selectedBot >= this.developerBots.length ? null : this.developerBots[this.selectedBot];
+        int botIndex = this.selectedDeveloperSlot - 1;
+        return botIndex < 0 || botIndex >= this.developerBots.length ? null : this.developerBots[botIndex];
     }
 
     private Component cardName(Identifier cardId) {
+        DeveloperCardView view = this.developerCardViews.get(cardId);
+        if (view != null) return view.definition().displayName(view.stack());
         Item item = BuiltInRegistries.ITEM.getValue(cardId);
         return item == null ? Component.literal(cardId.toString()) : new ItemStack(item).getHoverName();
+    }
+
+    private void prepareDeveloperCardViews() {
+        this.developerCardViews.clear();
+        for (Identifier cardId : this.developerCardIds) {
+            Item item = BuiltInRegistries.ITEM.getValue(cardId);
+            if (!(item instanceof BaseHandCard card)) continue;
+            ItemStack stack = new ItemStack(item);
+            CardDefinition definition = card.definition(stack);
+            this.developerCardViews.put(cardId,
+                    new DeveloperCardView(stack, definition, definition.largeFrontTexture(stack)));
+        }
+    }
+
+    private void createDeveloperCardInputs() {
+        this.developerCardCountBoxes.clear();
+        for (Identifier cardId : this.developerCardIds) {
+            EditBox box = this.addRenderableWidget(new EditBox(this.font, 0, 0, DEVELOPER_CARD_INPUT_W,
+                    DEVELOPER_CARD_CONTROL_H, this.cardName(cardId)));
+            box.setMaxLength(Integer.toString(BoardParticipant.MAX_SUPPORTED_HAND_SIZE).length());
+            box.setFilter(BoardCharacterSelectionScreen::validDeveloperCardCountInput);
+            box.setResponder(value -> this.updateDeveloperCardCountFromInput(cardId, value));
+            box.setVisible(false);
+            this.developerCardCountBoxes.put(cardId, box);
+        }
+        this.syncDeveloperCardInputs();
+        this.updateDeveloperCardInputs(this.layout());
+    }
+
+    private void updateDeveloperCardInputs(Layout layout) {
+        boolean showing = this.developerMode && this.developerTab == DeveloperTab.CARDS
+                && this.selectedDeveloperSlot > 0 && !this.submitted;
+        int listTop = this.developerCardListTop(layout);
+        int bottom = layout.buttonY() - 18;
+        for (int index = 0; index < this.developerCardIds.size(); index++) {
+            Identifier cardId = this.developerCardIds.get(index);
+            EditBox box = this.developerCardCountBoxes.get(cardId);
+            if (box == null) continue;
+            DeveloperCardPosition position = this.developerCardPosition(layout, index);
+            boolean visible = showing && position.controlsY() >= listTop
+                    && position.controlsY() + DEVELOPER_CARD_CONTROL_H <= bottom;
+            box.setPosition(position.inputX(), position.controlsY());
+            box.setVisible(visible);
+            box.active = visible;
+        }
+    }
+
+    private void syncDeveloperCardInputs() {
+        if (this.developerCardCountBoxes.isEmpty()) return;
+        BotDraft draft = this.selectedBotDraft();
+        this.syncingCardInputs = true;
+        try {
+            for (Map.Entry<Identifier, EditBox> entry : this.developerCardCountBoxes.entrySet()) {
+                int count = draft == null ? 0 : draft.cards.getOrDefault(entry.getKey(), 0);
+                entry.getValue().setValue(count <= 0 ? "" : Integer.toString(count));
+            }
+        } finally {
+            this.syncingCardInputs = false;
+        }
+    }
+
+    private void updateDeveloperCardCountFromInput(Identifier cardId, String value) {
+        if (this.syncingCardInputs) return;
+        BotDraft draft = this.selectedBotDraft();
+        if (draft == null) return;
+        int requested = value == null || value.isBlank() ? 0 : Integer.parseInt(value);
+        int current = draft.cards.getOrDefault(cardId, 0);
+        int available = Math.max(0, BoardParticipant.MAX_SUPPORTED_HAND_SIZE - (draft.totalCards() - current));
+        int next = Math.min(requested, available);
+        if (next <= 0) draft.cards.remove(cardId);
+        else draft.cards.put(cardId, next);
+        draft.maxHandSize = Math.max(draft.maxHandSize, draft.totalCards());
+        if (next != requested) this.syncDeveloperCardInputs();
+    }
+
+    private void setDeveloperCardCount(Identifier cardId, int requested) {
+        BotDraft draft = this.selectedBotDraft();
+        if (draft == null) return;
+        int current = draft.cards.getOrDefault(cardId, 0);
+        int available = Math.max(0, BoardParticipant.MAX_SUPPORTED_HAND_SIZE - (draft.totalCards() - current));
+        int next = Math.clamp(requested, 0, available);
+        if (next == 0) draft.cards.remove(cardId);
+        else draft.cards.put(cardId, next);
+        draft.maxHandSize = Math.max(draft.maxHandSize, draft.totalCards());
+        this.syncDeveloperCardInputs();
+    }
+
+    private int developerCardColumns(Layout layout) {
+        return Math.max(1, (layout.gridRight() - layout.gridX() + GAP) / (DEVELOPER_CARD_TILE_W + GAP));
+    }
+
+    private int developerCardListTop(Layout layout) {
+        return layout.gridTitleY() + DEVELOPER_TAB_H + GAP;
+    }
+
+    private DeveloperCardPosition developerCardPosition(Layout layout, int index) {
+        int columns = this.developerCardColumns(layout);
+        int rowsWidth = columns * DEVELOPER_CARD_TILE_W + Math.max(0, columns - 1) * GAP;
+        int startX = layout.gridX() + Math.max(0, (layout.gridRight() - layout.gridX() - rowsWidth) / 2);
+        int x = startX + index % columns * (DEVELOPER_CARD_TILE_W + GAP);
+        int y = this.developerCardListTop(layout) + index / columns * (DEVELOPER_CARD_TILE_H + GAP)
+                - Math.round(this.developerScroll);
+        int controlsY = y + HandCardRenderHelper.FRAMED_CARD_H + 4;
+        int minusX = x;
+        int inputX = minusX + DEVELOPER_CARD_BUTTON_W + GAP;
+        int plusX = inputX + DEVELOPER_CARD_INPUT_W + GAP;
+        return new DeveloperCardPosition(x, y, controlsY, minusX, inputX, plusX);
+    }
+
+    private static boolean validDeveloperCardCountInput(String value) {
+        if (value == null || value.isEmpty()) return true;
+        if (value.charAt(0) < '1' || value.charAt(0) > '9') return false;
+        for (int index = 1; index < value.length(); index++) {
+            if (value.charAt(index) < '0' || value.charAt(index) > '9') return false;
+        }
+        try {
+            return Integer.parseInt(value) <= BoardParticipant.MAX_SUPPORTED_HAND_SIZE;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     private float maximumCharacterScroll(Layout layout) {
@@ -828,8 +1022,15 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private float maximumDeveloperScroll(Layout layout) {
-        int rows = this.developerTab == DeveloperTab.STATS ? StatField.values().length : this.developerCardIds.size();
-        int content = rows * (DEVELOPER_ROW_H + 2) - 2;
+        if (this.developerTab == DeveloperTab.CHARACTER) return 0.0F;
+        if (this.developerTab == DeveloperTab.CARDS) {
+            int columns = this.developerCardColumns(layout);
+            int rows = (this.developerCardIds.size() + columns - 1) / columns;
+            int content = Math.max(0, rows * (DEVELOPER_CARD_TILE_H + GAP) - GAP);
+            int available = Math.max(1, layout.buttonY() - 18 - this.developerCardListTop(layout));
+            return Math.max(0, content - available);
+        }
+        int content = StatField.values().length * (DEVELOPER_ROW_H + 2) - 2;
         int available = Math.max(1, layout.buttonY() - 18 - (layout.gridTitleY() + DEVELOPER_TAB_H + GAP));
         return Math.max(0, content - available);
     }
@@ -874,6 +1075,10 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     private record CardPosition(int x, int y) {}
+
+    private record DeveloperCardPosition(int x, int y, int controlsY, int minusX, int inputX, int plusX) {}
+
+    private record DeveloperCardView(ItemStack stack, CardDefinition definition, Identifier texture) {}
 
     private record Layout(int panelX, int panelY, int panelRight, int panelBottom,
                           int slotsX, int slotY, int slotW, int slotH, int slotGap, int developerTabY,

@@ -11,7 +11,7 @@ import net.minecraft.resources.Identifier;
 import java.util.List;
 import java.util.UUID;
 
-public record BoardDeveloperConfigPayload(UUID boardId, List<BotSetup> bots) implements CustomPacketPayload {
+public record BoardDeveloperConfigPayload(UUID boardId, Identifier humanCharacterId, Identifier humanSkinId, List<BotSetup> bots) implements CustomPacketPayload {
 
     public static final Type<BoardDeveloperConfigPayload> TYPE = new Type<>(AstralCraft.prefix("board_developer_config"));
     private static final StreamCodec<ByteBuf, CardCount> CARD_COUNT_CODEC = StreamCodec.composite(
@@ -42,6 +42,8 @@ public record BoardDeveloperConfigPayload(UUID boardId, List<BotSetup> bots) imp
             BotSetup::new);
     public static final StreamCodec<ByteBuf, BoardDeveloperConfigPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, BoardDeveloperConfigPayload::boardId,
+            Identifier.STREAM_CODEC, BoardDeveloperConfigPayload::humanCharacterId,
+            Identifier.STREAM_CODEC, BoardDeveloperConfigPayload::humanSkinId,
             BOT_SETUP_CODEC.apply(ByteBufCodecs.list(3)), BoardDeveloperConfigPayload::bots,
             BoardDeveloperConfigPayload::new);
 

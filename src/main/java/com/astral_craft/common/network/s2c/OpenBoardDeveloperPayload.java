@@ -15,8 +15,9 @@ import java.util.List;
 import java.util.UUID;
 
 public record OpenBoardDeveloperPayload(UUID boardId, List<CharacterDefinition> characters,
-                                        List<Identifier> cardIds, BoardCharacterSelectionEntry human,
-                                        List<BotView> bots, boolean live) implements CustomPacketPayload {
+                                        List<Identifier> botSelectableCharacterIds, List<Identifier> cardIds,
+                                        BoardCharacterSelectionEntry human, List<BotView> bots,
+                                        boolean live) implements CustomPacketPayload {
 
     public static final Type<OpenBoardDeveloperPayload> TYPE = new Type<>(AstralCraft.prefix("open_board_developer"));
     private static final StreamCodec<ByteBuf, BotView> BOT_VIEW_CODEC = StreamCodec.composite(
@@ -33,6 +34,7 @@ public record OpenBoardDeveloperPayload(UUID boardId, List<CharacterDefinition> 
     public static final StreamCodec<ByteBuf, OpenBoardDeveloperPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, OpenBoardDeveloperPayload::boardId,
             CharacterCodecLines.STREAM_CODEC, OpenBoardDeveloperPayload::characters,
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(512)), OpenBoardDeveloperPayload::botSelectableCharacterIds,
             Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(512)), OpenBoardDeveloperPayload::cardIds,
             BoardCharacterSelectionEntry.STREAM_CODEC, OpenBoardDeveloperPayload::human,
             BOT_VIEW_CODEC.apply(ByteBufCodecs.list(3)), OpenBoardDeveloperPayload::bots,
@@ -41,6 +43,7 @@ public record OpenBoardDeveloperPayload(UUID boardId, List<CharacterDefinition> 
 
     public OpenBoardDeveloperPayload {
         characters = List.copyOf(characters);
+        botSelectableCharacterIds = List.copyOf(botSelectableCharacterIds);
         cardIds = List.copyOf(cardIds);
         bots = List.copyOf(bots);
     }
@@ -61,5 +64,4 @@ public record OpenBoardDeveloperPayload(UUID boardId, List<CharacterDefinition> 
             maxHandSize = Math.max(1, maxHandSize);
         }
     }
-
 }

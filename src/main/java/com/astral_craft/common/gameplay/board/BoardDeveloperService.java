@@ -5,13 +5,14 @@ import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.gameplay.character.CharacterProgress;
+import com.astral_craft.common.gameplay.character.CharacterProgressManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.gameplay.handcard.PendingCardActionManager;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.c2s.BoardDeveloperConfigPayload;
 import com.astral_craft.common.network.s2c.BoardCharacterSelectionEntry;
 import com.astral_craft.common.network.s2c.OpenBoardDeveloperPayload;
-import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import com.astral_craft.common.stats.TimedStatModifier;
 import com.astral_craft.common.util.AstralServerTickClock;
@@ -20,7 +21,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
@@ -80,21 +80,27 @@ public class BoardDeveloperService {
     }
 
     public static boolean openConfiguration(ServerPlayer player, BoardSession session) {
-        if (!ownedBy(session.id(), player.getUUID()) || session.humanCount() != 1) return false;
-        if (session.phase() != BoardPhase.CHARACTER_SELECTION && !canEditLive(player, session)) return false;
-        BoardParticipant human = session.participantByController(player.getUUID()).orElse(null);
-        if (human == null) return false;
-
-        List<CharacterDefinition> characters = CharacterManager.INSTANCE.values().stream()
-                .filter(definition -> !definition.id().equals(human.characterId()))
-                .filter(definition -> CharacterManager.INSTANCE.character(definition.id()).botSelectable()).toList();
-        List<OpenBoardDeveloperPayload.BotView> bots = session.phase() == BoardPhase.PLAYING
-                ? liveBotViews(session) : defaultBotViews(characters);
+        if (!ownedBy(session.id(), player.getUUID())) return false;
+        boolean live = session.phase() == BoardPhase.PLAYING;
+        if (!live && session.phase() != BoardPhase.CHARACTER_SELECTION) return false;
+        if (live && !canEditLive(player, session)) return false;
+        BoardParticipant currentHuman = session.participantByController(player.getUUID()).orElse(null);
+        if (live && currentHuman == null) return false;
+        if (hasOtherHuman(session, player.getUUID())) return false;
+        List<CharacterDefinition> characters = CharacterManager.INSTANCE.values();
+        List<Identifier> botSelectable = characters.stream()
+                .filter(definition -> CharacterManager.INSTANCE.character(definition.id()).botSelectable())
+                .map(CharacterDefinition::id).toList();
+        Identifier humanCharacterId = currentHuman == null ? preferredDeveloperCharacter(player) : currentHuman.characterId();
+        CharacterDefinition humanDefinition = CharacterManager.INSTANCE.get(humanCharacterId);
+        Identifier humanSkinId = currentHuman == null ? preferredDeveloperSkin(player, humanDefinition) : currentHuman.skinId();
+        List<OpenBoardDeveloperPayload.BotView> bots = live ? liveBotViews(session)
+                : defaultBotViews(characters, botSelectable, humanCharacterId);
         if (bots.size() != BoardSessionManager.REQUIRED_PLAYERS - 1) return false;
         BoardCharacterSelectionEntry humanEntry = new BoardCharacterSelectionEntry(0, player.getScoreboardName(),
-                human.characterId(), human.skinId(), true, true);
+                humanCharacterId, humanSkinId, true, true);
         PacketDistributor.sendToPlayer(player, new OpenBoardDeveloperPayload(session.id(), characters,
-                developerCardIds(), humanEntry, bots, session.phase() == BoardPhase.PLAYING));
+                botSelectable, developerCardIds(), humanEntry, bots, live));
         return true;
     }
 
@@ -106,13 +112,13 @@ public class BoardDeveloperService {
             else resume(player.level(), session);
             return;
         }
-        if (payload.bots().size() != BoardSessionManager.REQUIRED_PLAYERS - 1 || session.humanCount() != 1) {
+        if (payload.bots().size() != BoardSessionManager.REQUIRED_PLAYERS - 1 || hasOtherHuman(session, player.getUUID())) {
             reject(player, session);
             return;
         }
         boolean applied = session.phase() == BoardPhase.CHARACTER_SELECTION
-                ? applyInitial(player, session, payload.bots())
-                : canEditLive(player, session) && applyLive(player, session, payload.bots());
+                ? applyInitial(player, session, payload.humanCharacterId(), payload.humanSkinId(), payload.bots())
+                : session.humanCount() == 1 && canEditLive(player, session) && applyLive(player, session, payload.bots());
         if (!applied) reject(player, session);
     }
 
@@ -143,20 +149,29 @@ public class BoardDeveloperService {
                 BoardSessionManager.markChanged(level);
             }
         }
-
         OWNERS.remove(session.id());
         CONFIGURED_SLOTS.remove(session.id());
         if (session.phase() == BoardPhase.PLAYING) BoardHudSyncManager.send(level, session);
     }
 
-    private static boolean applyInitial(ServerPlayer player, BoardSession session, List<BoardDeveloperConfigPayload.BotSetup> setups) {
-        BoardParticipant human = session.participantByController(player.getUUID()).orElse(null);
-        if (human == null) return false;
+    private static boolean applyInitial(ServerPlayer player, BoardSession session, Identifier humanCharacterId,
+                                        Identifier humanSkinId, List<BoardDeveloperConfigPayload.BotSetup> setups) {
+        if (!CharacterManager.INSTANCE.contains(humanCharacterId)) return false;
+        CharacterDefinition humanDefinition = CharacterManager.INSTANCE.get(humanCharacterId);
+        CharacterSkinDefinition humanSkin = humanDefinition.skinOrDefault(humanSkinId.getPath());
+        Identifier safeHumanSkin = BoardParticipant.skinIdentifier(humanDefinition.id(), humanSkin.id());
+        if (!safeHumanSkin.equals(humanSkinId)) return false;
         Set<Identifier> allowedCards = new HashSet<>(developerCardIds());
         Set<Identifier> usedCharacters = new LinkedHashSet<>();
-        usedCharacters.add(human.characterId());
+        usedCharacters.add(humanDefinition.id());
         List<ConfiguredBot> configured = validateSetups(setups, usedCharacters, allowedCards, Map.of());
         if (configured == null) return false;
+        session.clearParticipants();
+        BoardLobbyService.clear(session.id());
+        BoardParticipant human = new BoardParticipant(UUID.randomUUID(), player.getUUID(), false,
+                humanDefinition.id(), safeHumanSkin, BoardParticipant.EMPTY_NODE_ID, BoardParticipant.EMPTY_NODE_ID,
+                null, AstralPlayerStats.DEFAULT, List.of(), Map.of(), 0, 0, 0, 7, session.nextArrivalOrder());
+        session.putParticipant(human);
         Set<UUID> slots = new LinkedHashSet<>();
         for (ConfiguredBot bot : configured) {
             UUID slotId = UUID.randomUUID();
@@ -249,10 +264,14 @@ public class BoardDeveloperService {
                 Math.clamp(value.nextMoveFixed(), 0, MAX_FIXED_MOVE), buffs, modifiers);
     }
 
-    private static List<OpenBoardDeveloperPayload.BotView> defaultBotViews(List<CharacterDefinition> characters) {
+    private static List<OpenBoardDeveloperPayload.BotView> defaultBotViews(List<CharacterDefinition> characters,
+                                                                           List<Identifier> botSelectable,
+                                                                           Identifier humanCharacterId) {
+        Set<Identifier> selectable = new HashSet<>(botSelectable);
         List<OpenBoardDeveloperPayload.BotView> result = new ArrayList<>();
         for (CharacterDefinition definition : characters) {
             if (result.size() >= BoardSessionManager.REQUIRED_PLAYERS - 1) break;
+            if (definition.id().equals(humanCharacterId) || !selectable.contains(definition.id())) continue;
             AstralPlayerStats stats = defaultStats(definition);
             result.add(new OpenBoardDeveloperPayload.BotView(UUID.randomUUID(), definition.id(), firstSkin(definition),
                     stats, List.of(), 0, 0, 0, 7));
@@ -284,6 +303,18 @@ public class BoardDeveloperService {
         return result;
     }
 
+    private static Identifier preferredDeveloperCharacter(ServerPlayer player) {
+        CharacterProgress progress = CharacterProgressManager.progress(player);
+        Identifier selected = progress.selectedCharacter();
+        return CharacterManager.INSTANCE.contains(selected) ? selected : CharacterManager.INSTANCE.defaultCharacter().id();
+    }
+
+    private static Identifier preferredDeveloperSkin(ServerPlayer player, CharacterDefinition definition) {
+        CharacterProgress progress = CharacterProgressManager.progress(player);
+        CharacterSkinDefinition skin = definition.skinOrDefault(progress.entry(definition.id()).selectedSkin());
+        return BoardParticipant.skinIdentifier(definition.id(), skin.id());
+    }
+
     private static AstralPlayerStats defaultStats(CharacterDefinition definition) {
         AstralPlayerStats stats = CharacterManager.INSTANCE.character(definition.id())
                 .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
@@ -309,10 +340,8 @@ public class BoardDeveloperService {
 
     private static List<Identifier> developerCardIds() {
         List<Identifier> candidates = new ArrayList<>();
-        for (AstralItems.ModelledCardItem entry : AstralItems.MODELLED_CARD_ITEMS) {
-            Item item = entry.item().get();
-            if (item instanceof BaseHandCard) candidates.add(BuiltInRegistries.ITEM.getKey(item));
-        }
+        BuiltInRegistries.ITEM.stream().filter(item -> item instanceof BaseHandCard)
+                .map(BuiltInRegistries.ITEM::getKey).forEach(candidates::add);
         return List.copyOf(candidates);
     }
 

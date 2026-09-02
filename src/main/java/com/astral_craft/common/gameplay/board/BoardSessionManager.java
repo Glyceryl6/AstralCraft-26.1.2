@@ -359,7 +359,6 @@ public class BoardSessionManager {
         BoardSession session = session(player.level(), boardId).orElse(null);
         if (session == null || session.encounter() == null) return;
         BoardSession.EncounterState encounter = session.encounter();
-        if (encounter == null) return;
         BoardParticipant mover = session.participant(encounter.moverSlotId()).orElse(null);
         BoardParticipant target = session.participant(encounter.targetSlotId()).orElse(null);
         if (mover == null || target == null || !mover.controlledBy(player.getUUID())) return;
@@ -383,7 +382,6 @@ public class BoardSessionManager {
         BoardSession session = session(player.level(), boardId).orElse(null);
         if (session == null || session.discard() == null) return;
         BoardSession.DiscardState discard = session.discard();
-        if (discard == null) return;
         BoardParticipant participant = session.participant(discard.slotId()).orElse(null);
         if (participant == null || !participant.controlledBy(player.getUUID())) return;
         Set<Integer> unique = new LinkedHashSet<>(indexes);
@@ -717,7 +715,7 @@ public class BoardSessionManager {
                     updateParticipant(level, session, mover);
                 }
 
-                if (target != null && isAutomated(level, mover) && !isHospitalProtected(session, target)) {
+                if (mover != null && target != null && isAutomated(level, mover) && !isHospitalProtected(session, target)) {
                     BoardBattleService.start(level, session, mover, target);
                 } else {
                     resumeAfterEncounter(level, session);

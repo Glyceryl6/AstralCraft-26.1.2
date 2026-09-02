@@ -33,5 +33,4 @@ public record BoardSpawnMonstersEventEffect(int count) implements BoardEventEffe
         tasks.addLast(BoardEventTask.action(() -> BoardMonsterService.spawnRandom(
                 context.level(), context.session(), Math.max(0, this.count)), 6));
     }
-
 }

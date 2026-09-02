@@ -1,7 +1,6 @@
 package com.astral_craft.common.items;
 
 import com.astral_craft.common.gameplay.board.BoardDeveloperService;
-import com.astral_craft.common.gameplay.board.BoardLobbyService;
 import com.astral_craft.common.gameplay.board.BoardPhase;
 import com.astral_craft.common.gameplay.board.BoardProtectionService;
 import com.astral_craft.common.gameplay.board.BoardSavedData;
@@ -65,10 +64,10 @@ public class BoardDeveloperItem extends Item {
         if (session.phase() != BoardPhase.CHARACTER_SELECTION) return InteractionResult.FAIL;
 
         BoardDeveloperService.begin(player, session);
-        if (session.participantByController(player.getUUID()).isPresent()) {
-            if (!BoardDeveloperService.openConfiguration(player, session)) BoardDeveloperService.clear(session.id());
-        } else {
-            BoardLobbyService.registerViewer(player, session);
+        if (!BoardDeveloperService.openConfiguration(player, session)) {
+            BoardDeveloperService.clear(session.id());
+            BoardSessionManager.resetForLobby(level, session);
+            return InteractionResult.FAIL;
         }
         return InteractionResult.SUCCESS;
     }
