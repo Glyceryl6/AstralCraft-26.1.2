@@ -16,7 +16,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 
-public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, AstralCharacterRenderState, PlayerModel> {
+public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends MobRenderer<T, AstralCharacterRenderState, PlayerModel> {
 
     public AstralCharacterRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.25F);
@@ -29,7 +29,7 @@ public class AstralCharacterRenderer extends MobRenderer<AstralCharacterEntity, 
     }
 
     @Override
-    public void extractRenderState(AstralCharacterEntity entity, AstralCharacterRenderState state, float partialTick) {
+    public void extractRenderState(T entity, AstralCharacterRenderState state, float partialTick) {
         super.extractRenderState(entity, state, partialTick);
         state.characterId = entity.characterId();
         state.skinId = entity.skinId();

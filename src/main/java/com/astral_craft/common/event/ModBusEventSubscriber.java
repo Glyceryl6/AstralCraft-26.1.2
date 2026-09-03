@@ -27,6 +27,7 @@ public class ModBusEventSubscriber {
     @SubscribeEvent
     public static void registerEntityAttributes(EntityAttributeCreationEvent event) {
         event.put(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterEntity.createAttributes().build());
+        event.put(AstralEntities.EXHIBITION_CHARACTER.get(), AstralCharacterEntity.createAttributes().build());
     }
 
     @SubscribeEvent
@@ -44,7 +45,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("37");
+        PayloadRegistrar registrar = event.registrar("38");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -86,6 +87,7 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenHandCardDeckPayload.TYPE, OpenHandCardDeckPayload.STREAM_CODEC);
         registrar.playToClient(CharacterSkillCutinPayload.TYPE, CharacterSkillCutinPayload.STREAM_CODEC);
         registrar.playToClient(OpenCustomPaintingConfigPayload.TYPE, OpenCustomPaintingConfigPayload.STREAM_CODEC);
+        registrar.playToClient(OpenExhibitionCharacterConfigPayload.TYPE, OpenExhibitionCharacterConfigPayload.STREAM_CODEC);
         registrar.playToServer(CardTargetSelectionPayload.TYPE, CardTargetSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardTargets);
         registrar.playToServer(CardNumberSelectionPayload.TYPE, CardNumberSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCardNumberSelection);
         registrar.playToServer(ChipSelectionPayload.TYPE, ChipSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleChipSelection);
@@ -122,6 +124,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(BoardRelicShopActionPayload.TYPE, BoardRelicShopActionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardRelicShop);
         registrar.playToServer(BoardPanelSelectionPayload.TYPE, BoardPanelSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardPanelSelection);
         registrar.playToServer(CustomPaintingConfigPayload.TYPE, CustomPaintingConfigPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCustomPaintingConfig);
+        registrar.playToServer(ExhibitionCharacterConfigPayload.TYPE, ExhibitionCharacterConfigPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleExhibitionCharacterConfig);
     }
 
 }

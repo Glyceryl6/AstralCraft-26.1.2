@@ -8,6 +8,7 @@ import com.astral_craft.common.blocks.platform.ShopPlatform;
 import com.astral_craft.common.blocks.platform.StartPlatform;
 import com.astral_craft.common.components.CustomPaintingData;
 import com.astral_craft.common.entity.CustomPaintingEntity;
+import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
@@ -46,6 +47,20 @@ public class AstralServerPayloadHandlers {
             if (!painting.applyConfiguration(payload.data())) {
                 player.sendSystemMessage(Component.translatable("message.astral_craft.custom_painting.no_space"), true);
             }
+        });
+    }
+
+    public static void handleExhibitionCharacterConfig(ExhibitionCharacterConfigPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            if (!(player.level().getEntity(payload.entityId()) instanceof ExhibitionCharacterEntity entity)) return;
+            if (!entity.canPlayerConfigure(player)) return;
+            if (payload.remove()) {
+                entity.discard();
+                return;
+            }
+
+            entity.applyConfiguration(payload.characterId(), payload.skinId(), payload.yaw(), payload.scale(), payload.showName(), payload.speechText());
         });
     }
 

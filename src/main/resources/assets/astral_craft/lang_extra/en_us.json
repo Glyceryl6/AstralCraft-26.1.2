@@ -1128,5 +1128,18 @@
   "gui.astral_craft.board.developer.battle.attack_die": "Die roll as attacker",
   "gui.astral_craft.board.developer.battle.defense_die": "Die roll as defender",
   "gui.astral_craft.board.developer.battle.attack_card_bonus": "Final attack-card total bonus",
-  "gui.astral_craft.board.developer.battle.defense_card_bonus": "Final defense-card total bonus"
+  "gui.astral_craft.board.developer.battle.defense_card_bonus": "Final defense-card total bonus",
+  "item.astral_craft.exhibition_character_tool": "Exhibition Character Tool",
+  "gui.astral_craft.exhibition_character.title": "Exhibition Character",
+  "gui.astral_craft.exhibition_character.character": "Character",
+  "gui.astral_craft.exhibition_character.skin": "Skin",
+  "gui.astral_craft.exhibition_character.yaw": "Facing (Yaw)",
+  "gui.astral_craft.exhibition_character.scale": "Scale",
+  "gui.astral_craft.exhibition_character.speech": "Speech Bubble",
+  "gui.astral_craft.exhibition_character.speech_hint": "Leave blank to hide the bubble",
+  "gui.astral_craft.exhibition_character.name_shown": "Name: Shown",
+  "gui.astral_craft.exhibition_character.name_hidden": "Name: Hidden",
+  "gui.astral_craft.exhibition_character.remove": "Remove Entity",
+  "gui.astral_craft.exhibition_character.drag_hint": "Drag to rotate · Scroll to scale · Double-click to reset",
+  "gui.astral_craft.exhibition_character.preview_values": "Yaw %s° · Scale %s×"
 }

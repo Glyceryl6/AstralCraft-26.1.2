@@ -2,6 +2,7 @@ package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.s2c.OpenTargetSelectionPayload;
@@ -40,7 +41,7 @@ public class CardTargeting {
     }
 
     public static boolean isValidTarget(ServerPlayer user, LivingEntity entity, ItemStack stack, CardDefinition definition, BaseHandCard card) {
-        if (!entity.isAlive()) return false;
+        if (!entity.isAlive() || entity instanceof ExhibitionCharacterEntity) return false;
         if (entity instanceof AstralCharacterEntity character && character.isBoardPawn()) return false;
         if (entity == user && (card == null || !card.allowsSelfTarget())) return false;
         int range = Math.max(0, CardRangeResolver.targetingRange(user, stack, definition));

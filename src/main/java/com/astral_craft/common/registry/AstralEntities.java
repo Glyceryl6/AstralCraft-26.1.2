@@ -7,6 +7,7 @@ import com.astral_craft.common.entity.CustomPaintingEntity;
 import com.astral_craft.common.entity.SoulLinkEntity;
 import com.astral_craft.common.entity.StarCoinEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
@@ -25,6 +26,10 @@ public final class AstralEntities {
     public static final Supplier<EntityType<AstralCharacterEntity>> ASTRAL_CHARACTER = ENTITIES.registerEntityType(
             "astral_character", AstralCharacterEntity::new, MobCategory.CREATURE,
             builder -> builder.sized(0.6F, 1.8F).clientTrackingRange(64).updateInterval(2));
+
+    public static final Supplier<EntityType<ExhibitionCharacterEntity>> EXHIBITION_CHARACTER = ENTITIES.registerEntityType(
+            "exhibition_character", ExhibitionCharacterEntity::new, MobCategory.MISC,
+            builder -> builder.sized(0.6F, 1.8F).clientTrackingRange(96).updateInterval(2));
 
     public static final Supplier<EntityType<AstralDiceEntity>> ASTRAL_DICE = ENTITIES.registerEntityType(
             "astral_dice", AstralDiceEntity::new, MobCategory.MISC,

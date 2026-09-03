@@ -1128,5 +1128,18 @@
   "gui.astral_craft.board.developer.battle.attack_die": "作为攻击方时的骰点",
   "gui.astral_craft.board.developer.battle.defense_die": "作为防御方时的骰点",
   "gui.astral_craft.board.developer.battle.attack_card_bonus": "攻击手牌最终总加成",
-  "gui.astral_craft.board.developer.battle.defense_card_bonus": "防御手牌最终总加成"
+  "gui.astral_craft.board.developer.battle.defense_card_bonus": "防御手牌最终总加成",
+  "item.astral_craft.exhibition_character_tool": "展览角色编辑工具",
+  "gui.astral_craft.exhibition_character.title": "展览角色设置",
+  "gui.astral_craft.exhibition_character.character": "角色",
+  "gui.astral_craft.exhibition_character.skin": "皮肤",
+  "gui.astral_craft.exhibition_character.yaw": "朝向（Yaw）",
+  "gui.astral_craft.exhibition_character.scale": "缩放",
+  "gui.astral_craft.exhibition_character.speech": "对话气泡",
+  "gui.astral_craft.exhibition_character.speech_hint": "留空则不显示气泡",
+  "gui.astral_craft.exhibition_character.name_shown": "名字：显示",
+  "gui.astral_craft.exhibition_character.name_hidden": "名字：隐藏",
+  "gui.astral_craft.exhibition_character.remove": "移除实体",
+  "gui.astral_craft.exhibition_character.drag_hint": "拖动旋转 · 滚轮缩放 · 双击归零",
+  "gui.astral_craft.exhibition_character.preview_values": "朝向 %s° · 缩放 %s×"
 }

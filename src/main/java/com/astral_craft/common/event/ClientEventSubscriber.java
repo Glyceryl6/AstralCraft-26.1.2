@@ -7,6 +7,7 @@ import com.astral_craft.client.gui.appearance.AppearanceSelectionScreen;
 import com.astral_craft.client.gui.components.AstralConfirmationScreen;
 import com.astral_craft.client.gui.character.AstralSkinRarityManager;
 import com.astral_craft.client.gui.character.CharacterSettingsScreen;
+import com.astral_craft.client.gui.character.ExhibitionCharacterConfigScreen;
 import com.astral_craft.client.gui.phrase.QuickPhraseSidebar;
 import com.astral_craft.client.gui.phrase.QuickPhraseSidebarHost;
 import com.astral_craft.client.input.AstralKeyMappings;
@@ -141,6 +142,7 @@ public class ClientEventSubscriber {
     public static void submitWorldGeometry(SubmitCustomGeometryEvent event) {
         CardRevealWorldRenderer.submit(event);
         PlatformTooltipWorldRenderer.submit(event);
+        ExhibitionSpeechBubbleRenderer.submit(event);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != null) {
             try (Gizmos.TemporaryCollection ignored = minecraft.levelRenderer.collectPerFrameGizmos()) {
@@ -184,6 +186,7 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.LASER_STRIKE.get(), LaserStrikeRenderer::new);
         event.registerEntityRenderer(AstralEntities.FALLING_BRICK.get(), FallingBrickRenderer::new);
         event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
+        event.registerEntityRenderer(AstralEntities.EXHIBITION_CHARACTER.get(), AstralCharacterRenderer::new);
         event.registerEntityRenderer(AstralEntities.FIRECRACKERS_PROJECTILE.get(), FirecrackersRenderer::new);
         event.registerEntityRenderer(AstralEntities.SLINGSHOT_PROJECTILE.get(), SlingshotProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), SnowballAttackProjectileRenderer::new);
@@ -258,6 +261,7 @@ public class ClientEventSubscriber {
         event.register(OpenCharacterSettingsPayload.TYPE, CharacterSettingsScreen::open);
         event.register(OpenHandCardDeckPayload.TYPE, HandCardDeckScreen::open);
         event.register(OpenCustomPaintingConfigPayload.TYPE, CustomPaintingConfigScreen::open);
+        event.register(OpenExhibitionCharacterConfigPayload.TYPE, ExhibitionCharacterConfigScreen::open);
     }
 
     @SubscribeEvent

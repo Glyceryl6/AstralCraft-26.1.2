@@ -1,6 +1,7 @@
 package com.astral_craft.common.gameplay.handcard;
 
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.entity.projectile.CardProjectileSettings;
 import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
@@ -64,7 +65,7 @@ public class AstralCardEffects {
     }
 
     public static void update(LivingEntity entity, AstralPlayerStats stats) {
-        if (entity == null || stats == null) return;
+        if (entity == null || stats == null || entity instanceof ExhibitionCharacterEntity) return;
         AstralPlayerStats current = AstralStats.getOrDefault(entity);
         boolean boardPawn = entity instanceof AstralCharacterEntity character && character.isBoardPawn();
         AstralStats.set(entity, stats);
@@ -123,7 +124,7 @@ public class AstralCardEffects {
 
     /** Board pawns may be the actual visual and logical source even when a player controls them. */
     public static void damageNow(LivingEntity source, LivingEntity target, int amount) {
-        if (source == null || target == null || !(source.level() instanceof ServerLevel level)) return;
+        if (source == null || target == null || target instanceof ExhibitionCharacterEntity || !(source.level() instanceof ServerLevel level)) return;
         if (target instanceof AstralCharacterEntity character && character.isBoardPawn()) {
             int boardDamage = Math.max(0, amount);
             if (boardDamage == 0) return;
