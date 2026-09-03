@@ -4,9 +4,11 @@ import com.astral_craft.client.gameplay.character.ClientCharacterDefinitionCache
 import com.astral_craft.client.model.character.AstralCharacterAnimationRegistry;
 import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
+import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.registry.AstralStatusEffects;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -15,6 +17,9 @@ import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.world.item.component.ResolvableProfile;
+
+import java.util.UUID;
 
 public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends MobRenderer<T, AstralCharacterRenderState, PlayerModel> {
 
@@ -43,6 +48,13 @@ public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends Mo
         state.animationTimeSeconds = entity.animationAgeTicks(partialTick) / 20.0F;
         state.rootPose = AstralGeoAnimationManager.INSTANCE.sample(state.animationSetKey, state.animationAction, "root", state.animationTimeSeconds);
         state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
+        if (entity instanceof ExhibitionCharacterEntity exhibition && exhibition.customSkinEnabled()) {
+            PlayerSkin customSkin = this.customSkin(exhibition);
+            if (customSkin != null) {
+                state.skin = customSkin;
+                state.texture = customSkin.body().texturePath();
+            }
+        }
         if (entity.hasEffect(AstralStatusEffects.SHADOW_CLOAK) || entity.hasEffect(AstralStatusEffects.ASTRAL_PHASE)) {
             state.isInvisibleToPlayer = false;
         }
@@ -53,4 +65,16 @@ public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends Mo
         return state.skin.body().texturePath();
     }
 
+    private PlayerSkin customSkin(ExhibitionCharacterEntity entity) {
+        String source = entity.customSkinSource();
+        if (!ExhibitionCharacterEntity.validCustomSkinSource(entity.customSkinPlayer(), source)) return null;
+        if (!entity.customSkinPlayer()) {
+            Identifier texture = Identifier.tryParse(source);
+            return texture == null ? null : new PlayerSkin(new ClientAsset.ResourceTexture(texture), null, null, PlayerModelType.SLIM, true);
+        }
+
+        UUID uuid = ExhibitionCharacterEntity.parseCustomPlayerUuid(source);
+        ResolvableProfile profile = uuid == null ? ResolvableProfile.createUnresolved(source) : ResolvableProfile.createUnresolved(uuid);
+        return Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin();
+    }
 }

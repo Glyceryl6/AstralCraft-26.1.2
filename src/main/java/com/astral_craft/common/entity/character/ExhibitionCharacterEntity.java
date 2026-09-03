@@ -33,6 +33,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import org.jspecify.annotations.NonNull;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.UUID;
 
 /**
  * Persistent display-only character used by exhibition builds. It deliberately stays separate from
@@ -43,7 +44,11 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     public static final float MIN_SCALE = 0.25F;
     public static final float MAX_SCALE = 4.0F;
     public static final int MAX_SPEECH_LENGTH = 160;
+    public static final int MAX_CUSTOM_SKIN_SOURCE_LENGTH = 256;
     private static final EntityDataAccessor<String> DATA_SPEECH_TEXT = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_ENABLED = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_PLAYER = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> DATA_CUSTOM_SKIN_SOURCE = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.STRING);
 
     public ExhibitionCharacterEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
@@ -55,6 +60,9 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_SPEECH_TEXT, "");
+        builder.define(DATA_CUSTOM_SKIN_ENABLED, false);
+        builder.define(DATA_CUSTOM_SKIN_PLAYER, true);
+        builder.define(DATA_CUSTOM_SKIN_SOURCE, "");
     }
 
     @Override
@@ -122,11 +130,13 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         return false;
     }
 
-    public void applyConfiguration(Identifier characterId, String skinId, float yaw, float scale, boolean showName, String speechText) {
-        if (!CharacterManager.INSTANCE.contains(characterId) || !Float.isFinite(yaw) || !Float.isFinite(scale)) return;
+    public boolean applyConfiguration(Identifier characterId, String skinId, float yaw, float scale, boolean showName, String speechText,
+                                      boolean customSkinEnabled, boolean customSkinPlayer, String customSkinSource) {
+        if (!CharacterManager.INSTANCE.contains(characterId) || !Float.isFinite(yaw) || !Float.isFinite(scale)) return false;
+        if (customSkinEnabled && !validCustomSkinSource(customSkinPlayer, customSkinSource)) return false;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
         CharacterSkinDefinition skin = definition.skins().stream().filter(value -> value.id().equals(skinId)).findFirst().orElse(null);
-        if (skin == null) return;
+        if (skin == null) return false;
         this.setCharacterId(characterId);
         this.setSkinId(skin.id());
         this.setExhibitionYaw(yaw);
@@ -134,14 +144,19 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.setCustomName(Component.translatable(definition.getDescriptionId()));
         this.setCustomNameVisible(showName);
         this.setSpeechText(speechText);
+        this.setCustomSkinPlayer(customSkinPlayer);
+        this.setCustomSkinSource(customSkinSource);
+        this.setCustomSkinEnabled(customSkinEnabled);
         this.applyDisplayInvariants();
+        return true;
     }
 
     public void openConfiguration(ServerPlayer player) {
         if (!this.canPlayerConfigure(player)) return;
         PacketDistributor.sendToPlayer(player, new OpenExhibitionCharacterConfigPayload(
                 this.getId(), CharacterManager.INSTANCE.values(), this.characterId(), this.skinId(), this.getYRot(),
-                this.displayScale(), this.isCustomNameVisible(), this.speechText()));
+                this.displayScale(), this.isCustomNameVisible(), this.speechText(), this.customSkinEnabled(),
+                this.customSkinPlayer(), this.customSkinSource()));
     }
 
     public boolean canPlayerConfigure(Player player) {
@@ -180,6 +195,65 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.entityData.set(DATA_SPEECH_TEXT, safeText);
     }
 
+    public boolean customSkinEnabled() {
+        return this.entityData.get(DATA_CUSTOM_SKIN_ENABLED);
+    }
+
+    public void setCustomSkinEnabled(boolean enabled) {
+        this.entityData.set(DATA_CUSTOM_SKIN_ENABLED, enabled);
+    }
+
+    public boolean customSkinPlayer() {
+        return this.entityData.get(DATA_CUSTOM_SKIN_PLAYER);
+    }
+
+    public void setCustomSkinPlayer(boolean playerSkin) {
+        this.entityData.set(DATA_CUSTOM_SKIN_PLAYER, playerSkin);
+    }
+
+    public String customSkinSource() {
+        return this.entityData.get(DATA_CUSTOM_SKIN_SOURCE);
+    }
+
+    public void setCustomSkinSource(String source) {
+        String safeSource = source == null ? "" : source.strip();
+        if (safeSource.length() > MAX_CUSTOM_SKIN_SOURCE_LENGTH) safeSource = safeSource.substring(0, MAX_CUSTOM_SKIN_SOURCE_LENGTH);
+        this.entityData.set(DATA_CUSTOM_SKIN_SOURCE, safeSource);
+    }
+
+    public static boolean validCustomSkinSource(boolean playerSkin, String source) {
+        String safeSource = source == null ? "" : source.strip();
+        if (safeSource.isEmpty() || safeSource.length() > MAX_CUSTOM_SKIN_SOURCE_LENGTH) return false;
+        return playerSkin ? validCustomPlayerSource(safeSource) : Identifier.tryParse(safeSource) != null;
+    }
+
+    public static boolean validCustomPlayerSource(String source) {
+        String safeSource = source == null ? "" : source.strip();
+        if (safeSource.isEmpty()) return false;
+        if (parseCustomPlayerUuid(safeSource) != null) return true;
+        if (safeSource.length() > 16) return false;
+        for (int index = 0; index < safeSource.length(); index++) {
+            char character = safeSource.charAt(index);
+            if (!Character.isLetterOrDigit(character) && character != '_') return false;
+        }
+        return true;
+    }
+
+    public static UUID parseCustomPlayerUuid(String source) {
+        String safeSource = source == null ? "" : source.strip();
+        try {
+            return UUID.fromString(safeSource);
+        } catch (IllegalArgumentException ignored) {}
+        if (safeSource.length() != 32) return null;
+        String dashed = safeSource.substring(0, 8) + "-" + safeSource.substring(8, 12) + "-" + safeSource.substring(12, 16) + "-"
+                + safeSource.substring(16, 20) + "-" + safeSource.substring(20);
+        try {
+            return UUID.fromString(dashed);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
     public void updateDisplayName() {
         CharacterDefinition definition = CharacterManager.INSTANCE.get(this.characterId());
         this.setCustomName(Component.translatable(definition.getDescriptionId()));
@@ -189,6 +263,10 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     protected void readAdditionalSaveData(ValueInput input) {
         super.readAdditionalSaveData(input);
         this.setSpeechText(input.getStringOr("exhibition_speech", ""));
+        this.setCustomSkinPlayer(input.getBooleanOr("exhibition_custom_skin_player", true));
+        this.setCustomSkinSource(input.getStringOr("exhibition_custom_skin_source", ""));
+        this.setCustomSkinEnabled(input.getBooleanOr("exhibition_custom_skin_enabled", false)
+                && validCustomSkinSource(this.customSkinPlayer(), this.customSkinSource()));
         this.setExhibitionYaw(this.getYRot());
         this.updateDisplayName();
         this.applyDisplayInvariants();
@@ -199,6 +277,9 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     protected void addAdditionalSaveData(ValueOutput output) {
         super.addAdditionalSaveData(output);
         output.putString("exhibition_speech", this.speechText());
+        output.putBoolean("exhibition_custom_skin_enabled", this.customSkinEnabled());
+        output.putBoolean("exhibition_custom_skin_player", this.customSkinPlayer());
+        output.putString("exhibition_custom_skin_source", this.customSkinSource());
     }
 
     private void applyDisplayInvariants() {

@@ -1,6 +1,7 @@
 package com.astral_craft.common.network.s2c;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.gameplay.character.CharacterCodecLines;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import io.netty.buffer.ByteBuf;
@@ -19,7 +20,10 @@ public record OpenExhibitionCharacterConfigPayload(
         float yaw,
         float scale,
         boolean showName,
-        String speechText) implements CustomPacketPayload {
+        String speechText,
+        boolean customSkinEnabled,
+        boolean customSkinPlayer,
+        String customSkinSource) implements CustomPacketPayload {
 
     public static final Type<OpenExhibitionCharacterConfigPayload> TYPE = new Type<>(AstralCraft.prefix("open_exhibition_character_config"));
     public static final StreamCodec<ByteBuf, OpenExhibitionCharacterConfigPayload> STREAM_CODEC = StreamCodec.composite(
@@ -30,13 +34,17 @@ public record OpenExhibitionCharacterConfigPayload(
             ByteBufCodecs.FLOAT, OpenExhibitionCharacterConfigPayload::yaw,
             ByteBufCodecs.FLOAT, OpenExhibitionCharacterConfigPayload::scale,
             ByteBufCodecs.BOOL, OpenExhibitionCharacterConfigPayload::showName,
-            ByteBufCodecs.STRING_UTF8, OpenExhibitionCharacterConfigPayload::speechText,
+            ByteBufCodecs.stringUtf8(ExhibitionCharacterEntity.MAX_SPEECH_LENGTH), OpenExhibitionCharacterConfigPayload::speechText,
+            ByteBufCodecs.BOOL, OpenExhibitionCharacterConfigPayload::customSkinEnabled,
+            ByteBufCodecs.BOOL, OpenExhibitionCharacterConfigPayload::customSkinPlayer,
+            ByteBufCodecs.stringUtf8(ExhibitionCharacterEntity.MAX_CUSTOM_SKIN_SOURCE_LENGTH), OpenExhibitionCharacterConfigPayload::customSkinSource,
             OpenExhibitionCharacterConfigPayload::new);
 
     public OpenExhibitionCharacterConfigPayload {
         characters = List.copyOf(characters);
         skinId = skinId == null ? "" : skinId;
         speechText = speechText == null ? "" : speechText;
+        customSkinSource = customSkinSource == null ? "" : customSkinSource;
     }
 
     @Override
