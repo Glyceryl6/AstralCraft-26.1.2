@@ -19,6 +19,7 @@ public record OpenExhibitionCharacterConfigPayload(
         String skinId,
         float yaw,
         float scale,
+        String customName,
         boolean showName,
         String speechText,
         boolean customSkinEnabled,
@@ -33,6 +34,7 @@ public record OpenExhibitionCharacterConfigPayload(
             ByteBufCodecs.STRING_UTF8, OpenExhibitionCharacterConfigPayload::skinId,
             ByteBufCodecs.FLOAT, OpenExhibitionCharacterConfigPayload::yaw,
             ByteBufCodecs.FLOAT, OpenExhibitionCharacterConfigPayload::scale,
+            ByteBufCodecs.stringUtf8(ExhibitionCharacterEntity.MAX_CUSTOM_NAME_LENGTH), OpenExhibitionCharacterConfigPayload::customName,
             ByteBufCodecs.BOOL, OpenExhibitionCharacterConfigPayload::showName,
             ByteBufCodecs.stringUtf8(ExhibitionCharacterEntity.MAX_SPEECH_LENGTH), OpenExhibitionCharacterConfigPayload::speechText,
             ByteBufCodecs.BOOL, OpenExhibitionCharacterConfigPayload::customSkinEnabled,
@@ -43,6 +45,7 @@ public record OpenExhibitionCharacterConfigPayload(
     public OpenExhibitionCharacterConfigPayload {
         characters = List.copyOf(characters);
         skinId = skinId == null ? "" : skinId;
+        customName = customName == null ? "" : customName;
         speechText = speechText == null ? "" : speechText;
         customSkinSource = customSkinSource == null ? "" : customSkinSource;
     }

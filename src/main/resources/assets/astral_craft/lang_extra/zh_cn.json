@@ -1155,7 +1155,11 @@
   "gui.astral_craft.exhibition_character.custom_skin_source": "玩家 ID / 贴图 Identifier",
   "gui.astral_craft.exhibition_character.custom_skin_source_hint": "输入玩家名、UUID 或资源贴图 Identifier",
   "gui.astral_craft.exhibition_character.custom_skin_player_hint": "支持正版玩家名或 UUID（带/不带连字符）；皮肤由客户端缓存异步解析。",
-  "gui.astral_craft.exhibition_character.custom_skin_resource_hint": "例如 astral_craft:textures/entity/custom/example.png",
+  "gui.astral_craft.exhibition_character.custom_skin_resource_hint": "例如：astral_craft:textures/entity/custom/example.png",
   "gui.astral_craft.exhibition_character.custom_skin_invalid": "当前输入格式无效，无法启用自定义皮肤。",
-  "gui.astral_craft.exhibition_character.custom_skin_priority": "已启用：自定义皮肤优先于角色自带皮肤。"
+  "gui.astral_craft.exhibition_character.custom_skin_priority": "已启用：自定义皮肤优先于角色自带皮肤。",
+  "gui.astral_craft.exhibition_character.tab_display": "展示设置",
+  "gui.astral_craft.exhibition_character.custom_name": "自定义名字",
+  "gui.astral_craft.exhibition_character.custom_name_hint": "留空则移除自定义名字",
+  "gui.astral_craft.exhibition_character.clear_name": "移除名字"
 }

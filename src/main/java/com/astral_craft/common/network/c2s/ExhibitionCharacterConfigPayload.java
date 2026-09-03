@@ -14,6 +14,7 @@ public record ExhibitionCharacterConfigPayload(
         String skinId,
         float yaw,
         float scale,
+        String customName,
         boolean showName,
         String speechText,
         boolean customSkinEnabled,
@@ -28,6 +29,7 @@ public record ExhibitionCharacterConfigPayload(
             ByteBufCodecs.STRING_UTF8, ExhibitionCharacterConfigPayload::skinId,
             ByteBufCodecs.FLOAT, ExhibitionCharacterConfigPayload::yaw,
             ByteBufCodecs.FLOAT, ExhibitionCharacterConfigPayload::scale,
+            ByteBufCodecs.stringUtf8(ExhibitionCharacterEntity.MAX_CUSTOM_NAME_LENGTH), ExhibitionCharacterConfigPayload::customName,
             ByteBufCodecs.BOOL, ExhibitionCharacterConfigPayload::showName,
             ByteBufCodecs.stringUtf8(ExhibitionCharacterEntity.MAX_SPEECH_LENGTH), ExhibitionCharacterConfigPayload::speechText,
             ByteBufCodecs.BOOL, ExhibitionCharacterConfigPayload::customSkinEnabled,
@@ -38,6 +40,7 @@ public record ExhibitionCharacterConfigPayload(
 
     public ExhibitionCharacterConfigPayload {
         skinId = skinId == null ? "" : skinId;
+        customName = customName == null ? "" : customName;
         speechText = speechText == null ? "" : speechText;
         customSkinSource = customSkinSource == null ? "" : customSkinSource;
     }

@@ -1157,5 +1157,9 @@
   "gui.astral_craft.exhibition_character.custom_skin_player_hint": "Supports an online player name or UUID with/without dashes; the client resolves the skin through its cache.",
   "gui.astral_craft.exhibition_character.custom_skin_resource_hint": "Example: astral_craft:textures/entity/custom/example.png",
   "gui.astral_craft.exhibition_character.custom_skin_invalid": "The current value is invalid, so the custom skin cannot be enabled.",
-  "gui.astral_craft.exhibition_character.custom_skin_priority": "Enabled: the custom skin takes priority over the character skin."
+  "gui.astral_craft.exhibition_character.custom_skin_priority": "Enabled: the custom skin takes priority over the character skin.",
+  "gui.astral_craft.exhibition_character.tab_display": "Display",
+  "gui.astral_craft.exhibition_character.custom_name": "Custom Name",
+  "gui.astral_craft.exhibition_character.custom_name_hint": "Leave blank to remove the custom name",
+  "gui.astral_craft.exhibition_character.clear_name": "Remove Name"
 }

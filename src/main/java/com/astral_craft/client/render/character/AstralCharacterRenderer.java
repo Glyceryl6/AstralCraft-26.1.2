@@ -18,6 +18,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.component.ResolvableProfile;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -55,9 +56,15 @@ public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends Mo
                 state.texture = customSkin.body().texturePath();
             }
         }
+
         if (entity.hasEffect(AstralStatusEffects.SHADOW_CLOAK) || entity.hasEffect(AstralStatusEffects.ASTRAL_PHASE)) {
             state.isInvisibleToPlayer = false;
         }
+    }
+
+    @Override
+    protected boolean shouldShowName(T entity, double squaredDistanceToCamera) {
+        return entity.isCustomNameVisible() && super.shouldShowName(entity, squaredDistanceToCamera);
     }
 
     @Override
@@ -65,6 +72,7 @@ public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends Mo
         return state.skin.body().texturePath();
     }
 
+    @Nullable
     private PlayerSkin customSkin(ExhibitionCharacterEntity entity) {
         String source = entity.customSkinSource();
         if (!ExhibitionCharacterEntity.validCustomSkinSource(entity.customSkinPlayer(), source)) return null;
@@ -77,4 +85,5 @@ public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends Mo
         ResolvableProfile profile = uuid == null ? ResolvableProfile.createUnresolved(source) : ResolvableProfile.createUnresolved(uuid);
         return Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin();
     }
+
 }

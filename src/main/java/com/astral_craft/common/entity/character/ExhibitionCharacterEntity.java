@@ -44,6 +44,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     public static final float MIN_SCALE = 0.25F;
     public static final float MAX_SCALE = 4.0F;
     public static final int MAX_SPEECH_LENGTH = 160;
+    public static final int MAX_CUSTOM_NAME_LENGTH = 64;
     public static final int MAX_CUSTOM_SKIN_SOURCE_LENGTH = 256;
     private static final EntityDataAccessor<String> DATA_SPEECH_TEXT = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_ENABLED = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
@@ -53,7 +54,6 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     public ExhibitionCharacterEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
         this.applyDisplayInvariants();
-        this.updateDisplayName();
     }
 
     @Override
@@ -130,9 +130,10 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         return false;
     }
 
-    public boolean applyConfiguration(Identifier characterId, String skinId, float yaw, float scale, boolean showName, String speechText,
+    public boolean applyConfiguration(Identifier characterId, String skinId, float yaw, float scale, String customName, boolean showName, String speechText,
                                       boolean customSkinEnabled, boolean customSkinPlayer, String customSkinSource) {
-        if (!CharacterManager.INSTANCE.contains(characterId) || !Float.isFinite(yaw) || !Float.isFinite(scale)) return false;
+        if (!CharacterManager.INSTANCE.contains(characterId) || !Float.isFinite(yaw) || !Float.isFinite(scale)
+                || (customName != null && customName.length() > MAX_CUSTOM_NAME_LENGTH)) return false;
         if (customSkinEnabled && !validCustomSkinSource(customSkinPlayer, customSkinSource)) return false;
         CharacterDefinition definition = CharacterManager.INSTANCE.get(characterId);
         CharacterSkinDefinition skin = definition.skins().stream().filter(value -> value.id().equals(skinId)).findFirst().orElse(null);
@@ -141,8 +142,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.setSkinId(skin.id());
         this.setExhibitionYaw(yaw);
         this.setDisplayScale(scale);
-        this.setCustomName(Component.translatable(definition.getDescriptionId()));
-        this.setCustomNameVisible(showName);
+        this.setDisplayCustomName(customName, showName);
         this.setSpeechText(speechText);
         this.setCustomSkinPlayer(customSkinPlayer);
         this.setCustomSkinSource(customSkinSource);
@@ -155,7 +155,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         if (!this.canPlayerConfigure(player)) return;
         PacketDistributor.sendToPlayer(player, new OpenExhibitionCharacterConfigPayload(
                 this.getId(), CharacterManager.INSTANCE.values(), this.characterId(), this.skinId(), this.getYRot(),
-                this.displayScale(), this.isCustomNameVisible(), this.speechText(), this.customSkinEnabled(),
+                this.displayScale(), this.displayCustomName(), this.isCustomNameVisible(), this.speechText(), this.customSkinEnabled(),
                 this.customSkinPlayer(), this.customSkinSource()));
     }
 
@@ -183,6 +183,18 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.yRotO = safeYaw;
         this.yBodyRotO = safeYaw;
         this.yHeadRotO = safeYaw;
+    }
+
+    public String displayCustomName() {
+        Component name = this.getCustomName();
+        return name == null ? "" : name.getString();
+    }
+
+    public void setDisplayCustomName(String customName, boolean showName) {
+        String safeName = customName == null ? "" : customName.strip();
+        if (safeName.length() > MAX_CUSTOM_NAME_LENGTH) safeName = safeName.substring(0, MAX_CUSTOM_NAME_LENGTH);
+        this.setCustomName(safeName.isBlank() ? null : Component.literal(safeName));
+        this.setCustomNameVisible(showName && !safeName.isBlank());
     }
 
     public String speechText() {
@@ -254,11 +266,6 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         }
     }
 
-    public void updateDisplayName() {
-        CharacterDefinition definition = CharacterManager.INSTANCE.get(this.characterId());
-        this.setCustomName(Component.translatable(definition.getDescriptionId()));
-    }
-
     @Override
     protected void readAdditionalSaveData(ValueInput input) {
         super.readAdditionalSaveData(input);
@@ -268,7 +275,6 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.setCustomSkinEnabled(input.getBooleanOr("exhibition_custom_skin_enabled", false)
                 && validCustomSkinSource(this.customSkinPlayer(), this.customSkinSource()));
         this.setExhibitionYaw(this.getYRot());
-        this.updateDisplayName();
         this.applyDisplayInvariants();
         this.refreshDimensions();
     }
