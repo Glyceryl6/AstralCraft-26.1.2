@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.OrderedSubmitNodeCollector;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -27,8 +26,8 @@ public class ExhibitionSpeechBubbleRenderer {
 
     private static final Identifier BUBBLE_TEXTURE = AstralCraft.prefix("textures/entity/dice/white.png");
     private static final int MAX_LINE_WIDTH = 180;
-    private static final int BORDER_COLOR = 0xF03A3040;
-    private static final int BACKGROUND_COLOR = 0xF8FFF9FF;
+    private static final int BORDER_COLOR = 0xFF3A3040;
+    private static final int BACKGROUND_COLOR = 0xFFFFF9FF;
     private static final int TEXT_COLOR = 0xFF28202C;
     private static final double MAX_DISTANCE = 64.0D;
     private static final float WORLD_SCALE = 0.025F;
@@ -71,40 +70,60 @@ public class ExhibitionSpeechBubbleRenderer {
         poseStack.translate(anchor.x - cameraPos.x, anchor.y - cameraPos.y, anchor.z - cameraPos.z);
         poseStack.mulPose(minecraft.gameRenderer.getMainCamera().rotation());
         poseStack.scale(WORLD_SCALE, -WORLD_SCALE, WORLD_SCALE);
-        submitPanel(collector, poseStack, left - BORDER, top - BORDER, right + BORDER, bottom + BORDER, BORDER_COLOR, 0.0F);
-        submitTail(collector, poseStack, bottom + BORDER, TAIL_HALF_WIDTH + BORDER, TAIL_HEIGHT + BORDER, BORDER_COLOR, 0.0F);
-        submitPanel(collector.order(1), poseStack, left, top, right, bottom, BACKGROUND_COLOR, -0.02F);
-        submitTail(collector.order(1), poseStack, bottom, TAIL_HALF_WIDTH, TAIL_HEIGHT, BACKGROUND_COLOR, -0.02F);
+        submitBubbleGeometry(collector, poseStack, left, top, right, bottom);
         float textY = top + PADDING_Y + 1.0F;
         for (Component line : lines) {
             float width = font.width(line.getVisualOrderText());
-            collector.order(2).submitText(poseStack, -width / 2.0F, textY, line.getVisualOrderText(), false,
-                    Font.DisplayMode.NORMAL, LightCoordsUtil.FULL_BRIGHT, TEXT_COLOR, 0x00000000, 0);
+            collector.order(1).submitText(poseStack, -width / 2.0F, textY, line.getVisualOrderText(), false, Font.DisplayMode.NORMAL,
+                    LightCoordsUtil.FULL_BRIGHT, TEXT_COLOR, 0x00000000, 0);
             textY += LINE_HEIGHT;
         }
         poseStack.popPose();
     }
 
-    private static void submitPanel(OrderedSubmitNodeCollector collector, PoseStack poseStack, float left, float top, float right, float bottom, int color, float z) {
-        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(BUBBLE_TEXTURE), (pose, consumer) -> {
-            vertex(consumer, pose, left, bottom, z, color, 0.0F, 1.0F);
-            vertex(consumer, pose, right, bottom, z, color, 1.0F, 1.0F);
-            vertex(consumer, pose, right, top, z, color, 1.0F, 0.0F);
-            vertex(consumer, pose, left, top, z, color, 0.0F, 0.0F);
+    private static void submitBubbleGeometry(SubmitNodeCollector collector, PoseStack poseStack, float left, float top, float right, float bottom) {
+        collector.submitCustomGeometry(poseStack, RenderTypes.entityCutout(BUBBLE_TEXTURE), (pose, consumer) -> {
+            quad(consumer, pose, left, top, right, bottom, BACKGROUND_COLOR);
+            quad(consumer, pose, left - BORDER, top - BORDER, right + BORDER, top, BORDER_COLOR);
+            quad(consumer, pose, left - BORDER, bottom, right + BORDER, bottom + BORDER, BORDER_COLOR);
+            quad(consumer, pose, left - BORDER, top, left, bottom, BORDER_COLOR);
+            quad(consumer, pose, right, top, right + BORDER, bottom, BORDER_COLOR);
+            tail(consumer, pose, bottom);
         });
     }
 
-    private static void submitTail(OrderedSubmitNodeCollector collector, PoseStack poseStack, float top, float halfWidth, float height, int color, float z) {
-        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(BUBBLE_TEXTURE), (pose, consumer) -> {
-            vertex(consumer, pose, -halfWidth, top, z, color, 0.0F, 0.0F);
-            vertex(consumer, pose, halfWidth, top, z, color, 1.0F, 0.0F);
-            vertex(consumer, pose, 0.0F, top + height, z, color, 0.5F, 1.0F);
-            vertex(consumer, pose, 0.0F, top + height, z, color, 0.5F, 1.0F);
-        });
+    private static void tail(VertexConsumer consumer, PoseStack.Pose pose, float top) {
+        float outerHalfWidth = TAIL_HALF_WIDTH + BORDER;
+        float outerTipY = top + TAIL_HEIGHT + BORDER;
+        float innerTop = top + BORDER;
+        float innerTipY = top + TAIL_HEIGHT;
+        quad(consumer, pose, -outerHalfWidth, top, outerHalfWidth, innerTop, BORDER_COLOR);
+        freeQuad(consumer, pose, -outerHalfWidth, innerTop, -TAIL_HALF_WIDTH, innerTop, 0.0F, innerTipY, 0.0F, outerTipY, BORDER_COLOR);
+        freeQuad(consumer, pose, TAIL_HALF_WIDTH, innerTop, outerHalfWidth, innerTop, 0.0F, outerTipY, 0.0F, innerTipY, BORDER_COLOR);
+        triangle(consumer, pose, -TAIL_HALF_WIDTH, innerTop, TAIL_HALF_WIDTH, innerTop, 0.0F, innerTipY, BACKGROUND_COLOR);
     }
 
-    private static void vertex(VertexConsumer consumer, PoseStack.Pose pose, float x, float y, float z, int color, float u, float v) {
-        consumer.addVertex(pose, x, y, z).setColor(color).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY)
+    private static void quad(VertexConsumer consumer, PoseStack.Pose pose, float left, float top, float right, float bottom, int color) {
+        freeQuad(consumer, pose, left, bottom, right, bottom, right, top, left, top, color);
+    }
+
+    private static void freeQuad(VertexConsumer consumer, PoseStack.Pose pose, float x0, float y0, float x1, float y1,
+                                 float x2, float y2, float x3, float y3, int color) {
+        vertex(consumer, pose, x0, y0, color, 0.0F, 1.0F);
+        vertex(consumer, pose, x1, y1, color, 1.0F, 1.0F);
+        vertex(consumer, pose, x2, y2, color, 1.0F, 0.0F);
+        vertex(consumer, pose, x3, y3, color, 0.0F, 0.0F);
+    }
+
+    private static void triangle(VertexConsumer consumer, PoseStack.Pose pose, float x0, float y0, float x1, float y1, float x2, float y2, int color) {
+        vertex(consumer, pose, x0, y0, color, 0.0F, 0.0F);
+        vertex(consumer, pose, x1, y1, color, 1.0F, 0.0F);
+        vertex(consumer, pose, x2, y2, color, 0.5F, 1.0F);
+        vertex(consumer, pose, x2, y2, color, 0.5F, 1.0F);
+    }
+
+    private static void vertex(VertexConsumer consumer, PoseStack.Pose pose, float x, float y, int color, float u, float v) {
+        consumer.addVertex(pose, x, y, 0.0F).setColor(color).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY)
                 .setLight(LightCoordsUtil.FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
     }
 

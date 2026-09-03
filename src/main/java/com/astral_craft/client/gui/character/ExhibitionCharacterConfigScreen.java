@@ -81,7 +81,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         ClientCharacterDefinitionCache.INSTANCE.replace(this.characters);
         this.initialCharacterId = this.hasCharacter(payload.characterId()) ? payload.characterId() : this.characters.getFirst().id();
         this.initialSkinId = this.validSkin(this.character(this.initialCharacterId), payload.skinId());
-        this.initialYaw = Mth.wrapDegrees(payload.yaw());
+        this.initialYaw = ExhibitionCharacterEntity.normalizeYaw(payload.yaw());
         this.initialScale = Mth.clamp(payload.scale(), ExhibitionCharacterEntity.MIN_SCALE, ExhibitionCharacterEntity.MAX_SCALE);
         this.initialCustomName = payload.customName();
         this.initialShowName = payload.showName();
@@ -181,7 +181,8 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         AstralFancyButton.renderOutlinedBox(graphics, layout.panelX(), layout.panelY(), layout.panelW(), layout.panelH(),
                 0x9E151723, 0xD9545B70, 0xA8101018, 1, 2);
         graphics.fill(layout.panelX(), layout.panelY(), layout.panelRight(), layout.panelY() + 3, 0xDDE83CA8);
-        graphics.centeredText(this.font, this.title, layout.panelX() + layout.panelW() / 2, layout.panelY() + 10, 0xFFFFFFFF);
+        graphics.centeredText(this.font, this.title, layout.titleCenterX(), layout.panelY() + 10, 0xFFFFFFFF);
+        this.renderCloseButton(graphics, layout, mouseX, mouseY);
         this.renderTabs(graphics, layout, mouseX, mouseY);
         this.renderScrollableContent(graphics, layout, mouseX, mouseY);
         this.renderActions(graphics, layout, mouseX, mouseY);
@@ -197,6 +198,10 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         Layout layout = this.layout();
         double mouseX = event.x();
         double mouseY = event.y();
+        if (event.button() == 0 && this.isInside(mouseX, mouseY, layout.closeButtonX(), layout.closeButtonY(), layout.closeButtonW(), layout.closeButtonH())) {
+            this.onClose();
+            return true;
+        }
         if (event.button() == 0 && AstralVerticalScrollbar.contains(mouseX, mouseY, layout.scrollbarX(), layout.contentY(), layout.contentH(), this.maxContentScroll(layout))) {
             this.draggingContentScrollbar = true;
             this.updateContentScrollFromMouse(layout, mouseY);
@@ -304,8 +309,14 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         boolean selected = this.tab == tab;
         boolean hovered = this.isInside(mouseX, mouseY, x, layout.tabY(), layout.tabW(), layout.tabH());
         float textScale = Math.clamp((layout.tabW() - 8.0F) / Math.max(1.0F, this.font.width(text)), 0.68F, 1.0F);
-        AstralFancyButton.renderButton(graphics, this.font, text, x, layout.tabY(), layout.tabW(), layout.tabH(), selected, hovered,
-                AstralFancyButton.ButtonStyle.button(selected ? 0xDDB23B8C : 0xC04F566B).withTextScale(textScale));
+        AstralFancyButton.renderTab(graphics, this.font, text, x, layout.tabY(), layout.tabW(), layout.tabH(), selected, hovered,
+                (selected ? AstralFancyButton.selectedButtonStyle() : AstralFancyButton.pinkButtonStyle()).withTextScale(textScale));
+    }
+
+    private void renderCloseButton(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
+        boolean hovered = this.isInside(mouseX, mouseY, layout.closeButtonX(), layout.closeButtonY(), layout.closeButtonW(), layout.closeButtonH());
+        AstralFancyButton.renderButton(graphics, this.font, Component.literal("X"),
+                layout.closeButtonX(), layout.closeButtonY(), layout.closeButtonW(), layout.closeButtonH(), false, hovered, AstralFancyButton.pinkButtonStyle());
     }
 
     private void renderScrollableContent(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
@@ -610,7 +621,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         if (this.syncingFields) return;
         Float parsed = this.parseFloat(value);
         if (parsed == null) return;
-        this.yaw = Mth.wrapDegrees(parsed);
+        this.yaw = ExhibitionCharacterEntity.normalizeYaw(parsed);
         this.applyLivePreview();
     }
 
@@ -623,7 +634,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
     }
 
     private void setYaw(float yaw, boolean syncField) {
-        this.yaw = Mth.wrapDegrees(yaw);
+        this.yaw = ExhibitionCharacterEntity.normalizeYaw(yaw);
         if (syncField && this.yawBox != null) {
             this.syncingFields = true;
             this.yawBox.setValue(this.format(this.yaw));
@@ -655,7 +666,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
     private void readFields() {
         Float parsedYaw = this.parseFloat(this.yawBox.getValue());
         Float parsedScale = this.parseFloat(this.scaleBox.getValue());
-        if (parsedYaw != null) this.yaw = Mth.wrapDegrees(parsedYaw);
+        if (parsedYaw != null) this.yaw = ExhibitionCharacterEntity.normalizeYaw(parsedYaw);
         if (parsedScale != null) this.scale = Mth.clamp(parsedScale, ExhibitionCharacterEntity.MIN_SCALE, ExhibitionCharacterEntity.MAX_SCALE);
         this.customName = this.customNameBox.getValue();
         this.speechText = this.speechBox.getValue();
@@ -692,7 +703,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
 
     private String validSkin(CharacterDefinition definition, String preferred) {
         if (definition == null || definition.skins().isEmpty()) return "default";
-        return definition.skins().stream().filter(skin -> skin.id().equals(preferred)).map(CharacterSkinDefinition::id)
+        return definition.skins().stream().map(CharacterSkinDefinition::id).filter(id -> id.equals(preferred))
                 .findFirst().orElse(definition.skins().getFirst().id());
     }
 
@@ -809,6 +820,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
     private boolean hoveredClickable(Layout layout, double mouseX, double mouseY) {
         if (this.isWorldPreviewArea(layout, mouseX, mouseY)) return true;
         if (AstralVerticalScrollbar.contains(mouseX, mouseY, layout.scrollbarX(), layout.contentY(), layout.contentH(), this.maxContentScroll(layout))) return true;
+        if (this.isInside(mouseX, mouseY, layout.closeButtonX(), layout.closeButtonY(), layout.closeButtonW(), layout.closeButtonH())) return true;
         if (this.tab == ConfigTab.CHARACTER && this.isInside(mouseX, mouseY, layout.skinPanelX(), layout.skinPanelY(), layout.skinPanelW(), layout.skinPanelH())) return true;
         if (this.isInside(mouseX, mouseY, layout.characterTabX(), layout.tabY(), layout.tabW(), layout.tabH())
                 || this.isInside(mouseX, mouseY, layout.customSkinTabX(), layout.tabY(), layout.tabW(), layout.tabH())
@@ -847,8 +859,8 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         int panelY = 6;
         int minWorldPreview = Math.max(110, this.width * 40 / 100);
         int maxSafeWidth = Math.max(160, this.width - minWorldPreview - 18);
-        int desiredWidth = Math.clamp(this.width * 44 / 100, 200, 440);
-        int panelW = Math.min(desiredWidth, Math.min(maxSafeWidth, Math.max(160, this.width - 12)));
+        int desiredWidth = Math.clamp(this.width * 44L / 100, 200, 440);
+        int panelW = Math.min(desiredWidth, Math.clamp(this.width - 12, 160, maxSafeWidth));
         int panelH = Math.max(1, this.height - 12);
         int innerX = panelX + 9;
         int innerW = Math.max(100, panelW - 18);
@@ -909,6 +921,11 @@ public class ExhibitionCharacterConfigScreen extends Screen {
                           int contentY, int contentW, int contentH, int numberBoxW, int actionTop, int actionRows,
                           int actionButtonW, int actionButtonH) {
         private int panelRight() { return this.panelX + this.panelW; }
+        private int closeButtonW() { return 20; }
+        private int closeButtonH() { return 18; }
+        private int closeButtonX() { return this.panelRight() - this.closeButtonW() - 7; }
+        private int closeButtonY() { return this.panelY + 6; }
+        private int titleCenterX() { return this.panelX + Math.max(1, this.closeButtonX() - this.panelX) / 2; }
         private int characterTabX() { return this.formX; }
         private int customSkinTabX() { return this.characterTabX() + this.tabW + GAP; }
         private int displayTabX() { return this.customSkinTabX() + this.tabW + GAP; }
@@ -930,11 +947,11 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         private int skinPanelW() {
             int screenW = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int available = Math.max(126, screenW - this.panelRight() - 12);
-            int desired = Math.clamp(screenW * 32 / 100, 150, 300);
-            return Math.min(desired, Math.max(126, available - 100));
+            int desired = Math.clamp(screenW * 32L / 100, 150, 300);
+            return Math.clamp(available - 100, 126, desired);
         }
         private int skinPanelX() { return Minecraft.getInstance().getWindow().getGuiScaledWidth() - this.skinPanelW() - 6; }
-        private int skinPanelY() { return 34; }
+        private int skinPanelY() { return this.panelY; }
         private int skinPanelH() { return Math.max(60, Minecraft.getInstance().getWindow().getGuiScaledHeight() - this.skinPanelY() - 6); }
         private int skinContentX() { return this.skinPanelX() + 7; }
         private int skinContentY() { return this.skinPanelY() + 24; }

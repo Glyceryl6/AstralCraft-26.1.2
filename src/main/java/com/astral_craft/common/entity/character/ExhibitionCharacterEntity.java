@@ -46,6 +46,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     public static final int MAX_SPEECH_LENGTH = 160;
     public static final int MAX_CUSTOM_NAME_LENGTH = 64;
     public static final int MAX_CUSTOM_SKIN_SOURCE_LENGTH = 256;
+    private static final EntityDataAccessor<Float> DATA_EXHIBITION_YAW = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<String> DATA_SPEECH_TEXT = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_ENABLED = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_PLAYER = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
@@ -59,6 +60,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(DATA_EXHIBITION_YAW, 0.0F);
         builder.define(DATA_SPEECH_TEXT, "");
         builder.define(DATA_CUSTOM_SKIN_ENABLED, false);
         builder.define(DATA_CUSTOM_SKIN_PLAYER, true);
@@ -68,9 +70,16 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     @Override
     public void tick() {
         super.tick();
+        this.applyDisplayRotation();
         this.getNavigation().stop();
         this.setDeltaMovement(Vec3.ZERO);
         if (!this.isNoAi() || !this.isInvulnerable() || !this.isNoGravity()) this.applyDisplayInvariants();
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> accessor) {
+        super.onSyncedDataUpdated(accessor);
+        if (DATA_EXHIBITION_YAW.equals(accessor)) this.applyDisplayRotation();
     }
 
     @Override
@@ -154,7 +163,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     public void openConfiguration(ServerPlayer player) {
         if (!this.canPlayerConfigure(player)) return;
         PacketDistributor.sendToPlayer(player, new OpenExhibitionCharacterConfigPayload(
-                this.getId(), CharacterManager.INSTANCE.values(), this.characterId(), this.skinId(), this.getYRot(),
+                this.getId(), CharacterManager.INSTANCE.values(), this.characterId(), this.skinId(), this.displayYaw(),
                 this.displayScale(), this.displayCustomName(), this.isCustomNameVisible(), this.speechText(), this.customSkinEnabled(),
                 this.customSkinPlayer(), this.customSkinSource()));
     }
@@ -175,14 +184,17 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.refreshDimensions();
     }
 
+    public float displayYaw() {
+        return normalizeYaw(this.entityData.get(DATA_EXHIBITION_YAW));
+    }
+
     public void setExhibitionYaw(float yaw) {
-        float safeYaw = Mth.wrapDegrees(yaw);
-        this.setYRot(safeYaw);
-        this.setYBodyRot(safeYaw);
-        this.setYHeadRot(safeYaw);
-        this.yRotO = safeYaw;
-        this.yBodyRotO = safeYaw;
-        this.yHeadRotO = safeYaw;
+        this.entityData.set(DATA_EXHIBITION_YAW, normalizeYaw(yaw));
+        this.applyDisplayRotation();
+    }
+
+    public static float normalizeYaw(float yaw) {
+        return Mth.positiveModulo(yaw, 360.0F);
     }
 
     public String displayCustomName() {
@@ -274,7 +286,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.setCustomSkinSource(input.getStringOr("exhibition_custom_skin_source", ""));
         this.setCustomSkinEnabled(input.getBooleanOr("exhibition_custom_skin_enabled", false)
                 && validCustomSkinSource(this.customSkinPlayer(), this.customSkinSource()));
-        this.setExhibitionYaw(this.getYRot());
+        this.setExhibitionYaw(input.getFloatOr("exhibition_yaw", this.getYRot()));
         this.applyDisplayInvariants();
         this.refreshDimensions();
     }
@@ -282,10 +294,21 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     @Override
     protected void addAdditionalSaveData(ValueOutput output) {
         super.addAdditionalSaveData(output);
+        output.putFloat("exhibition_yaw", this.displayYaw());
         output.putString("exhibition_speech", this.speechText());
         output.putBoolean("exhibition_custom_skin_enabled", this.customSkinEnabled());
         output.putBoolean("exhibition_custom_skin_player", this.customSkinPlayer());
         output.putString("exhibition_custom_skin_source", this.customSkinSource());
+    }
+
+    private void applyDisplayRotation() {
+        float yaw = this.displayYaw();
+        this.setYRot(yaw);
+        this.setYBodyRot(yaw);
+        this.setYHeadRot(yaw);
+        this.yRotO = yaw;
+        this.yBodyRotO = yaw;
+        this.yHeadRotO = yaw;
     }
 
     private void applyDisplayInvariants() {
