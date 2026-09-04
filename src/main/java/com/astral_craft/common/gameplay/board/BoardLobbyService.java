@@ -32,6 +32,7 @@ public class BoardLobbyService {
     public static void updateSelection(ServerPlayer player, UUID boardId, Identifier characterId, Identifier skinId, boolean confirmed) {
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (session == null || session.phase() != BoardPhase.CHARACTER_SELECTION || !CharacterManager.INSTANCE.contains(characterId)) return;
+        if (!BoardMatchmakingService.canSelectCharacter(player, session)) return;
         BoardParticipant existing = session.participantByController(player.getUUID()).orElse(null);
         if (existing != null) {
             sendSelection(player, session, true);
@@ -72,6 +73,7 @@ public class BoardLobbyService {
         BoardSessionManager.markChanged(player.level());
         player.sendSystemMessage(Component.translatable("message.astral_craft.board.character_confirmed",
                 Component.translatable(definition.getDescriptionId())).withStyle(ChatFormatting.GREEN), true);
+        if (BoardMatchmakingService.handleConfirmedSelection(player.level(), session)) return;
         if (readyToStartImmediately(player, session)) {
             BoardSessionManager.startGame(player.level(), session);
         } else {
@@ -136,11 +138,12 @@ public class BoardLobbyService {
         List<BoardCharacterAvailability> availability = definitions.stream()
                 .map(definition -> availability(progress, definition)).toList();
         List<Identifier> occupiedCharacters = session.participants().stream().map(BoardParticipant::characterId).toList();
-        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - AstralServerTickClock.now(player.level()), 0L, BoardSessionManager.LOBBY_TIMEOUT_TICKS);
+        int timeoutDuration = BoardMatchmakingService.selectionTimeoutDuration(session);
+        int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - AstralServerTickClock.now(player.level()), 0L, timeoutDuration);
         PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id(), definitions,
                 new ArrayList<>(occupiedCharacters), lobby.entries(), availability,
                 own.selected() ? own.characterId() : fallback.id(), own.selected() ? own.skinId() : fallbackSkin,
-                remaining, BoardSessionManager.LOBBY_TIMEOUT_TICKS, selected != null, refresh));
+                remaining, timeoutDuration, selected != null, refresh));
     }
 
     public static void refreshScreens(ServerLevel level, BoardSession session) {

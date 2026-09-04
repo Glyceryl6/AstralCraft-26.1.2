@@ -1161,5 +1161,16 @@
   "gui.astral_craft.exhibition_character.tab_display": "展示设置",
   "gui.astral_craft.exhibition_character.custom_name": "自定义名字",
   "gui.astral_craft.exhibition_character.custom_name_hint": "留空则移除自定义名字",
-  "gui.astral_craft.exhibition_character.clear_name": "移除名字"
+  "gui.astral_craft.exhibition_character.clear_name": "移除名字",
+  "gui.astral_craft.exhibition_character.close": "关闭",
+  "gui.astral_craft.board.matchmaking.title": "选择游玩模式",
+  "gui.astral_craft.board.matchmaking.single": "单人模式",
+  "gui.astral_craft.board.matchmaking.multiplayer": "多人匹配模式",
+  "gui.astral_craft.board.matchmaking.single_hint": "单人模式：选择角色后自动补齐 3 个机器人。",
+  "gui.astral_craft.board.matchmaking.multiplayer_hint": "多人匹配：等待 4 名玩家加入后一起选择角色。",
+  "message.astral_craft.board.matchmaking.waiting": "多人匹配中：%s/%s",
+  "message.astral_craft.board.matchmaking.busy": "当前棋盘正在进行其它匹配或角色选择。",
+  "message.astral_craft.board.matchmaking.already_matching": "你已经加入了其它棋盘的匹配。",
+  "message.astral_craft.board.matchmaking.single_starting": "角色已确认，%s 秒后自动补齐机器人并开始游戏。",
+  "message.astral_craft.board.matchmaking.disbanded": "因其他玩家退出游戏，对局解散"
 }

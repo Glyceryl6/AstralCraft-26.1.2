@@ -45,7 +45,7 @@ public class ModBusEventSubscriber {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("41");
+        PayloadRegistrar registrar = event.registrar("42");
         registrar.playToClient(CardRevealPayload.TYPE, CardRevealPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealControlPayload.TYPE, CardRevealControlPayload.STREAM_CODEC);
         registrar.playToClient(CardRevealEntityPayload.TYPE, CardRevealEntityPayload.STREAM_CODEC);
@@ -55,6 +55,7 @@ public class ModBusEventSubscriber {
         registrar.playToClient(BoardHudSnapshotPayload.TYPE, BoardHudSnapshotPayload.STREAM_CODEC);
         registrar.playToClient(BoardAnnouncementPayload.TYPE, BoardAnnouncementPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardCharacterSelectionPayload.TYPE, OpenBoardCharacterSelectionPayload.STREAM_CODEC);
+        registrar.playToClient(OpenBoardMatchmakingModeSelectionPayload.TYPE, OpenBoardMatchmakingModeSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardDeveloperPayload.TYPE, OpenBoardDeveloperPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardProjectorConfirmPayload.TYPE, OpenBoardProjectorConfirmPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardModeSelectionPayload.TYPE, OpenBoardModeSelectionPayload.STREAM_CODEC);
@@ -102,6 +103,8 @@ public class ModBusEventSubscriber {
         registrar.playToServer(CharacterSkinSelectionPayload.TYPE, CharacterSkinSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleCharacterSkinSelection);
         registrar.playToServer(UseHandCardFromDeckPayload.TYPE, UseHandCardFromDeckPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleUseHandCardFromDeck);
         registrar.playToServer(BoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCharacterSelection);
+        registrar.playToServer(BoardMatchmakingModeSelectionPayload.TYPE, BoardMatchmakingModeSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardMatchmakingModeSelection);
+        registrar.playToServer(BoardCharacterSelectionExitPayload.TYPE, BoardCharacterSelectionExitPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardCharacterSelectionExit);
         registrar.playToServer(BoardDeveloperConfigPayload.TYPE, BoardDeveloperConfigPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardDeveloperConfig);
         registrar.playToServer(BoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardProjectorConfirm);
         registrar.playToServer(BoardModeSelectionPayload.TYPE, BoardModeSelectionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardModeSelection);

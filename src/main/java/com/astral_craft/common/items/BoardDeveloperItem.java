@@ -1,6 +1,7 @@
 package com.astral_craft.common.items;
 
 import com.astral_craft.common.gameplay.board.BoardDeveloperService;
+import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardPhase;
 import com.astral_craft.common.gameplay.board.BoardProtectionService;
 import com.astral_craft.common.gameplay.board.BoardSavedData;
@@ -27,6 +28,10 @@ public class BoardDeveloperItem extends Item {
         BoardSession session = BoardSessionManager.findAt(player.level(), context.getClickedPos()).orElse(null);
         if (session == null) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_registered"), true);
+            return InteractionResult.FAIL;
+        }
+        if (BoardMatchmakingService.active(session.id())) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.developer.busy"), true);
             return InteractionResult.FAIL;
         }
         if (BoardDeveloperService.active(session.id()) && !BoardDeveloperService.ownedBy(session.id(), player.getUUID())) {

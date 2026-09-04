@@ -16,6 +16,7 @@ import com.astral_craft.common.gameplay.handcard.PendingCounterEffectManager;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.registry.AstralItems;
 import com.astral_craft.common.registry.AstralAttachments;
+import com.astral_craft.common.tags.AstralItemTags;
 import com.astral_craft.common.gameplay.character.skill.effect.AstralStatusMobEffect;
 import com.astral_craft.common.items.BaseHandCard;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -37,6 +38,7 @@ import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -51,6 +53,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -343,10 +346,22 @@ public class CommonEventSubscriber {
 
     @SubscribeEvent
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (!event.getEntity().mayBuild() && !event.getEntity().isSpectator() && event.getItemStack().is(AstralItemTags.BOARD_TOOLS)) {
+            // Adventure mode blocks ItemStack#useOn before these utility items can reach their own Item#useOn implementation.
+            UseOnContext context = new UseOnContext(event.getEntity(), event.getHand(), event.getHitVec());
+            event.setCancellationResult(event.getItemStack().getItem().useOn(context));
+            event.setCanceled(true);
+            return;
+        }
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!BoardRouteService.selectBranch(player, event.getPos())) return;
         event.setCancellationResult(InteractionResult.SUCCESS);
         event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) BoardMatchmakingService.handleLogout(player);
     }
 
     @SubscribeEvent

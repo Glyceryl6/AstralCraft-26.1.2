@@ -12,6 +12,7 @@ import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.network.c2s.*;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.board.BoardLobbyService;
+import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardDeveloperService;
 import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.blocks.platform.DivinePlatform;
@@ -178,6 +179,22 @@ public class AstralServerPayloadHandlers {
                     return;
                 }
                 BoardLobbyService.updateSelection(player, payload.boardId(), payload.characterId(), payload.skinId(), payload.confirmed());
+            }
+        });
+    }
+
+    public static void handleBoardMatchmakingModeSelection(BoardMatchmakingModeSelectionPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardMatchmakingService.selectMode(player, payload.boardId(), payload.mode());
+            }
+        });
+    }
+
+    public static void handleBoardCharacterSelectionExit(BoardCharacterSelectionExitPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardMatchmakingService.leaveCharacterSelection(player, payload.boardId());
             }
         });
     }

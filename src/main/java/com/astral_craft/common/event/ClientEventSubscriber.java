@@ -205,6 +205,7 @@ public class ClientEventSubscriber {
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
         event.register(BoardAnnouncementPayload.TYPE, BoardAnnouncementOverlay::show);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
+        event.register(OpenBoardMatchmakingModeSelectionPayload.TYPE, BoardMatchmakingModeSelectionScreen::open);
         event.register(OpenBoardDeveloperPayload.TYPE, BoardDeveloperCharacterScreen::openDeveloper);
         event.register(OpenBoardProjectorConfirmPayload.TYPE, BoardProjectorConfirmScreen::open);
         event.register(OpenBoardModeSelectionPayload.TYPE, BoardModeSelectionScreen::open);

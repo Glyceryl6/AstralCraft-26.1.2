@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "astral_craft:board_scanner",
+    "astral_craft:board_lobby",
+    "astral_craft:board_developer",
+    "astral_craft:board_spectator",
+    "astral_craft:board_dismantler",
+    "astral_craft:board_projector"
+  ]
+}

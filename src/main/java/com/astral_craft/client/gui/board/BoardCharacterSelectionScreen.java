@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
+import com.astral_craft.common.network.c2s.BoardCharacterSelectionExitPayload;
 import com.astral_craft.common.network.c2s.BoardCharacterSelectionPayload;
 import com.astral_craft.common.network.s2c.BoardCharacterAvailability;
 import com.astral_craft.common.network.s2c.BoardCharacterSelectionEntry;
@@ -43,6 +44,8 @@ public class BoardCharacterSelectionScreen extends Screen {
     private static final int SKIN_W = 46;
     private static final int SKIN_H = 44;
     private static final int SLOT_COUNT = 4;
+    private static final int EXIT_W = 20;
+    private static final int EXIT_H = 16;
     private final UUID boardId;
     private final List<CharacterDefinition> characters;
     private final Set<Identifier> occupied;
@@ -55,6 +58,7 @@ public class BoardCharacterSelectionScreen extends Screen {
     private int timeoutDurationTicks;
     private boolean submitted;
     private boolean selectionLocked;
+    private boolean leaveRequested;
     private float characterScroll;
     private float skinScroll;
 
@@ -123,6 +127,11 @@ public class BoardCharacterSelectionScreen extends Screen {
     }
 
     @Override
+    public boolean shouldCloseOnEsc() {
+        return false;
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (this.timeoutTicks > 0) this.timeoutTicks--;
@@ -140,6 +149,9 @@ public class BoardCharacterSelectionScreen extends Screen {
         graphics.fill(0, 0, this.width, this.height, 0xE6090912);
         graphics.fill(layout.panelX(), layout.panelY(), layout.panelRight(), layout.panelBottom(), 0xCC11111C);
         graphics.text(this.font, this.title, layout.panelX() + 8, layout.panelY() + 6, 0xFFFFFFFF, false);
+        boolean exitHover = inside(mouseX, mouseY, layout.exitX(), layout.exitY(), EXIT_W, EXIT_H);
+        AstralFancyButton.renderButton(graphics, this.font, Component.literal("X"), layout.exitX(), layout.exitY(), EXIT_W, EXIT_H,
+                false, exitHover, ButtonStyle.button(0xFFD64B91));
         this.renderLobbySlots(graphics, layout);
         graphics.text(this.font, Component.translatable("gui.astral_craft.board.characters"),
                 layout.gridX(), layout.gridTitleY(), 0xFFBFC8FF, false);
@@ -259,8 +271,12 @@ public class BoardCharacterSelectionScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
-        if (this.selectionLocked || this.submitted) return true;
         Layout layout = this.layout();
+        if (inside(event.x(), event.y(), layout.exitX(), layout.exitY(), EXIT_W, EXIT_H)) {
+            this.onClose();
+            return true;
+        }
+        if (this.selectionLocked || this.submitted) return true;
         for (int index = 0; index < this.characters.size(); index++) {
             CardPosition position = layout.characterPosition(index, this.characterScroll);
             if (!inside(event.x(), event.y(), position.x(), position.y(), CHARACTER_W, CHARACTER_H)
@@ -299,6 +315,15 @@ public class BoardCharacterSelectionScreen extends Screen {
         }
 
         return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public void onClose() {
+        if (!this.leaveRequested) {
+            this.leaveRequested = true;
+            ClientPacketDistributor.sendToServer(new BoardCharacterSelectionExitPayload(this.boardId));
+        }
+        super.onClose();
     }
 
     @Override
@@ -420,7 +445,7 @@ public class BoardCharacterSelectionScreen extends Screen {
         int slotH = Math.clamp(this.height / 4, 56, 88);
         int slotsWidth = slotW * 4 + slotGap * 3;
         int slotsX = panelX + (panelRight - panelX - slotsWidth) / 2;
-        int slotY = panelY + 19;
+        int slotY = panelY + 23;
         int gridX = panelX + 10;
         int gridRight = panelRight - 10;
         int gridTitleY = slotY + slotH + 7;
@@ -451,6 +476,14 @@ public class BoardCharacterSelectionScreen extends Screen {
                           int gridX, int gridRight, int gridTitleY, int gridTop, int gridBottom,
                           int skinTitleY, int skinY, int skinBottom, int skinRight, int columns,
                           int buttonX, int buttonY, int buttonW, int buttonH) {
+
+        int exitX() {
+            return this.panelRight - EXIT_W - 5;
+        }
+
+        int exitY() {
+            return this.panelY + 3;
+        }
 
         int slotX(int slot) {
             return this.slotsX + slot * (this.slotW + this.slotGap);

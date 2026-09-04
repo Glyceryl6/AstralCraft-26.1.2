@@ -1161,5 +1161,16 @@
   "gui.astral_craft.exhibition_character.tab_display": "Display",
   "gui.astral_craft.exhibition_character.custom_name": "Custom Name",
   "gui.astral_craft.exhibition_character.custom_name_hint": "Leave blank to remove the custom name",
-  "gui.astral_craft.exhibition_character.clear_name": "Remove Name"
+  "gui.astral_craft.exhibition_character.clear_name": "Remove Name",
+  "gui.astral_craft.exhibition_character.close": "Close",
+  "gui.astral_craft.board.matchmaking.title": "Choose Play Mode",
+  "gui.astral_craft.board.matchmaking.single": "Single Player",
+  "gui.astral_craft.board.matchmaking.multiplayer": "Multiplayer Matchmaking",
+  "gui.astral_craft.board.matchmaking.single_hint": "Single player: choose a character, then 3 bots will fill the remaining slots.",
+  "gui.astral_craft.board.matchmaking.multiplayer_hint": "Multiplayer: wait for 4 players, then everyone chooses a character together.",
+  "message.astral_craft.board.matchmaking.waiting": "Multiplayer matchmaking: %s/%s",
+  "message.astral_craft.board.matchmaking.busy": "This board is already handling another match or character selection.",
+  "message.astral_craft.board.matchmaking.already_matching": "You are already matchmaking on another board.",
+  "message.astral_craft.board.matchmaking.single_starting": "Character confirmed. The game will fill bots and start in %s seconds.",
+  "message.astral_craft.board.matchmaking.disbanded": "The match was disbanded because another player left the game."
 }

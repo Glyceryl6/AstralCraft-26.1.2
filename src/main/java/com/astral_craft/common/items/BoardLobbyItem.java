@@ -1,9 +1,10 @@
 package com.astral_craft.common.items;
 
-import com.astral_craft.common.util.AstralServerTickClock;
-import com.astral_craft.common.gameplay.board.*;
+import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
+import com.astral_craft.common.gameplay.board.BoardPhase;
+import com.astral_craft.common.gameplay.board.BoardSession;
+import com.astral_craft.common.gameplay.board.BoardSessionManager;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
@@ -28,19 +29,13 @@ public class BoardLobbyItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
             return InteractionResult.FAIL;
         }
-        ServerLevel level = player.level();
-        if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(level, session);
-        if (session.phase() == BoardPhase.READY) {
-            session.setProtectionEnabled(true);
-            session.setPhase(BoardPhase.CHARACTER_SELECTION);
-            session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
-            BoardSessionManager.markChanged(level);
-            BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));
-        } else if (session.lobbyDeadlineTick() <= 0L) {
-            session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
-            BoardSessionManager.markChanged(level);
+        if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(player.level(), session);
+        if (session.phase() != BoardPhase.READY) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.matchmaking.busy"), true);
+            return InteractionResult.FAIL;
         }
-        BoardLobbyService.registerViewer(player, session);
+
+        BoardMatchmakingService.openModeSelection(player, session);
         return InteractionResult.SUCCESS;
     }
 

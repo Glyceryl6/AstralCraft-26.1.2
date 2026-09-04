@@ -643,6 +643,7 @@ public class BoardSessionManager {
 
             if (AstralServerTickClock.now(level) >= session.lobbyDeadlineTick()) {
                 BoardLobbyService.finalizeTimedOutSelections(level, session);
+                if (BoardMatchmakingService.handleSelectionTimeout(level, session)) return;
                 if (session.participantCount() > 0) {
                     startGame(level, session);
                 }
@@ -814,6 +815,7 @@ public class BoardSessionManager {
         session.setTurnOrder(order);
         BoardDeveloperService.finishSetup(session.id());
         BoardLobbyService.closeScreens(level, session.id());
+        BoardMatchmakingService.clear(session.id());
         session.setPhase(BoardPhase.PLAYING);
         session.setLobbyDeadlineTick(0L);
         session.setActionPromptDeadlineTick(0L);
@@ -1702,6 +1704,7 @@ public class BoardSessionManager {
 
     public static void resetForLobby(ServerLevel level, BoardSession session) {
         BoardLobbyService.clear(session.id());
+        BoardMatchmakingService.clear(session.id());
         BoardDeveloperService.clear(session.id());
         BoardMonsterService.clear(session.id());
         BoardBattleService.cancel(session.id());
