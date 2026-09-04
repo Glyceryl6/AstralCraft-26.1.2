@@ -9,6 +9,7 @@ import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition;
 import com.astral_craft.common.network.c2s.ExhibitionCharacterConfigPayload;
 import com.astral_craft.common.network.s2c.OpenExhibitionCharacterConfigPayload;
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -188,8 +189,10 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         this.renderActions(graphics, layout, mouseX, mouseY);
         if (this.tab == ConfigTab.CHARACTER) this.renderSkinPanel(graphics, layout, mouseX, mouseY);
         this.renderWorldPreviewHint(graphics, layout);
-        AstralFancyButton.setHandCursor(this.hoveredClickable(layout, mouseX, mouseY));
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        if (this.hoveredEditBox(layout, mouseX, mouseY)) graphics.requestCursor(CursorTypes.IBEAM);
+        else if (this.hoveredManualControl(layout, mouseX, mouseY)) graphics.requestCursor(CursorTypes.POINTING_HAND);
+        else graphics.requestCursor(CursorTypes.ARROW);
     }
 
     @Override
@@ -703,7 +706,7 @@ public class ExhibitionCharacterConfigScreen extends Screen {
 
     private String validSkin(CharacterDefinition definition, String preferred) {
         if (definition == null || definition.skins().isEmpty()) return "default";
-        return definition.skins().stream().map(CharacterSkinDefinition::id).filter(id -> id.equals(preferred))
+        return definition.skins().stream().filter(skin -> skin.id().equals(preferred)).map(CharacterSkinDefinition::id)
                 .findFirst().orElse(definition.skins().getFirst().id());
     }
 
@@ -817,18 +820,72 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         return box.getY() >= layout.contentY() && box.getY() + box.getHeight() <= layout.contentBottom();
     }
 
-    private boolean hoveredClickable(Layout layout, double mouseX, double mouseY) {
-        if (this.isWorldPreviewArea(layout, mouseX, mouseY)) return true;
-        if (AstralVerticalScrollbar.contains(mouseX, mouseY, layout.scrollbarX(), layout.contentY(), layout.contentH(), this.maxContentScroll(layout))) return true;
+    private boolean hoveredEditBox(Layout layout, double mouseX, double mouseY) {
+        if (this.tab == ConfigTab.CUSTOM_SKIN) return this.hoveredEditBox(layout, this.customSkinBox, mouseX, mouseY);
+        if (this.tab != ConfigTab.DISPLAY) return false;
+        return this.hoveredEditBox(layout, this.customNameBox, mouseX, mouseY)
+                || this.hoveredEditBox(layout, this.yawBox, mouseX, mouseY)
+                || this.hoveredEditBox(layout, this.scaleBox, mouseX, mouseY)
+                || this.hoveredEditBox(layout, this.speechBox, mouseX, mouseY);
+    }
+
+    private boolean hoveredEditBox(Layout layout, EditBox box, double mouseX, double mouseY) {
+        return box != null && box.visible && this.insideContent(layout, box)
+                && this.isInside(mouseX, mouseY, box.getX(), box.getY(), box.getWidth(), box.getHeight());
+    }
+
+    private boolean hoveredManualControl(Layout layout, double mouseX, double mouseY) {
         if (this.isInside(mouseX, mouseY, layout.closeButtonX(), layout.closeButtonY(), layout.closeButtonW(), layout.closeButtonH())) return true;
-        if (this.tab == ConfigTab.CHARACTER && this.isInside(mouseX, mouseY, layout.skinPanelX(), layout.skinPanelY(), layout.skinPanelW(), layout.skinPanelH())) return true;
         if (this.isInside(mouseX, mouseY, layout.characterTabX(), layout.tabY(), layout.tabW(), layout.tabH())
                 || this.isInside(mouseX, mouseY, layout.customSkinTabX(), layout.tabY(), layout.tabW(), layout.tabH())
                 || this.isInside(mouseX, mouseY, layout.displayTabX(), layout.tabY(), layout.tabW(), layout.tabH())) return true;
+        if (this.maxContentScroll(layout) > 0.5F
+                && AstralVerticalScrollbar.contains(mouseX, mouseY, layout.scrollbarX(), layout.contentY(), layout.contentH(), this.maxContentScroll(layout))) return true;
+        if (this.tab == ConfigTab.CHARACTER) {
+            if (this.maxSkinScroll(layout) > 0.5F
+                    && AstralVerticalScrollbar.contains(mouseX, mouseY, layout.skinScrollbarX(), layout.skinContentY(), layout.skinContentH(), this.maxSkinScroll(layout))) return true;
+            if (this.isInside(mouseX, mouseY, layout.skinContentX(), layout.skinContentY(), layout.skinContentW(), layout.skinContentH())) {
+                int columns = this.skinColumns(layout);
+                int gridW = columns * SKIN_CARD_W + Math.max(0, columns - 1) * GAP;
+                int startX = layout.skinContentX() + Math.max(0, (layout.skinContentW() - gridW) / 2);
+                int startY = layout.skinContentY() - Math.round(this.skinScroll);
+                for (int index = 0; index < this.selectedCharacter().skins().size(); index++) {
+                    int x = startX + index % columns * (SKIN_CARD_W + GAP);
+                    int y = startY + index / columns * (SKIN_CARD_H + GAP);
+                    if (this.isInside(mouseX, mouseY, x, y, SKIN_CARD_W, SKIN_CARD_H)) return true;
+                }
+            }
+            if (this.isInside(mouseX, mouseY, layout.contentX(), layout.contentY(), layout.contentW(), layout.contentH())) {
+                int scroll = Math.round(this.contentScroll);
+                int startY = layout.contentY() + 16 - scroll;
+                int columns = this.characterColumns(layout);
+                for (int index = 0; index < this.characters.size(); index++) {
+                    int x = layout.contentX() + index % columns * (CHARACTER_CARD_W + GAP);
+                    int y = startY + index / columns * (CHARACTER_CARD_H + GAP);
+                    if (this.isInside(mouseX, mouseY, x, y, CHARACTER_CARD_W, CHARACTER_CARD_H)) return true;
+                }
+            }
+        } else if (this.tab == ConfigTab.CUSTOM_SKIN) {
+            CustomSkinContentLayout customLayout = this.customSkinContentLayout(layout, this.contentScroll);
+            int sourceButtonW = (layout.contentW() - GAP) / 2;
+            if (this.isInside(mouseX, mouseY, layout.contentX(), layout.contentY(), layout.contentW(), layout.contentH())
+                    && (this.isInside(mouseX, mouseY, layout.contentX(), customLayout.enabledButtonY(), layout.contentW(), 22)
+                    || this.isInside(mouseX, mouseY, layout.contentX(), customLayout.typeButtonY(), sourceButtonW, 22)
+                    || this.isInside(mouseX, mouseY, layout.contentX() + sourceButtonW + GAP, customLayout.typeButtonY(), sourceButtonW, 22))) return true;
+        } else {
+            int showButtonW = Math.max(52, (layout.contentW() - GAP) * 2 / 3);
+            int clearButtonW = Math.max(36, layout.contentW() - showButtonW - GAP);
+            int buttonY = layout.displayNameButtonY(this.contentScroll);
+            if (this.isInside(mouseX, mouseY, layout.contentX(), layout.contentY(), layout.contentW(), layout.contentH())
+                    && (this.isInside(mouseX, mouseY, layout.contentX(), buttonY, showButtonW, 20)
+                    || this.isInside(mouseX, mouseY, layout.contentX() + showButtonW + GAP, buttonY, clearButtonW, 20))) return true;
+        }
+        if (this.submitted) return false;
         for (int index = 0; index < 4; index++) {
+            if (index == 0 && !this.validInput()) continue;
             if (this.isInside(mouseX, mouseY, layout.actionX(index), layout.actionY(index), layout.actionButtonW(), layout.actionButtonH())) return true;
         }
-        return this.isInside(mouseX, mouseY, layout.contentX(), layout.contentY(), layout.contentW(), layout.contentH());
+        return false;
     }
 
     private boolean isWorldPreviewArea(Layout layout, double mouseX, double mouseY) {
@@ -859,8 +916,8 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         int panelY = 6;
         int minWorldPreview = Math.max(110, this.width * 40 / 100);
         int maxSafeWidth = Math.max(160, this.width - minWorldPreview - 18);
-        int desiredWidth = Math.clamp(this.width * 44L / 100, 200, 440);
-        int panelW = Math.min(desiredWidth, Math.clamp(this.width - 12, 160, maxSafeWidth));
+        int desiredWidth = Math.clamp(this.width * 44 / 100, 200, 440);
+        int panelW = Math.min(desiredWidth, Math.min(maxSafeWidth, Math.max(160, this.width - 12)));
         int panelH = Math.max(1, this.height - 12);
         int innerX = panelX + 9;
         int innerW = Math.max(100, panelW - 18);
@@ -947,8 +1004,8 @@ public class ExhibitionCharacterConfigScreen extends Screen {
         private int skinPanelW() {
             int screenW = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int available = Math.max(126, screenW - this.panelRight() - 12);
-            int desired = Math.clamp(screenW * 32L / 100, 150, 300);
-            return Math.clamp(available - 100, 126, desired);
+            int desired = Math.clamp(screenW * 32 / 100, 150, 300);
+            return Math.min(desired, Math.max(126, available - 100));
         }
         private int skinPanelX() { return Minecraft.getInstance().getWindow().getGuiScaledWidth() - this.skinPanelW() - 6; }
         private int skinPanelY() { return this.panelY; }

@@ -74,7 +74,7 @@ public class ExhibitionSpeechBubbleRenderer {
         float textY = top + PADDING_Y + 1.0F;
         for (Component line : lines) {
             float width = font.width(line.getVisualOrderText());
-            collector.order(1).submitText(poseStack, -width / 2.0F, textY, line.getVisualOrderText(), false, Font.DisplayMode.NORMAL,
+            collector.order(1).submitText(poseStack, -width / 2.0F, textY, line.getVisualOrderText(), false, Font.DisplayMode.POLYGON_OFFSET,
                     LightCoordsUtil.FULL_BRIGHT, TEXT_COLOR, 0x00000000, 0);
             textY += LINE_HEIGHT;
         }
@@ -143,5 +143,4 @@ public class ExhibitionSpeechBubbleRenderer {
         }, Style.EMPTY);
         return component;
     }
-
 }
