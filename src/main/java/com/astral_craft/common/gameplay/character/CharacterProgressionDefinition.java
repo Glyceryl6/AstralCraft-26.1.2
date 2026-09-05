@@ -1,11 +1,13 @@
 package com.astral_craft.common.gameplay.character;
 
-/** Static unlock and potential metadata, kept separate from rendering and combat properties. */
+/**
+ * Static unlock and potential metadata, kept separate from rendering and combat properties.
+ */
 public class CharacterProgressionDefinition {
 
     protected CharacterPotentialDefinition potential = CharacterPotentialDefinition.NONE;
     protected boolean implicitBondSkin = true;
-    protected boolean unlockedByDefault;
+    protected boolean unlockedByDefault = true;
     protected String unlockHintKey;
     protected int sortOrder = 1000;
 
@@ -38,11 +40,25 @@ public class CharacterProgressionDefinition {
         return this;
     }
 
-    public CharacterPotentialDefinition potential() { return this.potential; }
-    public boolean implicitBondSkin() { return this.implicitBondSkin; }
-    public boolean unlockedByDefaultValue() { return this.unlockedByDefault; }
-    public String unlockHintKey() { return this.unlockHintKey; }
-    public int sortOrder() { return this.sortOrder; }
+    public CharacterPotentialDefinition potential() {
+        return this.potential;
+    }
+
+    public boolean implicitBondSkin() {
+        return this.implicitBondSkin;
+    }
+
+    public boolean unlockedByDefaultValue() {
+        return this.unlockedByDefault;
+    }
+
+    public String unlockHintKey() {
+        return this.unlockHintKey;
+    }
+
+    public int sortOrder() {
+        return this.sortOrder;
+    }
 
     public CharacterProgressionDefinition copy() {
         return new CharacterProgressionDefinition().potential(this.potential).implicitBondSkin(this.implicitBondSkin)
@@ -53,4 +69,5 @@ public class CharacterProgressionDefinition {
         this.unlockedByDefault = value;
         return this;
     }
+
 }

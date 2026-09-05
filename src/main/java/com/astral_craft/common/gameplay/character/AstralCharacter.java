@@ -79,9 +79,11 @@ public class AstralCharacter {
         for (IntrinsicBuff value : this.properties.intrinsicBuffs) {
             BoardBuff buff = value.buff().get();
             Identifier id = buff == null ? null : AstralBoardBuffs.REGISTRY.getKey(buff);
-            if (id != null)
+            if (id != null) {
                 result = result.addBuff(AstralBoardBuffs.instance(id, buff).level(value.level()).intrinsic().build());
+            }
         }
+
         return result;
     }
 
