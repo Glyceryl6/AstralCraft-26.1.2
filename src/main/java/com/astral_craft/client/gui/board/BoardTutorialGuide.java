@@ -90,6 +90,7 @@ public class BoardTutorialGuide {
     }
 
     public enum Hint {
+        DECISION_TIME("gui.astral_craft.board.tutorial.decision_time"),
         HAND_DRAG("gui.astral_craft.board.tutorial.hand_drag"),
         BATTLE_START("gui.astral_craft.board.tutorial.battle_start"),
         BATTLE_VALUES("gui.astral_craft.board.tutorial.battle_values"),

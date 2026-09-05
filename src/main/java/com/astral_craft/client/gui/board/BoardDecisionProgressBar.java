@@ -16,6 +16,7 @@ public class BoardDecisionProgressBar {
     public static void render(
             GuiGraphicsExtractor graphics, Font font, Identifier characterId, Identifier skinId,
             int remainingTicks, int durationTicks, int centerX, int y, int width) {
+        if (durationTicks == Integer.MAX_VALUE) return;
         int safeDuration = Math.max(1, durationTicks);
         int safeRemaining = Math.clamp(remainingTicks, 0, safeDuration);
         float progress = 1.0F - safeRemaining / (float) safeDuration;

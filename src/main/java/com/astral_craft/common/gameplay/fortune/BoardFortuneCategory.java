@@ -21,7 +21,7 @@ public enum BoardFortuneCategory implements StringRepresentable {
     }
 
     public String cardFrameType() {
-        return this == NEUTRAL ? CardType.EVENT.getSerializedName() : "fortune_" + this.serializedName;
+        return this == NEUTRAL ? CardType.EVENT.getSerializedName() : this.serializedName;
     }
 
     @Override
