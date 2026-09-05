@@ -925,6 +925,7 @@
   "gui.astral_craft.board.shop_total": "Total: %s coins",
   "gui.astral_craft.board.skill": "Use Skill",
   "gui.astral_craft.board.skill_cooldown": "Skill cooldown: %s turns",
+  "gui.astral_craft.board.skill_unimplemented": "Skills Unavailable",
   "gui.astral_craft.board.skins": "Skins",
   "gui.astral_craft.board.start_choice": "Passing Start Point",
   "gui.astral_craft.board.start_choice_benefit": "Stop: heal 2 HP and level up when you have %s coins",

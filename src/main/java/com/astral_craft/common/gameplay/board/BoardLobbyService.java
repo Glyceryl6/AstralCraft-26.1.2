@@ -141,7 +141,7 @@ public class BoardLobbyService {
         int timeoutDuration = BoardMatchmakingService.selectionTimeoutDuration(session);
         int remaining = (int) Math.clamp(session.lobbyDeadlineTick() - AstralServerTickClock.now(player.level()), 0L, timeoutDuration);
         PacketDistributor.sendToPlayer(player, new OpenBoardCharacterSelectionPayload(session.id(), definitions,
-                new ArrayList<>(occupiedCharacters), lobby.entries(), availability,
+                new ArrayList<>(occupiedCharacters), lobby.entries(player.level(), session), availability,
                 own.selected() ? own.characterId() : fallback.id(), own.selected() ? own.skinId() : fallbackSkin,
                 remaining, timeoutDuration, selected != null, refresh));
     }
@@ -312,10 +312,23 @@ public class BoardLobbyService {
             return this.selections.values().stream().sorted(Comparator.comparingInt(LobbySelection::slot)).toList();
         }
 
-        private List<BoardCharacterSelectionEntry> entries() {
-            return this.ordered().stream().map(selection -> new BoardCharacterSelectionEntry(
-                    selection.slot(), selection.playerName(), selection.characterId(),
-                    selection.skinId(), selection.selected(), selection.confirmed())).toList();
+        private List<BoardCharacterSelectionEntry> entries(ServerLevel level, BoardSession session) {
+            List<BoardCharacterSelectionEntry> entries = new ArrayList<>(this.ordered().stream()
+                    .map(selection -> new BoardCharacterSelectionEntry(selection.slot(), selection.playerName(),
+                            selection.characterId(), selection.skinId(), selection.selected(), selection.confirmed()))
+                    .toList());
+            Set<Integer> usedSlots = entries.stream().map(BoardCharacterSelectionEntry::slot).collect(Collectors.toSet());
+            List<BoardParticipant> bots = session.participants().stream().filter(BoardParticipant::bot)
+                    .filter(participant -> !participant.monster()).sorted(Comparator.comparingInt(BoardParticipant::arrivalOrder)).toList();
+            int botIndex = 0;
+            for (int slot = 0; slot < BoardSessionManager.REQUIRED_PLAYERS && botIndex < bots.size(); slot++) {
+                if (usedSlots.contains(slot)) continue;
+                BoardParticipant bot = bots.get(botIndex++);
+                entries.add(new BoardCharacterSelectionEntry(slot, BoardSessionManager.displayName(level, bot),
+                        bot.characterId(), bot.skinId(), true, true));
+            }
+
+            return entries.stream().sorted(Comparator.comparingInt(BoardCharacterSelectionEntry::slot)).toList();
         }
 
     }

@@ -567,6 +567,7 @@
   "gui.astral_craft.board.shop_total": "合计：%s 星币",
   "gui.astral_craft.board.skill": "发动技能",
   "gui.astral_craft.board.skill_cooldown": "技能冷却：%s 回合",
+  "gui.astral_craft.board.skill_unimplemented": "技能系统未实现",
   "gui.astral_craft.board.skins": "皮肤",
   "gui.astral_craft.board.start_choice": "经过起始点",
   "gui.astral_craft.board.start_choice_benefit": "停留：恢复2点生命值；星币达到%s时自动升星",

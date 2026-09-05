@@ -70,6 +70,7 @@ public class BoardMatchmakingService {
         MatchState state = MATCHES.get(session.id());
         if (state == null || !state.selectionStarted) return false;
         if (state.mode == BoardMatchmakingMode.SINGLE_PLAYER) {
+            BoardSessionManager.fillBots(level, session);
             session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + SINGLE_START_DELAY_TICKS);
             BoardSessionManager.markChanged(level);
             for (UUID playerId : state.playerIds) {

@@ -242,7 +242,6 @@ public class ClientEventSubscriber {
             TargetSelectionScreen.closePresentation(payload.boardId());
             BoardLotteryNumberScreen.closePresentation(payload.boardId());
             BoardHudOverlay.clear(payload.boardId());
-            BoardTutorialGuide.clear(payload.boardId());
             BoardRouteWorldRenderer.clear(payload.boardId());
             CardRevealOverlay.clear();
         }));

@@ -40,7 +40,6 @@ public class BoardTurnScreen extends Screen {
     private List<BoardCard> cards;
     private int maxCardPlays;
     private int cardPlaysUsed;
-    private int skillCooldown;
     private int decisionTicks;
     private int decisionDurationTicks;
     private Identifier characterId;
@@ -94,7 +93,6 @@ public class BoardTurnScreen extends Screen {
         this.cards = cards(payload.cards());
         this.cardPlaysUsed = Math.max(0, payload.cardPlaysUsed());
         this.maxCardPlays = Math.max(0, payload.maxCardPlays());
-        this.skillCooldown = Math.max(0, payload.skillCooldownTurns());
         this.decisionTicks = Math.max(0, payload.decisionTicks());
         this.decisionDurationTicks = Math.max(1, payload.decisionDurationTicks());
         this.characterId = payload.characterId();
@@ -177,13 +175,9 @@ public class BoardTurnScreen extends Screen {
             Component count = Component.translatable("gui.astral_craft.board.card_count", this.cardPlaysUsed, this.maxCardPlays);
             graphics.text(this.font, play, layout.infoX(), layout.infoY(), 0xFFFFFFFF, false);
             graphics.text(this.font, count, layout.infoX(), layout.infoY() + 17, 0xFFFFC75C, false);
-            boolean skillEnabled = this.currentTurn && this.skillCooldown <= 0 && !busy;
-            boolean skillHover = skillEnabled && inside(mouseX, mouseY, layout.skillX(), layout.skillY(), layout.skillW(), 25);
-            Component skill = this.skillCooldown <= 0 ? Component.translatable("gui.astral_craft.board.skill")
-                    : Component.translatable("gui.astral_craft.board.skill_cooldown", this.skillCooldown);
+            Component skill = Component.translatable("gui.astral_craft.board.skill_unimplemented");
             AstralFancyButton.renderButton(graphics, this.font, skill, layout.skillX(),
-                    layout.skillY(), layout.skillW(), 25, false, skillHover,
-                    ButtonStyle.button(skillEnabled ? 0xFF4D7AC7 : 0xFF555560));
+                    layout.skillY(), layout.skillW(), 25, false, false, AstralFancyButton.disabledButtonStyle());
         }
         this.renderTutorial(graphics, mouseX, mouseY, layout);
         BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
@@ -205,10 +199,10 @@ public class BoardTurnScreen extends Screen {
             BoardTutorialGuide.Hint hint = this.cardTutorialHint(hovered);
             if (hint != null) {
                 Component message = Component.translatable(hint.translationKey());
-                graphics.setTooltipForNextFrame(this.font, this.font.split(message, Math.min(280, Math.max(120, this.width - 40))),
-                        mouseX, mouseY);
+                graphics.setTooltipForNextFrame(this.font, this.font.split(message, Math.clamp(this.width - 40, 120, 280)), mouseX, mouseY);
             }
         }
+
         int handHeight = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                 BoardTutorialGuide.Hint.HAND_DRAG, x, bottom, width);
         if (handHeight == 0) {
@@ -274,15 +268,6 @@ public class BoardTurnScreen extends Screen {
             this.requestLockTicks = 8;
             ClientPacketDistributor.sendToServer(new BoardMoveRequestPayload(this.boardId));
             this.onClose();
-            return true;
-        }
-
-        if (!this.counterResponse && inside(event.x(), event.y(), layout.skillX(), layout.skillY(), layout.skillW(), 25)
-                && this.currentTurn && this.skillCooldown <= 0 && !busy) {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.player != null) {
-                minecraft.player.sendOverlayMessage(Component.translatable("message.astral_craft.board.skill_unavailable"));
-            }
             return true;
         }
 

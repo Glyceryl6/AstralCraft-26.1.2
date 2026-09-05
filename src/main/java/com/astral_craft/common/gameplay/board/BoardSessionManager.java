@@ -1655,7 +1655,7 @@ public class BoardSessionManager {
         return participant != null && participant.bot();
     }
 
-    private static void fillBots(ServerLevel level, BoardSession session) {
+    static void fillBots(ServerLevel level, BoardSession session) {
         List<CharacterDefinition> available = CharacterManager.INSTANCE.values().stream()
                 .filter(definition -> !session.hasCharacter(definition.id()))
                 .filter(definition -> CharacterManager.INSTANCE.character(definition.id()).botSelectable())
