@@ -25,7 +25,7 @@ public class AstralBoardBuffs {
     public static final Identifier COUNTER_ID = AstralCraft.prefix("counter");
     public static final Identifier HASTE_ID = AstralCraft.prefix("haste");
     public static final Identifier SOUL_LINK_ID = AstralCraft.prefix("soul_link");
-    public static final Identifier LEAKING_POCKET_ID = AstralCraft.prefix("leaking_pocket");
+    public static final Identifier BROKEN_POCKET_ID = AstralCraft.prefix("broken_pocket");
 
     public static final DeferredHolder<BoardBuff, BoardBuff> ATTACK = register("attack",
             new AttributeBoardBuff(0xFFE65050, AttributeBoardBuff.Attribute.ATTACK));
@@ -51,7 +51,7 @@ public class AstralBoardBuffs {
             BoardBuff.Properties.of(0xFF6CA0DC).stacking().permanent());
     public static final DeferredHolder<BoardBuff, BoardBuff> HASTE = register(HASTE_ID.getPath(), new HasteBoardBuff(0xFF66D9FF));
     public static final DeferredHolder<BoardBuff, BoardBuff> SOUL_LINK = register(SOUL_LINK_ID.getPath(), new BoardBuff(BoardBuff.Properties.of(0xFFD579FF)));
-    public static final DeferredHolder<BoardBuff, BoardBuff> LEAKING_POCKET = register(LEAKING_POCKET_ID.getPath(), new LeakingPocketBoardBuff(0xFFD7A867));
+    public static final DeferredHolder<BoardBuff, BoardBuff> LEAKING_POCKET = register(BROKEN_POCKET_ID.getPath(), new LeakingPocketBoardBuff(0xFFD7A867));
 
     public static BoardBuffInstance.Builder instance(Identifier id, BoardBuff buff) {
         return BoardBuffInstance.builder(id, buff).presentation(displayName(id), icon(id));

@@ -47,6 +47,7 @@ public class BoardBattleScreen extends Screen {
     private static final int DICE_FLASH_END_TICK = 12;
     private static final int DEFENSE_CHOICE_ANNOUNCE_TICKS = 4;
     private static final int FINAL_VALUE_STAGE_TICK = 22;
+    private static final int ATTACK_ROLL_TUTORIAL_HOLD_TICKS = 20 * 8;
     private static final int EVADE_FAILURE_STAGE_TICK = FINAL_VALUE_STAGE_TICK;
     private static final int KNOCKOUT_FLIGHT_START_TICK = 1;
     private static final int KNOCKOUT_FLIGHT_TICKS = 12;
@@ -83,6 +84,7 @@ public class BoardBattleScreen extends Screen {
     private int defenderHealthFlashTicks;
     private int attackerScoreFlashTicks;
     private int defenderScoreFlashTicks;
+    private int attackRollTutorialTicks;
     private boolean knockoutExplosionTriggered;
     private boolean attackerSixSoundPlayed;
     private boolean defenderSixSoundPlayed;
@@ -135,6 +137,9 @@ public class BoardBattleScreen extends Screen {
         if (phaseChanged) {
             this.phaseAgeTicks = 0;
             this.knockoutExplosionTriggered = false;
+            if (next.attackerRolling() && this.role == BattleRole.ATTACKER) {
+                this.attackRollTutorialTicks = ATTACK_ROLL_TUTORIAL_HOLD_TICKS;
+            }
             if (next.defenseChoice() && this.role == BattleRole.DEFENDER) this.submitted = false;
         }
 
@@ -173,6 +178,7 @@ public class BoardBattleScreen extends Screen {
         if (this.defenderHealthFlashTicks > 0) this.defenderHealthFlashTicks--;
         if (this.attackerScoreFlashTicks > 0) this.attackerScoreFlashTicks--;
         if (this.defenderScoreFlashTicks > 0) this.defenderScoreFlashTicks--;
+        if (this.attackRollTutorialTicks > 0) this.attackRollTutorialTicks--;
         if (!this.attackerSixSoundPlayed && this.view.attackerDie() == 6
                 && (!this.view.attackerRolling() || this.phaseAgeTicks >= DICE_FLASH_END_TICK)) {
             this.attackerSixSoundPlayed = true;
@@ -237,6 +243,13 @@ public class BoardBattleScreen extends Screen {
         int width = Math.min(410, Math.max(180, layout.width() - 36));
         int x = layout.x() + 18;
         int bottom = Math.max(layout.y() + 118, layout.cardY() - 7);
+        boolean attackRollVisible = this.role == BattleRole.ATTACKER && this.attackRollTutorialTicks > 0
+                && BoardTutorialGuide.visible(this.boardId, BoardTutorialGuide.Hint.ATTACK_ROLL);
+        if (attackRollVisible) {
+            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    BoardTutorialGuide.Hint.ATTACK_ROLL, x, bottom, width);
+            bottom -= height > 0 ? height + 5 : 0;
+        }
         if (this.view.result() && this.view.knockout()) {
             BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                     this.role == BattleRole.DEFENDER ? BoardTutorialGuide.Hint.KNOCKED_DOWN
@@ -250,14 +263,11 @@ public class BoardBattleScreen extends Screen {
                 bottom -= height > 0 ? height + 5 : 0;
                 BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                         BoardTutorialGuide.Hint.DEFENSE_CHOICE, x, bottom, width);
-            } else {
-                BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
-                        BoardTutorialGuide.Hint.ATTACK_ROLL, x, bottom, width);
             }
             return;
         }
         if (this.view.attackerRolling() && this.role == BattleRole.ATTACKER) {
-            BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+            if (!attackRollVisible) BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                     BoardTutorialGuide.Hint.ATTACK_ROLL, x, bottom, width);
             return;
         }
@@ -368,8 +378,9 @@ public class BoardBattleScreen extends Screen {
     }
 
     private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
-        int attackX = layout.x() + layout.width() / 4;
-        int defenseX = layout.x() + layout.width() * 3 / 4;
+        int horizontalOffset = this.numberHorizontalOffset(layout);
+        int attackX = layout.x() + layout.width() / 4 - horizontalOffset;
+        int defenseX = layout.x() + layout.width() * 3 / 4 + horizontalOffset;
         int numberY = layout.modelTop() + 18;
         if (this.view.scorePhase()) {
             Range attackRange = this.displayRange(true);
@@ -423,7 +434,9 @@ public class BoardBattleScreen extends Screen {
         boolean ready = attacker ? this.view.attackerReady() : this.view.defenderReady();
         String name = attacker ? this.attackerName : this.defenderName;
         int color = attacker ? ATTACK_ACCENT : DEFENSE_ACCENT;
-        int centerX = attacker ? layout.x() + layout.width() / 4 : layout.x() + layout.width() * 3 / 4;
+        int horizontalOffset = this.numberHorizontalOffset(layout);
+        int centerX = attacker ? layout.x() + layout.width() / 4 - horizontalOffset
+                : layout.x() + layout.width() * 3 / 4 + horizontalOffset;
         int y = layout.modelTop() + 6;
         Component text = ready
                 ? Component.translatable("gui.astral_craft.board.battle_ready_overhead").withStyle(ChatFormatting.BLUE)
@@ -579,8 +592,10 @@ public class BoardBattleScreen extends Screen {
         float scale = 0.62F;
         int cardHeight = Math.round(CARD_H * scale);
         int cardsY = Math.min(layout.cardY() + 8, layout.y() + layout.height() - cardHeight - 8);
-        this.renderPanelValue(graphics, attackCenter, cardsY - 17, true, this.view.attackBase());
-        this.renderPanelValue(graphics, defenseCenter, cardsY - 17, false, this.view.defenseBase());
+        int horizontalOffset = this.numberHorizontalOffset(layout);
+        int valueY = layout.modelTop() + 42;
+        this.renderPanelValue(graphics, attackCenter - horizontalOffset, valueY, true, this.view.attackBase());
+        this.renderPanelValue(graphics, defenseCenter + horizontalOffset, valueY, false, this.view.defenseBase());
         this.renderPlayedCards(graphics, this.attackerPlayedCards, attackCenter, cardsY, true, scale);
         this.renderPlayedCards(graphics, this.defenderPlayedCards, defenseCenter, cardsY, false, scale);
     }
@@ -1014,6 +1029,10 @@ public class BoardBattleScreen extends Screen {
         int actionY = Math.min(cardY + 18, y + height - 76);
         return new Layout(x, y, width, height, modelTop, modelBottom, cardX, cardY,
                 cardRight, cardBottom, actionX, actionY, actionW);
+    }
+
+    private int numberHorizontalOffset(Layout layout) {
+        return Math.clamp(layout.width() / 14, 22, 56);
     }
 
     private float maximumCardScroll(Layout layout) {

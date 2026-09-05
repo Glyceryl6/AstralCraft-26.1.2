@@ -39,6 +39,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.ClientAvatarEntity;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.entity.ZombieRenderer;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Avatar;
@@ -182,6 +183,7 @@ public class ClientEventSubscriber {
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(AstralBlockEntities.PLATFORM.get(), context -> new PlatformBlockEntityRenderer());
+        event.registerEntityRenderer(AstralEntities.BOARD_MONSTER_ZOMBIE.get(), ZombieRenderer::new);
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
         event.registerEntityRenderer(AstralEntities.BOARD_WORLD_OBJECT.get(), BoardWorldObjectRenderer::new);

@@ -63,7 +63,7 @@ public class AstralFortuneBootstrap {
     private static BoardFortuneDefinition fortune(String path, BoardFortuneCategory category, AstralEventEffect... effects) {
         return new BoardFortuneDefinition(AstralCraft.prefix(path), "fortune.astral_craft." + category.getSerializedName() + ".name",
                 "fortune.astral_craft." + path + ".description",
-                AstralCraft.prefix("textures/gui/cards/fortune/" + path + ".png"), category, 1, List.of(effects));
+                AstralCraft.prefix("textures/gui/cards/fortune/" + path + ".jpg"), category, 1, List.of(effects));
     }
 
     private static ResourceKey<BoardFortuneDefinition> key(String path) {

@@ -541,7 +541,8 @@ public class BoardSessionManager {
     }
 
     public static int resolveIncomingDamage(ServerLevel level, BoardSession session, BoardParticipant participant, int damage) {
-        if (participant == null || damage <= 0 || isHospitalProtected(session, participant)) return 0;
+        if (participant == null || damage <= 0 || isHospitalProtected(session, participant)
+                || BoardMatchmakingService.tutorialProtected(session, participant)) return 0;
         AstralPlayerStats stats = participant.stats();
         int resolved = stats.resolveIncomingDamage(Math.max(0, damage + stats.incomingDamageBonus()));
         AstralPlayerStats consumed = stats.consumeIncomingDamageBuffs();
@@ -555,7 +556,8 @@ public class BoardSessionManager {
         if (maybeSession.isEmpty() || !(entity.level() instanceof ServerLevel level)) return;
         BoardSession session = maybeSession.get();
         BoardParticipant participant = session.participantFor(entity).orElse(null);
-        if (participant == null || participant.knockedDownTurns() > 0) return;
+        if (participant == null || participant.knockedDownTurns() > 0
+                || BoardMatchmakingService.tutorialProtected(session, participant)) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);
@@ -1697,6 +1699,13 @@ public class BoardSessionManager {
         return participant != null && isHospitalProtected(session, participant);
     }
 
+    public static boolean isTutorialProtected(AstralCharacterEntity entity) {
+        if (entity == null) return false;
+        BoardSession session = findByEntity(entity).orElse(null);
+        BoardParticipant participant = session == null ? null : session.participantFor(entity).orElse(null);
+        return BoardMatchmakingService.tutorialProtected(session, participant);
+    }
+
     public static void syncBoardSnapshot(ServerLevel level, BoardSession session) {
         BoardHudSnapshotPayload snapshot = BoardHudSyncManager.createSnapshot(level, session);
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
@@ -1738,7 +1747,8 @@ public class BoardSessionManager {
 
     public static void knockDownFromEffect(ServerLevel level, BoardSession session, UUID slotId) {
         BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant == null || participant.knockedDown() || isHospitalProtected(session, participant)) return;
+        if (participant == null || participant.knockedDown() || isHospitalProtected(session, participant)
+                || BoardMatchmakingService.tutorialProtected(session, participant)) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);
@@ -1755,6 +1765,13 @@ public class BoardSessionManager {
 
     private static void updateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant, boolean animateCoinChange) {
         BoardParticipant previous = session.participant(participant.slotUuid()).orElse(null);
+        if (previous != null && BoardMatchmakingService.tutorialProtected(session, previous)) {
+            if (participant.knockedDownTurns() > previous.knockedDownTurns()) {
+                participant = participant.withStats(previous.stats()).withKnockedDownTurns(previous.knockedDownTurns());
+            } else if (participant.stats().health() < previous.stats().health()) {
+                participant = participant.withStats(participant.stats().withHealth(previous.stats().health()));
+            }
+        }
         boolean damaged = previous != null && participant.stats().health() < previous.stats().health();
         boolean healed = previous != null && participant.stats().health() > previous.stats().health();
         boolean gainedStatus = previous != null && AstralCardEffects.gainedStatus(previous.stats(), participant.stats());

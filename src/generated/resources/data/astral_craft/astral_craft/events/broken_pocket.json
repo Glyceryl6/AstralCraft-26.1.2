@@ -8,14 +8,14 @@
         {
           "type": "astral_craft:board_status",
           "buff": {
-            "buff": "astral_craft:leaking_pocket",
+            "buff": "astral_craft:broken_pocket",
             "display_name": {
-              "translate": "board_buff.astral_craft.leaking_pocket"
+              "translate": "board_buff.astral_craft.broken_pocket"
             },
             "duration": -1,
             "fresh": true,
-            "icon": "astral_craft:textures/gui/board_buff/leaking_pocket.png",
-            "id": "astral_craft:leaking_pocket"
+            "icon": "astral_craft:textures/gui/board_buff/broken_pocket.png",
+            "id": "astral_craft:broken_pocket"
           }
         }
       ]

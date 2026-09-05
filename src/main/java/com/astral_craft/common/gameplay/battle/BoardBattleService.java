@@ -40,6 +40,8 @@ public class BoardBattleService {
     public static final int DEFENDER_ROLL_TICKS = 36;
     public static final int RESULT_TICKS = 20 * 3;
     public static final int KNOCKOUT_RESULT_TICKS = 20 * 6;
+    private static final int TUTORIAL_RESULT_TICKS = 20 * 8;
+    private static final int TUTORIAL_KNOCKOUT_RESULT_TICKS = 20 * 10;
     private static final int BOT_INITIAL_CARD_TICKS = 1;
     private static final int BOT_CARD_INTERVAL_TICKS = 6;
     private static final int CARD_READY_HOLD_TICKS = 12;
@@ -390,7 +392,9 @@ public class BoardBattleService {
         if (knockoutCoins > 0) {
             BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
-        int resultTicks = roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
+        int resultTicks = BoardMatchmakingService.tutorial(session.id())
+                ? (roll.knockout() ? TUTORIAL_KNOCKOUT_RESULT_TICKS : TUTORIAL_RESULT_TICKS)
+                : (roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS);
         BattleState result = state.withPhase(BattlePhase.RESULT, AstralServerTickClock.now(level) + resultTicks, resultTicks);
         ACTIVE.put(session.id(), result);
         send(level, session, result);

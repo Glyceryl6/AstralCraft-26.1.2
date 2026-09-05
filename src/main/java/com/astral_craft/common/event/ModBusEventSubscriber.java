@@ -15,6 +15,7 @@ import com.astral_craft.common.registry.bootstrap.*;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -28,6 +29,7 @@ public class ModBusEventSubscriber {
     public static void registerEntityAttributes(EntityAttributeCreationEvent event) {
         event.put(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterEntity.createAttributes().build());
         event.put(AstralEntities.EXHIBITION_CHARACTER.get(), AstralCharacterEntity.createAttributes().build());
+        event.put(AstralEntities.BOARD_MONSTER_ZOMBIE.get(), Zombie.createAttributes().build());
     }
 
     @SubscribeEvent

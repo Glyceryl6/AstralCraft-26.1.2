@@ -35,7 +35,7 @@ public class AstralEventBootstrap {
     public static final ResourceKey<AstralEventDefinition> FALLING_GIFTS = key("falling_gifts");
     public static final ResourceKey<AstralEventDefinition> ISOLATION = key("isolation");
     public static final ResourceKey<AstralEventDefinition> OVERSPENDING = key("overspending");
-    public static final ResourceKey<AstralEventDefinition> BROKEN_POCKET = key("leaking_pocket");
+    public static final ResourceKey<AstralEventDefinition> BROKEN_POCKET = key("broken_pocket");
     public static final ResourceKey<AstralEventDefinition> IT_IS_WAR = key("it_is_war");
     public static final ResourceKey<AstralEventDefinition> EQUALITY = key("equality");
     public static final ResourceKey<AstralEventDefinition> SWITCHEROO = key("switcheroo");
@@ -43,9 +43,8 @@ public class AstralEventBootstrap {
     private static final Identifier EQUALITY_GUARD_BUFF = AstralCraft.prefix("equality_guard");
     private static final Identifier FOOD_SAFETY_BUFF = AstralCraft.prefix("food_safety");
     public static final List<ResourceKey<AstralEventDefinition>> BOARD_EVENTS = List.of(
-            REDISTRIBUTION, HASTE, PHILANTHROPY, SERVER_BUG, FOOD_SAFETY, LOTTERY,
-            MY_GODDESS, DEAFENING_NOISE, CARD_DESTRUCTION, BIG_SALES, CROWD,
-            FALLING_GIFTS, ISOLATION, OVERSPENDING, BROKEN_POCKET, IT_IS_WAR, EQUALITY, SWITCHEROO, MONSTER_INVASION);
+            REDISTRIBUTION, HASTE, PHILANTHROPY, SERVER_BUG, FOOD_SAFETY, LOTTERY, MY_GODDESS, DEAFENING_NOISE, CARD_DESTRUCTION,
+            BIG_SALES, CROWD, FALLING_GIFTS, ISOLATION, OVERSPENDING, BROKEN_POCKET, IT_IS_WAR, EQUALITY, SWITCHEROO, MONSTER_INVASION);
 
     public static void bootstrap(BootstrapContext<AstralEventDefinition> context) {
         context.register(REDISTRIBUTION, boardEvent("redistribution", List.of(new BoardBalanceCoinsEventEffect()), List.of()));
@@ -75,7 +74,7 @@ public class AstralEventBootstrap {
         context.register(OVERSPENDING, boardEvent("overspending",
                 List.of(all(new BoardTrapEventEffect(BoardMechanicsState.BoardTrapType.DEMOLITION))), List.of()));
         context.register(BROKEN_POCKET, boardEvent("broken_pocket",
-                List.of(all(new BoardStatusEventEffect(AstralBoardBuffs.instance(AstralBoardBuffs.LEAKING_POCKET_ID,
+                List.of(all(new BoardStatusEventEffect(AstralBoardBuffs.instance(AstralBoardBuffs.BROKEN_POCKET_ID,
                         AstralBoardBuffs.LEAKING_POCKET.get()).permanent().build()))), List.of()));
         context.register(IT_IS_WAR, boardEvent("it_is_war",
                 List.of(all(new GiveItemEventEffect(AstralItems.HANDCARD_ATTACK_G.get().builtInRegistryHolder(), 1))), List.of()));

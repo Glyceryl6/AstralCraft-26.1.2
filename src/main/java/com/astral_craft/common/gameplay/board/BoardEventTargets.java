@@ -13,7 +13,8 @@ public class BoardEventTargets {
                 || !(pawn.level() instanceof ServerLevel level)) return Optional.empty();
         BoardSession session = BoardSessionManager.findByEntity(pawn).orElse(null);
         BoardParticipant participant = session == null ? null : session.participantFor(pawn).orElse(null);
-        return participant == null ? Optional.empty() : Optional.of(new Target(level, session, participant, pawn));
+        if (participant == null || BoardMatchmakingService.tutorialProtected(session, participant)) return Optional.empty();
+        return Optional.of(new Target(level, session, participant, pawn));
     }
 
     public record Target(ServerLevel level, BoardSession session, BoardParticipant participant,

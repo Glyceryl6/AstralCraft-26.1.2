@@ -5,6 +5,7 @@ import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
+import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardRouteService;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -38,10 +39,11 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
     @Override
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
-            List<BoardParticipant> participants = context.session().partyParticipants();
+            List<BoardParticipant> participants = context.session().partyParticipants().stream()
+                    .filter(participant -> !BoardMatchmakingService.tutorialProtected(context.session(), participant)).toList();
             List<String> destinations = switch (this.mode) {
                 case ROTATE_CURRENT -> rotateCurrent(context, participants);
-                case CONNECTED_RANDOM -> connectedNodes(context);
+                case CONNECTED_RANDOM -> connectedNodes(context, participants.size());
                 case HOSPITAL -> hospitalNodes(context, participants.size());
             };
             if (destinations.size() < participants.size()) return;
@@ -68,7 +70,7 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
         return nodes;
     }
 
-    private static List<String> connectedNodes(BoardEventContext context) {
+    private static List<String> connectedNodes(BoardEventContext context, int count) {
         List<String> starts = new ArrayList<>(context.session().nodes().keySet());
         Collections.shuffle(starts, new Random(context.level().getRandom().nextLong()));
         for (String start : starts) {
@@ -76,7 +78,7 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
             queue.add(List.of(start));
             while (!queue.isEmpty()) {
                 List<String> path = queue.removeFirst();
-                if (path.size() >= context.session().partyParticipants().size()) return path;
+                if (path.size() >= count) return path;
                 for (String neighbor : neighbors(context.session(), path.getLast())) {
                     if (path.contains(neighbor)) continue;
                     List<String> next = new ArrayList<>(path);

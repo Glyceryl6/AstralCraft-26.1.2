@@ -59,7 +59,10 @@ public class BoardRouteWorldRenderer {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null) return;
         RouteState current = state;
-        if (!current.active() || ClientAnimationClock.elapsedTicks(current.receivedAtTick()) > STALE_AFTER_TICKS) {
+        boolean tutorialBranch = !current.branches().isEmpty()
+                && BoardTutorialGuide.visible(current.boardId(), BoardTutorialGuide.Hint.BRANCH);
+        if (!current.active() || !tutorialBranch
+                && ClientAnimationClock.elapsedTicks(current.receivedAtTick()) > STALE_AFTER_TICKS) {
             submitIdleDirectionArrows(minecraft);
             return;
         }
@@ -99,12 +102,14 @@ public class BoardRouteWorldRenderer {
     }
 
     private static void submitBranchOutline(Vec3 position) {
-        double minX = position.x - 0.02D;
-        double minY = position.y - 0.02D;
-        double minZ = position.z - 0.02D;
-        double maxX = position.x + 1.02D;
-        double maxY = position.y + 0.14D;
-        double maxZ = position.z + 1.02D;
+        float cycle = ClientAnimationClock.phaseTicks(24) / 24.0F;
+        double expand = 0.035D + Math.sin(cycle * Math.PI * 2.0D) * 0.012D;
+        double minX = position.x - expand;
+        double minY = position.y - 0.025D;
+        double minZ = position.z - expand;
+        double maxX = position.x + 1.0D + expand;
+        double maxY = position.y + 1.025D;
+        double maxZ = position.z + 1.0D + expand;
         Vec3[] points = {
                 new Vec3(minX, minY, minZ), new Vec3(maxX, minY, minZ),
                 new Vec3(maxX, minY, maxZ), new Vec3(minX, minY, maxZ),
@@ -113,7 +118,8 @@ public class BoardRouteWorldRenderer {
         };
         int[][] edges = {{0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7}};
         for (int[] edge : edges) {
-            Gizmos.line(points[edge[0]], points[edge[1]], STOP_BRANCH_COLOR, 3.0F).setAlwaysOnTop();
+            submitLine(points[edge[0]], points[edge[1]], STOP_BRANCH_GLOW_COLOR, 7.0F);
+            submitLine(points[edge[0]], points[edge[1]], STOP_BRANCH_COLOR, 3.2F);
         }
     }
 

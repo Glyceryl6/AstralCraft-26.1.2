@@ -1203,5 +1203,10 @@
   "hud.astral_craft.board.tutorial_objective": "在标准模式下，累计获得3颗星星，即可胜利。",
   "hud.astral_craft.board.tutorial_star_rule": "星星的获取只要星币达标即可，不需要花费星币。每多一颗星星，所需星币的标准也会提高。",
   "message.astral_craft.board.skill_unavailable": "暂时还没有角色技能，敬请期待。",
-  "gui.astral_craft.board.tutorial.branch_world": "右键该地块将往此方向行走。"
+  "gui.astral_craft.board.tutorial.branch_world": "右键该地块将往此方向行走。",
+  "gui.astral_craft.board.tutorial.decision_time": "新手引导中不限制你的决策时间。正式对局中存在决策时限；超时后系统会自动行动，下一次决策时间也会缩短，直到你再次手动完成一次决策后恢复正常。",
+  "fortune.astral_craft.neutral.name": "中性",
+  "gui.astral_craft.board.tutorial.character_selection_unlimited": "新手引导：角色选择不限时",
+  "gui.astral_craft.board.tutorial.protection": "新手引导中会启用练习保护：你不会受到伤害，大部分会直接改变手牌、星币、状态或位置的随机事件也不会作用于你。正式对局中这些保护均不会生效。",
+  "entity.astral_craft.board_monster_zombie": "棋盘怪物"
 }

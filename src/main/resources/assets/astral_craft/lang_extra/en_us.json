@@ -1203,5 +1203,10 @@
   "hud.astral_craft.board.tutorial_objective": "In Standard mode, be the first to collect 3 stars to win.",
   "hud.astral_craft.board.tutorial_star_rule": "Stars only require meeting the Star Coin threshold; the coins are not spent. Each additional star requires more coins.",
   "message.astral_craft.board.skill_unavailable": "Character skills are not available yet. Please look forward to them.",
-  "gui.astral_craft.board.tutorial.branch_world": "Right-click this tile to move in this direction."
+  "gui.astral_craft.board.tutorial.branch_world": "Right-click this tile to move in this direction.",
+  "gui.astral_craft.board.tutorial.decision_time": "Decision time is unlimited during the tutorial. In a normal match, decisions have a time limit. Timing out makes the game act automatically and shortens your next decision window until you make a manual decision again.",
+  "fortune.astral_craft.neutral.name": "Neutral",
+  "gui.astral_craft.board.tutorial.character_selection_unlimited": "Tutorial: character selection has no time limit",
+  "gui.astral_craft.board.tutorial.protection": "Tutorial matches enable practice protection: you cannot take damage, and most random events that directly change your hand, Star Coins, status, or position will not affect you. These protections do not apply in normal matches.",
+  "entity.astral_craft.board_monster_zombie": "Board Monster"
 }

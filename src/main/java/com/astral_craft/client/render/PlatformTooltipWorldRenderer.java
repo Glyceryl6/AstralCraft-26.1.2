@@ -35,9 +35,10 @@ public class PlatformTooltipWorldRenderer {
 
     public static void submit(SubmitCustomGeometryEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui || minecraft.screen != null) return;
+        if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui) return;
         Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
         submitTutorialBranchLabels(event, cameraPos);
+        if (minecraft.screen != null) return;
         if (!(minecraft.hitResult instanceof BlockHitResult hitResult) || hitResult.getType() != HitResult.Type.BLOCK) return;
         BlockPos blockPos = hitResult.getBlockPos();
         if (!(minecraft.level.getBlockState(blockPos).getBlock() instanceof BasePlatform platform)) return;

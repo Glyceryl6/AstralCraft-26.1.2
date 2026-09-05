@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.event.effects;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
+import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.Codec;
@@ -63,6 +64,7 @@ public record BoardForEachParticipantEventEffect(Selection selection, List<Astra
 
     private List<BoardParticipant> select(BoardEventContext context) {
         List<BoardParticipant> participants = new ArrayList<>(context.session().partyParticipants());
+        participants.removeIf(participant -> BoardMatchmakingService.tutorialProtected(context.session(), participant));
         if (participants.isEmpty() || this.selection == Selection.ALL) return participants;
         if (this.selection == Selection.ACTIVE) return participants.stream().filter(participant -> !participant.knockedDown()).toList();
         Comparator<BoardParticipant> comparator = Comparator.comparingInt(value -> value.stats().starCoins());

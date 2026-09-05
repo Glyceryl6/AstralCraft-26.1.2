@@ -138,6 +138,7 @@ public class BoardMonsterService {
             phase.targetNodeId = null;
             return true;
         }
+        BoardMonsterEntityService.setDirection(level, monster, BoardEntityService.directionBetween(from, to));
         long elapsed = Math.max(0L, AstralServerTickClock.now(level) - phase.stepStartedTick);
         double progress = Math.min(1.0D, elapsed / (double) BoardSessionManager.MOVEMENT_STEP_TICKS);
         entity.setPos(Mth.lerp(progress, from.getX() + 0.5D, to.getX() + 0.5D),

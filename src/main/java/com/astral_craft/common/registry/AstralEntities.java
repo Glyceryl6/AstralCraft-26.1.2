@@ -2,6 +2,7 @@ package com.astral_craft.common.registry;
 
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.entity.AstralDiceEntity;
+import com.astral_craft.common.entity.BoardMonsterZombieEntity;
 import com.astral_craft.common.entity.BoardWorldObjectEntity;
 import com.astral_craft.common.entity.CustomPaintingEntity;
 import com.astral_craft.common.entity.SoulLinkEntity;
@@ -26,6 +27,10 @@ public final class AstralEntities {
     public static final Supplier<EntityType<AstralCharacterEntity>> ASTRAL_CHARACTER = ENTITIES.registerEntityType(
             "astral_character", AstralCharacterEntity::new, MobCategory.CREATURE,
             builder -> builder.sized(0.6F, 1.8F).clientTrackingRange(64).updateInterval(2));
+
+    public static final Supplier<EntityType<BoardMonsterZombieEntity>> BOARD_MONSTER_ZOMBIE = ENTITIES.registerEntityType(
+            "board_monster_zombie", BoardMonsterZombieEntity::new, MobCategory.MISC,
+            builder -> builder.sized(0.6F, 1.95F).clientTrackingRange(64).updateInterval(1).noSave());
 
     public static final Supplier<EntityType<ExhibitionCharacterEntity>> EXHIBITION_CHARACTER = ENTITIES.registerEntityType(
             "exhibition_character", ExhibitionCharacterEntity::new, MobCategory.MISC,

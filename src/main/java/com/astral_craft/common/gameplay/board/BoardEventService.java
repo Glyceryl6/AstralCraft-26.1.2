@@ -14,6 +14,7 @@ import com.astral_craft.common.registry.bootstrap.AstralEventBootstrap;
 import com.astral_craft.common.util.AstralServerTickClock;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -30,7 +31,7 @@ public class BoardEventService {
     public static boolean trigger(ServerLevel level, BoardSession session, BoardParticipant source) {
         if (level == null || session == null || source == null || PANEL_EVENTS.containsKey(session.id())) return false;
         List<AstralEventDefinition> candidates = AstralEventBootstrap.BOARD_EVENTS.stream()
-                .map(key -> key.identifier()).map(AstralEventManager.INSTANCE::get)
+                .map(ResourceKey::identifier).map(AstralEventManager.INSTANCE::get)
                 .filter(Objects::nonNull).toList();
         if (candidates.isEmpty()) return false;
         return begin(level, session, source, candidates.get(level.getRandom().nextInt(candidates.size())));
@@ -138,7 +139,7 @@ public class BoardEventService {
         for (AstralEventEffect effect : effects) {
             if (effect instanceof BoardEventEffect boardEffect) {
                 boardEffect.enqueue(context, tasks);
-            } else if (effect != null) {
+            } else if (effect != null && !BoardMatchmakingService.tutorialProtected(context.session(), context.source())) {
                 tasks.addLast(BoardEventTask.action(() -> effect.apply(context.astralContext(context.source())), 0));
             }
         }

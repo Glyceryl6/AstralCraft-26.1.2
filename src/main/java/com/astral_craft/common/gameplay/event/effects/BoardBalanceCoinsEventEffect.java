@@ -3,6 +3,7 @@ package com.astral_craft.common.gameplay.event.effects;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
+import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardWorldObjectService;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
@@ -29,8 +30,10 @@ public record BoardBalanceCoinsEventEffect() implements BoardEventEffect {
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
             BoardParticipant highest = context.session().partyParticipants().stream()
+                    .filter(participant -> !BoardMatchmakingService.tutorialProtected(context.session(), participant))
                     .max(Comparator.comparingInt(value -> value.stats().starCoins())).orElse(null);
             BoardParticipant lowest = context.session().partyParticipants().stream()
+                    .filter(participant -> !BoardMatchmakingService.tutorialProtected(context.session(), participant))
                     .min(Comparator.comparingInt(value -> value.stats().starCoins())).orElse(null);
             if (highest == null || lowest == null || highest.slotUuid().equals(lowest.slotUuid())
                     || highest.stats().starCoins() == lowest.stats().starCoins()) return;
