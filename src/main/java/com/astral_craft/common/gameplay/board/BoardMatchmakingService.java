@@ -17,7 +17,9 @@ import java.util.*;
 public class BoardMatchmakingService {
 
     public static final int SINGLE_START_DELAY_TICKS = 20 * 3;
+    private static final int TUTORIAL_DECISION_TIME_MULTIPLIER = 2;
     private static final Map<UUID, MatchState> MATCHES = new HashMap<>();
+    private static final Set<UUID> TUTORIAL_BOARDS = new HashSet<>();
 
     public static void openModeSelection(ServerPlayer player, BoardSession session) {
         MatchState ownMatch = findPlayerMatch(player.getUUID());
@@ -35,8 +37,8 @@ public class BoardMatchmakingService {
         PacketDistributor.sendToPlayer(player, new OpenBoardMatchmakingModeSelectionPayload(session.id()));
     }
 
-    public static void selectMode(ServerPlayer player, UUID boardId, BoardMatchmakingMode mode) {
-        if (mode == null || !holdsLobbyItem(player)) return;
+    public static void selectMode(ServerPlayer player, UUID boardId, BoardMatchmakingMode mode, boolean tutorial) {
+        if (mode == null || !holdsLobbyItem(player) || tutorial && mode != BoardMatchmakingMode.SINGLE_PLAYER) return;
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (session == null || session.phase() != BoardPhase.READY) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.matchmaking.busy"), true);
@@ -49,6 +51,8 @@ public class BoardMatchmakingService {
             return;
         }
 
+        if (tutorial) TUTORIAL_BOARDS.add(boardId);
+        else TUTORIAL_BOARDS.remove(boardId);
         if (mode == BoardMatchmakingMode.SINGLE_PLAYER) {
             startSinglePlayer(player, session);
         } else {
@@ -132,6 +136,20 @@ public class BoardMatchmakingService {
 
     public static boolean active(UUID boardId) {
         return MATCHES.containsKey(boardId);
+    }
+
+    public static boolean tutorial(UUID boardId) {
+        return boardId != null && TUTORIAL_BOARDS.contains(boardId);
+    }
+
+    public static int decisionDurationTicks(BoardSession session, BoardParticipant participant, int baseTicks) {
+        int duration = participant.decisionDurationTicks(baseTicks);
+        if (!tutorial(session.id()) || participant.bot()) return duration;
+        return Math.max(1, duration * TUTORIAL_DECISION_TIME_MULTIPLIER);
+    }
+
+    public static void clearTutorial(UUID boardId) {
+        TUTORIAL_BOARDS.remove(boardId);
     }
 
     public static void clear(UUID boardId) {

@@ -58,8 +58,8 @@ public class BoardBattleService {
         boolean attackerAutomated = BoardSessionManager.isAutomated(level, attacker);
         boolean defenderAutomated = BoardSessionManager.isAutomated(level, defender);
         long now = AstralServerTickClock.now(level);
-        int attackerDurationTicks = attackerAutomated ? BOT_INITIAL_CARD_TICKS : attacker.decisionDurationTicks(DECISION_TICKS);
-        int defenderDurationTicks = defenderAutomated ? BOT_INITIAL_CARD_TICKS : defender.decisionDurationTicks(DECISION_TICKS);
+        int attackerDurationTicks = attackerAutomated ? BOT_INITIAL_CARD_TICKS : BoardMatchmakingService.decisionDurationTicks(session, attacker, DECISION_TICKS);
+        int defenderDurationTicks = defenderAutomated ? BOT_INITIAL_CARD_TICKS : BoardMatchmakingService.decisionDurationTicks(session, defender, DECISION_TICKS);
         long attackerDeadlineTick = now + attackerDurationTicks;
         long defenderDeadlineTick = now + defenderDurationTicks;
         BattleState state = new BattleState(session.id(), attacker.slotUuid(), defender.slotUuid(),
@@ -323,7 +323,7 @@ public class BoardBattleService {
             beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
             return;
         }
-        int durationTicks = defender.decisionDurationTicks(DEFENSE_CHOICE_TICKS);
+        int durationTicks = BoardMatchmakingService.decisionDurationTicks(session, defender, DEFENSE_CHOICE_TICKS);
         BattleState choosing = state.withPhase(BattlePhase.DEFENSE_CHOICE, AstralServerTickClock.now(level) + durationTicks, durationTicks);
         ACTIVE.put(session.id(), choosing);
         send(level, session, choosing);

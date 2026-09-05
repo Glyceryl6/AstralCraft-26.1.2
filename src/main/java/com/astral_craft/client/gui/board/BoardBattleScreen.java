@@ -202,6 +202,7 @@ public class BoardBattleScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         this.renderPartialTick = partialTick;
         Layout layout = this.layout();
+        BoardTutorialGuide.beginFrame(this.boardId);
         this.renderArena(graphics, layout);
         this.renderNames(graphics, layout);
         LivingEntity attacker = this.entity(this.attackerEntityId);
@@ -228,6 +229,49 @@ public class BoardBattleScreen extends Screen {
         }
 
         this.renderStatus(graphics, layout);
+        this.renderTutorial(graphics, layout);
+    }
+
+    private void renderTutorial(GuiGraphicsExtractor graphics, Layout layout) {
+        if (!BoardTutorialGuide.active(this.boardId) || this.role == BattleRole.SPECTATOR) return;
+        int width = Math.min(410, Math.max(180, layout.width() - 36));
+        int x = layout.x() + 18;
+        int bottom = Math.max(layout.y() + 118, layout.cardY() - 7);
+        if (this.view.result() && this.view.knockout()) {
+            BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    this.role == BattleRole.DEFENDER ? BoardTutorialGuide.Hint.KNOCKED_DOWN
+                            : BoardTutorialGuide.Hint.KNOCKOUT_OTHER, x, bottom, width);
+            return;
+        }
+        if (this.view.defenseChoice()) {
+            if (this.role == BattleRole.DEFENDER) {
+                int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                        BoardTutorialGuide.Hint.DEFENSE_RULES, x, bottom, width);
+                bottom -= height > 0 ? height + 5 : 0;
+                BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                        BoardTutorialGuide.Hint.DEFENSE_CHOICE, x, bottom, width);
+            } else {
+                BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                        BoardTutorialGuide.Hint.ATTACK_ROLL, x, bottom, width);
+            }
+            return;
+        }
+        if (this.view.attackerRolling() && this.role == BattleRole.ATTACKER) {
+            BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    BoardTutorialGuide.Hint.ATTACK_ROLL, x, bottom, width);
+            return;
+        }
+        if (!this.view.selecting()) return;
+        if (!this.selectedIndexes.isEmpty()) {
+            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    BoardTutorialGuide.Hint.BATTLE_VALUES, x, bottom, width);
+            bottom -= height > 0 ? height + 5 : 0;
+        }
+        int battleStartHeight = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                BoardTutorialGuide.Hint.BATTLE_START, x, bottom, width);
+        bottom -= battleStartHeight > 0 ? battleStartHeight + 5 : 0;
+        BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                BoardTutorialGuide.Hint.HAND_DRAG, x, bottom, width);
     }
 
     private void renderNames(GuiGraphicsExtractor graphics, Layout layout) {
@@ -324,11 +368,9 @@ public class BoardBattleScreen extends Screen {
     }
 
     private void renderBattleNumbers(GuiGraphicsExtractor graphics, Layout layout) {
-        int center = layout.x() + layout.width() / 2;
-        int separation = Math.clamp(layout.width() / 9, 58, 92);
-        int attackX = center - separation;
-        int defenseX = center + separation;
-        int numberY = layout.modelTop() + 30;
+        int attackX = layout.x() + layout.width() / 4;
+        int defenseX = layout.x() + layout.width() * 3 / 4;
+        int numberY = layout.modelTop() + 18;
         if (this.view.scorePhase()) {
             Range attackRange = this.displayRange(true);
             Range defenseRange = this.displayRange(false);
@@ -848,6 +890,7 @@ public class BoardBattleScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0 && BoardTutorialGuide.mouseClicked(this.boardId, event.x(), event.y())) return true;
         if (event.button() != 0 || this.role == BattleRole.SPECTATOR) {
             return super.mouseClicked(event, doubleClick);
         }

@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.UUID;
 
-public record BoardMatchmakingModeSelectionPayload(UUID boardId, BoardMatchmakingMode mode) implements CustomPacketPayload {
+public record BoardMatchmakingModeSelectionPayload(UUID boardId, BoardMatchmakingMode mode, boolean tutorial) implements CustomPacketPayload {
 
     public static final Type<BoardMatchmakingModeSelectionPayload> TYPE = new Type<>(AstralCraft.prefix("board_matchmaking_mode_selection"));
     private static final StreamCodec<ByteBuf, BoardMatchmakingMode> MODE_CODEC = ByteBufCodecs.idMapper(
@@ -18,6 +18,7 @@ public record BoardMatchmakingModeSelectionPayload(UUID boardId, BoardMatchmakin
     public static final StreamCodec<ByteBuf, BoardMatchmakingModeSelectionPayload> STREAM_CODEC = StreamCodec.composite(
             BoardNetworkCodecs.UUID_STREAM_CODEC, BoardMatchmakingModeSelectionPayload::boardId,
             MODE_CODEC, BoardMatchmakingModeSelectionPayload::mode,
+            ByteBufCodecs.BOOL, BoardMatchmakingModeSelectionPayload::tutorial,
             BoardMatchmakingModeSelectionPayload::new);
 
     @Override

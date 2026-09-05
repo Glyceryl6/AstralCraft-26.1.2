@@ -86,6 +86,34 @@ public class BoardRouteWorldRenderer {
         }
         for (Vec3 branch : current.branches()) {
             submitBranchMarker(branchOrigin, branch, cycle, highlightedBranches.contains(branch));
+            if (BoardTutorialGuide.visible(current.boardId(), BoardTutorialGuide.Hint.BRANCH)) {
+                submitBranchOutline(branch);
+            }
+        }
+    }
+
+    public static List<BlockPos> tutorialBranchPositions() {
+        RouteState current = state;
+        if (!current.active() || !BoardTutorialGuide.visible(current.boardId(), BoardTutorialGuide.Hint.BRANCH)) return List.of();
+        return current.branches().stream().map(BlockPos::containing).toList();
+    }
+
+    private static void submitBranchOutline(Vec3 position) {
+        double minX = position.x - 0.02D;
+        double minY = position.y - 0.02D;
+        double minZ = position.z - 0.02D;
+        double maxX = position.x + 1.02D;
+        double maxY = position.y + 0.14D;
+        double maxZ = position.z + 1.02D;
+        Vec3[] points = {
+                new Vec3(minX, minY, minZ), new Vec3(maxX, minY, minZ),
+                new Vec3(maxX, minY, maxZ), new Vec3(minX, minY, maxZ),
+                new Vec3(minX, maxY, minZ), new Vec3(maxX, maxY, minZ),
+                new Vec3(maxX, maxY, maxZ), new Vec3(minX, maxY, maxZ)
+        };
+        int[][] edges = {{0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7}};
+        for (int[] edge : edges) {
+            Gizmos.line(points[edge[0]], points[edge[1]], STOP_BRANCH_COLOR, 3.0F).setAlwaysOnTop();
         }
     }
 

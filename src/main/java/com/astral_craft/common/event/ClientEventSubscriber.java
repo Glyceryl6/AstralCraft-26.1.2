@@ -17,6 +17,7 @@ import com.astral_craft.client.model.character.AstralGeoAnimationManager;
 import com.astral_craft.client.model.character.AstralGeoModelManager;
 import com.astral_craft.client.model.entity.FirecrackersModel;
 import com.astral_craft.client.render.*;
+import com.astral_craft.client.render.blockentity.PlatformBlockEntityRenderer;
 import com.astral_craft.client.render.character.AstralCharacterRenderStateModifier;
 import com.astral_craft.client.render.character.AstralCharacterRenderer;
 import com.astral_craft.client.render.character.AstralPlayerCharacterRenderBridge;
@@ -32,6 +33,7 @@ import com.astral_craft.common.network.c2s.RequestCharacterSettingsPayload;
 import com.astral_craft.common.network.c2s.RequestCharacterSkillPayload;
 import com.astral_craft.common.network.c2s.RequestHandCardDeckPayload;
 import com.astral_craft.common.network.s2c.*;
+import com.astral_craft.common.registry.AstralBlockEntities;
 import com.astral_craft.common.registry.AstralEntities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.ClientAvatarEntity;
@@ -179,6 +181,7 @@ public class ClientEventSubscriber {
 
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(AstralBlockEntities.PLATFORM.get(), context -> new PlatformBlockEntityRenderer());
         event.registerEntityRenderer(AstralEntities.ASTRAL_DICE.get(), AstralDiceRenderer::new);
         event.registerEntityRenderer(AstralEntities.SOUL_LINK.get(), SoulLinkRenderer::new);
         event.registerEntityRenderer(AstralEntities.BOARD_WORLD_OBJECT.get(), BoardWorldObjectRenderer::new);
@@ -239,6 +242,7 @@ public class ClientEventSubscriber {
             TargetSelectionScreen.closePresentation(payload.boardId());
             BoardLotteryNumberScreen.closePresentation(payload.boardId());
             BoardHudOverlay.clear(payload.boardId());
+            BoardTutorialGuide.clear(payload.boardId());
             BoardRouteWorldRenderer.clear(payload.boardId());
             CardRevealOverlay.clear();
         }));

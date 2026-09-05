@@ -6,6 +6,7 @@ import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
+import com.astral_craft.common.gameplay.board.BoardPanelPlacementCard;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.BoardCardView;
 import com.astral_craft.common.network.c2s.*;
@@ -131,6 +132,7 @@ public class BoardTurnScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         if (CardRevealOverlay.isActive() && !this.counterResponse) return;
         Layout layout = this.layout();
+        BoardTutorialGuide.beginFrame(this.boardId);
         graphics.fill(0, layout.top(), this.width, this.height, 0xED090911);
         graphics.fill(0, layout.top(), this.width, layout.top() + 2, 0xB0FFFFFF);
         graphics.text(this.font, this.title, 12, layout.top() + 9, 0xFFFFFFFF, false);
@@ -183,9 +185,51 @@ public class BoardTurnScreen extends Screen {
                     layout.skillY(), layout.skillW(), 25, false, skillHover,
                     ButtonStyle.button(skillEnabled ? 0xFF4D7AC7 : 0xFF555560));
         }
+        this.renderTutorial(graphics, mouseX, mouseY, layout);
         BoardDecisionProgressBar.render(graphics, this.font, this.characterId, this.skinId,
                 this.decisionTicks, this.decisionDurationTicks, this.width / 2,
                 this.height - 17, Math.min(270, this.width - 44));
+    }
+
+    private void renderTutorial(GuiGraphicsExtractor graphics, int mouseX, int mouseY, Layout layout) {
+        if (!BoardTutorialGuide.active(this.boardId)) return;
+        int width = Math.clamp(this.width - 24, 180, 420);
+        int x = 12;
+        int bottom = layout.top() - 6;
+        BoardCard hovered = this.hoveredCard(mouseX, mouseY, layout);
+        if (this.counterResponse) {
+            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    BoardTutorialGuide.Hint.COUNTER, x, bottom, width);
+            bottom -= height > 0 ? height + 5 : 0;
+        } else if (hovered != null && hovered.definition().type() == CardType.COUNTER) {
+            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    BoardTutorialGuide.Hint.COUNTER, x, bottom, width);
+            bottom -= height > 0 ? height + 5 : 0;
+        } else if (hovered != null && hovered.definition().type() == CardType.EFFECT) {
+            BoardTutorialGuide.Hint hint = hovered.stack().getItem() instanceof BoardPanelPlacementCard
+                    ? BoardTutorialGuide.Hint.TARGET_PLATFORM
+                    : hovered.definition().needsTarget() ? BoardTutorialGuide.Hint.TARGET_CHARACTER
+                    : BoardTutorialGuide.Hint.TARGET_SELF;
+            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId, hint, x, bottom, width);
+            bottom -= height > 0 ? height + 5 : 0;
+        }
+        int handHeight = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                BoardTutorialGuide.Hint.HAND_DRAG, x, bottom, width);
+        if (handHeight == 0) {
+            BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
+                    BoardTutorialGuide.Hint.BRANCH, x, bottom, width);
+        }
+    }
+
+    private BoardCard hoveredCard(int mouseX, int mouseY, Layout layout) {
+        if (this.draggingIndex >= 0 || mouseX < layout.cardLeft() || mouseX > layout.cardRight()
+                || mouseY < layout.cardTop() || mouseY > layout.cardBottom()) return null;
+        int x = 12 - Math.round(this.scroll);
+        for (BoardCard card : this.cards) {
+            if (inside(mouseX, mouseY, x, layout.cardY(), CARD_W, CARD_H)) return card;
+            x += CARD_W + GAP;
+        }
+        return null;
     }
 
     private void renderCard(GuiGraphicsExtractor graphics, BoardCard card, int x, int y, int mouseX, int mouseY, boolean dragging) {
@@ -208,6 +252,7 @@ public class BoardTurnScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
+        if (BoardTutorialGuide.mouseClicked(this.boardId, event.x(), event.y())) return true;
         Layout layout = this.layout();
         if (inside(event.x(), event.y(), layout.leaveX(), layout.leaveY(), layout.leaveW(), 22)) {
             if (this.counterResponse) {
@@ -231,8 +276,10 @@ public class BoardTurnScreen extends Screen {
 
         if (!this.counterResponse && inside(event.x(), event.y(), layout.skillX(), layout.skillY(), layout.skillW(), 25)
                 && this.currentTurn && this.skillCooldown <= 0 && !busy) {
-            this.requestLockTicks = 8;
-            ClientPacketDistributor.sendToServer(new BoardSkillRequestPayload(this.boardId));
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player != null) {
+                minecraft.player.sendOverlayMessage(Component.translatable("message.astral_craft.board.skill_unavailable"));
+            }
             return true;
         }
 

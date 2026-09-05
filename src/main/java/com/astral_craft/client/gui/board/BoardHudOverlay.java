@@ -11,10 +11,13 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -63,7 +66,9 @@ public class BoardHudOverlay {
         if (snapshot == null || snapshot.pawns().isEmpty()) return;
         int rowCount = Math.min(4, snapshot.pawns().size());
         int width = Math.clamp(graphics.guiWidth() - 6, 156, 180);
-        int height = HEADER_HEIGHT + rowCount * ROW_HEIGHT + 4;
+        List<FormattedCharSequence> objectiveLines = tutorialObjectiveLines(minecraft, snapshot, width - 14);
+        int objectiveHeight = objectiveLines.isEmpty() ? 0 : 8 + objectiveLines.size() * 10 + 5;
+        int height = HEADER_HEIGHT + rowCount * ROW_HEIGHT + 4 + objectiveHeight;
         int x = Math.max(3, graphics.guiWidth() - HUD_MARGIN_X - width);
         int y = HUD_MARGIN_Y;
         graphics.fill(x, y, x + width, y + height, 0xB6080812);
@@ -76,6 +81,22 @@ public class BoardHudOverlay {
             renderParticipantRow(graphics, minecraft, snapshot, snapshot.pawns().get(index),
                     x + 4, rowY + index * ROW_HEIGHT, width - 8);
         }
+        if (!objectiveLines.isEmpty()) {
+            int objectiveY = rowY + rowCount * ROW_HEIGHT + 4;
+            graphics.fill(x + 5, objectiveY - 3, x + width - 5, objectiveY - 2, 0x557F718A);
+            for (FormattedCharSequence line : objectiveLines) {
+                graphics.text(minecraft.font, line, x + 7, objectiveY, 0xFFFFE6A3, false);
+                objectiveY += 10;
+            }
+        }
+    }
+
+    private static List<FormattedCharSequence> tutorialObjectiveLines(Minecraft minecraft, BoardHudSnapshotPayload snapshot, int width) {
+        if (!BoardTutorialGuide.active(snapshot.boardId())) return List.of();
+        List<FormattedCharSequence> lines = new ArrayList<>();
+        lines.addAll(minecraft.font.split(Component.translatable("hud.astral_craft.board.tutorial_objective"), width));
+        lines.addAll(minecraft.font.split(Component.translatable("hud.astral_craft.board.tutorial_star_rule"), width));
+        return List.copyOf(lines);
     }
 
     private static void renderParticipantRow(GuiGraphicsExtractor graphics, Minecraft minecraft, BoardHudSnapshotPayload snapshot, PawnView pawn, int x, int y, int width) {

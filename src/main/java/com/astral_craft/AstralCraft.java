@@ -21,6 +21,7 @@ public class AstralCraft {
         AstralTabs.TABS.register(modEventBus);
         AstralItems.ITEMS.register(modEventBus);
         AstralBlocks.BLOCKS.register(modEventBus);
+        AstralBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         AstralEntities.ENTITIES.register(modEventBus);
         AstralAttachments.ATTACHMENTS.register(modEventBus);
         AstralEventEffectTypes.EFFECT_TYPES.register(modEventBus);

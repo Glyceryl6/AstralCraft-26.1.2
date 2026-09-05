@@ -1,5 +1,6 @@
 package com.astral_craft.client.render;
 
+import com.astral_craft.client.gui.board.BoardRouteWorldRenderer;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -34,12 +35,12 @@ public class PlatformTooltipWorldRenderer {
 
     public static void submit(SubmitCustomGeometryEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui
-                || minecraft.screen != null || !(minecraft.hitResult instanceof BlockHitResult hitResult)
-                || hitResult.getType() != HitResult.Type.BLOCK) return;
+        if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui || minecraft.screen != null) return;
+        Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
+        submitTutorialBranchLabels(event, cameraPos);
+        if (!(minecraft.hitResult instanceof BlockHitResult hitResult) || hitResult.getType() != HitResult.Type.BLOCK) return;
         BlockPos blockPos = hitResult.getBlockPos();
         if (!(minecraft.level.getBlockState(blockPos).getBlock() instanceof BasePlatform platform)) return;
-        Vec3 cameraPos = event.getLevelRenderState().cameraRenderState.pos;
         Vec3 anchor = Vec3.atCenterOf(blockPos).add(0.0D, HEIGHT_ABOVE_BLOCK, 0.0D);
         double distanceToCameraSq = anchor.distanceToSqr(cameraPos);
         List<Component> lines = tooltipLines(minecraft.font, platform);
@@ -56,6 +57,24 @@ public class PlatformTooltipWorldRenderer {
         }
 
         poseStack.popPose();
+    }
+
+    private static void submitTutorialBranchLabels(SubmitCustomGeometryEvent event, Vec3 cameraPos) {
+        List<BlockPos> branches = BoardRouteWorldRenderer.tutorialBranchPositions();
+        if (branches.isEmpty()) return;
+        Component text = Component.translatable("gui.astral_craft.board.tutorial.branch_world");
+        for (BlockPos blockPos : branches) {
+            Vec3 anchor = Vec3.atCenterOf(blockPos).add(0.0D, 0.72D, 0.0D);
+            double distanceToCameraSq = anchor.distanceToSqr(cameraPos);
+            PoseStack poseStack = event.getPoseStack();
+            poseStack.pushPose();
+            poseStack.translate(anchor.x - cameraPos.x, anchor.y - cameraPos.y, anchor.z - cameraPos.z);
+            event.getSubmitNodeCollector().order(0).submitNameTag(
+                    poseStack, Vec3.ZERO, 0, text, Boolean.TRUE,
+                    LightCoordsUtil.FULL_BRIGHT, distanceToCameraSq,
+                    event.getLevelRenderState().cameraRenderState);
+            poseStack.popPose();
+        }
     }
 
     private static List<Component> tooltipLines(Font font, BasePlatform platform) {

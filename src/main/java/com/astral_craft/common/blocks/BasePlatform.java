@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks;
 
+import com.astral_craft.common.blockentity.PlatformBlockEntity;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardSession;
 import net.minecraft.ChatFormatting;
@@ -14,6 +15,8 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -27,7 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class BasePlatform extends Block {
+public class BasePlatform extends Block implements EntityBlock {
 
     public enum Trigger { PASS, LANDING, BOTH }
 
@@ -43,6 +46,11 @@ public class BasePlatform extends Block {
         super(properties.instabreak().sound(SoundType.WOOL).noOcclusion());
         this.trigger = trigger;
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new PlatformBlockEntity(pos, state);
     }
 
     @Override

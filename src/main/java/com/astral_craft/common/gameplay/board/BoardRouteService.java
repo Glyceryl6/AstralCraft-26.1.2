@@ -203,7 +203,7 @@ public class BoardRouteService {
         int decisionTicks = active && movement != null && !movement.branchChoices().isEmpty()
                 ? (int) Math.max(0L, movement.nextStepTick() - AstralServerTickClock.now(level)) : 0;
         int decisionDurationTicks = active && participant != null && !movement.branchChoices().isEmpty()
-                ? participant.decisionDurationTicks(BoardSessionManager.BRANCH_TIMEOUT_TICKS) : 1;
+                ? BoardMatchmakingService.decisionDurationTicks(session, participant, BoardSessionManager.BRANCH_TIMEOUT_TICKS) : 1;
         Identifier characterId = participant == null ? AstralCraft.prefix("mimi") : participant.characterId();
         Identifier skinId = participant == null ? Identifier.withDefaultNamespace("default") : participant.skinId();
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {

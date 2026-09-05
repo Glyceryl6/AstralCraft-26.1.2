@@ -186,7 +186,7 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardMatchmakingModeSelection(BoardMatchmakingModeSelectionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                BoardMatchmakingService.selectMode(player, payload.boardId(), payload.mode());
+                BoardMatchmakingService.selectMode(player, payload.boardId(), payload.mode(), payload.tutorial());
             }
         });
     }

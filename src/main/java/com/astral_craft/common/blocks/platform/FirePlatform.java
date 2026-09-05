@@ -50,7 +50,7 @@ public class FirePlatform extends BasePlatform {
             return;
         }
 
-        int duration = context.participant().decisionDurationTicks(TARGET_TIMEOUT_TICKS);
+        int duration = BoardMatchmakingService.decisionDurationTicks(context.session(), context.participant(), TARGET_TIMEOUT_TICKS);
         this.states.put(context.session().id(), new FireState(context.participant().slotUuid(), null,
                 AstralServerTickClock.now(context.level()) + duration));
         this.activateBoardEffect(context.session());
