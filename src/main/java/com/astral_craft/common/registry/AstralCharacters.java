@@ -48,10 +48,11 @@ public class AstralCharacters {
     public static final DeferredHolder<AstralCharacter, AstralCharacter> INK_SHADOW = register("ink_shadow", InkShadowCharacter::new, properties(2, 1, 10).cooldown(3, 3).botSelectable(false), progression(35));
     public static final DeferredHolder<AstralCharacter, AstralCharacter> BONNIE = register("bonnie", properties(2, 1, 9).chipWeights(15, 15, 100, 15).cooldown(3, 3), progression(36));
     public static final DeferredHolder<AstralCharacter, AstralCharacter> LING_LING = register("ling_ling", properties(2, 2, 10).cooldown(3, 3), progression(37));
-    public static final DeferredHolder<AstralCharacter, AstralCharacter> K_ANGEL = register("k_angel", properties(0, 1, 9).chipWeights(100, 15, 15, 15).cooldown(3, 3), progression(38).implicitBondSkin(false));
-    public static final DeferredHolder<AstralCharacter, AstralCharacter> AME = register("ame", properties(1, 4, 9).chipWeights(15, 15, 100, 15).cooldown(3), progression(39).implicitBondSkin(false));
-    public static final DeferredHolder<AstralCharacter, AstralCharacter> JILL = register("jill", properties(1, 1, 10).chipWeights(80, 30, 15, 15).cooldown(3, 3), progression(40).implicitBondSkin(false));
-    public static final DeferredHolder<AstralCharacter, AstralCharacter> DOROTHY = register("dorothy", properties(1, 0, 8).chipWeights(15, 60, 60, 15).cooldown(3, 2), progression(41).implicitBondSkin(false));
+    public static final DeferredHolder<AstralCharacter, AstralCharacter> SYKES = register("sykes", properties(0, 2, 9).cooldown(3, 3), progression(38));
+    public static final DeferredHolder<AstralCharacter, AstralCharacter> K_ANGEL = register("k_angel", properties(0, 1, 9).chipWeights(100, 15, 15, 15).cooldown(3, 3), progression(39).implicitBondSkin(false));
+    public static final DeferredHolder<AstralCharacter, AstralCharacter> AME = register("ame", properties(1, 4, 9).chipWeights(15, 15, 100, 15).cooldown(3), progression(40).implicitBondSkin(false));
+    public static final DeferredHolder<AstralCharacter, AstralCharacter> JILL = register("jill", properties(1, 1, 10).chipWeights(80, 30, 15, 15).cooldown(3, 3), progression(41).implicitBondSkin(false));
+    public static final DeferredHolder<AstralCharacter, AstralCharacter> DOROTHY = register("dorothy", properties(1, 0, 8).chipWeights(15, 60, 60, 15).cooldown(3, 2), progression(42).implicitBondSkin(false));
 
     private static DeferredHolder<AstralCharacter, AstralCharacter> register(String name, AstralCharacter.Properties properties, CharacterProgressionDefinition progression) {
         return register(name, AstralCharacter::new, properties, progression);
