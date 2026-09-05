@@ -199,16 +199,12 @@ public class BoardTurnScreen extends Screen {
             BoardTutorialGuide.Hint hint = this.cardTutorialHint(hovered);
             if (hint != null) {
                 Component message = Component.translatable(hint.translationKey());
-                graphics.setTooltipForNextFrame(this.font, this.font.split(message, Math.min(280, Math.max(120, this.width - 40))), mouseX, mouseY);
+                graphics.setTooltipForNextFrame(this.font, this.font.split(message, Math.clamp(this.width - 40, 120, 280)), mouseX, mouseY);
             }
         }
 
         int handHeight = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                 BoardTutorialGuide.Hint.HAND_DRAG, x, bottom, width);
-        if (handHeight > 0) bottom -= handHeight + 5;
-        int decisionTimeHeight = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
-                BoardTutorialGuide.Hint.DECISION_TIME, x, bottom, width);
-        if (decisionTimeHeight > 0) bottom -= decisionTimeHeight + 5;
         if (handHeight == 0) {
             BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                     BoardTutorialGuide.Hint.BRANCH, x, bottom, width);

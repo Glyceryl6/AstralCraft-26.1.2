@@ -8,5 +8,5 @@
   ],
   "id": "astral_craft:sleep_in",
   "name_key": "fortune.astral_craft.good_luck.name",
-  "texture": "astral_craft:textures/gui/cards/fortune/sleep_in.jpg"
+  "texture": "astral_craft:textures/gui/cards/fortune/sleep_in.png"
 }

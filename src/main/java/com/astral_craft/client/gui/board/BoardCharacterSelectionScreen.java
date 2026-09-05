@@ -164,15 +164,10 @@ public class BoardCharacterSelectionScreen extends Screen {
         AstralFancyButton.renderButton(graphics, this.font, confirm, layout.buttonX(), layout.buttonY(),
                 layout.buttonW(), layout.buttonH(), waiting, hover && !waiting,
                 ButtonStyle.button(waiting ? 0xFF4C7658 : 0xFFD64B91));
-        if (BoardTutorialGuide.active(this.boardId) && !this.selectionLocked) {
-            graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.tutorial.character_selection_unlimited"),
-                    this.width / 2, this.height - 15, 0xFFD9D3E3);
-        } else {
-            BoardDecisionProgressBar.render(graphics, this.font, this.selectedCharacter,
-                    BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin),
-                    this.timeoutTicks, this.timeoutDurationTicks, this.width / 2,
-                    this.height - 13, Math.min(270, this.width - 44));
-        }
+        BoardDecisionProgressBar.render(graphics, this.font, this.selectedCharacter,
+                BoardParticipant.skinIdentifier(this.selectedCharacter, this.selectedSkin),
+                this.timeoutTicks, this.timeoutDurationTicks, this.width / 2,
+                this.height - 13, Math.min(270, this.width - 44));
     }
 
     private void renderLobbySlots(GuiGraphicsExtractor graphics, Layout layout) {

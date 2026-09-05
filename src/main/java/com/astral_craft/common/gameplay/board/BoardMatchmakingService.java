@@ -17,7 +17,7 @@ import java.util.*;
 public class BoardMatchmakingService {
 
     public static final int SINGLE_START_DELAY_TICKS = 20 * 3;
-    private static final int TUTORIAL_DECISION_TICKS = Integer.MAX_VALUE;
+    private static final int TUTORIAL_DECISION_TIME_MULTIPLIER = 2;
     private static final Map<UUID, MatchState> MATCHES = new HashMap<>();
     private static final Set<UUID> TUTORIAL_BOARDS = new HashSet<>();
 
@@ -95,10 +95,8 @@ public class BoardMatchmakingService {
 
     public static int selectionTimeoutDuration(BoardSession session) {
         MatchState state = MATCHES.get(session.id());
-        if (state != null && state.selectionStarted && state.mode == BoardMatchmakingMode.SINGLE_PLAYER) {
-            if (session.participantCount() > 0) return SINGLE_START_DELAY_TICKS;
-            if (tutorial(session.id())) return TUTORIAL_DECISION_TICKS;
-        }
+        if (state != null && state.selectionStarted && state.mode == BoardMatchmakingMode.SINGLE_PLAYER
+                && session.participantCount() > 0) return SINGLE_START_DELAY_TICKS;
         return BoardSessionManager.LOBBY_TIMEOUT_TICKS;
     }
 
@@ -146,8 +144,9 @@ public class BoardMatchmakingService {
     }
 
     public static int decisionDurationTicks(BoardSession session, BoardParticipant participant, int baseTicks) {
-        if (tutorial(session.id()) && !participant.bot()) return TUTORIAL_DECISION_TICKS;
-        return participant.decisionDurationTicks(baseTicks);
+        int duration = participant.decisionDurationTicks(baseTicks);
+        if (!tutorial(session.id()) || participant.bot()) return duration;
+        return Math.max(1, duration * TUTORIAL_DECISION_TIME_MULTIPLIER);
     }
 
     public static void clearTutorial(UUID boardId) {
@@ -203,8 +202,7 @@ public class BoardMatchmakingService {
         state.selectionStarted = true;
         session.setProtectionEnabled(true);
         session.setPhase(BoardPhase.CHARACTER_SELECTION);
-        session.setLobbyDeadlineTick(tutorial(session.id()) ? Long.MAX_VALUE
-                : AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
+        session.setLobbyDeadlineTick(AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
         BoardSessionManager.markChanged(level);
         BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));
         for (UUID playerId : state.playerIds) {

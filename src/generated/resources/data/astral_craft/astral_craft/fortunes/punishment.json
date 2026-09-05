@@ -9,5 +9,5 @@
   ],
   "id": "astral_craft:punishment",
   "name_key": "fortune.astral_craft.bad_luck.name",
-  "texture": "astral_craft:textures/gui/cards/fortune/punishment.jpg"
+  "texture": "astral_craft:textures/gui/cards/fortune/punishment.png"
 }

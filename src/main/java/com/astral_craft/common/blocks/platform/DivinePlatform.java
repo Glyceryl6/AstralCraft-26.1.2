@@ -27,7 +27,7 @@ import java.util.UUID;
 public class DivinePlatform extends BasePlatform {
 
     public static final int SELECTION_TIMEOUT_TICKS = 20 * 20;
-    private static final int REVEAL_TICKS = 50;
+    private static final int REVEAL_TICKS = 34;
     private static final Map<UUID, Execution> EXECUTIONS = new HashMap<>();
 
     public DivinePlatform(Block.Properties properties) {

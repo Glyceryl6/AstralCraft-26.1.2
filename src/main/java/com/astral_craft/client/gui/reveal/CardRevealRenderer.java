@@ -173,7 +173,7 @@ public class CardRevealRenderer {
         int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
         try {
             LoadedJpgTexture loaded = ScopedJpgTextureCache.getOrLoad(texture);
-            graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), left, top, 0.0F, 0.0F, artW, artSize, loaded.width(), loaded.height(), loaded.width(), loaded.height(), argb);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), left, top, 0.0F, 0.0F, artW, artSize, 256, 256, loaded.width(), loaded.height(), argb);
         } catch (IOException _) {
             graphics.blit(RenderPipelines.GUI_TEXTURED, EVENT_FALLBACK_ART, left, top, 0.0F, 0.0F, artW, artSize, 32, 32, 32, 32, argb);
         }

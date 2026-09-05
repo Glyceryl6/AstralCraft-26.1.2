@@ -9,5 +9,5 @@
   ],
   "id": "astral_craft:shop_guest",
   "name_key": "fortune.astral_craft.good_luck.name",
-  "texture": "astral_craft:textures/gui/cards/fortune/shop_guest.jpg"
+  "texture": "astral_craft:textures/gui/cards/fortune/shop_guest.png"
 }

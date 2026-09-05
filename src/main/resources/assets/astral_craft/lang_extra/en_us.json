@@ -1192,7 +1192,7 @@
   "gui.astral_craft.board.tutorial.battle_values": "Attack and defense can fluctuate. Combat cards change the range shown above each character.",
   "gui.astral_craft.board.tutorial.attack_roll": "After both sides finish playing cards, the attacker rolls a 1-6 die. Final attack is the die roll plus attack after cards.",
   "gui.astral_craft.board.tutorial.defense_choice": "After the attacker rolls, the defender can choose Defend or Evade.",
-  "gui.astral_craft.board.tutorial.defense_rules": "Defend: roll 1-6 and add defense after cards; damage is attack total minus defense total, at least 1. \nEvade: roll 1-6; a roll higher than the attacker or a 6 avoids all damage, otherwise take the full attack total.",
+  "gui.astral_craft.board.tutorial.defense_rules": "Defend: roll 1-6 and add defense after cards; damage is attack total minus defense total, at least 1. Evade: roll 1-6; a roll higher than the attacker or a 6 avoids all damage, otherwise take the full attack total.",
   "gui.astral_craft.board.tutorial.target_platform": "This card targets a board tile. Select and confirm a tile before it can take effect.",
   "gui.astral_craft.board.tutorial.target_character": "This card targets a character. Select the character you want to use it on.",
   "gui.astral_craft.board.tutorial.target_self": "This card targets yourself and can only be used on you.",
@@ -1203,8 +1203,5 @@
   "hud.astral_craft.board.tutorial_objective": "In Standard mode, be the first to collect 3 stars to win.",
   "hud.astral_craft.board.tutorial_star_rule": "Stars only require meeting the Star Coin threshold; the coins are not spent. Each additional star requires more coins.",
   "message.astral_craft.board.skill_unavailable": "Character skills are not available yet. Please look forward to them.",
-  "gui.astral_craft.board.tutorial.branch_world": "Right-click this tile to move in this direction.",
-  "gui.astral_craft.board.tutorial.decision_time": "Decision time is unlimited during the tutorial. In a normal match, decisions have a time limit. Timing out makes the game act automatically and shortens your next decision window until you make a manual decision again.",
-  "fortune.astral_craft.neutral.name": "Neutral",
-  "gui.astral_craft.board.tutorial.character_selection_unlimited": "Tutorial: character selection has no time limit"
+  "gui.astral_craft.board.tutorial.branch_world": "Right-click this tile to move in this direction."
 }
