@@ -790,9 +790,11 @@ public class BoardSessionManager {
                         .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
                 stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
             }
+            boolean tutorialParticipant = BoardMatchmakingService.tutorial(session.id()) && !participant.bot();
             List<Identifier> hand = developerConfigured ? participant.hand()
-                    : BoardMatchmakingService.tutorial(session.id()) && !participant.bot()
-                    ? tutorialInitialHand() : randomInitialHand(level, 4 + level.getRandom().nextInt(2));
+                    : tutorialParticipant ? tutorialInitialHand() : randomInitialHand(level, 4 + level.getRandom().nextInt(2));
+            int maxHandSize = developerConfigured ? participant.maxHandSize()
+                    : tutorialParticipant ? BoardParticipant.MAX_SUPPORTED_HAND_SIZE : 7;
             String previousNode = BoardRouteService.initialPreviousNode(session, startNode);
             Identifier previousNodeId = previousNode.isBlank() ? BoardParticipant.EMPTY_NODE_ID
                     : BoardParticipant.nodeIdentifier(previousNode);
@@ -801,7 +803,7 @@ public class BoardSessionManager {
                     BoardParticipant.nodeIdentifier(startNode), previousNodeId, null,
                     stats, hand, Map.of(), developerConfigured ? participant.skillCooldownTurns() : 0,
                     developerConfigured ? participant.knockedDownTurns() : 0, developerConfigured ? participant.cardPlaysUsed() : 0,
-                    developerConfigured ? participant.maxHandSize() : 7, session.nextArrivalOrder());
+                    maxHandSize, session.nextArrivalOrder());
             session.putParticipant(initialized);
             session.setHomeNode(initialized.slotUuid(), startNode);
             BlockPos startPos = session.positions().get(startNode);

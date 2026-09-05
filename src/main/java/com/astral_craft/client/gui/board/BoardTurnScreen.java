@@ -201,17 +201,13 @@ public class BoardTurnScreen extends Screen {
             int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                     BoardTutorialGuide.Hint.COUNTER, x, bottom, width);
             bottom -= height > 0 ? height + 5 : 0;
-        } else if (hovered != null && hovered.definition().type() == CardType.COUNTER) {
-            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
-                    BoardTutorialGuide.Hint.COUNTER, x, bottom, width);
-            bottom -= height > 0 ? height + 5 : 0;
-        } else if (hovered != null && hovered.definition().type() == CardType.EFFECT) {
-            BoardTutorialGuide.Hint hint = hovered.stack().getItem() instanceof BoardPanelPlacementCard
-                    ? BoardTutorialGuide.Hint.TARGET_PLATFORM
-                    : hovered.definition().needsTarget() ? BoardTutorialGuide.Hint.TARGET_CHARACTER
-                    : BoardTutorialGuide.Hint.TARGET_SELF;
-            int height = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId, hint, x, bottom, width);
-            bottom -= height > 0 ? height + 5 : 0;
+        } else if (hovered != null) {
+            BoardTutorialGuide.Hint hint = this.cardTutorialHint(hovered);
+            if (hint != null) {
+                Component message = Component.translatable(hint.translationKey());
+                graphics.setTooltipForNextFrame(this.font, this.font.split(message, Math.min(280, Math.max(120, this.width - 40))),
+                        mouseX, mouseY);
+            }
         }
         int handHeight = BoardTutorialGuide.renderBox(graphics, this.font, this.boardId,
                 BoardTutorialGuide.Hint.HAND_DRAG, x, bottom, width);
@@ -230,6 +226,13 @@ public class BoardTurnScreen extends Screen {
             x += CARD_W + GAP;
         }
         return null;
+    }
+
+    private BoardTutorialGuide.Hint cardTutorialHint(BoardCard card) {
+        if (card.definition().type() == CardType.COUNTER) return BoardTutorialGuide.Hint.COUNTER;
+        if (card.definition().type() != CardType.EFFECT) return null;
+        if (card.stack().getItem() instanceof BoardPanelPlacementCard) return BoardTutorialGuide.Hint.TARGET_PLATFORM;
+        return card.definition().needsTarget() ? BoardTutorialGuide.Hint.TARGET_CHARACTER : BoardTutorialGuide.Hint.TARGET_SELF;
     }
 
     private void renderCard(GuiGraphicsExtractor graphics, BoardCard card, int x, int y, int mouseX, int mouseY, boolean dragging) {

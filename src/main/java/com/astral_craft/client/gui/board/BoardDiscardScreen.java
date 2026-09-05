@@ -56,6 +56,11 @@ public class BoardDiscardScreen extends Screen {
     @Override public boolean isPauseScreen() { return false; }
 
     @Override
+    public boolean shouldCloseOnEsc() {
+        return false;
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (this.timeoutTicks > 0 && --this.timeoutTicks == 0) {
