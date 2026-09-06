@@ -382,15 +382,17 @@ public class BoardBattleScreen extends Screen {
         int attackX = layout.x() + layout.width() / 4 - horizontalOffset;
         int defenseX = layout.x() + layout.width() * 3 / 4 + horizontalOffset;
         int numberY = layout.modelTop() + 18;
-        if (this.view.scorePhase()) {
+        if (this.view.scorePhase() || this.view.result()) {
             Range attackRange = this.displayRange(true);
             Range defenseRange = this.displayRange(false);
             this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, numberY,
                     true, this.attackerScoreFlashTicks);
             this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, numberY,
                     false, this.defenderScoreFlashTicks);
-            this.renderReadyState(graphics, layout, true);
-            this.renderReadyState(graphics, layout, false);
+            if (this.view.scorePhase()) {
+                this.renderReadyState(graphics, layout, true);
+                this.renderReadyState(graphics, layout, false);
+            }
             return;
         }
 

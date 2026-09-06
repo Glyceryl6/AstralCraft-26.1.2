@@ -6,6 +6,7 @@ import com.astral_craft.client.jpgloader.LoadedJpgTexture;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.client.render.CardRevealEntityOverlay.EntityCardReveal;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
+import com.astral_craft.common.gameplay.fortune.BoardFortuneCategory;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -80,7 +81,10 @@ public class CardRevealWorldRenderer {
     }
 
     private static Identifier frameTextureFor(String cardType) {
-        String type = cardType.isBlank() ? "effect" : cardType.toLowerCase(Locale.ROOT);
+        Identifier fortuneTexture = BoardFortuneCategory.fromSerializedName(cardType)
+                .map(BoardFortuneCategory::cardFrameTexture).orElse(null);
+        if (fortuneTexture != null) return fortuneTexture;
+        String type = cardType == null || cardType.isBlank() ? "effect" : cardType.toLowerCase(Locale.ROOT);
         return AstralCraft.prefix("textures/item/template_handcard_" + type + ".png");
     }
 

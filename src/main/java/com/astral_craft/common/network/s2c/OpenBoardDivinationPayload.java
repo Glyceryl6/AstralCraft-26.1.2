@@ -1,6 +1,7 @@
 package com.astral_craft.common.network.s2c;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.fortune.BoardFortuneCategory;
 import com.astral_craft.common.gameplay.fortune.BoardFortuneDefinition;
 import com.astral_craft.common.network.BoardNetworkCodecs;
 import io.netty.buffer.ByteBuf;
@@ -35,15 +36,17 @@ public record OpenBoardDivinationPayload(UUID boardId, List<Option> options, boo
         return TYPE;
     }
 
-    public record Option(Identifier id, String nameKey, String descriptionKey, Identifier texture) {
+    public record Option(Identifier id, String nameKey, String descriptionKey, Identifier texture, BoardFortuneCategory category) {
         public static final StreamCodec<ByteBuf, Option> STREAM_CODEC = StreamCodec.composite(
                 Identifier.STREAM_CODEC, Option::id,
                 ByteBufCodecs.STRING_UTF8, Option::nameKey,
                 ByteBufCodecs.STRING_UTF8, Option::descriptionKey,
-                Identifier.STREAM_CODEC, Option::texture, Option::new);
+                Identifier.STREAM_CODEC, Option::texture,
+                BoardFortuneCategory.STREAM_CODEC, Option::category, Option::new);
 
         public static Option from(BoardFortuneDefinition definition) {
-            return new Option(definition.id(), definition.nameKey(), definition.descriptionKey(), definition.texture());
+            return new Option(definition.id(), definition.nameKey(), definition.descriptionKey(),
+                    definition.texture(), definition.category());
         }
     }
 

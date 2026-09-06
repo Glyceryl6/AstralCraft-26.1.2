@@ -8,6 +8,7 @@ import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.cardback.CardBackPreferenceManager;
 import com.astral_craft.common.gameplay.character.ActiveCharacterState;
+import com.astral_craft.common.gameplay.fortune.BoardFortuneCategory;
 import com.astral_craft.common.registry.AstralAttachments;
 import com.astral_craft.common.text.AstralTextFormatter;
 import net.minecraft.client.Minecraft;
@@ -132,9 +133,11 @@ public class CardRevealRenderer {
     }
 
     public Identifier frameTextureFor(String cardType) {
+        Identifier fortuneTexture = BoardFortuneCategory.fromSerializedName(cardType)
+                .map(BoardFortuneCategory::cardFrameTexture).orElse(null);
+        if (fortuneTexture != null) return fortuneTexture;
         String type = cardType == null || cardType.isBlank() ? "effect" : cardType.toLowerCase(Locale.ROOT);
-        Identifier texture = AstralCraft.prefix("textures/item/template_handcard_" + type + ".png");
-        return ScopedJpgTextureCache.resolveOrFallback(texture, DEFAULT_FRAME_TEXTURE);
+        return AstralCraft.prefix("textures/item/template_handcard_" + type + ".png");
     }
 
     public void renderCardTexture(GuiGraphicsExtractor graphics, Identifier texture, int centerX, int centerY, int width, int height, float alpha, int textureWidth, int textureHeight) {
@@ -173,7 +176,8 @@ public class CardRevealRenderer {
         int argb = (((int) (alpha * 255.0F) & 0xFF) << 24) | 0xFFFFFF;
         try {
             LoadedJpgTexture loaded = ScopedJpgTextureCache.getOrLoad(texture);
-            graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), left, top, 0.0F, 0.0F, artW, artSize, 256, 256, loaded.width(), loaded.height(), argb);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, loaded.textureId(), left, top, 0.0F, 0.0F, artW, artSize,
+                    loaded.width(), loaded.height(), loaded.width(), loaded.height(), argb);
         } catch (IOException _) {
             graphics.blit(RenderPipelines.GUI_TEXTURED, EVENT_FALLBACK_ART, left, top, 0.0F, 0.0F, artW, artSize, 32, 32, 32, 32, argb);
         }

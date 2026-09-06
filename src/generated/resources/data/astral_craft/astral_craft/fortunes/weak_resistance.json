@@ -20,5 +20,5 @@
   ],
   "id": "astral_craft:weak_resistance",
   "name_key": "fortune.astral_craft.bad_luck.name",
-  "texture": "astral_craft:textures/gui/cards/fortune/weak_resistance.png"
+  "texture": "astral_craft:textures/gui/cards/fortune/weak_resistance.jpg"
 }

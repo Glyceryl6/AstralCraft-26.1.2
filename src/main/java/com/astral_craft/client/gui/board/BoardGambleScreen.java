@@ -26,6 +26,8 @@ public class BoardGambleScreen extends Screen {
     private boolean localCanChoose;
     private int dieResult;
     private int totalReward;
+    private int phaseAgeTicks;
+    private int phaseDurationTicks = 1;
     private boolean submitted;
 
     public BoardGambleScreen(OpenBoardGamblePayload payload) {
@@ -60,17 +62,26 @@ public class BoardGambleScreen extends Screen {
     }
 
     private void update(OpenBoardGamblePayload payload) {
+        OpenBoardGamblePayload.Phase previousPhase = this.phase;
         this.phase = payload.phase();
         this.entries = payload.entries();
         this.localCanChoose = payload.localCanChoose();
         this.dieResult = payload.dieResult();
         this.totalReward = payload.totalReward();
+        this.phaseDurationTicks = Math.max(1, payload.timeoutDurationTicks());
+        if (previousPhase != this.phase) this.phaseAgeTicks = 0;
         if (this.localCanChoose) this.submitted = false;
     }
 
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        this.phaseAgeTicks++;
     }
 
     @Override
@@ -105,14 +116,14 @@ public class BoardGambleScreen extends Screen {
                         this.width / 2, layout.buttonY() + 9, 0xFFBFC2D0);
             }
         } else if (this.phase == OpenBoardGamblePayload.Phase.ROLLING) {
-            graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.gamble.rolling"),
-                    this.width / 2, layout.buttonY() + 12, 0xFFBFC2D0);
+            this.renderDiceRoll(graphics, layout, true);
         } else {
+            this.renderDiceRoll(graphics, layout, false);
             int shown = Math.clamp(this.dieResult, 1, 6);
             graphics.centeredText(this.font, Component.translatable(shown % 2 == 0
                             ? "gui.astral_craft.board.gamble.result_even"
                             : "gui.astral_craft.board.gamble.result_odd", shown),
-                    this.width / 2, layout.buttonY() + 18, 0xFFFFD76A);
+                    this.width / 2, layout.buttonY() + 50, 0xFFFFD76A);
         }
     }
 
@@ -132,6 +143,32 @@ public class BoardGambleScreen extends Screen {
         }
 
         return super.mouseClicked(event, doubleClick);
+    }
+
+    private void renderDiceRoll(GuiGraphicsExtractor graphics, Layout layout, boolean rolling) {
+        int settleTick = Math.max(8, this.phaseDurationTicks - 14);
+        int shown = rolling && this.phaseAgeTicks < settleTick
+                ? 1 + Math.floorMod(this.phaseAgeTicks / 2 * 5 + 1, 6)
+                : Math.clamp(this.dieResult, 1, 6);
+        float pulse = rolling && this.phaseAgeTicks < settleTick
+                ? 1.0F + (float) Math.sin(this.phaseAgeTicks * 0.55F) * 0.05F : 1.0F;
+        int centerX = this.width / 2;
+        int centerY = layout.buttonY() + 14;
+        int size = 70;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, centerY);
+        graphics.pose().scale(pulse, pulse);
+        graphics.fill(-size / 2, -size / 2, size / 2, size / 2, 0xFFE7D7FF);
+        graphics.fill(-size / 2 + 3, -size / 2 + 3, size / 2 - 3, size / 2 - 3, 0xFF2B2538);
+        Component value = Component.literal(Integer.toString(shown));
+        float textScale = 4.0F;
+        graphics.pose().pushMatrix();
+        graphics.pose().scale(textScale, textScale);
+        graphics.text(this.font, value, -this.font.width(value) / 2, -4, 0xFFFFFFFF, true);
+        graphics.pose().popMatrix();
+        graphics.pose().popMatrix();
+        if (rolling) graphics.centeredText(this.font, Component.translatable("gui.astral_craft.board.gamble.rolling"),
+                centerX, centerY + size / 2 + 8, 0xFFBFC2D0);
     }
 
     private void renderEntry(GuiGraphicsExtractor graphics, EntryLayout layout, OpenBoardGamblePayload.Entry entry) {

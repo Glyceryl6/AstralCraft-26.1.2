@@ -999,8 +999,14 @@ public class BoardSessionManager {
         int result = Mth.nextInt(level.getRandom(), 1, 6);
         AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
                 entity.getY() + entity.getBbHeight() + 0.95D, entity.getZ());
+        Identifier texture = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
+                .map(DiceSkinPreferenceManager::selectedTexture).orElse(DiceSkinPreferenceManager.DEFAULT_TEXTURE);
+        dice.setTexture(texture);
         dice.setBoardSessionId(session.id());
-        dice.startFlatRoll(1, 6, AstralDiceRollService.DEFAULT_ROLL_TICKS, result);
+        dice.setPresentationScale(1.45F);
+        dice.setRollingNumberAnimation(true);
+        dice.startRoll(1, 6, AstralDiceRollService.DEFAULT_ROLL_TICKS,
+                AstralDiceRollService.DEFAULT_SPIN_SPEED, result, result, 0, true, 0.0F, 0.0F);
         level.addFreshEntity(dice);
         long executeTick = AstralServerTickClock.now(level) + AstralDiceRollService.DEFAULT_ROLL_TICKS
                 + AstralDiceEntity.RESULT_HOLD_TICKS + 2L;

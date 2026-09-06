@@ -57,6 +57,7 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         state.mergeOffsetX = entity.mergeOffsetX() * mergeProgress;
         state.mergeOffsetZ = entity.mergeOffsetZ() * mergeProgress;
         state.scale = entity.renderScale(ageTicks);
+        state.faceTextScale = entity.rollingNumberAnimation() ? 1.28F : 1.0F;
         state.texture = entity.texture();
         state.flatNumber = entity.flatNumber();
     }
@@ -70,7 +71,7 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
         poseStack.pushPose();
         applyDiceTransform(state, poseStack);
         submitLayeredCube(poseStack, collector, state.texture, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-        submitFaceTexts(this.font, state.text, poseStack, collector);
+        submitFaceTexts(this.font, state.text, poseStack, collector, state.faceTextScale);
         poseStack.popPose();
         super.submit(state, poseStack, collector, cameraState);
     }
@@ -78,7 +79,7 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
     public static void renderItem(PoseStack poseStack, SubmitNodeCollector collector, Font font, Identifier texture,
                                   String text, int lightCoords, int overlayCoords) {
         submitLayeredCube(poseStack, collector, texture, lightCoords, overlayCoords);
-        submitFaceTexts(font, text, poseStack, collector);
+        submitFaceTexts(font, text, poseStack, collector, 1.0F);
     }
 
     private static void submitLayeredCube(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture,
@@ -129,20 +130,20 @@ public class AstralDiceRenderer extends EntityRenderer<AstralDiceEntity, AstralD
                 .setOverlay(overlayCoords).setLight(lightCoords).setNormal(pose, normalX, normalY, normalZ);
     }
 
-    private static void submitFaceTexts(Font font, String text, PoseStack poseStack, SubmitNodeCollector collector) {
-        submitFaceText(font, text, poseStack, collector, 0.0F, 0.0F, TEXT_OFFSET, 0.0F, 0.0F, 0.0F);
-        submitFaceText(font, text, poseStack, collector, 0.0F, 0.0F, -TEXT_OFFSET, 0.0F, 180.0F, 0.0F);
-        submitFaceText(font, text, poseStack, collector, TEXT_OFFSET, 0.0F, 0.0F, 0.0F, 90.0F, 0.0F);
-        submitFaceText(font, text, poseStack, collector, -TEXT_OFFSET, 0.0F, 0.0F, 0.0F, -90.0F, 0.0F);
-        submitFaceText(font, text, poseStack, collector, 0.0F, TEXT_OFFSET, 0.0F, -90.0F, 0.0F, 0.0F);
-        submitFaceText(font, text, poseStack, collector, 0.0F, -TEXT_OFFSET, 0.0F, 90.0F, 0.0F, 0.0F);
+    private static void submitFaceTexts(Font font, String text, PoseStack poseStack, SubmitNodeCollector collector, float scaleMultiplier) {
+        submitFaceText(font, text, poseStack, collector, 0.0F, 0.0F, TEXT_OFFSET, 0.0F, 0.0F, 0.0F, scaleMultiplier);
+        submitFaceText(font, text, poseStack, collector, 0.0F, 0.0F, -TEXT_OFFSET, 0.0F, 180.0F, 0.0F, scaleMultiplier);
+        submitFaceText(font, text, poseStack, collector, TEXT_OFFSET, 0.0F, 0.0F, 0.0F, 90.0F, 0.0F, scaleMultiplier);
+        submitFaceText(font, text, poseStack, collector, -TEXT_OFFSET, 0.0F, 0.0F, 0.0F, -90.0F, 0.0F, scaleMultiplier);
+        submitFaceText(font, text, poseStack, collector, 0.0F, TEXT_OFFSET, 0.0F, -90.0F, 0.0F, 0.0F, scaleMultiplier);
+        submitFaceText(font, text, poseStack, collector, 0.0F, -TEXT_OFFSET, 0.0F, 90.0F, 0.0F, 0.0F, scaleMultiplier);
     }
 
     private static void submitFaceText(Font font, String text, PoseStack poseStack, SubmitNodeCollector collector,
-                                       float x, float y, float z, float xRot, float yRot, float zRot) {
+                                       float x, float y, float z, float xRot, float yRot, float zRot, float scaleMultiplier) {
         FormattedCharSequence sequence = Component.literal(text).getVisualOrderText();
         float width = font.width(sequence);
-        float scale = text.length() > 1 ? 0.068F : 0.09F;
+        float scale = (text.length() > 1 ? 0.068F : 0.09F) * scaleMultiplier;
         poseStack.pushPose();
         poseStack.translate(x, y, z);
         poseStack.mulPose(Axis.XP.rotationDegrees(xRot));

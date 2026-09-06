@@ -38,6 +38,8 @@ public class AstralDiceEntity extends Entity {
     private static final EntityDataAccessor<Float> DATA_MERGE_OFFSET_Z = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> DATA_PRIMARY = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_FLAT_NUMBER = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Float> DATA_PRESENTATION_SCALE = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> DATA_ROLLING_NUMBER = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> DATA_TEXTURE = SynchedEntityData.defineId(AstralDiceEntity.class, EntityDataSerializers.STRING);
 
     public AstralDiceEntity(EntityType<? extends AstralDiceEntity> type, Level level) {
@@ -63,6 +65,8 @@ public class AstralDiceEntity extends Entity {
         builder.define(DATA_MERGE_OFFSET_Z, 0.0F);
         builder.define(DATA_PRIMARY, true);
         builder.define(DATA_FLAT_NUMBER, false);
+        builder.define(DATA_PRESENTATION_SCALE, 1.0F);
+        builder.define(DATA_ROLLING_NUMBER, false);
         builder.define(DATA_TEXTURE, DiceSkinPreferenceManager.DEFAULT_TEXTURE.toString());
     }
 
@@ -171,6 +175,22 @@ public class AstralDiceEntity extends Entity {
         return this.entityData.get(DATA_FLAT_NUMBER);
     }
 
+    public void setPresentationScale(float scale) {
+        this.entityData.set(DATA_PRESENTATION_SCALE, Math.clamp(scale, 0.5F, 2.5F));
+    }
+
+    public float presentationScale() {
+        return this.entityData.get(DATA_PRESENTATION_SCALE);
+    }
+
+    public void setRollingNumberAnimation(boolean enabled) {
+        this.entityData.set(DATA_ROLLING_NUMBER, enabled);
+    }
+
+    public boolean rollingNumberAnimation() {
+        return this.entityData.get(DATA_ROLLING_NUMBER);
+    }
+
     public float mergeOffsetX() {
         return this.entityData.get(DATA_MERGE_OFFSET_X);
     }
@@ -184,7 +204,12 @@ public class AstralDiceEntity extends Entity {
     }
 
     public String faceText(float ageTicks) {
-        if (this.isRolling(ageTicks)) return "?";
+        if (this.isRolling(ageTicks)) {
+            if (!this.rollingNumberAnimation()) return "?";
+            int span = Math.max(1, this.entityData.get(DATA_MAX) - this.entityData.get(DATA_MIN) + 1);
+            int step = Math.max(0, (int) ageTicks / 2);
+            return Integer.toString(this.entityData.get(DATA_MIN) + Math.floorMod(step * 5 + 1, span));
+        }
         if (this.isPrimary() && this.mergeTicks() > 0
                 && ageTicks >= this.rollTicks() + this.mergeTicks()) {
             return Integer.toString(this.combinedResult());
@@ -213,9 +238,10 @@ public class AstralDiceEntity extends Entity {
 
     public float renderScale(float ageTicks) {
         float progress = this.mergeProgress(ageTicks);
-        if (this.mergeTicks() <= 0) return 1.0F;
-        if (!this.isPrimary()) return 1.0F - progress;
-        return 1.0F + Mth.sin(progress * (float) Math.PI) * 0.16F;
+        float mergeScale = this.mergeTicks() <= 0 ? 1.0F
+                : !this.isPrimary() ? 1.0F - progress
+                : 1.0F + Mth.sin(progress * (float) Math.PI) * 0.16F;
+        return mergeScale * this.presentationScale();
     }
 
     private float spin(float ageTicks, float axisFactor) {
@@ -238,6 +264,8 @@ public class AstralDiceEntity extends Entity {
         this.entityData.set(DATA_MERGE_OFFSET_Z, input.getFloatOr("merge_offset_z", 0.0F));
         this.entityData.set(DATA_PRIMARY, input.getBooleanOr("primary", true));
         this.entityData.set(DATA_FLAT_NUMBER, input.getBooleanOr("flat_number", false));
+        this.entityData.set(DATA_PRESENTATION_SCALE, input.getFloatOr("presentation_scale", 1.0F));
+        this.entityData.set(DATA_ROLLING_NUMBER, input.getBooleanOr("rolling_number", false));
         this.setCustomNameVisible(this.flatNumber());
         this.entityData.set(DATA_TEXTURE, input.getStringOr("texture", DiceSkinPreferenceManager.DEFAULT_TEXTURE.toString()));
         String boardId = input.getStringOr("board_session_id", "");
@@ -262,6 +290,8 @@ public class AstralDiceEntity extends Entity {
         output.putFloat("merge_offset_z", this.mergeOffsetZ());
         output.putBoolean("primary", this.isPrimary());
         output.putBoolean("flat_number", this.flatNumber());
+        output.putFloat("presentation_scale", this.presentationScale());
+        output.putBoolean("rolling_number", this.rollingNumberAnimation());
         output.putString("texture", this.texture().toString());
         output.putString("board_session_id", this.boardSessionId == null ? "" : this.boardSessionId.toString());
         output.putInt("age", this.tickCount);

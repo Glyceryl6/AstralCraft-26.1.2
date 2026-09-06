@@ -392,7 +392,9 @@ public class BoardBattleService {
         if (knockoutCoins > 0) {
             BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
-        int resultTicks = BoardMatchmakingService.tutorial(session.id())
+        boolean tutorialParticipantInvolved = BoardMatchmakingService.tutorialProtected(session, attacker)
+                || BoardMatchmakingService.tutorialProtected(session, defender);
+        int resultTicks = tutorialParticipantInvolved
                 ? (roll.knockout() ? TUTORIAL_KNOCKOUT_RESULT_TICKS : TUTORIAL_RESULT_TICKS)
                 : (roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS);
         BattleState result = state.withPhase(BattlePhase.RESULT, AstralServerTickClock.now(level) + resultTicks, resultTicks);

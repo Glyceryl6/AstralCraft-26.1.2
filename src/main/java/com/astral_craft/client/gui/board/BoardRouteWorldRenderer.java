@@ -59,9 +59,8 @@ public class BoardRouteWorldRenderer {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null) return;
         RouteState current = state;
-        boolean tutorialBranch = !current.branches().isEmpty()
-                && BoardTutorialGuide.visible(current.boardId(), BoardTutorialGuide.Hint.BRANCH);
-        if (!current.active() || !tutorialBranch
+        boolean branchDecision = !current.branches().isEmpty();
+        if (!current.active() || !branchDecision
                 && ClientAnimationClock.elapsedTicks(current.receivedAtTick()) > STALE_AFTER_TICKS) {
             submitIdleDirectionArrows(minecraft);
             return;
@@ -89,9 +88,7 @@ public class BoardRouteWorldRenderer {
         }
         for (Vec3 branch : current.branches()) {
             submitBranchMarker(branchOrigin, branch, cycle, highlightedBranches.contains(branch));
-            if (BoardTutorialGuide.visible(current.boardId(), BoardTutorialGuide.Hint.BRANCH)) {
-                submitBranchOutline(branch);
-            }
+            submitBranchOutline(branch);
         }
     }
 

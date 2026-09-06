@@ -1,11 +1,7 @@
 package com.astral_craft.common.blocks.platform;
 
 import com.astral_craft.common.blocks.BasePlatform;
-import com.astral_craft.common.entity.AstralDiceEntity;
-import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.gameplay.board.*;
-import com.astral_craft.common.gameplay.dice.AstralDiceRollService;
-import com.astral_craft.common.gameplay.dice.DiceSkinPreferenceManager;
 import com.astral_craft.common.network.s2c.CloseBoardGamblePayload;
 import com.astral_craft.common.network.s2c.OpenBoardGamblePayload;
 import com.astral_craft.common.util.AstralServerTickClock;
@@ -130,20 +126,6 @@ public class GamblePlatform extends BasePlatform {
 
     private void startRoll(ServerLevel level, BoardSession session, GambleState state) {
         int dieResult = level.getRandom().nextInt(6) + 1;
-        BoardParticipant participant = session.currentParticipant().orElse(null);
-        AstralCharacterEntity entity = participant == null ? null : BoardEntityService.entity(level, participant);
-        if (participant != null && entity != null) {
-            AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
-                    entity.getY() + entity.getBbHeight() + 0.85D, entity.getZ());
-            participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
-                    .ifPresent(player -> dice.setTexture(DiceSkinPreferenceManager.selectedTexture(player)));
-            dice.setBoardSessionId(session.id());
-            dice.startRoll(1, 6, AstralDiceRollService.DEFAULT_ROLL_TICKS,
-                    AstralDiceRollService.DEFAULT_SPIN_SPEED, dieResult, dieResult,
-                    0, true, 0.0F, 0.0F);
-            level.addFreshEntity(dice);
-        }
-
         GambleState rolling = state.withPhase(OpenBoardGamblePayload.Phase.ROLLING,
                 dieResult, AstralServerTickClock.now(level) + ROLL_TICKS, ROLL_TICKS);
         this.games.put(session.id(), rolling);

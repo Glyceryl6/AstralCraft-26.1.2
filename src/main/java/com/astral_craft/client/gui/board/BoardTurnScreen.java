@@ -162,7 +162,7 @@ public class BoardTurnScreen extends Screen {
         boolean busy = this.requestLockTicks > 0 || CardRevealOverlay.isActive();
         if (this.counterResponse) {
             graphics.text(this.font, Component.translatable("gui.astral_craft.board.counter_prompt"),
-                    layout.infoX(), layout.infoY(), 0xFFFFD87A, false);
+                    Math.max(12, layout.infoX() - 56), layout.infoY(), 0xFFFFD87A, false);
         } else {
             boolean moveEnabled = this.currentTurn && !busy;
             boolean moveHover = moveEnabled && inside(mouseX, mouseY, layout.moveX(), layout.moveY(),
