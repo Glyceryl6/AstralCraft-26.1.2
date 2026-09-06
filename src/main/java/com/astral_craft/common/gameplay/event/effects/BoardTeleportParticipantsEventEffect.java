@@ -1,11 +1,11 @@
 package com.astral_craft.common.gameplay.event.effects;
 
+import com.astral_craft.common.gameplay.board.BoardEventTargets;
 import com.astral_craft.AstralCraft;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.BoardNode;
 import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
-import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardRouteService;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -39,8 +39,10 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
     @Override
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
+            BoardEventTargets.Impact impact = this.mode == Mode.ROTATE_CURRENT
+                    ? BoardEventTargets.Impact.SAFE : BoardEventTargets.Impact.FORCED_RELOCATION;
             List<BoardParticipant> participants = context.session().partyParticipants().stream()
-                    .filter(participant -> !BoardMatchmakingService.tutorialProtected(context.session(), participant)).toList();
+                    .filter(participant -> BoardEventTargets.affected(context.session(), participant, impact)).toList();
             List<String> destinations = switch (this.mode) {
                 case ROTATE_CURRENT -> rotateCurrent(context, participants);
                 case CONNECTED_RANDOM -> connectedNodes(context, participants.size());

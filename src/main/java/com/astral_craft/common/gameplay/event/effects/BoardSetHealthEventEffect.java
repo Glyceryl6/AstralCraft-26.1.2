@@ -27,8 +27,12 @@ public record BoardSetHealthEventEffect(int health) implements AstralEventEffect
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> BoardSessionManager.updateParticipant(target.level(),
-                target.session(), target.participant().withStats(target.participant().stats()
-                        .withHealth(Math.max(0, this.health))).withKnockedDownTurns(0)));
+        BoardEventTargets.resolve(context).ifPresent(target -> {
+            int health = Math.max(0, this.health);
+            if (health < target.participant().stats().health() && !BoardEventTargets.affected(
+                    target.session(), target.participant(), BoardEventTargets.Impact.HEALTH_LOSS)) return;
+            BoardSessionManager.updateParticipant(target.level(), target.session(), target.participant().withStats(
+                    target.participant().stats().withHealth(health)).withKnockedDownTurns(0));
+        });
     }
 }

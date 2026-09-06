@@ -1,9 +1,9 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
-import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -150,7 +150,7 @@ public class ShopPlatform extends BasePlatform {
             return;
         }
 
-        int duration = BoardMatchmakingService.decisionDurationTicks(session, participant, TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(session, participant, TIMEOUT_TICKS);
         ShopState state = new ShopState(session.id(), participant.slotUuid(), offers, 0,
                 AstralServerTickClock.now(level) + duration, duration);
         this.states.put(session.id(), state);

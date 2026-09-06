@@ -28,7 +28,8 @@ public record BoardScaleCoinsEventEffect(float multiplier) implements AstralEven
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> {
+        BoardEventTargets.resolve(context, this.multiplier < 1.0F
+                ? BoardEventTargets.Impact.COIN_LOSS : BoardEventTargets.Impact.SAFE).ifPresent(target -> {
             BoardParticipant participant = target.participant();
             int current = participant.stats().starCoins();
             int result = Math.max(0, Math.round(current * Math.max(0.0F, this.multiplier)));

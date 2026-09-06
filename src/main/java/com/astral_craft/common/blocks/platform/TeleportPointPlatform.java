@@ -1,5 +1,6 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -51,7 +52,7 @@ public class TeleportPointPlatform extends BasePlatform {
             return;
         }
 
-        int duration = BoardMatchmakingService.decisionDurationTicks(context.session(), context.participant(), TARGET_TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(context.session(), context.participant(), TARGET_TIMEOUT_TICKS);
         this.states.put(context.session().id(), new AssaultState(context.participant().slotUuid(),
                 AstralServerTickClock.now(context.level()) + duration));
         this.activateBoardEffect(context.session());

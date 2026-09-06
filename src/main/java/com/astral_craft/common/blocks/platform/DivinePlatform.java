@@ -1,8 +1,8 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardFortuneService;
-import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -27,7 +27,7 @@ import java.util.UUID;
 public class DivinePlatform extends BasePlatform {
 
     public static final int SELECTION_TIMEOUT_TICKS = 20 * 20;
-    private static final int REVEAL_TICKS = 34;
+    private static final int REVEAL_TICKS = 20 * 3 + 10;
     private static final Map<UUID, Execution> EXECUTIONS = new HashMap<>();
 
     public DivinePlatform(Block.Properties properties) {
@@ -41,7 +41,7 @@ public class DivinePlatform extends BasePlatform {
             BoardSessionManager.resumeMovementAfterPanel(context.level(), context.session());
             return;
         }
-        int duration = BoardMatchmakingService.decisionDurationTicks(context.session(), context.participant(), SELECTION_TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(context.session(), context.participant(), SELECTION_TIMEOUT_TICKS);
         Execution execution = Execution.choosing(context.participant().slotUuid(), options,
                 AstralServerTickClock.now(context.level()) + duration, duration);
         EXECUTIONS.put(context.session().id(), execution);

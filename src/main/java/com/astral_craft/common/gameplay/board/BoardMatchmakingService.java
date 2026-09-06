@@ -17,9 +17,7 @@ import java.util.*;
 public class BoardMatchmakingService {
 
     public static final int SINGLE_START_DELAY_TICKS = 20 * 3;
-    private static final int TUTORIAL_DECISION_TICKS = Integer.MAX_VALUE;
     private static final Map<UUID, MatchState> MATCHES = new HashMap<>();
-    private static final Set<UUID> TUTORIAL_BOARDS = new HashSet<>();
 
     public static void openModeSelection(ServerPlayer player, BoardSession session) {
         MatchState ownMatch = findPlayerMatch(player.getUUID());
@@ -51,10 +49,8 @@ public class BoardMatchmakingService {
             return;
         }
 
-        if (tutorial) TUTORIAL_BOARDS.add(boardId);
-        else TUTORIAL_BOARDS.remove(boardId);
         if (mode == BoardMatchmakingMode.SINGLE_PLAYER) {
-            startSinglePlayer(player, session);
+            startSinglePlayer(player, session, tutorial);
         } else {
             joinMultiplayer(player, session);
         }
@@ -97,7 +93,7 @@ public class BoardMatchmakingService {
         MatchState state = MATCHES.get(session.id());
         if (state != null && state.selectionStarted && state.mode == BoardMatchmakingMode.SINGLE_PLAYER) {
             if (session.participantCount() > 0) return SINGLE_START_DELAY_TICKS;
-            if (tutorial(session.id())) return TUTORIAL_DECISION_TICKS;
+            if (BoardTutorialPolicy.enabled(session)) return BoardTutorialPolicy.UNLIMITED_DECISION_TICKS;
         }
         return BoardSessionManager.LOBBY_TIMEOUT_TICKS;
     }
@@ -141,35 +137,18 @@ public class BoardMatchmakingService {
         return MATCHES.containsKey(boardId);
     }
 
-    public static boolean tutorial(UUID boardId) {
-        return boardId != null && TUTORIAL_BOARDS.contains(boardId);
-    }
-
-    public static boolean tutorialProtected(BoardSession session, BoardParticipant participant) {
-        return session != null && participant != null && tutorial(session.id())
-                && !participant.bot() && !participant.monster();
-    }
-
-    public static int decisionDurationTicks(BoardSession session, BoardParticipant participant, int baseTicks) {
-        if (tutorial(session.id()) && !participant.bot()) return TUTORIAL_DECISION_TICKS;
-        return participant.decisionDurationTicks(baseTicks);
-    }
-
-    public static void clearTutorial(UUID boardId) {
-        TUTORIAL_BOARDS.remove(boardId);
-    }
-
     public static void clear(UUID boardId) {
         MATCHES.remove(boardId);
     }
 
-    private static void startSinglePlayer(ServerPlayer player, BoardSession session) {
+    private static void startSinglePlayer(ServerPlayer player, BoardSession session, boolean tutorial) {
         MatchState existing = MATCHES.get(session.id());
         if (existing != null && (!existing.playerIds.contains(player.getUUID()) || existing.mode != BoardMatchmakingMode.SINGLE_PLAYER)) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.matchmaking.busy"), true);
             return;
         }
 
+        BoardTutorialPolicy.setEnabled(session.id(), tutorial);
         MatchState state = existing == null
                 ? new MatchState(session.id(), player.level().dimension(), BoardMatchmakingMode.SINGLE_PLAYER)
                 : existing;
@@ -189,6 +168,7 @@ public class BoardMatchmakingService {
             MATCHES.put(session.id(), state);
         }
 
+        BoardTutorialPolicy.setEnabled(session.id(), false);
         pruneWaitingPlayers(player.level(), state);
         if (state.selectionStarted || state.playerIds.size() >= BoardSessionManager.REQUIRED_PLAYERS) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.matchmaking.busy"), true);
@@ -208,7 +188,7 @@ public class BoardMatchmakingService {
         state.selectionStarted = true;
         session.setProtectionEnabled(true);
         session.setPhase(BoardPhase.CHARACTER_SELECTION);
-        session.setLobbyDeadlineTick(tutorial(session.id()) ? Long.MAX_VALUE
+        session.setLobbyDeadlineTick(BoardTutorialPolicy.enabled(session) ? Long.MAX_VALUE
                 : AstralServerTickClock.now(level) + BoardSessionManager.LOBBY_TIMEOUT_TICKS);
         BoardSessionManager.markChanged(level);
         BoardProtectionService.refreshProtectedAreas(level, BoardSavedData.get(level));

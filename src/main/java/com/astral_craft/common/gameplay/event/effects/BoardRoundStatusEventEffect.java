@@ -34,7 +34,7 @@ public record BoardRoundStatusEventEffect(Identifier status, int turns) implemen
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> BoardSessionManager.updateParticipant(
+        BoardEventTargets.resolve(context, BoardEventTargets.Impact.STATUS).ifPresent(target -> BoardSessionManager.updateParticipant(
                 target.level(), target.session(), target.participant().withRoundStatusEffect(this.status, this.turns)));
     }
 

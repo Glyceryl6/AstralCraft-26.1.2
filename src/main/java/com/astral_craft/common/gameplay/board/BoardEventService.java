@@ -134,12 +134,11 @@ public class BoardEventService {
         return session != null && session.mechanics().timedEventTurns(AstralEventBootstrap.BIG_SALES.identifier()) > 0 ? 2 : 0;
     }
 
-    private static void enqueueEffects(BoardEventContext context, List<AstralEventEffect> effects,
-                                       Deque<BoardEventTask> tasks) {
+    private static void enqueueEffects(BoardEventContext context, List<AstralEventEffect> effects, Deque<BoardEventTask> tasks) {
         for (AstralEventEffect effect : effects) {
             if (effect instanceof BoardEventEffect boardEffect) {
                 boardEffect.enqueue(context, tasks);
-            } else if (effect != null && !BoardMatchmakingService.tutorialProtected(context.session(), context.source())) {
+            } else if (effect != null) {
                 tasks.addLast(BoardEventTask.action(() -> effect.apply(context.astralContext(context.source())), 0));
             }
         }

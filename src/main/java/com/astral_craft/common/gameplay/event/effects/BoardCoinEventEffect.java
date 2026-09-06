@@ -27,7 +27,8 @@ public record BoardCoinEventEffect(int amount) implements AstralEventEffect {
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> BoardWorldObjectService.changeCoins(
+        BoardEventTargets.resolve(context, this.amount < 0
+                ? BoardEventTargets.Impact.COIN_LOSS : BoardEventTargets.Impact.SAFE).ifPresent(target -> BoardWorldObjectService.changeCoins(
                 target.level(), target.session(), target.participant().slotUuid(), this.amount));
     }
 }

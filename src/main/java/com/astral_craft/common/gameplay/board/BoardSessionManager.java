@@ -542,7 +542,7 @@ public class BoardSessionManager {
 
     public static int resolveIncomingDamage(ServerLevel level, BoardSession session, BoardParticipant participant, int damage) {
         if (participant == null || damage <= 0 || isHospitalProtected(session, participant)
-                || BoardMatchmakingService.tutorialProtected(session, participant)) return 0;
+                || BoardTutorialPolicy.protectedParticipant(session, participant)) return 0;
         AstralPlayerStats stats = participant.stats();
         int resolved = stats.resolveIncomingDamage(Math.max(0, damage + stats.incomingDamageBonus()));
         AstralPlayerStats consumed = stats.consumeIncomingDamageBuffs();
@@ -557,7 +557,7 @@ public class BoardSessionManager {
         BoardSession session = maybeSession.get();
         BoardParticipant participant = session.participantFor(entity).orElse(null);
         if (participant == null || participant.knockedDownTurns() > 0
-                || BoardMatchmakingService.tutorialProtected(session, participant)) return;
+                || BoardTutorialPolicy.protectedParticipant(session, participant)) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);
@@ -578,7 +578,7 @@ public class BoardSessionManager {
     public static void endGame(ServerLevel level, BoardSession session, boolean keepBoard) {
         BoardBattleService.cancel(session.id());
         BoardPanelSelectionService.clear(session.id());
-        BoardMatchmakingService.clearTutorial(session.id());
+        BoardTutorialPolicy.clear(session.id());
         PENDING_BOT_EFFECTS.remove(session.id());
         PENDING_BOT_MOVEMENT_TICKS.remove(session.id());
         PENDING_BOT_COUNTERS.remove(session.id());
@@ -738,7 +738,7 @@ public class BoardSessionManager {
         if (!automated && controller == null) return;
         if (!automated && PendingCardActionManager.hasBoardCardUi(controller)) return;
         if (session.actionDeadlineTick() <= 0L) {
-            int durationTicks = automated ? 1 : BoardMatchmakingService.decisionDurationTicks(session, current, TURN_TIMEOUT_TICKS);
+            int durationTicks = automated ? 1 : BoardTutorialPolicy.decisionDurationTicks(session, current, TURN_TIMEOUT_TICKS);
             session.setActionDurationTicks(durationTicks);
             session.setActionDeadlineTick(automated ? AstralServerTickClock.now(level) : AstralServerTickClock.now(level) + durationTicks);
             markChanged(level);
@@ -792,7 +792,7 @@ public class BoardSessionManager {
                         .initializeBoardStats(AstralPlayerStats.initial(definition.baseStats()));
                 stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
             }
-            boolean tutorialParticipant = BoardMatchmakingService.tutorial(session.id()) && !participant.bot();
+            boolean tutorialParticipant = BoardTutorialPolicy.usesTutorialLoadout(session, participant);
             List<Identifier> hand = developerConfigured ? participant.hand()
                     : tutorialParticipant ? tutorialInitialHand() : randomInitialHand(level, 4 + level.getRandom().nextInt(2));
             int maxHandSize = developerConfigured ? participant.maxHandSize()
@@ -880,7 +880,7 @@ public class BoardSessionManager {
     }
 
     private static void prepareCurrentTurnAction(ServerLevel level, BoardSession session, BoardParticipant participant) {
-        int durationTicks = participant.bot() ? 1 : BoardMatchmakingService.decisionDurationTicks(session, participant, TURN_TIMEOUT_TICKS);
+        int durationTicks = participant.bot() ? 1 : BoardTutorialPolicy.decisionDurationTicks(session, participant, TURN_TIMEOUT_TICKS);
         session.setActionDurationTicks(durationTicks);
         session.setActionDeadlineTick(0L);
         session.setActionPromptDeadlineTick(AstralServerTickClock.now(level) + TURN_START_PROMPT_TICKS);
@@ -1332,7 +1332,7 @@ public class BoardSessionManager {
             HandcardRedirection.consumeFreeDirection(level, session, participant);
             session.setMovement(movement.beginStep(choice, AstralServerTickClock.now(level), MOVEMENT_STEP_TICKS));
         } else {
-            int durationTicks = BoardMatchmakingService.decisionDurationTicks(session, participant, BRANCH_TIMEOUT_TICKS);
+            int durationTicks = BoardTutorialPolicy.decisionDurationTicks(session, participant, BRANCH_TIMEOUT_TICKS);
             session.setMovement(movement.waitingForBranch(choices, AstralServerTickClock.now(level) + durationTicks));
             BoardRouteService.preview(level, session);
             participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).ifPresent(player ->
@@ -1446,7 +1446,7 @@ public class BoardSessionManager {
         CharacterManager.INSTANCE.character(participant.characterId()).onBoardMoveFinished(level, session, participant);
         int extra = Math.max(0, participant.hand().size() - participant.maxHandSize());
         if (extra > 0) {
-            int durationTicks = BoardMatchmakingService.decisionDurationTicks(session, participant, DISCARD_TIMEOUT_TICKS);
+            int durationTicks = BoardTutorialPolicy.decisionDurationTicks(session, participant, DISCARD_TIMEOUT_TICKS);
             session.setDiscard(new BoardSession.DiscardState(participant.slotUuid(), extra,
                     AstralServerTickClock.now(level) + durationTicks, durationTicks));
             if (participant.bot()) {
@@ -1550,7 +1550,7 @@ public class BoardSessionManager {
 
     private static void beginEncounter(ServerLevel level, BoardSession session, BoardParticipant mover, BoardParticipant target) {
         boolean automated = isAutomated(level, mover);
-        int durationTicks = automated ? 20 : BoardMatchmakingService.decisionDurationTicks(session, mover, ENCOUNTER_TIMEOUT_TICKS);
+        int durationTicks = automated ? 20 : BoardTutorialPolicy.decisionDurationTicks(session, mover, ENCOUNTER_TIMEOUT_TICKS);
         session.setEncounter(new BoardSession.EncounterState(mover.slotUuid(), target.slotUuid(),
                 AstralServerTickClock.now(level) + durationTicks, durationTicks));
         int targetEntityId = BoardEntityService.entityId(level, target);
@@ -1705,13 +1705,6 @@ public class BoardSessionManager {
         return participant != null && isHospitalProtected(session, participant);
     }
 
-    public static boolean isTutorialProtected(AstralCharacterEntity entity) {
-        if (entity == null) return false;
-        BoardSession session = findByEntity(entity).orElse(null);
-        BoardParticipant participant = session == null ? null : session.participantFor(entity).orElse(null);
-        return BoardMatchmakingService.tutorialProtected(session, participant);
-    }
-
     public static void syncBoardSnapshot(ServerLevel level, BoardSession session) {
         BoardHudSnapshotPayload snapshot = BoardHudSyncManager.createSnapshot(level, session);
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
@@ -1722,7 +1715,7 @@ public class BoardSessionManager {
     public static void resetForLobby(ServerLevel level, BoardSession session) {
         BoardLobbyService.clear(session.id());
         BoardMatchmakingService.clear(session.id());
-        BoardMatchmakingService.clearTutorial(session.id());
+        BoardTutorialPolicy.clear(session.id());
         BoardDeveloperService.clear(session.id());
         BoardMonsterService.clear(session.id());
         BoardBattleService.cancel(session.id());
@@ -1754,7 +1747,7 @@ public class BoardSessionManager {
     public static void knockDownFromEffect(ServerLevel level, BoardSession session, UUID slotId) {
         BoardParticipant participant = session.participant(slotId).orElse(null);
         if (participant == null || participant.knockedDown() || isHospitalProtected(session, participant)
-                || BoardMatchmakingService.tutorialProtected(session, participant)) return;
+                || BoardTutorialPolicy.protectedParticipant(session, participant)) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);
@@ -1771,7 +1764,7 @@ public class BoardSessionManager {
 
     private static void updateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant, boolean animateCoinChange) {
         BoardParticipant previous = session.participant(participant.slotUuid()).orElse(null);
-        if (previous != null && BoardMatchmakingService.tutorialProtected(session, previous)) {
+        if (previous != null && BoardTutorialPolicy.protectedParticipant(session, previous)) {
             if (participant.knockedDownTurns() > previous.knockedDownTurns()) {
                 participant = participant.withStats(previous.stats()).withKnockedDownTurns(previous.knockedDownTurns());
             } else if (participant.stats().health() < previous.stats().health()) {

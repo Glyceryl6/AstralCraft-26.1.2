@@ -1,8 +1,8 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardEntityService;
-import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardHudSyncManager;
 import com.astral_craft.common.gameplay.board.BoardMode;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
@@ -167,7 +167,7 @@ public class StartPlatform extends BasePlatform {
             this.resolve(level, session, participant, true, true);
             return;
         }
-        int duration = BoardMatchmakingService.decisionDurationTicks(session, participant, TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(session, participant, TIMEOUT_TICKS);
         this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(), Stage.STOP_CHOICE, List.of(),
                 AstralServerTickClock.now(level) + duration, duration));
         this.activateBoardEffect(session);
@@ -238,7 +238,7 @@ public class StartPlatform extends BasePlatform {
         }
         ServerPlayer player = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
         if (player == null) return false;
-        int duration = BoardMatchmakingService.decisionDurationTicks(session, participant, CHIP_TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(session, participant, CHIP_TIMEOUT_TICKS);
         this.choices.put(session.id(), new StartChoiceState(participant.slotUuid(), Stage.CHIP_SELECTION, offers,
                 AstralServerTickClock.now(level) + duration, duration));
         this.activateBoardEffect(session);

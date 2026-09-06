@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.handcard;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
@@ -85,7 +86,7 @@ public class PendingCounterEffectManager {
             return false;
         }
 
-        int responseTicks = BoardMatchmakingService.decisionDurationTicks(session, targetParticipant, DEFAULT_RESPONSE_TICKS);
+        int responseTicks = BoardTutorialPolicy.decisionDurationTicks(session, targetParticipant, DEFAULT_RESPONSE_TICKS);
         PendingBoardCounter chain = new PendingBoardCounter(source.level(), session, source, source.getUUID(),
                 sourceParticipant.slotUuid(), targetParticipant.slotUuid(), targetParticipant.slotUuid(),
                 sourceStack.copyWithCount(1), definition, resolver, null, null, revealId, false,
@@ -105,7 +106,7 @@ public class PendingCounterEffectManager {
         if (target == null || target.knockedDown() || source.slotUuid().equals(target.slotUuid())) return false;
         List<Integer> counterIndexes = counterIndexes(target);
         if (counterIndexes.isEmpty()) return false;
-        int responseTicks = BoardMatchmakingService.decisionDurationTicks(session, target, DEFAULT_RESPONSE_TICKS);
+        int responseTicks = BoardTutorialPolicy.decisionDurationTicks(session, target, DEFAULT_RESPONSE_TICKS);
         long deadlineTick = AstralServerTickClock.now(level) + responseTicks;
         PendingBoardCounter chain = new PendingBoardCounter(level, session, null, source.slotUuid(),
                 source.slotUuid(), target.slotUuid(), target.slotUuid(), sourceStack.copyWithCount(1),
@@ -225,7 +226,7 @@ public class PendingCounterEffectManager {
         }
 
         UUID revealId = UUID.randomUUID();
-        int responseTicks = BoardMatchmakingService.decisionDurationTicks(chain.session(), target, DEFAULT_RESPONSE_TICKS);
+        int responseTicks = BoardTutorialPolicy.decisionDurationTicks(chain.session(), target, DEFAULT_RESPONSE_TICKS);
         PendingBoardCounter waiting = chain.withReveal(revealId,
                 AstralServerTickClock.now(chain.level()) + responseTicks);
         broadcastEffectReveal(waiting, targetEntity, revealId, true);
@@ -356,7 +357,7 @@ public class PendingCounterEffectManager {
     private static int remainingResponseTicks(PendingBoardCounter chain) {
         BoardParticipant target = chain.session().participant(chain.currentTargetSlot()).orElse(null);
         int durationTicks = target == null ? DEFAULT_RESPONSE_TICKS
-                : BoardMatchmakingService.decisionDurationTicks(chain.session(), target, DEFAULT_RESPONSE_TICKS);
+                : BoardTutorialPolicy.decisionDurationTicks(chain.session(), target, DEFAULT_RESPONSE_TICKS);
         return (int) Math.clamp(chain.deadlineTick() - AstralServerTickClock.now(chain.level()), 1L, durationTicks);
     }
 

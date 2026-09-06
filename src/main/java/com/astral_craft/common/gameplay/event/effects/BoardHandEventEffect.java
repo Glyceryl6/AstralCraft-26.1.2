@@ -49,7 +49,8 @@ public record BoardHandEventEffect(Action action, @Nullable Holder<Item> item, i
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> {
+        BoardEventTargets.resolve(context, this.action == Action.DISCARD_RANDOM
+                ? BoardEventTargets.Impact.HAND_LOSS : BoardEventTargets.Impact.SAFE).ifPresent(target -> {
             BoardParticipant participant = target.participant();
             int safeCount = Math.clamp(this.count, 0, 64);
             if (safeCount <= 0) return;

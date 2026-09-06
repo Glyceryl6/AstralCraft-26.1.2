@@ -25,7 +25,7 @@ public record BoardStatusEventEffect(BoardBuffInstance buff) implements AstralEv
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> BoardSessionManager.updateParticipant(
+        BoardEventTargets.resolve(context, BoardEventTargets.Impact.STATUS).ifPresent(target -> BoardSessionManager.updateParticipant(
                 target.level(), target.session(), target.participant().withStats(target.participant().stats().addBuff(this.buff))));
     }
 

@@ -31,7 +31,7 @@ public record BoardMoveDiceEventEffect(int extraDice) implements AstralEventEffe
     public void apply(AstralEventContext context) {
         int dice = Math.max(0, this.extraDice);
         if (dice == 0) return;
-        BoardEventTargets.resolve(context).ifPresent(target -> BoardSessionManager.updateParticipant(target.level(),
+        BoardEventTargets.resolve(context, BoardEventTargets.Impact.SAFE).ifPresent(target -> BoardSessionManager.updateParticipant(target.level(),
                 target.session(), target.participant().withStats(target.participant().stats()
                         .addBuff(AstralBoardBuffs.HASTE.get(), BoardBuffInstance.PERMANENT, dice - 1))));
     }

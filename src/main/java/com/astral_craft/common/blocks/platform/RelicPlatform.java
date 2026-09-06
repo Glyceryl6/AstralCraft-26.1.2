@@ -1,8 +1,8 @@
 package com.astral_craft.common.blocks.platform;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.gameplay.board.BoardMode;
-import com.astral_craft.common.gameplay.board.BoardMatchmakingService;
 import com.astral_craft.common.gameplay.board.BoardPanelContext;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSession;
@@ -110,7 +110,7 @@ public class RelicPlatform extends BasePlatform {
             this.automatedPurchase(level, session, participant);
             return;
         }
-        int duration = BoardMatchmakingService.decisionDurationTicks(session, participant, TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(session, participant, TIMEOUT_TICKS);
         RelicState state = new RelicState(session.id(), participant.slotUuid(), Stage.OFFER, List.of(),
                 AstralServerTickClock.now(level) + duration, duration);
         this.states.put(session.id(), state);
@@ -143,7 +143,7 @@ public class RelicPlatform extends BasePlatform {
         }
         BoardParticipant paid = participant.withStats(participant.stats().spendCoins(price));
         BoardSessionManager.updateParticipant(player.level(), session, paid);
-        int duration = BoardMatchmakingService.decisionDurationTicks(session, paid, TIMEOUT_TICKS);
+        int duration = BoardTutorialPolicy.decisionDurationTicks(session, paid, TIMEOUT_TICKS);
         List<Identifier> offers = choices.stream().map(ChipDefinition::registryId).toList();
         RelicState selecting = new RelicState(session.id(), paid.slotUuid(), Stage.SELECTING, offers,
                 AstralServerTickClock.now(player.level()) + duration, duration);

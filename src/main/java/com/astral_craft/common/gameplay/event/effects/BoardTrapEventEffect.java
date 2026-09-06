@@ -27,7 +27,7 @@ public record BoardTrapEventEffect(BoardMechanicsState.BoardTrapType trapType) i
 
     @Override
     public void apply(AstralEventContext context) {
-        BoardEventTargets.resolve(context).ifPresent(target -> BoardWorldObjectService.placeTrap(target.level(),
+        BoardEventTargets.resolve(context, BoardEventTargets.Impact.SAFE).ifPresent(target -> BoardWorldObjectService.placeTrap(target.level(),
                 target.session(), this.trapType, target.participant().slotUuid(), target.participant().currentNodeKey()));
     }
 }

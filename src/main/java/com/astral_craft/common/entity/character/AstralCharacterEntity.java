@@ -1,6 +1,7 @@
 package com.astral_craft.common.entity.character;
 
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.gameplay.character.CharacterDefinition;
 import com.astral_craft.common.gameplay.character.CharacterManager;
 import com.astral_craft.common.stats.AstralPlayerStats;
@@ -133,7 +134,7 @@ public class AstralCharacterEntity extends PathfinderMob {
 
     public void applyBoardDamage(int amount) {
         if (!this.isBoardPawn() || !(this.level() instanceof ServerLevel)
-                || BoardSessionManager.isHospitalProtected(this) || BoardSessionManager.isTutorialProtected(this)) return;
+                || BoardSessionManager.isHospitalProtected(this) || BoardTutorialPolicy.protectedEntity(this)) return;
         int damage = Math.max(0, amount);
         if (damage == 0) return;
         AstralPlayerStats current = BoardSessionManager.statsForEntity(this, AstralPlayerStats.DEFAULT);

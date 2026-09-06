@@ -1,5 +1,6 @@
 package com.astral_craft.common.gameplay.battle;
 
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.components.CardType;
@@ -60,8 +61,8 @@ public class BoardBattleService {
         boolean attackerAutomated = BoardSessionManager.isAutomated(level, attacker);
         boolean defenderAutomated = BoardSessionManager.isAutomated(level, defender);
         long now = AstralServerTickClock.now(level);
-        int attackerDurationTicks = attackerAutomated ? BOT_INITIAL_CARD_TICKS : BoardMatchmakingService.decisionDurationTicks(session, attacker, DECISION_TICKS);
-        int defenderDurationTicks = defenderAutomated ? BOT_INITIAL_CARD_TICKS : BoardMatchmakingService.decisionDurationTicks(session, defender, DECISION_TICKS);
+        int attackerDurationTicks = attackerAutomated ? BOT_INITIAL_CARD_TICKS : BoardTutorialPolicy.decisionDurationTicks(session, attacker, DECISION_TICKS);
+        int defenderDurationTicks = defenderAutomated ? BOT_INITIAL_CARD_TICKS : BoardTutorialPolicy.decisionDurationTicks(session, defender, DECISION_TICKS);
         long attackerDeadlineTick = now + attackerDurationTicks;
         long defenderDeadlineTick = now + defenderDurationTicks;
         BattleState state = new BattleState(session.id(), attacker.slotUuid(), defender.slotUuid(),
@@ -325,7 +326,7 @@ public class BoardBattleService {
             beginDefenderRoll(level, session, state.withDefenseMode(DefenseMode.DEFEND));
             return;
         }
-        int durationTicks = BoardMatchmakingService.decisionDurationTicks(session, defender, DEFENSE_CHOICE_TICKS);
+        int durationTicks = BoardTutorialPolicy.decisionDurationTicks(session, defender, DEFENSE_CHOICE_TICKS);
         BattleState choosing = state.withPhase(BattlePhase.DEFENSE_CHOICE, AstralServerTickClock.now(level) + durationTicks, durationTicks);
         ACTIVE.put(session.id(), choosing);
         send(level, session, choosing);
@@ -392,8 +393,8 @@ public class BoardBattleService {
         if (knockoutCoins > 0) {
             BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
-        boolean tutorialParticipantInvolved = BoardMatchmakingService.tutorialProtected(session, attacker)
-                || BoardMatchmakingService.tutorialProtected(session, defender);
+        boolean tutorialParticipantInvolved = BoardTutorialPolicy.protectedParticipant(session, attacker)
+                || BoardTutorialPolicy.protectedParticipant(session, defender);
         int resultTicks = tutorialParticipantInvolved
                 ? (roll.knockout() ? TUTORIAL_KNOCKOUT_RESULT_TICKS : TUTORIAL_RESULT_TICKS)
                 : (roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS);
