@@ -1185,14 +1185,14 @@
   "message.astral_craft.board.matchmaking.single_starting": "Character confirmed. The game will fill bots and start in %s seconds.",
   "message.astral_craft.board.matchmaking.disbanded": "The match was disbanded because another player left the game.",
   "gui.astral_craft.board.matchmaking.tutorial": "Enable tutorial",
-  "gui.astral_craft.board.matchmaking.tutorial_single_only": "Tutorial mode is single-player only and uses longer decision timers.",
+  "gui.astral_craft.board.matchmaking.tutorial_single_only": "Tutorial mode is single-player only, and human decisions have no time limit.",
   "gui.astral_craft.board.tutorial.dismiss_for_match": "Do not show this hint again this match",
   "gui.astral_craft.board.tutorial.hand_drag": "Drag a card toward the center of the screen and release it to play the card.",
   "gui.astral_craft.board.tutorial.battle_start": "At the start of battle, both sides play combat cards. Combat cards have a cost.",
   "gui.astral_craft.board.tutorial.battle_values": "Attack and defense can fluctuate. Combat cards change the range shown above each character.",
   "gui.astral_craft.board.tutorial.attack_roll": "After both sides finish playing cards, the attacker rolls a 1-6 die. Final attack is the die roll plus attack after cards.",
   "gui.astral_craft.board.tutorial.defense_choice": "After the attacker rolls, the defender can choose Defend or Evade.",
-  "gui.astral_craft.board.tutorial.defense_rules": "Defend: roll 1-6 and add defense after cards; damage is attack total minus defense total, at least 1. Evade: roll 1-6; a roll higher than the attacker or a 6 avoids all damage, otherwise take the full attack total.",
+  "gui.astral_craft.board.tutorial.defense_rules": "Defend: roll 1-6 and add defense after cards; damage is attack total minus defense total, at least 1.\nEvade: roll 1-6; a roll higher than the attacker or a 6 avoids all damage, otherwise take the full attack total.",
   "gui.astral_craft.board.tutorial.target_platform": "This card targets a board tile. Select and confirm a tile before it can take effect.",
   "gui.astral_craft.board.tutorial.target_character": "This card targets a character. Select the character you want to use it on.",
   "gui.astral_craft.board.tutorial.target_self": "This card targets yourself and can only be used on you.",
@@ -1207,6 +1207,7 @@
   "gui.astral_craft.board.tutorial.decision_time": "Decision time is unlimited during the tutorial. In a normal match, decisions have a time limit. Timing out makes the game act automatically and shortens your next decision window until you make a manual decision again.",
   "fortune.astral_craft.neutral.name": "Neutral",
   "gui.astral_craft.board.tutorial.character_selection_unlimited": "Tutorial: character selection has no time limit",
-  "gui.astral_craft.board.tutorial.protection": "Tutorial matches enable practice protection: you cannot take damage, and most random events that directly change your hand, Star Coins, status, or position will not affect you. These protections do not apply in normal matches.",
-  "entity.astral_craft.board_monster_zombie": "Board Monster"
+  "gui.astral_craft.board.tutorial.protection": "Tutorial matches enable practice protection: you cannot take damage and are protected from card loss, Star Coin loss, negative status effects, and disruptive random relocation. Harmless events can still apply normally. These protections do not apply in normal matches.",
+  "entity.astral_craft.board_monster_zombie": "Board Monster",
+  "message.astral_craft.board.dismantler.no_permission": "Only Creative-mode players or players with operator permissions can use the Board Dismantler."
 }

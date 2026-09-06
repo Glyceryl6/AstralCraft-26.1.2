@@ -38,6 +38,7 @@ public class BoardRouteWorldRenderer {
     private static final float DASH_LENGTH = 0.27F;
     private static final float DASH_GAP = 0.09F;
     private static final double ROUTE_Y_OFFSET = 0.3D;
+    private static final double PLATFORM_HEIGHT = 1.0D / 16.0D;
     private static final double STALE_AFTER_TICKS = 20.0D * 30.0D;
 
     private static RouteState state = RouteState.EMPTY;
@@ -102,10 +103,10 @@ public class BoardRouteWorldRenderer {
         float cycle = ClientAnimationClock.phaseTicks(24) / 24.0F;
         double expand = 0.035D + Math.sin(cycle * Math.PI * 2.0D) * 0.012D;
         double minX = position.x - expand;
-        double minY = position.y - 0.025D;
+        double minY = position.y - 0.012D;
         double minZ = position.z - expand;
         double maxX = position.x + 1.0D + expand;
-        double maxY = position.y + 1.025D;
+        double maxY = position.y + PLATFORM_HEIGHT + 0.012D;
         double maxZ = position.z + 1.0D + expand;
         Vec3[] points = {
                 new Vec3(minX, minY, minZ), new Vec3(maxX, minY, minZ),

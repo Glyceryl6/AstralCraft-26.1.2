@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
@@ -30,6 +31,11 @@ public class BoardDismantlerItem extends Item {
     public InteractionResult useOn(UseOnContext context) {
         if (context.getLevel().isClientSide()) return InteractionResult.SUCCESS;
         if (!(context.getPlayer() instanceof ServerPlayer player)) return InteractionResult.PASS;
+        if (!canUseDismantler(player)) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.dismantler.no_permission")
+                    .withStyle(ChatFormatting.RED), true);
+            return InteractionResult.FAIL;
+        }
         BoardSession session = BoardSessionManager.findAt(player.level(), context.getClickedPos()).orElse(null);
         if (session == null) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_registered"), true);
@@ -57,6 +63,11 @@ public class BoardDismantlerItem extends Item {
     public static void confirmDelete(ServerPlayer player, UUID boardId, BoardDismantleConfirmPayload.@Nullable Action action) {
         BoardSession session = BoardSessionManager.session(player.level(), boardId).orElse(null);
         if (session == null || action == null || !holdsDismantler(player)) return;
+        if (!canUseDismantler(player)) {
+            player.sendSystemMessage(Component.translatable("message.astral_craft.board.dismantler.no_permission")
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
         BlockPos center = session.protectedArea().center();
         if (player.distanceToSqr(center.getX() + 0.5D, center.getY() + 0.5D, center.getZ() + 0.5D) > 64.0D * 64.0D) return;
         ServerLevel level = player.level();
@@ -79,6 +90,10 @@ public class BoardDismantlerItem extends Item {
                 ? "message.astral_craft.board.deleted_with_panels"
                 : "message.astral_craft.board.deleted_data_only";
         player.sendSystemMessage(Component.translatable(messageKey).withStyle(ChatFormatting.YELLOW), true);
+    }
+
+    private static boolean canUseDismantler(ServerPlayer player) {
+        return player.isCreative() || player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
     }
 
     private static boolean holdsDismantler(ServerPlayer player) {

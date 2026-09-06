@@ -28,8 +28,9 @@ public class BoardDivinationScreen extends Screen {
 
     private static final Identifier EVENT_FRAME = AstralCraft.prefix("textures/item/template_handcard_event.png");
     private static final Identifier EVENT_FALLBACK_ART = AstralCraft.prefix("textures/block/platform_event.png");
-    private static final int FLIP_DELAY_TICKS = 20;
-    private static final int FLIP_TICKS = 36;
+    private static final int FLIP_DELAY_TICKS = 8;
+    private static final int FLIP_TICKS = 20;
+    private static final int MIN_RESOLVE_PRESENTATION_TICKS = 20 * 3 + 10;
     private static final int CARD_WIDTH = 104;
     private static final int CARD_HEIGHT = 150;
     private final UUID boardId;
@@ -41,6 +42,7 @@ public class BoardDivinationScreen extends Screen {
     private DivinationTarget target;
     private int revealTicks;
     private boolean submitted;
+    private boolean closeRequested;
 
     public BoardDivinationScreen(OpenBoardDivinationPayload payload) {
         super(Component.translatable("gui.astral_craft.board.divination.title"));
@@ -75,6 +77,7 @@ public class BoardDivinationScreen extends Screen {
                 screen.target = payload.target();
                 screen.revealTicks = 0;
                 screen.submitted = true;
+                screen.closeRequested = false;
                 return;
             }
             minecraft.setScreen(new BoardDivinationScreen(payload));
@@ -84,6 +87,10 @@ public class BoardDivinationScreen extends Screen {
     public static void closePresentation(UUID boardId) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof BoardDivinationScreen screen && screen.boardId.equals(boardId)) {
+            if (screen.selectedIndex >= 0 && screen.revealTicks < MIN_RESOLVE_PRESENTATION_TICKS) {
+                screen.closeRequested = true;
+                return;
+            }
             minecraft.setScreen(null);
         }
     }
@@ -98,6 +105,8 @@ public class BoardDivinationScreen extends Screen {
         super.tick();
         if (this.selectedIndex >= 0) {
             this.revealTicks++;
+            if (this.closeRequested && this.revealTicks >= MIN_RESOLVE_PRESENTATION_TICKS
+                    && Minecraft.getInstance().screen == this) Minecraft.getInstance().setScreen(null);
         } else if (this.timeoutTicks > 0) {
             this.timeoutTicks--;
         }
@@ -162,8 +171,10 @@ public class BoardDivinationScreen extends Screen {
         return super.mouseClicked(event, doubleClick);
     }
 
-    private void renderFlippingCard(GuiGraphicsExtractor graphics, OpenBoardDivinationPayload.Option option, int x, int y, float alpha) {
-        float progress = Mth.clamp((this.revealTicks - FLIP_DELAY_TICKS) / (float) FLIP_TICKS, 0.0F, 1.0F);
+    private void renderFlippingCard(GuiGraphicsExtractor graphics, OpenBoardDivinationPayload.Option option,
+                                    int x, int y, float alpha) {
+        float rawProgress = Mth.clamp((this.revealTicks - FLIP_DELAY_TICKS) / (float) FLIP_TICKS, 0.0F, 1.0F);
+        float progress = rawProgress * rawProgress * (3.0F - 2.0F * rawProgress);
         float widthScale = Math.abs(Mth.cos(progress * Mth.PI));
         int centerX = x + CARD_WIDTH / 2;
         graphics.pose().pushMatrix();
@@ -218,7 +229,7 @@ public class BoardDivinationScreen extends Screen {
     private void renderSelectedDescription(GuiGraphicsExtractor graphics, int cardY) {
         if (this.selectedIndex < 0 || this.selectedIndex >= this.options.size()) return;
         Component description = Component.translatable(this.options.get(this.selectedIndex).descriptionKey());
-        int maxWidth = Math.clamp(this.width - 40, 160, 360);
+        int maxWidth = Math.min(360, Math.max(160, this.width - 40));
         List<FormattedCharSequence> lines = this.font.split(description, maxWidth);
         int y = cardY + CARD_HEIGHT + 18;
         for (FormattedCharSequence line : lines) {
