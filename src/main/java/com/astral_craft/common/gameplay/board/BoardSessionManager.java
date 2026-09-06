@@ -541,8 +541,7 @@ public class BoardSessionManager {
     }
 
     public static int resolveIncomingDamage(ServerLevel level, BoardSession session, BoardParticipant participant, int damage) {
-        if (participant == null || damage <= 0 || isHospitalProtected(session, participant)
-                || BoardTutorialPolicy.protectedParticipant(session, participant)) return 0;
+        if (participant == null || damage <= 0 || isHospitalProtected(session, participant)) return 0;
         AstralPlayerStats stats = participant.stats();
         int resolved = stats.resolveIncomingDamage(Math.max(0, damage + stats.incomingDamageBonus()));
         AstralPlayerStats consumed = stats.consumeIncomingDamageBuffs();
@@ -556,8 +555,7 @@ public class BoardSessionManager {
         if (maybeSession.isEmpty() || !(entity.level() instanceof ServerLevel level)) return;
         BoardSession session = maybeSession.get();
         BoardParticipant participant = session.participantFor(entity).orElse(null);
-        if (participant == null || participant.knockedDownTurns() > 0
-                || BoardTutorialPolicy.protectedParticipant(session, participant)) return;
+        if (participant == null || participant.knockedDownTurns() > 0) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);
@@ -793,6 +791,7 @@ public class BoardSessionManager {
                 stats = stats.addCoins(PVP_INITIAL_STAR_COINS - stats.starCoins());
             }
             boolean tutorialParticipant = BoardTutorialPolicy.usesTutorialLoadout(session, participant);
+            stats = BoardTutorialPolicy.applyInitialStats(session, participant, stats);
             List<Identifier> hand = developerConfigured ? participant.hand()
                     : tutorialParticipant ? tutorialInitialHand() : randomInitialHand(level, 4 + level.getRandom().nextInt(2));
             int maxHandSize = developerConfigured ? participant.maxHandSize()
@@ -930,7 +929,7 @@ public class BoardSessionManager {
         }
 
         if (session.mechanics().timeBombSlot().filter(participant.slotUuid()::equals).isPresent()) {
-            beginTimeBombCheckRoll(level, session, participant, entity);
+            beginTimeBombCheckRoll(level, session, participant);
             return;
         }
 
@@ -994,22 +993,15 @@ public class BoardSessionManager {
         beginMovement(level, session, updated, total, revealTicks);
     }
 
-    private static void beginTimeBombCheckRoll(ServerLevel level, BoardSession session, BoardParticipant participant,
-                                               AstralCharacterEntity entity) {
+    private static void beginTimeBombCheckRoll(ServerLevel level, BoardSession session, BoardParticipant participant) {
         int result = Mth.nextInt(level.getRandom(), 1, 6);
-        AstralDiceEntity dice = new AstralDiceEntity(level, entity.getX(),
-                entity.getY() + entity.getBbHeight() + 0.95D, entity.getZ());
-        Identifier texture = participant.controllerUuid().map(level.getServer().getPlayerList()::getPlayer)
-                .map(DiceSkinPreferenceManager::selectedTexture).orElse(DiceSkinPreferenceManager.DEFAULT_TEXTURE);
-        dice.setTexture(texture);
-        dice.setBoardSessionId(session.id());
-        dice.setPresentationScale(1.45F);
-        dice.setRollingNumberAnimation(true);
-        dice.startRoll(1, 6, AstralDiceRollService.DEFAULT_ROLL_TICKS,
-                AstralDiceRollService.DEFAULT_SPIN_SPEED, result, result, 0, true, 0.0F, 0.0F);
-        level.addFreshEntity(dice);
-        long executeTick = AstralServerTickClock.now(level) + AstralDiceRollService.DEFAULT_ROLL_TICKS
-                + AstralDiceEntity.RESULT_HOLD_TICKS + 2L;
+        int rollTicks = AstralDiceRollService.DEFAULT_ROLL_TICKS;
+        int holdTicks = AstralDiceEntity.RESULT_HOLD_TICKS + 2;
+        BoardTimeBombRollPayload payload = new BoardTimeBombRollPayload(session.id(), result, rollTicks, holdTicks);
+        for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
+            PacketDistributor.sendToPlayer(viewer, payload);
+        }
+        long executeTick = AstralServerTickClock.now(level) + rollTicks + holdTicks;
         PENDING_TIME_BOMB_ROLLS.put(session.id(), new PendingTimeBombRoll(participant.slotUuid(), result, executeTick));
         session.setActionDeadlineTick(0L);
         session.setActionDurationTicks(0);
@@ -1746,8 +1738,7 @@ public class BoardSessionManager {
 
     public static void knockDownFromEffect(ServerLevel level, BoardSession session, UUID slotId) {
         BoardParticipant participant = session.participant(slotId).orElse(null);
-        if (participant == null || participant.knockedDown() || isHospitalProtected(session, participant)
-                || BoardTutorialPolicy.protectedParticipant(session, participant)) return;
+        if (participant == null || participant.knockedDown() || isHospitalProtected(session, participant)) return;
         int lostCoins = Math.max(0, (participant.stats().starCoins() + 1) / 2);
         BoardParticipant knocked = participant.knockDown();
         BoardWorldObjectService.dropCoins(level, session, participant.currentNodeKey(), lostCoins);
@@ -1764,13 +1755,6 @@ public class BoardSessionManager {
 
     private static void updateParticipant(ServerLevel level, BoardSession session, BoardParticipant participant, boolean animateCoinChange) {
         BoardParticipant previous = session.participant(participant.slotUuid()).orElse(null);
-        if (previous != null && BoardTutorialPolicy.protectedParticipant(session, previous)) {
-            if (participant.knockedDownTurns() > previous.knockedDownTurns()) {
-                participant = participant.withStats(previous.stats()).withKnockedDownTurns(previous.knockedDownTurns());
-            } else if (participant.stats().health() < previous.stats().health()) {
-                participant = participant.withStats(participant.stats().withHealth(previous.stats().health()));
-            }
-        }
         boolean damaged = previous != null && participant.stats().health() < previous.stats().health();
         boolean healed = previous != null && participant.stats().health() > previous.stats().health();
         boolean gainedStatus = previous != null && AstralCardEffects.gainedStatus(previous.stats(), participant.stats());

@@ -135,7 +135,6 @@ public class BoardDivinationScreen extends Screen {
                 this.renderFront(graphics, this.options.get(index), x, y, alpha, hovered);
             }
         }
-
         if (this.selectedIndex >= 0) {
             this.renderSelectedDescription(graphics, y);
         } else {
@@ -167,7 +166,6 @@ public class BoardDivinationScreen extends Screen {
             ClientPacketDistributor.sendToServer(new BoardDivinationChoicePayload(this.boardId, index));
             return true;
         }
-
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -186,7 +184,6 @@ public class BoardDivinationScreen extends Screen {
         } else {
             this.renderBack(graphics, x, y, alpha);
         }
-
         graphics.pose().popMatrix();
     }
 
@@ -200,7 +197,7 @@ public class BoardDivinationScreen extends Screen {
         int optionTextureSize = optionTexture.equals(EVENT_FALLBACK_ART) ? 32 : 256;
         graphics.blit(RenderPipelines.GUI_TEXTURED, optionTexture, x + 13, y + 16, 0.0F, 0.0F,
                 CARD_WIDTH - 26, CARD_WIDTH - 26, optionTextureSize, optionTextureSize, optionTextureSize, optionTextureSize, argb);
-        Component title = HandCardRenderHelper.ellipsize(this.font, Component.translatable(option.nameKey()), CARD_WIDTH - 14);
+        Component title = HandCardRenderHelper.ellipsize(this.font, Component.translatable(option.category().translationKey()), CARD_WIDTH - 14);
         graphics.text(this.font, title, x + CARD_WIDTH / 2 - this.font.width(title) / 2,
                 y + CARD_HEIGHT - 28, withAlpha(0xFFFFFF, alpha), true);
         if (hovered) graphics.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0x28FFFFFF);
@@ -254,5 +251,4 @@ public class BoardDivinationScreen extends Screen {
     private static boolean inside(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
-
 }

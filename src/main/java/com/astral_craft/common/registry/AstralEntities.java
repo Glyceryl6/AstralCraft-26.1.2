@@ -10,6 +10,7 @@ import com.astral_craft.common.entity.StarCoinEntity;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
 import com.astral_craft.common.entity.character.ExhibitionCharacterEntity;
 import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
+import com.astral_craft.common.entity.projectile.RisingCannonProjectileEntity;
 import com.astral_craft.common.entity.projectile.SlingshotProjectileEntity;
 import com.astral_craft.common.entity.projectile.SnowballAttackProjectileEntity;
 import com.astral_craft.common.entity.visual.FallingBrickEntity;
@@ -63,6 +64,10 @@ public final class AstralEntities {
     public static final Supplier<EntityType<FirecrackersProjectileEntity>> FIRECRACKERS_PROJECTILE = ENTITIES.registerEntityType(
             "firecrackers_projectile", FirecrackersProjectileEntity::new, MobCategory.MISC,
             builder -> builder.sized(0.35F, 0.35F).clientTrackingRange(96).updateInterval(1).noSave());
+
+    public static final Supplier<EntityType<RisingCannonProjectileEntity>> RISING_CANNON_PROJECTILE = ENTITIES.registerEntityType(
+            "rising_cannon_projectile", RisingCannonProjectileEntity::new, MobCategory.MISC,
+            builder -> builder.sized(0.36F, 0.36F).clientTrackingRange(96).updateInterval(1).noSave());
 
     public static final Supplier<EntityType<SlingshotProjectileEntity>> SLINGSHOT_PROJECTILE = ENTITIES.registerEntityType(
             "slingshot_projectile", SlingshotProjectileEntity::new, MobCategory.MISC,

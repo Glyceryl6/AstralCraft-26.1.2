@@ -17,7 +17,9 @@ import com.astral_craft.common.gameplay.board.BoardDeveloperService;
 import com.astral_craft.common.gameplay.board.BoardEventService;
 import com.astral_craft.common.blocks.platform.DivinePlatform;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.gameplay.board.BoardPanelSelectionService;
+import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.battle.BoardBattleService;
 import com.astral_craft.common.gameplay.chip.ChipSelectionService;
 import com.astral_craft.common.gameplay.handcard.AstralHandCardManager;
@@ -275,6 +277,18 @@ public class AstralServerPayloadHandlers {
     public static void handleBoardEncounter(BoardEncounterChoicePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) BoardSessionManager.chooseEncounter(player, payload.boardId(), payload.challenge());
+        });
+    }
+
+    public static void handleBoardTutorialHintDismiss(BoardTutorialHintDismissPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            BoardSessionManager.session(player.level(), payload.boardId()).ifPresent(session -> {
+                BoardParticipant participant = session.participantByController(player.getUUID()).orElse(null);
+                if (participant == null) return;
+                BoardTutorialPolicy.dismissHint(payload.boardId(), player.getUUID(), payload.hintId());
+                BoardBattleService.tutorialHintDismissed(player.level(), session, participant, payload.hintId());
+            });
         });
     }
 

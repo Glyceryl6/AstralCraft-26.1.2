@@ -36,7 +36,8 @@ public record OpenBoardDivinationPayload(UUID boardId, List<Option> options, boo
         return TYPE;
     }
 
-    public record Option(Identifier id, String nameKey, String descriptionKey, Identifier texture, BoardFortuneCategory category) {
+    public record Option(Identifier id, String nameKey, String descriptionKey, Identifier texture,
+                         BoardFortuneCategory category) {
         public static final StreamCodec<ByteBuf, Option> STREAM_CODEC = StreamCodec.composite(
                 Identifier.STREAM_CODEC, Option::id,
                 ByteBufCodecs.STRING_UTF8, Option::nameKey,
@@ -45,7 +46,7 @@ public record OpenBoardDivinationPayload(UUID boardId, List<Option> options, boo
                 BoardFortuneCategory.STREAM_CODEC, Option::category, Option::new);
 
         public static Option from(BoardFortuneDefinition definition) {
-            return new Option(definition.id(), definition.nameKey(), definition.descriptionKey(),
+            return new Option(definition.id(), definition.category().translationKey(), definition.descriptionKey(),
                     definition.texture(), definition.category());
         }
     }

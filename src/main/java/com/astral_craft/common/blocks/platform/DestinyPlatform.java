@@ -75,7 +75,7 @@ public class DestinyPlatform extends BasePlatform {
         int sourceEntityId = pawn == null ? -1 : pawn.getId();
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             PacketDistributor.sendToPlayer(viewer, new CardRevealPayload(definition.id().toString(), ItemStack.EMPTY,
-                    definition.category().cardFrameType(), Component.translatable(definition.nameKey()),
+                    definition.category().cardFrameType(), Component.translatable(definition.category().translationKey()),
                     Component.translatable(definition.descriptionKey()), definition.texture(),
                     CardBackPreferenceManager.selectedTexture(viewer), CardRevealPayload.ANIMATION_APPROACH,
                     REVEAL_TICKS, sourceEntityId, List.of(sourceEntityId), false));

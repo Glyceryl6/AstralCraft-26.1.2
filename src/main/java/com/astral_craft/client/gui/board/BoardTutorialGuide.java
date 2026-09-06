@@ -1,13 +1,18 @@
 package com.astral_craft.client.gui.board;
 
+import com.astral_craft.AstralCraft;
 import com.astral_craft.client.gui.components.AstralFancyButton;
+import com.astral_craft.common.network.c2s.BoardTutorialHintDismissPayload;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,6 +57,7 @@ public class BoardTutorialGuide {
             if (mouseX >= hitbox.x() && mouseX <= hitbox.x() + hitbox.width()
                     && mouseY >= hitbox.y() && mouseY <= hitbox.y() + hitbox.height()) {
                 dismissed.add(hitbox.hint());
+                ClientPacketDistributor.sendToServer(new BoardTutorialHintDismissPayload(id, hitbox.hint().id()));
                 return true;
             }
         }
@@ -121,6 +127,10 @@ public class BoardTutorialGuide {
 
         Hint(String translationKey) {
             this.translationKey = translationKey;
+        }
+
+        public Identifier id() {
+            return AstralCraft.prefix(this.name().toLowerCase(Locale.ROOT));
         }
 
         public String translationKey() {

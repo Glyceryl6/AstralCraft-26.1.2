@@ -777,6 +777,7 @@
   "message.astral_craft.board.spectator.unbound": "Stopped watching this board",
   "message.astral_craft.board.star_up": "%s reached star level %s!",
   "message.astral_craft.board.star_up_with_cost": "Spent %2$s coins and reached star level %1$s",
+  "message.astral_craft.board.star_up_without_cost": "Reached the %2$s coin threshold and advanced to star level %1$s (coins are not spent)",
   "message.astral_craft.board.start_healed": "Recovered %s health at the Start Point",
   "message.astral_craft.board.start_marker.added": "Set this panel as character spawn point %s (%s/%s)",
   "message.astral_craft.board.start_marker.empty": "No configured spawn point can be undone",
@@ -1207,7 +1208,9 @@
   "gui.astral_craft.board.tutorial.decision_time": "Decision time is unlimited during the tutorial. In a normal match, decisions have a time limit. Timing out makes the game act automatically and shortens your next decision window until you make a manual decision again.",
   "fortune.astral_craft.neutral.name": "Neutral",
   "gui.astral_craft.board.tutorial.character_selection_unlimited": "Tutorial: character selection has no time limit",
-  "gui.astral_craft.board.tutorial.protection": "Tutorial matches enable practice protection: you cannot take damage and are protected from card loss, Star Coin loss, negative status effects, and disruptive random relocation. Harmless events can still apply normally. These protections do not apply in normal matches.",
+  "gui.astral_craft.board.tutorial.protection": "Tutorial matches raise your base Defense to reduce early knockouts, but you can still take damage and be knocked down. Star Coin loss and player relocation still work normally. To help you learn the cards, random discards, hand transfer, and some negative statuses remain practice-protected. Normal matches provide no such protection.",
   "entity.astral_craft.board_monster_zombie": "Board Monster",
-  "message.astral_craft.board.dismantler.no_permission": "Only Creative-mode players or players with operator permissions can use the Board Dismantler."
+  "message.astral_craft.board.dismantler.no_permission": "Only Creative-mode players or players with operator permissions can use the Board Dismantler.",
+  "message.astral_craft.board.tutorial.hand_transfer_protected": "Hand Transfer triggered: in a normal match, players pass their entire hands around. The tutorial keeps your practice hand, so your cards are not transferred this time.",
+  "hud.astral_craft.board.time_bomb_roll": "Time Bomb Check"
 }

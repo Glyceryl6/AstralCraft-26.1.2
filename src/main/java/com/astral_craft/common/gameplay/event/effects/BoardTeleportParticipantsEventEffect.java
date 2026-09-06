@@ -39,8 +39,8 @@ public record BoardTeleportParticipantsEventEffect(Mode mode) implements BoardEv
     @Override
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
-            BoardEventTargets.Impact impact = this.mode == Mode.ROTATE_CURRENT
-                    ? BoardEventTargets.Impact.SAFE : BoardEventTargets.Impact.FORCED_RELOCATION;
+            BoardEventTargets.Impact impact = this.mode == Mode.HOSPITAL
+                    ? BoardEventTargets.Impact.FORCED_RELOCATION : BoardEventTargets.Impact.SAFE;
             List<BoardParticipant> participants = context.session().partyParticipants().stream()
                     .filter(participant -> BoardEventTargets.affected(context.session(), participant, impact)).toList();
             List<String> destinations = switch (this.mode) {

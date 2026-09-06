@@ -55,6 +55,7 @@ public class ModBusEventSubscriber {
         registrar.playToClient(OpenCardNumberSelectionPayload.TYPE, OpenCardNumberSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenChipSelectionPayload.TYPE, OpenChipSelectionPayload.STREAM_CODEC);
         registrar.playToClient(BoardHudSnapshotPayload.TYPE, BoardHudSnapshotPayload.STREAM_CODEC);
+        registrar.playToClient(BoardTimeBombRollPayload.TYPE, BoardTimeBombRollPayload.STREAM_CODEC);
         registrar.playToClient(BoardAnnouncementPayload.TYPE, BoardAnnouncementPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardCharacterSelectionPayload.TYPE, OpenBoardCharacterSelectionPayload.STREAM_CODEC);
         registrar.playToClient(OpenBoardMatchmakingModeSelectionPayload.TYPE, OpenBoardMatchmakingModeSelectionPayload.STREAM_CODEC);
@@ -120,6 +121,7 @@ public class ModBusEventSubscriber {
         registrar.playToServer(BoardDiscardPayload.TYPE, BoardDiscardPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardDiscard);
         registrar.playToServer(BoardEncounterChoicePayload.TYPE, BoardEncounterChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardEncounter);
         registrar.playToServer(BoardBattleActionPayload.TYPE, BoardBattleActionPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardBattle);
+        registrar.playToServer(BoardTutorialHintDismissPayload.TYPE, BoardTutorialHintDismissPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardTutorialHintDismiss);
         registrar.playToServer(BoardStartChoicePayload.TYPE, BoardStartChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardStartChoice);
         registrar.playToServer(BoardLotteryNumberPayload.TYPE, BoardLotteryNumberPayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardLotteryNumber);
         registrar.playToServer(BoardGambleChoicePayload.TYPE, BoardGambleChoicePayload.STREAM_CODEC, AstralServerPayloadHandlers::handleBoardGambleChoice);

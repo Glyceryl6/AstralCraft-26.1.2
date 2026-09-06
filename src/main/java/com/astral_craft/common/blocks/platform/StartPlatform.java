@@ -205,10 +205,10 @@ public class StartPlatform extends BasePlatform {
 
     private BenefitResult applyBenefits(ServerLevel level, BoardSession session, BoardParticipant participant) {
         var stats = participant.stats().heal(2);
-        int cost = nextStarCost(stats.stars());
-        boolean leveled = cost > 0 && stats.starCoins() >= cost && stats.stars() < 3;
+        int starCoinThreshold = nextStarCost(stats.stars());
+        boolean leveled = starCoinThreshold > 0 && stats.starCoins() >= starCoinThreshold && stats.stars() < 3;
         if (leveled) stats = session.mode() == BoardMode.PVE
-                ? stats.spendCoins(cost).addStars(1) : stats.addStars(1);
+                ? stats.spendCoins(starCoinThreshold).addStars(1) : stats.addStars(1);
         BoardParticipant updated = participant.withStats(stats);
         BoardSessionManager.updateParticipant(level, session, updated);
         ServerPlayer player = updated.controllerUuid().map(level.getServer().getPlayerList()::getPlayer).orElse(null);
@@ -219,8 +219,9 @@ public class StartPlatform extends BasePlatform {
         }
         if (player != null) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.start_healed", 2), true);
-            if (leveled) player.sendSystemMessage(Component.translatable(
-                    "message.astral_craft.board.star_up_with_cost", stats.stars(), cost).withStyle(ChatFormatting.GOLD), true);
+            if (leveled) player.sendSystemMessage(Component.translatable(session.mode() == BoardMode.PVE
+                    ? "message.astral_craft.board.star_up_with_cost" : "message.astral_craft.board.star_up_without_cost",
+                    stats.stars(), starCoinThreshold).withStyle(ChatFormatting.GOLD), true);
         }
         return new BenefitResult(updated, leveled);
     }

@@ -777,6 +777,7 @@
   "message.astral_craft.board.spectator.unbound": "已取消观战该棋盘",
   "message.astral_craft.board.star_up": "%s升到了%s星！",
   "message.astral_craft.board.star_up_with_cost": "消耗 %2$s 星币，升至 %1$s 星",
+  "message.astral_craft.board.star_up_without_cost": "达到 %2$s 星币门槛，升至 %1$s 星（不消耗星币）",
   "message.astral_craft.board.start_healed": "在起始点恢复了 %s 点生命值",
   "message.astral_craft.board.start_marker.added": "已设为第%s个角色起始点（%s/%s）",
   "message.astral_craft.board.start_marker.empty": "当前没有可撤回的角色起始点",
@@ -1207,7 +1208,9 @@
   "gui.astral_craft.board.tutorial.decision_time": "新手引导中不限制你的决策时间。正式对局中存在决策时限；超时后系统会自动行动，下一次决策时间也会缩短，直到你再次手动完成一次决策后恢复正常。",
   "fortune.astral_craft.neutral.name": "中性",
   "gui.astral_craft.board.tutorial.character_selection_unlimited": "新手引导：角色选择不限时",
-  "gui.astral_craft.board.tutorial.protection": "新手引导中会启用练习保护：你不会受到伤害，并会免疫弃牌、星币损失、负面状态及会明显打乱流程的随机位移等效果；部分不影响练习的事件仍会正常生效。正式对局中这些保护均不会生效。",
+  "gui.astral_craft.board.tutorial.protection": "新手引导会提高你的基础防御，减少因战斗过早退场的概率，但你仍会受到伤害并可能被击倒；星币损失和角色换位等机制也会正常生效。为方便熟悉手牌，随机弃牌、手牌转移和部分负面状态仍会受到练习保护。正式对局中不会提供这些保护。",
   "entity.astral_craft.board_monster_zombie": "棋盘怪物",
-  "message.astral_craft.board.dismantler.no_permission": "只有创造模式玩家或拥有管理员权限的玩家才能使用棋盘拆除器。"
+  "message.astral_craft.board.dismantler.no_permission": "只有创造模式玩家或拥有管理员权限的玩家才能使用棋盘拆除器。",
+  "message.astral_craft.board.tutorial.hand_transfer_protected": "触发了“手牌转移”：正式对局中玩家会交换整副手牌；新手引导会保留你的练习手牌，因此本次不会转移你的手牌。",
+  "hud.astral_craft.board.time_bomb_roll": "传递炸弹判定"
 }

@@ -382,17 +382,29 @@ public class BoardBattleScreen extends Screen {
         int attackX = layout.x() + layout.width() / 4 - horizontalOffset;
         int defenseX = layout.x() + layout.width() * 3 / 4 + horizontalOffset;
         int numberY = layout.modelTop() + 18;
-        if (this.view.scorePhase() || this.view.result()) {
+        if (this.view.result()) {
+            this.renderDiceValue(graphics, this.view.attackTotal(), attackX, numberY, true,
+                    this.settledDiceScale(true), this.diceTextColor(true, false));
+            this.renderDiceValue(graphics, this.view.defenseTotal(), defenseX, numberY, false,
+                    this.settledDiceScale(false), this.diceTextColor(false, false));
+            if (this.showEvadeResult()) {
+                Component evade = Component.translatable(this.view.evaded()
+                        ? "gui.astral_craft.board.evade_success" : "gui.astral_craft.board.evade_failed");
+                this.renderScaledCenteredText(graphics, evade, defenseX, numberY + 35,
+                        this.view.evaded() ? 0xFF79FF8A : 0xFFFF7373, 1.35F, true);
+            }
+            return;
+        }
+
+        if (this.view.scorePhase()) {
             Range attackRange = this.displayRange(true);
             Range defenseRange = this.displayRange(false);
             this.renderFraction(graphics, attackRange.minimum(), attackRange.maximum(), attackX, numberY,
                     true, this.attackerScoreFlashTicks);
             this.renderFraction(graphics, defenseRange.minimum(), defenseRange.maximum(), defenseX, numberY,
                     false, this.defenderScoreFlashTicks);
-            if (this.view.scorePhase()) {
-                this.renderReadyState(graphics, layout, true);
-                this.renderReadyState(graphics, layout, false);
-            }
+            this.renderReadyState(graphics, layout, true);
+            this.renderReadyState(graphics, layout, false);
             return;
         }
 
@@ -594,25 +606,12 @@ public class BoardBattleScreen extends Screen {
         float scale = 0.62F;
         int cardHeight = Math.round(CARD_H * scale);
         int cardsY = Math.min(layout.cardY() + 8, layout.y() + layout.height() - cardHeight - 8);
-        int horizontalOffset = this.numberHorizontalOffset(layout);
-        int valueY = layout.modelTop() + 42;
-        this.renderPanelValue(graphics, attackCenter - horizontalOffset, valueY, true, this.view.attackBase());
-        this.renderPanelValue(graphics, defenseCenter + horizontalOffset, valueY, false, this.view.defenseBase());
         this.renderPlayedCards(graphics, this.attackerPlayedCards, attackCenter, cardsY, true, scale);
         this.renderPlayedCards(graphics, this.defenderPlayedCards, defenseCenter, cardsY, false, scale);
     }
 
     private boolean showFinalBreakdown() {
         return this.view.result() || this.view.defenderRolling() && this.phaseAgeTicks >= FINAL_VALUE_STAGE_TICK;
-    }
-
-    private void renderPanelValue(GuiGraphicsExtractor graphics, int centerX, int y, boolean attack, int value) {
-        Component label = Component.translatable(attack ? "gui.astral_craft.board.attack" : "gui.astral_craft.board.defense")
-                .copy().append(Component.literal(": " + value));
-        int width = this.font.width(label) + 10;
-        graphics.fill(centerX - width / 2, y - 2, centerX + width / 2, y + 11, 0xC9000000);
-        graphics.text(this.font, label, centerX - this.font.width(label) / 2, y,
-                attack ? 0xFFFF7C85 : 0xFF75DEFF, true);
     }
 
     private void renderPlayedCards(GuiGraphicsExtractor graphics, List<PlayedCardView> cards,

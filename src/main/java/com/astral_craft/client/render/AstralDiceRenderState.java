@@ -14,7 +14,6 @@ public class AstralDiceRenderState extends EntityRenderState {
     public float mergeOffsetX;
     public float mergeOffsetZ;
     public float scale = 1.0F;
-    public float faceTextScale = 1.0F;
     public boolean flatNumber;
     public Identifier texture = DiceSkinPreferenceManager.DEFAULT_TEXTURE;
 

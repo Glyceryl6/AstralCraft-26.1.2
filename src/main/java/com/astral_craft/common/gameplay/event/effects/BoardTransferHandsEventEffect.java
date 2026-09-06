@@ -6,6 +6,7 @@ import com.astral_craft.common.gameplay.board.BoardEventContext;
 import com.astral_craft.common.gameplay.board.BoardEventTask;
 import com.astral_craft.common.gameplay.board.BoardParticipant;
 import com.astral_craft.common.gameplay.board.BoardSessionManager;
+import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.gameplay.event.AstralEventEffect;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.resources.Identifier;
@@ -33,6 +34,7 @@ public record BoardTransferHandsEventEffect() implements BoardEventEffect {
     @Override
     public void enqueue(BoardEventContext context, Deque<BoardEventTask> tasks) {
         tasks.addLast(BoardEventTask.action(() -> {
+            BoardTutorialPolicy.onHandTransferEvent(context.level(), context.session());
             List<UUID> order = context.session().turnOrder().stream().filter(slotId -> context.session().participant(slotId)
                     .filter(participant -> BoardEventTargets.affected(context.session(), participant,
                             BoardEventTargets.Impact.HAND_LOSS)).isPresent()).toList();

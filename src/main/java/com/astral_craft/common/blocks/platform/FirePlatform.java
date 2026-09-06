@@ -4,7 +4,7 @@ import com.astral_craft.common.gameplay.board.BoardTutorialPolicy;
 import com.astral_craft.common.util.AstralServerTickClock;
 import com.astral_craft.common.blocks.BasePlatform;
 import com.astral_craft.common.entity.character.AstralCharacterEntity;
-import com.astral_craft.common.entity.projectile.FirecrackersProjectileEntity;
+import com.astral_craft.common.entity.projectile.RisingCannonProjectileEntity;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.network.CardTargetCandidate;
 import com.astral_craft.common.network.s2c.CloseBoardPlatformTargetPayload;
@@ -125,8 +125,8 @@ public class FirePlatform extends BasePlatform {
         }
 
         this.closeSelector(level, source, session.id());
-        level.playSound(null, sourceEntity.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 1.0F, 0.75F);
-        level.addFreshEntity(new FirecrackersProjectileEntity(level, sourceEntity, targetEntity, 2, PROJECTILE_TICKS - 4));
+        level.playSound(null, targetEntity.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 0.75F, 0.65F);
+        level.addFreshEntity(new RisingCannonProjectileEntity(level, sourceEntity, targetEntity, 2, PROJECTILE_TICKS - 4));
         this.states.put(session.id(), new FireState(source.slotUuid(), target.slotUuid(), AstralServerTickClock.now(level) + PROJECTILE_TICKS));
         this.activateBoardEffect(session);
     }

@@ -24,6 +24,7 @@ import com.astral_craft.client.render.character.AstralPlayerCharacterRenderBridg
 import com.astral_craft.client.render.effect.FallingBrickRenderer;
 import com.astral_craft.client.render.effect.LaserStrikeRenderer;
 import com.astral_craft.client.render.projectile.FirecrackersRenderer;
+import com.astral_craft.client.render.projectile.CubeProjectileRenderer;
 import com.astral_craft.client.render.projectile.SlingshotProjectileRenderer;
 import com.astral_craft.client.render.projectile.SnowballAttackProjectileRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
@@ -42,6 +43,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.entity.ZombieRenderer;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Avatar;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
@@ -193,6 +195,8 @@ public class ClientEventSubscriber {
         event.registerEntityRenderer(AstralEntities.ASTRAL_CHARACTER.get(), AstralCharacterRenderer::new);
         event.registerEntityRenderer(AstralEntities.EXHIBITION_CHARACTER.get(), AstralCharacterRenderer::new);
         event.registerEntityRenderer(AstralEntities.FIRECRACKERS_PROJECTILE.get(), FirecrackersRenderer::new);
+        event.registerEntityRenderer(AstralEntities.RISING_CANNON_PROJECTILE.get(), context ->
+                new CubeProjectileRenderer<>(context, Identifier.withDefaultNamespace("textures/block/black_concrete.png"), 0.22F));
         event.registerEntityRenderer(AstralEntities.SLINGSHOT_PROJECTILE.get(), SlingshotProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.SNOWBALL_ATTACK_PROJECTILE.get(), SnowballAttackProjectileRenderer::new);
         event.registerEntityRenderer(AstralEntities.CUSTOM_PAINTING.get(), CustomPaintingRenderer::new);
@@ -208,6 +212,7 @@ public class ClientEventSubscriber {
         event.register(OpenCardNumberSelectionPayload.TYPE, CardNumberSelectionScreen::open);
         event.register(OpenChipSelectionPayload.TYPE, ChipSelectionScreen::open);
         event.register(BoardHudSnapshotPayload.TYPE, BoardHudOverlay::acceptSnapshot);
+        event.register(BoardTimeBombRollPayload.TYPE, BoardHudOverlay::showTimeBombRoll);
         event.register(BoardAnnouncementPayload.TYPE, BoardAnnouncementOverlay::show);
         event.register(OpenBoardCharacterSelectionPayload.TYPE, BoardCharacterSelectionScreen::open);
         event.register(OpenBoardMatchmakingModeSelectionPayload.TYPE, BoardMatchmakingModeSelectionScreen::open);

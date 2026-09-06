@@ -5,6 +5,7 @@ import com.astral_craft.client.gui.AstralStatusIconRenderer;
 import com.astral_craft.client.util.ClientAnimationClock;
 import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload;
 import com.astral_craft.common.network.s2c.BoardHudSnapshotPayload.PawnView;
+import com.astral_craft.common.network.s2c.BoardTimeBombRollPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -34,6 +35,7 @@ public class BoardHudOverlay {
     private static final int CURRENT_COLOR = 0xFF55FF70;
     private static final double STALE_AFTER_TICKS = 40.0D;
     private static final Map<UUID, TrackedSnapshot> SNAPSHOTS = new LinkedHashMap<>();
+    private static final Map<UUID, TimeBombRollState> TIME_BOMB_ROLLS = new LinkedHashMap<>();
 
     public static void acceptSnapshot(BoardHudSnapshotPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
@@ -46,9 +48,15 @@ public class BoardHudOverlay {
         });
     }
 
+    public static void showTimeBombRoll(BoardTimeBombRollPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> TIME_BOMB_ROLLS.put(payload.boardId(), new TimeBombRollState(payload.result(),
+                payload.rollTicks(), payload.holdTicks(), ClientAnimationClock.nowTicks())));
+    }
+
     public static void clear(UUID boardId) {
         if (boardId == null) return;
         SNAPSHOTS.remove(boardId);
+        TIME_BOMB_ROLLS.remove(boardId);
         BoardProtectionWorldRenderer.clear(boardId);
     }
 
@@ -58,7 +66,10 @@ public class BoardHudOverlay {
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.options.hideGui || SNAPSHOTS.isEmpty()) return;
+        if (minecraft.player == null || minecraft.options.hideGui) return;
+        TIME_BOMB_ROLLS.entrySet().removeIf(entry -> entry.getValue().expired());
+        renderTimeBombRoll(graphics, minecraft);
+        if (SNAPSHOTS.isEmpty()) return;
         SNAPSHOTS.values().removeIf(snapshot -> ClientAnimationClock.elapsedTicks(snapshot.receivedAtTick()) > STALE_AFTER_TICKS);
         BoardHudSnapshotPayload snapshot = SNAPSHOTS.values().stream().map(TrackedSnapshot::snapshot)
                 .min(Comparator.comparingDouble(value -> distanceToSqr(value.center(),
@@ -89,6 +100,30 @@ public class BoardHudOverlay {
                 objectiveY += 10;
             }
         }
+    }
+
+    private static void renderTimeBombRoll(GuiGraphicsExtractor graphics, Minecraft minecraft) {
+        TimeBombRollState state = TIME_BOMB_ROLLS.values().stream().findFirst().orElse(null);
+        if (state == null) return;
+        double age = ClientAnimationClock.elapsedTicks(state.startedAtTick());
+        int shown = age < state.rollTicks()
+                ? 1 + Math.floorMod((int) age / 2 * 5 + 1, 6) : state.result();
+        int centerX = graphics.guiWidth() / 2;
+        int centerY = Math.max(48, graphics.guiHeight() / 4);
+        int size = 62;
+        int left = centerX - size / 2;
+        int top = centerY - size / 2;
+        graphics.fill(left, top, left + size, top + size, 0xFFE7D7FF);
+        graphics.fill(left + 3, top + 3, left + size - 3, top + size - 3, 0xE80F1018);
+        Component value = Component.literal(Integer.toString(shown));
+        float scale = 4.2F;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, centerY);
+        graphics.pose().scale(scale, scale);
+        graphics.text(minecraft.font, value, -minecraft.font.width(value) / 2, -4, 0xFFFFFFFF, true);
+        graphics.pose().popMatrix();
+        graphics.centeredText(minecraft.font, Component.translatable("hud.astral_craft.board.time_bomb_roll"),
+                centerX, centerY + size / 2 + 7, 0xFFFFD778);
     }
 
     private static List<FormattedCharSequence> tutorialObjectiveLines(Minecraft minecraft, BoardHudSnapshotPayload snapshot, int width) {
@@ -151,6 +186,12 @@ public class BoardHudOverlay {
         double dy = center.getY() + 0.5D - y;
         double dz = center.getZ() + 0.5D - z;
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    private record TimeBombRollState(int result, int rollTicks, int holdTicks, double startedAtTick) {
+        private boolean expired() {
+            return ClientAnimationClock.elapsedTicks(this.startedAtTick) > this.rollTicks + this.holdTicks;
+        }
     }
 
     private record TrackedSnapshot(BoardHudSnapshotPayload snapshot, double receivedAtTick) {}

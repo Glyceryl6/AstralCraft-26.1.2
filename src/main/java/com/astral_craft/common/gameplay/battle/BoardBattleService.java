@@ -20,6 +20,7 @@ import com.astral_craft.common.registry.AstralBoardBuffs;
 import com.astral_craft.common.registry.AstralDataComponents;
 import com.astral_craft.common.stats.AstralPlayerStats;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -228,6 +229,22 @@ public class BoardBattleService {
         BoardSessionManager.resumeAfterBattle(level, session);
     }
 
+    public static void tutorialHintDismissed(ServerLevel level, BoardSession session, BoardParticipant participant, Identifier hintId) {
+        if (level == null || session == null || participant == null
+                || !BoardTutorialPolicy.ATTACK_ROLL_HINT.equals(hintId)) return;
+        BattleState state = ACTIVE.get(session.id());
+        if (state == null || state.phase() != BattlePhase.RESULT || !state.attackerSlot().equals(participant.slotUuid())
+                || state.roll() == null) return;
+        int normalTicks = state.roll().knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS;
+        long now = AstralServerTickClock.now(level);
+        long resultStartedAt = state.deadlineTick() - state.decisionDurationTicks();
+        long normalDeadline = Math.max(now + 1L, resultStartedAt + normalTicks);
+        if (state.deadlineTick() <= normalDeadline) return;
+        state = state.withPhase(BattlePhase.RESULT, normalDeadline, normalTicks);
+        ACTIVE.put(session.id(), state);
+        send(level, session, state);
+    }
+
     public static void participantBecameBot(ServerLevel level, BoardSession session, UUID slotId) {
         BattleState state = ACTIVE.get(session.id());
         if (state == null) return;
@@ -393,9 +410,9 @@ public class BoardBattleService {
         if (knockoutCoins > 0) {
             BoardWorldObjectService.awardCoinsNow(level, session, nextAttacker.slotUuid(), knockoutCoins);
         }
-        boolean tutorialParticipantInvolved = BoardTutorialPolicy.protectedParticipant(session, attacker)
-                || BoardTutorialPolicy.protectedParticipant(session, defender);
-        int resultTicks = tutorialParticipantInvolved
+        boolean tutorialResultHold = BoardTutorialPolicy.protectedParticipant(session, attacker)
+                && !BoardTutorialPolicy.hintDismissed(session, attacker, BoardTutorialPolicy.ATTACK_ROLL_HINT);
+        int resultTicks = tutorialResultHold
                 ? (roll.knockout() ? TUTORIAL_KNOCKOUT_RESULT_TICKS : TUTORIAL_RESULT_TICKS)
                 : (roll.knockout() ? KNOCKOUT_RESULT_TICKS : RESULT_TICKS);
         BattleState result = state.withPhase(BattlePhase.RESULT, AstralServerTickClock.now(level) + resultTicks, resultTicks);
