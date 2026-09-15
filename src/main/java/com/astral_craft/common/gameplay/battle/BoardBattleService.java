@@ -10,6 +10,7 @@ import com.astral_craft.common.gameplay.DamagePresentation;
 import com.astral_craft.common.gameplay.board.*;
 import com.astral_craft.common.gameplay.buff.BoardBuffInstance;
 import com.astral_craft.common.gameplay.character.CharacterManager;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition.BattlePresentation;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.items.cards.battle.HandcardPowerfulAttack;
 import com.astral_craft.common.items.cards.pvp.HandcardAllOrNothing;
@@ -585,6 +586,9 @@ public class BoardBattleService {
         if (attacker == null || defender == null) return;
         int attackerEntity = BoardEntityService.entityId(level, attacker);
         int defenderEntity = BoardEntityService.entityId(level, defender);
+        BattlePresentation battlePresentation = CharacterManager.INSTANCE.contains(attacker.characterId())
+                ? CharacterManager.INSTANCE.get(attacker.characterId()).skinOrDefault(attacker.skinName()).battlePresentation()
+                : BattlePresentation.NONE;
         for (ServerPlayer viewer : BoardSpectatorService.presentationViewers(level, session)) {
             BattleRole role = attacker.controlledBy(viewer.getUUID()) ? BattleRole.ATTACKER
                     : defender.controlledBy(viewer.getUUID()) ? BattleRole.DEFENDER : BattleRole.SPECTATOR;
@@ -603,7 +607,7 @@ public class BoardBattleService {
                     new BoardDecisionProgress(remaining, durationTicks,
                             progressParticipant.characterId(), progressParticipant.skinId()),
                     MAXIMUM_PVP_COST, playedCardViews(state.roll(), true),
-                    playedCardViews(state.roll(), false), battleView(state, attacker, defender)));
+                    playedCardViews(state.roll(), false), battlePresentation, battleView(state, attacker, defender)));
         }
     }
 

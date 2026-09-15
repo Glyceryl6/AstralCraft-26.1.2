@@ -1,6 +1,7 @@
 package com.astral_craft.common.network.s2c;
 
 import com.astral_craft.AstralCraft;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition.BattlePresentation;
 import com.astral_craft.common.network.BoardDecisionProgress;
 import com.astral_craft.common.network.BoardNetworkCodecs;
 import io.netty.buffer.ByteBuf;
@@ -13,6 +14,7 @@ import net.minecraft.util.ByIdMap;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.IntFunction;
 
@@ -21,7 +23,7 @@ public record OpenBoardBattlePayload(
         String attackerName, String defenderName, List<CombatCardView> cards,
         BattleRole role, BoardDecisionProgress decision,
         int maximumCost, List<PlayedCardView> attackerPlayedCards,
-        List<PlayedCardView> defenderPlayedCards, BattleView view)
+        List<PlayedCardView> defenderPlayedCards, BattlePresentation battlePresentation, BattleView view)
         implements CustomPacketPayload {
 
     private static final int MAXIMUM_COMBAT_CARDS = 7;
@@ -39,7 +41,7 @@ public record OpenBoardBattlePayload(
                 ByteBufCodecs.VAR_INT.decode(buffer),
                 PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).decode(buffer),
                 PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).decode(buffer),
-                BattleView.STREAM_CODEC.decode(buffer));
+                decodeBattlePresentation(buffer), BattleView.STREAM_CODEC.decode(buffer));
     }
 
     private void encode(RegistryFriendlyByteBuf buffer) {
@@ -54,6 +56,7 @@ public record OpenBoardBattlePayload(
         ByteBufCodecs.VAR_INT.encode(buffer, this.maximumCost);
         PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).encode(buffer, this.attackerPlayedCards);
         PlayedCardView.STREAM_CODEC.apply(ByteBufCodecs.list(MAXIMUM_COMBAT_CARDS)).encode(buffer, this.defenderPlayedCards);
+        encodeBattlePresentation(buffer, this.battlePresentation);
         BattleView.STREAM_CODEC.encode(buffer, this.view);
     }
 
@@ -61,7 +64,23 @@ public record OpenBoardBattlePayload(
         cards = List.copyOf(cards);
         attackerPlayedCards = List.copyOf(attackerPlayedCards);
         defenderPlayedCards = List.copyOf(defenderPlayedCards);
+        battlePresentation = battlePresentation == null ? BattlePresentation.NONE : battlePresentation;
         maximumCost = Math.max(0, maximumCost);
+    }
+
+    private static BattlePresentation decodeBattlePresentation(RegistryFriendlyByteBuf buffer) {
+        List<Identifier> backgrounds = Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(BattlePresentation.MAX_BACKGROUND_FRAMES)).decode(buffer);
+        int frameTicks = ByteBufCodecs.VAR_INT.decode(buffer);
+        Identifier bgm = ByteBufCodecs.BOOL.decode(buffer) ? Identifier.STREAM_CODEC.decode(buffer) : null;
+        return new BattlePresentation(backgrounds, frameTicks, Optional.ofNullable(bgm));
+    }
+
+    private static void encodeBattlePresentation(RegistryFriendlyByteBuf buffer, BattlePresentation presentation) {
+        BattlePresentation safePresentation = presentation == null ? BattlePresentation.NONE : presentation;
+        Identifier.STREAM_CODEC.apply(ByteBufCodecs.list(BattlePresentation.MAX_BACKGROUND_FRAMES)).encode(buffer, safePresentation.backgrounds());
+        ByteBufCodecs.VAR_INT.encode(buffer, safePresentation.frameTicks());
+        ByteBufCodecs.BOOL.encode(buffer, safePresentation.bgm().isPresent());
+        safePresentation.bgm().ifPresent(value -> Identifier.STREAM_CODEC.encode(buffer, value));
     }
 
     public int decisionTicks() {

@@ -27,7 +27,7 @@ public class AstralCharacterSkinBootstrap {
     public static CharacterSkinAddition skin(AstralCharacterDataCatalog.CharacterEntry character, AstralCharacterDataCatalog.SkinEntry skin) {
         return new CharacterSkinAddition(AstralCraft.prefix(character.id), skin.id(),
                 "character.astral_craft." + character.id + ".skin." + skin.id(),
-                texture(character.id, skin.id()), false, skin.rarity());
+                texture(character.id, skin.id()), false, skin.rarity(), skin.battlePresentation());
     }
 
     private static Identifier texture(String characterId, String skinId) {

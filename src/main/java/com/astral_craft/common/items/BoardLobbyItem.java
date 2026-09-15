@@ -25,11 +25,16 @@ public class BoardLobbyItem extends Item {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.not_registered"), true);
             return InteractionResult.FAIL;
         }
+
         if (session.phase() == BoardPhase.PLAYING) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.already_playing"), true);
             return InteractionResult.FAIL;
         }
-        if (session.phase() == BoardPhase.FINISHED) BoardSessionManager.resetForLobby(player.level(), session);
+
+        if (session.phase() == BoardPhase.FINISHED) {
+            BoardSessionManager.resetForLobby(player.level(), session);
+        }
+
         if (session.phase() != BoardPhase.READY) {
             player.sendSystemMessage(Component.translatable("message.astral_craft.board.matchmaking.busy"), true);
             return InteractionResult.FAIL;

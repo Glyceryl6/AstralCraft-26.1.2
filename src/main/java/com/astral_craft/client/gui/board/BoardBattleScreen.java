@@ -3,8 +3,10 @@ package com.astral_craft.client.gui.board;
 import com.astral_craft.client.gui.HandCardRenderHelper;
 import com.astral_craft.client.gui.components.AstralFancyButton;
 import com.astral_craft.client.gui.components.AstralFancyButton.ButtonStyle;
+import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.common.components.CardDefinition;
 import com.astral_craft.common.gameplay.DamagePresentation;
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition.BattlePresentation;
 import com.astral_craft.common.items.BaseHandCard;
 import com.astral_craft.common.network.c2s.BoardBattleActionPayload;
 import com.astral_craft.common.network.s2c.OpenBoardBattlePayload;
@@ -18,11 +20,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -88,6 +93,9 @@ public class BoardBattleScreen extends Screen {
     private boolean knockoutExplosionTriggered;
     private boolean attackerSixSoundPlayed;
     private boolean defenderSixSoundPlayed;
+    private BattlePresentation battlePresentation = BattlePresentation.NONE;
+    private SimpleSoundInstance battleMusic;
+    private int battleAgeTicks;
     private float renderPartialTick;
 
     public BoardBattleScreen(OpenBoardBattlePayload payload) {
@@ -148,6 +156,7 @@ public class BoardBattleScreen extends Screen {
         this.timeoutDurationTicks = Math.max(1, payload.decisionDurationTicks());
         this.characterId = payload.characterId();
         this.skinId = payload.skinId();
+        this.battlePresentation = payload.battlePresentation();
         this.maximumCost = Math.max(0, payload.maximumCost());
         this.attackerPlayedCards = payload.attackerPlayedCards().stream()
                 .map(card -> new PlayedCardView(card.stack(), card.bonus())).toList();
@@ -158,6 +167,16 @@ public class BoardBattleScreen extends Screen {
     @Override
     protected void init() {
         this.cardScroll = Math.clamp(this.cardScroll, 0.0F, this.maximumCardScroll(this.layout()));
+        this.startBattleMusic();
+    }
+
+    @Override
+    public void removed() {
+        if (this.battleMusic != null) {
+            Minecraft.getInstance().getSoundManager().stop(this.battleMusic);
+            this.battleMusic = null;
+        }
+        super.removed();
     }
 
     @Override
@@ -174,6 +193,7 @@ public class BoardBattleScreen extends Screen {
     public void tick() {
         super.tick();
         this.phaseAgeTicks++;
+        this.battleAgeTicks++;
         if (this.attackerHealthFlashTicks > 0) this.attackerHealthFlashTicks--;
         if (this.defenderHealthFlashTicks > 0) this.defenderHealthFlashTicks--;
         if (this.attackerScoreFlashTicks > 0) this.attackerScoreFlashTicks--;
@@ -240,7 +260,7 @@ public class BoardBattleScreen extends Screen {
 
     private void renderTutorial(GuiGraphicsExtractor graphics, Layout layout) {
         if (!BoardTutorialGuide.active(this.boardId) || this.role == BattleRole.SPECTATOR) return;
-        int width = Math.min(410, Math.max(180, layout.width() - 36));
+        int width = Math.clamp(layout.width() - 36, 180, 410);
         int x = layout.x() + 18;
         int bottom = Math.max(layout.y() + 118, layout.cardY() - 7);
         boolean attackRollVisible = this.role == BattleRole.ATTACKER && this.attackRollTutorialTicks > 0
@@ -296,6 +316,15 @@ public class BoardBattleScreen extends Screen {
     }
 
     private void renderArena(GuiGraphicsExtractor graphics, Layout layout) {
+        Identifier customBackground = this.battlePresentation.backgroundAt(this.battleAgeTicks);
+        if (customBackground != null && ScopedJpgTextureCache.isSupportedTexture(customBackground)) {
+            Identifier texture = ScopedJpgTextureCache.resolve(customBackground);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, layout.x(), layout.y(), 0.0F, 0.0F,
+                    layout.width(), layout.height(), layout.width(), layout.height(), layout.width(), layout.height(), 0xFFFFFFFF);
+            graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + layout.height(), 0x28000000);
+            graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + 3, 0xD0FFFFFF);
+            return;
+        }
         graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + layout.height(), 0xF014141C);
         graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(), layout.y() + 3, 0xD0FFFFFF);
         int arenaTop = layout.modelTop() + 18;
@@ -305,6 +334,16 @@ public class BoardBattleScreen extends Screen {
         graphics.fill(layout.x() + 18, arenaTop + 8, layout.x() + layout.width() - 18, arenaBottom - 7, 0xFFFF8B18);
         graphics.fill(layout.x() + 66, arenaTop + 18, layout.x() + layout.width() - 66, arenaBottom - 17, 0xFFFFC431);
         graphics.fill(layout.x() + 8, arenaBottom, i, arenaBottom + 4, 0xFF301A20);
+    }
+
+    private void startBattleMusic() {
+        if (this.battleMusic != null) return;
+        SoundManager soundManager = Minecraft.getInstance().getSoundManager();
+        this.battlePresentation.bgm().ifPresent(id -> {
+            if (soundManager.getSoundEvent(id) == null) return;
+            this.battleMusic = SimpleSoundInstance.forMusic(SoundEvent.createVariableRangeEvent(id));
+            soundManager.play(this.battleMusic);
+        });
     }
 
     private void renderHealth(GuiGraphicsExtractor graphics, int value, int centerX, int y, int flashTicks) {

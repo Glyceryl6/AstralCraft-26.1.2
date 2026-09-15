@@ -50,8 +50,10 @@ public class AstralCharacterRenderer<T extends AstralCharacterEntity> extends Mo
         state.rootPose = AstralGeoAnimationManager.INSTANCE.sample(state.animationSetKey, state.animationAction, "root", state.animationTimeSeconds);
         state.skin = new PlayerSkin(new ClientAsset.ResourceTexture(skin.texture()), null, null, PlayerModelType.SLIM, true);
         if (entity instanceof ExhibitionCharacterEntity exhibition) {
-            state.bodyRot = exhibition.displayYaw();
-            state.yRot = 0.0F;
+            if (!exhibition.facesLookingPlayer()) {
+                state.bodyRot = exhibition.displayYaw();
+                state.yRot = 0.0F;
+            }
             if (exhibition.customSkinEnabled()) {
                 PlayerSkin customSkin = this.customSkin(exhibition);
                 if (customSkin != null) {

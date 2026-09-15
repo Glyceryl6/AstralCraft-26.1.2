@@ -1,5 +1,7 @@
 package com.astral_craft.common.data.provider;
 
+import com.astral_craft.common.gameplay.character.skin.CharacterSkinDefinition.BattlePresentation;
+
 import java.util.List;
 
 public class AstralCharacterDataCatalog {
@@ -168,7 +170,15 @@ public class AstralCharacterDataCatalog {
 
     }
     
-    public record SkinEntry(String id, String enName, String zhName, String rarity) {}
+    public record SkinEntry(String id, String enName, String zhName, String rarity, BattlePresentation battlePresentation) {
+        public SkinEntry(String id, String enName, String zhName, String rarity) {
+            this(id, enName, zhName, rarity, BattlePresentation.NONE);
+        }
+
+        public SkinEntry {
+            battlePresentation = battlePresentation == null ? BattlePresentation.NONE : battlePresentation;
+        }
+    }
 
     public record SkinRarityEntry(String id, String enName, String zhName, String nameKey, int borderColor, int badgeColor, int textColor) {}
 
