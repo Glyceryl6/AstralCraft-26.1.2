@@ -63,8 +63,9 @@ public class AstralServerPayloadHandlers {
                 return;
             }
 
-            entity.applyConfiguration(payload.characterId(), payload.skinId(), payload.yaw(), payload.scale(), payload.customName(), payload.showName(),
-                    payload.speechText(), payload.customSkinEnabled(), payload.customSkinPlayer(), payload.customSkinSource());
+            entity.applyConfiguration(payload.characterId(), payload.skinId(), payload.x(), payload.y(), payload.z(), payload.yaw(), payload.scale(),
+                    payload.customName(), payload.showName(), payload.speechText(), payload.speechImage(), payload.faceLookingPlayer(),
+                    payload.customSkinEnabled(), payload.customSkinPlayer(), payload.customSkinSource());
         });
     }
 
