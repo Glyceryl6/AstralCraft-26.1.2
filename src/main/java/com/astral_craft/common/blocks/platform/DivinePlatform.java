@@ -54,11 +54,9 @@ public class DivinePlatform extends BasePlatform {
     }
 
     public static void choose(ServerPlayer player, UUID boardId, int selectedIndex) {
-        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> {
-            BasePlatform.activeBoardEffect(boardId).filter(DivinePlatform.class::isInstance)
-                    .map(DivinePlatform.class::cast).ifPresent(platform ->
-                            platform.choose(player, session, selectedIndex));
-        });
+        BoardSessionManager.session(player.level(), boardId).ifPresent(session -> BasePlatform.activeBoardEffect(boardId)
+                .filter(DivinePlatform.class::isInstance).map(DivinePlatform.class::cast)
+                .ifPresent(platform -> platform.choose(player, session, selectedIndex)));
     }
 
     @Override
@@ -69,6 +67,7 @@ public class DivinePlatform extends BasePlatform {
             BoardSessionManager.resumeMovementAfterPanel(level, session);
             return;
         }
+
         long now = AstralServerTickClock.now(level);
         if (execution.stage() == Stage.CHOOSING) {
             if (now < execution.deadlineTick()) return;
@@ -76,15 +75,18 @@ public class DivinePlatform extends BasePlatform {
             if (source != null && !BoardSessionManager.isAutomated(level, source)) {
                 BoardSessionManager.updateParticipant(level, session, source.recordTimedOutDecision());
             }
+
             this.resolve(level, session, execution, level.getRandom().nextInt(execution.options().size()));
             return;
         }
+
         if (now < execution.deadlineTick()) return;
         BoardParticipant source = session.participant(execution.sourceSlot()).orElse(null);
         BoardFortuneDefinition definition = execution.selectedDefinition();
         if (source != null && definition != null) {
             BoardFortuneService.apply(level, session, source, definition, execution.targetSlots());
         }
+
         EXECUTIONS.remove(session.id());
         BoardFortuneService.closePresentation(level, session);
         this.deactivateBoardEffect(session.id());

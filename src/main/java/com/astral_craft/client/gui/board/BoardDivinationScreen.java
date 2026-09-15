@@ -5,6 +5,7 @@ import com.astral_craft.client.gui.HandCardRenderHelper;
 import com.astral_craft.client.jpgloader.ScopedJpgTextureCache;
 import com.astral_craft.common.gameplay.fortune.BoardFortuneCategory;
 import com.astral_craft.common.gameplay.fortune.DivinationTarget;
+import com.astral_craft.common.text.AstralTextFormatter;
 import com.astral_craft.common.network.c2s.BoardDivinationChoicePayload;
 import com.astral_craft.common.network.s2c.OpenBoardDivinationPayload;
 import com.astral_craft.common.network.s2c.ResolveBoardDivinationPayload;
@@ -21,6 +22,7 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jspecify.annotations.NonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -135,9 +137,7 @@ public class BoardDivinationScreen extends Screen {
                 this.renderFront(graphics, this.options.get(index), x, y, alpha, hovered);
             }
         }
-        if (this.selectedIndex >= 0) {
-            this.renderSelectedDescription(graphics, y);
-        } else {
+        if (this.selectedIndex < 0) {
             Component instruction = Component.translatable(this.selectable
                     ? "gui.astral_craft.board.divination.choose" : "gui.astral_craft.board.divination.wait");
             graphics.centeredText(this.font, instruction, this.width / 2, y + CARD_HEIGHT + 18, 0xFFD7E4FF);
@@ -195,11 +195,19 @@ public class BoardDivinationScreen extends Screen {
         Identifier optionTexture = ScopedJpgTextureCache.isSupportedTexture(option.texture())
                 ? ScopedJpgTextureCache.resolve(option.texture()) : EVENT_FALLBACK_ART;
         int optionTextureSize = optionTexture.equals(EVENT_FALLBACK_ART) ? 32 : 256;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, optionTexture, x + 13, y + 16, 0.0F, 0.0F,
-                CARD_WIDTH - 26, CARD_WIDTH - 26, optionTextureSize, optionTextureSize, optionTextureSize, optionTextureSize, argb);
-        Component title = HandCardRenderHelper.ellipsize(this.font, Component.translatable(option.category().translationKey()), CARD_WIDTH - 14);
+        int artSize = CARD_WIDTH - 38;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, optionTexture, x + (CARD_WIDTH - artSize) / 2, y + 13, 0.0F, 0.0F,
+                artSize, artSize, optionTextureSize, optionTextureSize, optionTextureSize, optionTextureSize, argb);
+        Component title = HandCardRenderHelper.ellipsize(this.font, Component.translatable(option.nameKey()), CARD_WIDTH - 14);
         graphics.text(this.font, title, x + CARD_WIDTH / 2 - this.font.width(title) / 2,
-                y + CARD_HEIGHT - 28, withAlpha(0xFFFFFF, alpha), true);
+                y + 84, withAlpha(0xFFFFFF, alpha), true);
+        List<FormattedCharSequence> descriptionLines = this.wrappedLines(Component.translatable(option.descriptionKey()), CARD_WIDTH - 16, 4);
+        int textY = y + 98;
+        for (FormattedCharSequence line : descriptionLines) {
+            graphics.text(this.font, line, x + CARD_WIDTH / 2 - this.font.width(line) / 2,
+                    textY, withAlpha(0xE6E0F2, alpha), false);
+            textY += 10;
+        }
         if (hovered) graphics.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0x28FFFFFF);
     }
 
@@ -223,16 +231,15 @@ public class BoardDivinationScreen extends Screen {
         }
     }
 
-    private void renderSelectedDescription(GuiGraphicsExtractor graphics, int cardY) {
-        if (this.selectedIndex < 0 || this.selectedIndex >= this.options.size()) return;
-        Component description = Component.translatable(this.options.get(this.selectedIndex).descriptionKey());
-        int maxWidth = Math.min(360, Math.max(160, this.width - 40));
-        List<FormattedCharSequence> lines = this.font.split(description, maxWidth);
-        int y = cardY + CARD_HEIGHT + 18;
-        for (FormattedCharSequence line : lines) {
-            graphics.text(this.font, line, this.width / 2 - this.font.width(line) / 2, y, 0xFFE6E0F2, false);
-            y += 11;
+    private List<FormattedCharSequence> wrappedLines(Component component, int maxWidth, int maxLines) {
+        List<FormattedCharSequence> result = new ArrayList<>();
+        for (Component segment : AstralTextFormatter.lines(component)) {
+            for (FormattedCharSequence line : this.font.split(segment, maxWidth)) {
+                result.add(line);
+                if (result.size() >= maxLines) return result;
+            }
         }
+        return result;
     }
 
     private Identifier frameTexture(BoardFortuneCategory category) {
