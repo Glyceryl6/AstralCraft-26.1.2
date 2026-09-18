@@ -60,7 +60,8 @@ public class BoardLobbyService {
         if (!isSkinUnlocked(progress, definition, selectedSkin)) selectedSkin = preferredSkin(progress, definition);
         Identifier safeSkin = BoardParticipant.skinIdentifier(characterId, selectedSkin.id());
         LobbyState lobby = lobby(session.id());
-        LobbySelection selection = lobby.selection(player, characterId, safeSkin);
+        int preferredSlot = BoardMatchmakingService.selectionSlot(session.id(), player.getUUID());
+        LobbySelection selection = lobby.selection(player, characterId, safeSkin, preferredSlot);
         lobby.put(selection.withChoice(characterId, safeSkin, true, confirmed));
         if (!confirmed) {
             refreshScreens(player.level(), session);
@@ -81,7 +82,7 @@ public class BoardLobbyService {
         }
     }
 
-    public static void registerViewer(ServerPlayer player, BoardSession session) {
+    public static void registerViewer(ServerPlayer player, BoardSession session, int preferredSlot) {
         VIEWERS.computeIfAbsent(session.id(), ignored -> new LinkedHashSet<>()).add(player.getUUID());
         LobbyState lobby = lobby(session.id());
         BoardParticipant participant = session.participantByController(player.getUUID()).orElse(null);
@@ -89,7 +90,7 @@ public class BoardLobbyService {
         CharacterDefinition fallback = preferredCharacter(progress, session);
         Identifier fallbackSkin = BoardParticipant.skinIdentifier(fallback.id(), preferredSkin(progress, fallback).id());
         LobbySelection selection = lobby.selection(player, participant == null ? fallback.id() : participant.characterId(),
-                participant == null ? fallbackSkin : participant.skinId());
+                participant == null ? fallbackSkin : participant.skinId(), preferredSlot);
         if (participant != null) {
             lobby.put(selection.withChoice(participant.characterId(), participant.skinId(), true, true));
         }
@@ -127,7 +128,8 @@ public class BoardLobbyService {
         CharacterProgress progress = CharacterProgressManager.progress(player);
         CharacterDefinition fallback = preferredCharacter(progress, session);
         Identifier fallbackSkin = BoardParticipant.skinIdentifier(fallback.id(), preferredSkin(progress, fallback).id());
-        LobbySelection own = lobby.selection(player, fallback.id(), fallbackSkin);
+        int preferredSlot = BoardMatchmakingService.selectionSlot(session.id(), player.getUUID());
+        LobbySelection own = lobby.selection(player, fallback.id(), fallbackSkin, preferredSlot);
         BoardParticipant selected = session.participantByController(player.getUUID()).orElse(null);
         if (selected != null && !own.confirmed()) {
             own = own.withChoice(selected.characterId(), selected.skinId(), true, true);
@@ -285,14 +287,15 @@ public class BoardLobbyService {
 
         private final Map<UUID, LobbySelection> selections = new HashMap<>();
 
-        private LobbySelection selection(ServerPlayer player, Identifier fallbackCharacter, Identifier fallbackSkin) {
+        private LobbySelection selection(ServerPlayer player, Identifier fallbackCharacter, Identifier fallbackSkin, int preferredSlot) {
             LobbySelection existing = this.selections.get(player.getUUID());
             if (existing != null) return existing;
             Set<Integer> used = this.selections.values().stream().map(LobbySelection::slot).collect(Collectors.toSet());
             List<Integer> available = new ArrayList<>();
             for (int slot = 0; slot < BoardSessionManager.REQUIRED_PLAYERS; slot++)
                 if (!used.contains(slot)) available.add(slot);
-            int slot = available.isEmpty() ? this.selections.size() % BoardSessionManager.REQUIRED_PLAYERS
+            int slot = preferredSlot >= 0 && preferredSlot < BoardSessionManager.REQUIRED_PLAYERS && !used.contains(preferredSlot)
+                    ? preferredSlot : available.isEmpty() ? this.selections.size() % BoardSessionManager.REQUIRED_PLAYERS
                     : available.get(player.getRandom().nextInt(available.size()));
             LobbySelection created = new LobbySelection(player.getUUID(), slot, player.getScoreboardName(),
                     fallbackCharacter, fallbackSkin, false, false);

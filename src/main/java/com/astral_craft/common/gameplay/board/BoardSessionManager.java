@@ -623,6 +623,10 @@ public class BoardSessionManager {
     }
 
     private static void tickSession(ServerLevel level, BoardSession session) {
+        if (session.phase() == BoardPhase.READY) {
+            BoardMatchmakingService.tick(level, session);
+            return;
+        }
         if (session.phase() == BoardPhase.CHARACTER_SELECTION) {
             if (BoardDeveloperService.active(session.id())) {
                 if (!BoardDeveloperService.ownerOnline(level, session.id())) {
