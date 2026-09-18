@@ -61,6 +61,10 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_ENABLED = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CUSTOM_SKIN_PLAYER = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> DATA_CUSTOM_SKIN_SOURCE = SynchedEntityData.defineId(ExhibitionCharacterEntity.class, EntityDataSerializers.STRING);
+    private boolean clientPreviewPositionActive;
+    private double clientPreviewX;
+    private double clientPreviewY;
+    private double clientPreviewZ;
 
     public ExhibitionCharacterEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
@@ -91,6 +95,7 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
         this.getNavigation().stop();
         this.setDeltaMovement(Vec3.ZERO);
         if (!this.isNoAi() || !this.isInvulnerable() || !this.isNoGravity()) this.applyDisplayInvariants();
+        if (this.level().isClientSide() && this.clientPreviewPositionActive) this.applyClientPreviewPosition();
     }
 
     @Override
@@ -193,6 +198,24 @@ public class ExhibitionCharacterEntity extends AstralCharacterEntity {
     public boolean canPlayerConfigure(Player player) {
         if (player == null || player.distanceToSqr(this) > 64.0D) return false;
         return this.isConfigurationTool(player.getMainHandItem()) || this.isConfigurationTool(player.getOffhandItem());
+    }
+
+    public void setClientPreviewPosition(double x, double y, double z) {
+        if (!this.level().isClientSide() || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) return;
+        this.clientPreviewPositionActive = true;
+        this.clientPreviewX = x;
+        this.clientPreviewY = y;
+        this.clientPreviewZ = z;
+        this.applyClientPreviewPosition();
+    }
+
+    public void clearClientPreviewPosition() {
+        this.clientPreviewPositionActive = false;
+    }
+
+    private void applyClientPreviewPosition() {
+        this.setPos(this.clientPreviewX, this.clientPreviewY, this.clientPreviewZ);
+        this.setOldPosAndRot();
     }
 
     public float displayScale() {
