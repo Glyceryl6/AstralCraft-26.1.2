@@ -12,6 +12,12 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
+def modVersionValue = mod_version.toString()
+def networkProtocolVersion = network_protocol_version.toString()
+def semverPattern = ~/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?$/
+if (!(modVersionValue ==~ semverPattern)) throw new GradleException("mod_version must use MAJOR.MINOR.PATCH with an optional SemVer pre-release suffix: ${modVersionValue}")
+if (!(networkProtocolVersion ==~ /^[1-9]\d*$/)) throw new GradleException("network_protocol_version must be a positive integer: ${networkProtocolVersion}")
+
 sourceSets.main.resources {
     srcDir('src/generated/resources')
     exclude("**/*.bbmodel")
@@ -23,7 +29,7 @@ repositories {
 }
 
 base {
-    archivesName = mod_id
+    archivesName = "${mod_id}-neoforge-${minecraft_version}"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -84,6 +90,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_name               : mod_name,
             mod_license            : mod_license,
             mod_version            : mod_version,
+            network_protocol_version: network_protocol_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties
@@ -110,6 +117,31 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes(
+                'Implementation-Title': mod_name,
+                'Implementation-Version': modVersionValue,
+                'Minecraft-Version': minecraft_version,
+                'NeoForge-Version': neo_version,
+                'AstralCraft-Network-Protocol': networkProtocolVersion
+        )
+    }
+}
+
+tasks.register('versionInfo') {
+    group = 'help'
+    description = 'Prints the AstralCraft, Minecraft, NeoForge and network protocol versions.'
+    doLast {
+        println "AstralCraft: ${modVersionValue}"
+        println "Minecraft: ${minecraft_version}"
+        println "NeoForge: ${neo_version}"
+        println "Network protocol: ${networkProtocolVersion}"
+        println "Artifact: ${base.archivesName.get()}-${modVersionValue}.jar"
+    }
 }
 
 idea {

@@ -194,6 +194,14 @@ public class AstralServerPayloadHandlers {
         });
     }
 
+    public static void handleBoardMatchmakingCancel(BoardMatchmakingCancelPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                BoardMatchmakingService.cancelMatchmaking(player, payload.boardId(), payload.returnToSelection());
+            }
+        });
+    }
+
     public static void handleBoardCharacterSelectionExit(BoardCharacterSelectionExitPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
